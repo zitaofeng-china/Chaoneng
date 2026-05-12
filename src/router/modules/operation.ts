@@ -291,6 +291,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
             title: '资源池账户',
             buttonList: ['add', 'edit']
           }
+        },
+        {
+          path: 'financial_price',
+          component: () => import('@/operationView/SystemConfig/FinancialPrice.vue'),
+          name: 'FinancialPrice',
+          meta: {
+            title: '理财价格配置',
+            buttonList: ['edit']
+          }
         }
       ]
     }
