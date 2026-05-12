@@ -90,6 +90,14 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           meta: {
             title: '托管列表'
           }
+        },
+        {
+          path: 'resource_order',
+          component: () => import('@/operationView/OperationCenter/ResourceOrder/index.vue'),
+          name: 'ResourceOrder',
+          meta: {
+            title: '资源订单'
+          }
         }
       ]
     },
