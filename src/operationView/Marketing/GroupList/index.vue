@@ -7,8 +7,17 @@
         :fetch-data-api="fetchGroupList"
         :show-add-button="false"
         :action-column="actionColumn"
+        ref="searchTableRef"
       />
     </ContentWrap>
+
+    <!-- 发送消息弹窗 -->
+    <GroupMessageDialog
+      v-model="messageDialogVisible"
+      :current-group="currentGroup"
+      :bot-list="botList"
+      @success="handleMessageSuccess"
+    />
   </div>
 </template>
 
@@ -24,11 +33,17 @@ import type { FormSchema } from '@/components/Form'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { getGroupList, getGroupBotList } from '@/api/group'
 import type { GroupListParams } from '@/api/group/types'
+import GroupMessageDialog from './components/GroupMessageDialog.vue'
+
+// SearchTable 引用
+const searchTableRef = ref()
 
 // 机器人列表
 const botList = ref<Array<{ label: string; value: number }>>([])
 
-// 获取机器人列表
+// 消息弹窗相关
+const messageDialogVisible = ref(false)
+const currentGroup = ref<any>(null)
 const fetchBotList = async () => {
   try {
     const res = await getGroupBotList()
@@ -234,7 +249,15 @@ const fetchGroupList = async (params: any) => {
 }
 
 const handleViewDetail = (row: any) => {
-  ElMessage.info(`发送消息到群组: ${row.group_name}`)
+  currentGroup.value = row
+  messageDialogVisible.value = true
+}
+
+// 消息发送成功回调
+const handleMessageSuccess = () => {
+  ElMessage.success('消息发送成功')
+  // 刷新列表
+  searchTableRef.value?.reload()
 }
 
 // 组件挂载时获取机器人列表

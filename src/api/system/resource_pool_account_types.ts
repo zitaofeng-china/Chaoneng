@@ -7,7 +7,7 @@ export interface V2PoolListParams {
   current_page?: number // 当前页码
   keyword?: string // 关键字
   page_size?: number // 每页大小
-  kind?: number // 类型：1-TRX池, 2-USDT池, 3-能量池, 4-带宽池
+  kind?: number // 类型：1-TRX池, 2-USDT池, 3-能量池, 4-带宽池, 5-激活池, 6-带宽收购池, 7-能量收购池, 8-财务地址
   status?: number // 状态：1-启用, 2-禁用
 }
 
@@ -19,7 +19,7 @@ export interface V2PoolItem {
   created_at: number // 创建时间（Unix时间戳秒）
   updated_at: number // 更新时间（Unix时间戳秒）
   address: string // 地址
-  kind: number // 类型：1-TRX池, 2-USDT池, 3-能量池, 4-带宽池
+  kind: number // 类型：1-TRX池, 2-USDT池, 3-能量池, 4-带宽池, 5-激活池, 6-带宽收购池, 7-能量收购池, 8-财务地址
   status: number // 状态：1-启用, 2-禁用
   amount: string // 余额
   limit: string // 限额
@@ -55,7 +55,7 @@ export interface V2PoolListResponse {
  */
 export interface V2CreatePoolParams {
   address: string // 地址（必填）
-  kind: number // 类型：1-TRX池, 2-USDT池, 3-能量池, 4-带宽池（必填）
+  kind: number // 类型：1-TRX池, 2-USDT池, 3-能量池, 4-带宽池, 5-激活池, 6-带宽收购池, 7-能量收购池, 8-财务地址（必填）
   limit: number // 限额（必填）
   permission_name: string // 权限名称（必填）
 }

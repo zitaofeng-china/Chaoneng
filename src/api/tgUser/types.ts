@@ -118,6 +118,7 @@ export interface MassSendItemV1 {
   delete_sent: number // 删除上次发送的信息 Enum: [1, 2]
   fail_num: number // 失败数量
   files: string[] // 文件数组（图片/视频）
+  group_ids: string[]
   id: number // 唯一标识
   inner_buttons: InnerButton[] // 内联按钮数组
   kind: number // 信息类别：1-只发一次，2-周期发送
@@ -164,6 +165,7 @@ export interface SendGroupMessageParamsV1 {
   content: string // 消息内容（必填）
   delete_sent: number // 删除上次发送的信息 1-删除 2-不删除（必填）
   files: string[] // 文件URL数组（必填，可以为空数组）
+  group_ids: string[]
   inner_buttons: number[] // 内联按钮ID数组（必填，可以为空数组）
   period: number // 间隔发送周期，以小时为最小单位，为0表示只发一次（必填）
   send_at: number // 发送时间（必填，Unix 时间戳-秒）

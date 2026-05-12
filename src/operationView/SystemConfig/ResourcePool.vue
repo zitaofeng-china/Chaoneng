@@ -16,10 +16,6 @@
             <Icon icon="ep:plus" class="mr-5px" />
             新增
           </ElButton>
-          <!-- <ElButton type="danger" @click="handleBatchDelete">
-            <Icon icon="ep:delete" class="mr-5px" />
-            批量删除
-          </ElButton> -->
         </template>
       </SearchTable>
 
@@ -55,7 +51,10 @@ const resourceTypeMap = {
   2: 'USDT池子',
   3: '能量池子',
   4: '带宽池子',
-  5: '激活池子'
+  5: '激活池子',
+  6: '带宽收购池',
+  7: '能量收购池',
+  8: '财务地址'
 }
 
 const columns = ref<TableColumn[]>([
@@ -176,7 +175,10 @@ const searchSchema = reactive<FormSchema[]>([
         { label: 'USDT池子', value: 2 },
         { label: '能量池子', value: 3 },
         { label: '带宽池子', value: 4 },
-        { label: '激活池子', value: 5 }
+        { label: '激活池子', value: 5 },
+        { label: '带宽收购池', value: 6 },
+        { label: '能量收购池', value: 7 },
+        { label: '财务地址', value: 8 }
       ]
     }
   },

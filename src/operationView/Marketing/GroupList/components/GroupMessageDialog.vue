@@ -1,76 +1,23 @@
 <template>
-  <Dialog v-model="dialogVisible" :title="dialogTitle">
+  <Dialog v-model="dialogVisible" :title="dialogTitle" width="800px">
     <ElForm
       ref="formRef"
       :model="formData"
-      :rules="formRules"
       label-width="120px"
       style="max-height: 70vh; padding-right: 10px; overflow-y: auto"
     >
-      <!-- 机器人和接收用户在同一行 -->
-      <ElRow v-if="type === 'mass'" :gutter="20">
-        <ElCol :span="12">
-          <!-- 机器人选择器 -->
-          <BotSelector
-            v-model="formData.bot_ids"
-            :bot-list="botList"
-            :is-single-user="isSingleUser"
-            field-name="bot_ids"
-            @change="handleBotChange"
-          />
-        </ElCol>
-        <ElCol :span="12">
-          <!-- 接收用户选择器（只显示类型选择） -->
-          <RecipientSelector
-            v-model:filter-type="formData.filter_type"
-            v-model:user-list="formData.user_list"
-            :is-single-user="isSingleUser"
-            :is-multiple-bots="isMultipleBots"
-            :show-user-list="false"
-          />
-        </ElCol>
-      </ElRow>
+      <!-- 群组信息显示 -->
+      <ElFormItem label="目标群组：">
+        <div class="group-tag-container">
+          <ElTag type="info" size="large" :disable-transitions="false" class="group-tag">
+            {{ currentGroup?.group_name || '-' }} ({{ currentGroup?.group_id || '-' }})
+          </ElTag>
+        </div>
+      </ElFormItem>
 
-      <!-- TG用户ID列表（独立一行） -->
-      <RecipientSelector
-        v-if="type === 'mass' && formData.filter_type === 'user_custom'"
-        v-model:filter-type="formData.filter_type"
-        v-model:user-list="formData.user_list"
-        :is-single-user="isSingleUser"
-        :is-multiple-bots="isMultipleBots"
-        :show-filter-type="false"
-        :show-user-list="true"
-        :selected-bot-id="selectedBotIdForUserList"
-      />
-
-      <!-- 群组列表选择框 -->
-      <ElFormItem
-        v-if="type === 'mass' && formData.filter_type === 'user_custom'"
-        label="群组列表："
-        prop="group_ids"
-      >
-        <ElSelect
-          v-model="formData.group_ids"
-          multiple
-          filterable
-          clearable
-          placeholder="请选择群组（可多选）"
-          style="width: 100%"
-          :loading="groupListLoading"
-          @visible-change="handleGroupSelectVisibleChange"
-        >
-          <ElOption
-            v-for="group in groupList"
-            :key="group.id"
-            :label="`${group.group_name} (ID: ${group.group_id})`"
-            :value="group.group_id"
-          >
-            <div style="display: flex; justify-content: space-between; align-items: center">
-              <span>{{ group.group_name }}</span>
-              <span style=" font-size: 12px;color: #8492a6">ID: {{ group.group_id }}</span>
-            </div>
-          </ElOption>
-        </ElSelect>
+      <!-- 机器人选择（自动填充，禁用显示） -->
+      <ElFormItem label="发送机器人：">
+        <ElInput :value="currentBotName" disabled />
       </ElFormItem>
 
       <!-- 消息内容编辑器 -->
@@ -175,33 +122,7 @@
             </ElInputNumber>
           </ElFormItem>
         </ElCol>
-        <ElCol :span="12" v-if="!formData.enable_period">
-          <ElFormItem label="发送时间">
-            <template #label>
-              <ElTooltip
-                content="选择消息发送的具体时间，只能选择当前时间5分钟之后，不选择则立即发送"
-                placement="top"
-              >
-                <span class="cursor-help">发送时间 <span class="text-primary">ⓘ</span></span>
-              </ElTooltip>
-            </template>
-            <ElDatePicker
-              v-model="formData.send_at"
-              type="datetime"
-              placeholder="选择发送时间"
-              format="YYYY-MM-DD HH:mm:ss"
-              value-format="YYYY-MM-DD HH:mm:ss"
-              style="width: 100%"
-              :clearable="true"
-              :disabled-date="disabledDate"
-              :disabled-hours="disabledHours"
-              :disabled-minutes="disabledMinutes"
-              :default-value="defaultSendTime"
-              @focus="handleDatePickerFocus"
-            />
-          </ElFormItem>
-        </ElCol>
-        <ElCol :span="12" v-if="formData.enable_period">
+        <ElCol :span="12">
           <ElFormItem label="发送时间">
             <template #label>
               <ElTooltip
@@ -276,8 +197,8 @@ import {
   ElDivider,
   ElTooltip,
   ElDatePicker,
-  ElSelect,
-  ElOption
+  ElInput,
+  ElTag
 } from 'element-plus'
 import type { UploadUserFile, FormInstance } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
@@ -286,18 +207,14 @@ import { v1GetInnerButtonList } from '@/api/menu_list'
 import type { InnerButtonItem } from '@/api/menu_list/types'
 import { uploadFileV2 as uploadAPI } from '@/api/utils/upload'
 import { useHtmlInsert } from '@/hooks/web/useHtmlInsert'
-import { getGroupList } from '@/api/group'
-import type { GroupListItem } from '@/api/group/types'
 
 // 导入子组件
-import BotSelector from './MessageDialog/BotSelector.vue'
-import RecipientSelector from './MessageDialog/RecipientSelector.vue'
-import MessageContentEditor from './MessageDialog/MessageContentEditor.vue'
-import FileUploader from './MessageDialog/FileUploader.vue'
-import InlineButtonSelector from './MessageDialog/InlineButtonSelector.vue'
+import MessageContentEditor from '@/operationView/Agent/components/MessageDialog/MessageContentEditor.vue'
+import FileUploader from '@/operationView/Agent/components/MessageDialog/FileUploader.vue'
+import InlineButtonSelector from '@/operationView/Agent/components/MessageDialog/InlineButtonSelector.vue'
 import VideoPreviewDialog from '@/views/UserGroup/user_list/components/MessageDialog/components/VideoPreviewDialog.vue'
 import MessagePreviewDialog from '@/views/UserGroup/user_list/components/MessageDialog/components/MessagePreviewDialog.vue'
-import InlineButtonDialog from '../MessageList/components/InlineButtonDialog.vue'
+import InlineButtonDialog from '@/operationView/Agent/MessageList/components/InlineButtonDialog.vue'
 import type { MessagePreviewData } from '@/views/UserGroup/user_list/components/MessageDialog/components/MessagePreviewDialog.vue'
 
 const props = defineProps({
@@ -305,25 +222,13 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  type: {
-    type: String as () => 'mass' | 'single',
-    default: 'mass'
-  },
-  user: {
-    type: Object as () => Record<string, any>,
-    default: () => ({})
+  currentGroup: {
+    type: Object as () => Record<string, any> | null,
+    default: null
   },
   botList: {
     type: Array as () => Array<{ label: string; value: number | string }>,
     default: () => []
-  },
-  customTitle: {
-    type: String,
-    default: ''
-  },
-  isSingleUser: {
-    type: Boolean,
-    default: false
   }
 })
 
@@ -338,15 +243,18 @@ const dialogVisible = computed({
 })
 
 const dialogTitle = computed(() => {
-  return props.customTitle || '发送消息'
+  return `发送消息到群组: ${props.currentGroup?.group_name || ''}`
+})
+
+// 当前机器人名称
+const currentBotName = computed(() => {
+  if (!props.currentGroup) return ''
+  const bot = props.botList.find((b) => Number(b.value) === Number(props.currentGroup.bot_id))
+  return bot?.label || props.currentGroup.bot_user_name || `机器人 ID: ${props.currentGroup.bot_id}`
 })
 
 // 表单数据
 const formData = ref({
-  bot_ids: [] as number | string | (number | string)[] | undefined,
-  filter_type: 'user_custom' as 'user_custom' | 'all_user',
-  user_list: '',
-  group_ids: [] as number[], // 新增：群组ID列表
   content: '',
   period: 1,
   enable_period: false,
@@ -358,80 +266,6 @@ const formData = ref({
 const inlineButtonDialogVisible = ref(false)
 const checkList = ref<(number | string)[]>([])
 const menuList = ref<InnerButtonItem[]>([])
-
-// 群组列表管理
-const groupList = ref<GroupListItem[]>([])
-const groupListLoading = ref(false)
-
-// 是否选了多个机器人
-const isMultipleBots = computed(() => {
-  const val = formData.value.bot_ids
-  return Array.isArray(val) && val.length > 1
-})
-
-// 用于获取用户列表的机器人ID
-const selectedBotIdForUserList = computed(() => {
-  const val = formData.value.bot_ids
-  if (Array.isArray(val) && val.length === 1) {
-    return val[0]
-  }
-  if (!Array.isArray(val) && val !== undefined && val !== '') {
-    return val
-  }
-  return undefined
-})
-
-// 表单验证规则
-const formRules = computed(() => ({
-  user_list: [
-    {
-      required: false, // 不强制必填，使用自定义验证
-      trigger: ['blur', 'change'],
-      validator: (_rule: any, value: string, callback: Function) => {
-        // 如果不是自定义用户模式，或者是多机器人模式，不验证
-        if (formData.value.filter_type !== 'user_custom' || isMultipleBots.value) {
-          callback()
-          return
-        }
-
-        // 检查用户列表和群组列表是否都为空
-        const hasUserList = value && value.trim() !== ''
-        const hasGroupList = formData.value.group_ids && formData.value.group_ids.length > 0
-
-        // 如果两者都为空，报错
-        if (!hasUserList && !hasGroupList) {
-          callback(new Error('TG用户ID列表和群组列表至少需要填写一个'))
-        } else {
-          callback()
-        }
-      }
-    }
-  ],
-  group_ids: [
-    {
-      required: false, // 不强制必填，使用自定义验证
-      trigger: ['blur', 'change'],
-      validator: (_rule: any, value: number[], callback: Function) => {
-        // 如果不是自定义用户模式，或者是多机器人模式，不验证
-        if (formData.value.filter_type !== 'user_custom' || isMultipleBots.value) {
-          callback()
-          return
-        }
-
-        // 检查用户列表和群组列表是否都为空
-        const hasUserList = formData.value.user_list && formData.value.user_list.trim() !== ''
-        const hasGroupList = value && value.length > 0
-
-        // 如果两者都为空，报错
-        if (!hasUserList && !hasGroupList) {
-          callback(new Error('TG用户ID列表和群组列表至少需要填写一个'))
-        } else {
-          callback()
-        }
-      }
-    }
-  ]
-}))
 
 // 文件上传相关
 const fileListRef = ref<UploadUserFile[]>([])
@@ -455,7 +289,6 @@ const getContent = async () => formData.value.content || ''
 const setContent = async (newContent: string) => {
   formData.value.content = newContent
 }
-// 传递 textarea ref 以支持文本选择
 const textareaRef = computed(() => messageContentEditorRef.value?.textareaRef)
 const { renderFormattingButtons } = useHtmlInsert(getContent, setContent, textareaRef)
 
@@ -529,46 +362,6 @@ const handleImageRemove = (file: UploadUserFile) => {
   return true
 }
 
-// 机器人选择变化
-const handleBotChange = (value: number | string | (number | string)[]) => {
-  formData.value.bot_ids = value
-
-  // 当机器人选择变化时的逻辑
-  if (Array.isArray(value)) {
-    // 多选机器人
-    if (value.length > 1) {
-      // 切换到多选模式，强制设置为"全部用户"并清空用户列表
-      formData.value.filter_type = 'all_user'
-      formData.value.user_list = ''
-      formData.value.group_ids = [] // 清空群组选择
-      groupList.value = [] // 清空群组列表
-    } else if (value.length === 1) {
-      // 只有一个机器人，保持自定义用户模式，但清空用户列表（因为机器人可能变了）
-      formData.value.filter_type = 'user_custom'
-      formData.value.user_list = ''
-      formData.value.group_ids = [] // 清空群组选择
-      // 加载新机器人的群组列表
-      fetchGroupList(value[0])
-    } else {
-      // 没有选择机器人，清空用户列表
-      formData.value.user_list = ''
-      formData.value.group_ids = []
-      groupList.value = []
-    }
-  } else {
-    // 单选机器人，清空用户列表
-    formData.value.filter_type = 'user_custom'
-    formData.value.user_list = ''
-    formData.value.group_ids = []
-    // 加载新机器人的群组列表
-    if (value) {
-      fetchGroupList(value)
-    } else {
-      groupList.value = []
-    }
-  }
-}
-
 // 获取内联菜单列表
 const fetchMenuList = async () => {
   try {
@@ -585,45 +378,6 @@ const fetchMenuList = async () => {
   }
 }
 
-// 获取群组列表
-const fetchGroupList = async (botId?: number | string) => {
-  if (!botId) {
-    groupList.value = []
-    return
-  }
-
-  groupListLoading.value = true
-  try {
-    const res = await getGroupList({
-      bot_id: Number(botId),
-      current_page: 1,
-      page_size: 1000 // 获取所有群组
-    })
-    if (res.code === '000000' && res.data) {
-      groupList.value = res.data.list || []
-    } else {
-      groupList.value = []
-    }
-  } catch (error: any) {
-    groupList.value = []
-    console.error('获取群组列表失败:', error)
-    ElMessage.error('获取群组列表失败: ' + (error?.msg || '未知错误'))
-  } finally {
-    groupListLoading.value = false
-  }
-}
-
-// 处理群组选择框显示/隐藏
-const handleGroupSelectVisibleChange = (visible: boolean) => {
-  if (visible && groupList.value.length === 0) {
-    // 当下拉框打开且群组列表为空时，尝试加载群组列表
-    const botId = selectedBotIdForUserList.value
-    if (botId) {
-      fetchGroupList(botId)
-    }
-  }
-}
-
 // 打开内联按钮管理弹窗
 const openInlineButtonDialog = () => {
   inlineButtonDialogVisible.value = true
@@ -636,85 +390,53 @@ const handleCancel = () => {
 
 // 提交消息 - 显示预览
 const handleSubmit = async () => {
-  if (!formRef.value) {
-    ElMessage.error('表单实例获取失败')
+  if (!props.currentGroup) {
+    ElMessage.error('未选择群组')
     return
   }
 
-  await formRef.value.validate(async (valid) => {
-    if (!valid) return
+  // 准备预览数据
+  const previewData: MessagePreviewData = {}
 
-    // 准备预览数据
-    const previewData: MessagePreviewData = {}
+  // 机器人名称
+  previewData.botName = currentBotName.value
 
-    // 机器人名称
-    if (props.isSingleUser && props.user) {
-      const actualBotId = Number(props.user.bot_id)
-      const selectedBot = props.botList.find((bot) => bot.value === actualBotId)
-      previewData.botName = selectedBot?.label || `机器人 ID: ${actualBotId}`
-    } else {
-      const botId = formData.value.bot_ids
-      if (Array.isArray(botId)) {
-        previewData.botNames = botId.map((id) => {
-          const bot = props.botList.find((b) => b.value === id)
-          return bot?.label || `机器人 ID: ${id}`
-        })
-      } else {
-        const selectedBot = props.botList.find((bot) => bot.value === botId)
-        previewData.botName = selectedBot?.label || `机器人 ID: ${botId}`
-      }
-    }
+  // 群组信息
+  previewData.groupInfo = `群组: ${props.currentGroup.group_name} (ID: ${props.currentGroup.group_id})`
 
-    // 接收用户信息
-    if (formData.value.filter_type === 'all_user') {
-      previewData.recipientInfo = '全部用户'
-    } else {
-      const userCount = formData.value.user_list
-        ? formData.value.user_list.split(',').filter((id) => id.trim()).length
-        : 0
-      previewData.recipientInfo = `自定义用户 (${userCount} 人)`
-    }
+  // 消息内容
+  previewData.content = formData.value.content
 
-    // 群组信息
-    if (formData.value.group_ids && formData.value.group_ids.length > 0) {
-      const groupNames = formData.value.group_ids
-        .map((groupId) => {
-          const group = groupList.value.find((g) => g.group_id === groupId)
-          return group ? group.group_name : `群组ID: ${groupId}`
-        })
-        .join(', ')
-      previewData.groupInfo = `群组 (${formData.value.group_ids.length}个): ${groupNames}`
-    }
+  // 文件列表
+  if (fileListRef.value.length > 0) {
+    previewData.files = fileListRef.value.map((file) => ({
+      type: getFileType(file),
+      url: file.url || (file.raw ? URL.createObjectURL(file.raw) : ''),
+      name: file.name || ''
+    }))
+  }
 
-    // 消息内容
-    previewData.content = formData.value.content
+  // 内联按钮
+  if (checkList.value.length > 0) {
+    previewData.buttons = checkList.value
+      .map((id) => {
+        const menu = menuList.value.find((m) => m.id === id)
+        return menu ? { text: menu.text || '' } : null
+      })
+      .filter((btn) => btn !== null) as Array<{ text: string; url?: string }>
+  }
 
-    // 文件列表
-    if (fileListRef.value.length > 0) {
-      previewData.files = fileListRef.value.map((file) => ({
-        type: getFileType(file),
-        url: file.url || (file.raw ? URL.createObjectURL(file.raw) : ''),
-        name: file.name || ''
-      }))
-    }
-
-    // 内联按钮
-    if (checkList.value.length > 0) {
-      previewData.buttons = checkList.value
-        .map((id) => {
-          const menu = menuList.value.find((m) => m.id === id)
-          return menu ? { text: menu.text || '' } : null
-        })
-        .filter((btn) => btn !== null) as Array<{ text: string; url?: string }>
-    }
-
-    messagePreviewData.value = previewData
-    showMessagePreview.value = true
-  })
+  messagePreviewData.value = previewData
+  showMessagePreview.value = true
 }
 
 // 确认发送消息
 const handleConfirmSend = async () => {
+  if (!props.currentGroup) {
+    ElMessage.error('未选择群组')
+    return
+  }
+
   submitting.value = true
 
   try {
@@ -755,19 +477,6 @@ const handleConfirmSend = async () => {
       })
       .filter((id: number) => !isNaN(id))
 
-    // 确定实际的 bot_ids
-    let botIds: number[]
-    if (props.isSingleUser && props.user) {
-      botIds = [Number(props.user.bot_id)]
-    } else {
-      const botId = formData.value.bot_ids
-      if (Array.isArray(botId)) {
-        botIds = botId.map((id) => Number(id))
-      } else {
-        botIds = [Number(botId)]
-      }
-    }
-
     // 处理发送时间
     let sendAtTimestamp: number
     if (formData.value.send_at) {
@@ -777,7 +486,7 @@ const handleConfirmSend = async () => {
     }
 
     const apiParams: any = {
-      bot_ids: botIds,
+      bot_ids: [Number(props.currentGroup.bot_id)],
       content: formData.value.content,
       delete_sent: formData.value.delete_sent ? 1 : 2,
       files: uploadedFiles.length > 0 ? uploadedFiles : [],
@@ -787,41 +496,8 @@ const handleConfirmSend = async () => {
           ? formData.value.period
           : 1
         : 0,
-      send_at: sendAtTimestamp
-    }
-
-    // 如果是全部用户模式，传递空数组
-    if (formData.value.filter_type === 'all_user') {
-      apiParams.tg_user_ids = []
-      apiParams.group_ids = []
-    }
-    // 如果是自定义用户模式
-    else if (formData.value.filter_type === 'user_custom') {
-      // 检查用户列表和群组列表是否都为空
-      const hasUserList = formData.value.user_list && formData.value.user_list.trim() !== ''
-      const hasGroupList = formData.value.group_ids && formData.value.group_ids.length > 0
-
-      if (!hasUserList && !hasGroupList) {
-        ElMessage.error('TG用户ID列表和群组列表至少需要填写一个')
-        submitting.value = false
-        return
-      }
-
-      // 处理用户列表 - 只有在有值时才添加字段
-      if (hasUserList) {
-        const tgUserIdsArray = formData.value.user_list
-          .split(',')
-          .map((id: string) => Number(id.trim()))
-          .filter((id: number) => !isNaN(id) && id !== 0)
-        if (tgUserIdsArray.length > 0) {
-          apiParams.tg_user_ids = tgUserIdsArray
-        }
-      }
-
-      // 处理群组列表 - 只有在有值时才添加字段
-      if (hasGroupList) {
-        apiParams.group_ids = formData.value.group_ids
-      }
+      send_at: sendAtTimestamp,
+      group_ids: [Number(props.currentGroup.group_id)]
     }
 
     // 使用 v1 接口
@@ -846,31 +522,13 @@ watch(
   async (val) => {
     if (val) {
       await fetchMenuList()
-
-      // 如果是单个用户模式，自动填充信息
-      if (props.isSingleUser && props.user) {
-        formData.value.filter_type = 'user_custom'
-
-        const botInfo = props.botList.find((bot) => String(bot.value) === String(props.user.bot_id))
-        if (botInfo) {
-          formData.value.bot_ids = botInfo.value
-          formData.value.user_list = String(props.user.tg_user_id)
-        }
-      } else {
-        formData.value.filter_type = 'user_custom'
-      }
-
-      // 重置其他字段
+      // 重置字段
       checkList.value = []
       fileListRef.value = []
     } else {
       // 弹窗关闭时清空所有状态
       formRef.value?.resetFields()
       formData.value = {
-        bot_ids: [],
-        filter_type: 'user_custom',
-        user_list: '',
-        group_ids: [], // 清空群组选择
         content: '',
         period: 1,
         enable_period: false,
@@ -880,7 +538,6 @@ watch(
       menuList.value = []
       checkList.value = []
       fileListRef.value = []
-      groupList.value = [] // 清空群组列表
 
       // 清理视频预览的 blob URL
       if (videoPreviewUrl.value.startsWith('blob:')) {
@@ -908,48 +565,18 @@ watch(
   }
 )
 
-// 监听用户列表变化，触发群组列表验证
-watch(
-  () => formData.value.user_list,
-  () => {
-    if (formData.value.filter_type === 'user_custom' && !isMultipleBots.value) {
-      // 延迟验证，避免在输入过程中频繁提示
-      setTimeout(() => {
-        formRef.value?.validateField('group_ids', () => {})
-      }, 300)
-    }
-  }
-)
-
-// 监听群组列表变化，触发用户列表验证
-watch(
-  () => formData.value.group_ids,
-  () => {
-    if (formData.value.filter_type === 'user_custom' && !isMultipleBots.value) {
-      // 延迟验证，避免在选择过程中频繁提示
-      setTimeout(() => {
-        formRef.value?.validateField('user_list', () => {})
-      }, 300)
-    }
-  },
-  { deep: true }
-)
-
 // 日期时间选择器禁用逻辑
-// 禁用日期：禁用今天之前的日期
 const disabledDate = (time: Date) => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   return time.getTime() < today.getTime()
 }
 
-// 默认发送时间：当前时间
 const defaultSendTime = computed(() => {
   const now = new Date()
   return now
 })
 
-// 禁用小时：如果是今天，禁用当前小时之前的小时
 const disabledHours = () => {
   const selectedDate = formData.value.send_at ? new Date(formData.value.send_at) : null
   if (!selectedDate) return []
@@ -971,7 +598,6 @@ const disabledHours = () => {
   return []
 }
 
-// 禁用分钟：如果是今天且是当前小时，禁用当前时间+5分钟之前的分钟
 const disabledMinutes = (hour: number) => {
   const selectedDate = formData.value.send_at ? new Date(formData.value.send_at) : null
   if (!selectedDate) return []
@@ -983,7 +609,6 @@ const disabledMinutes = (hour: number) => {
     selectedDate.getDate() === now.getDate()
 
   if (isToday && hour === now.getHours()) {
-    // 当前时间 + 5分钟
     const minAllowedMinute = now.getMinutes() + 5
     const disabledMinutesList: number[] = []
     for (let i = 0; i < minAllowedMinute && i < 60; i++) {
@@ -994,13 +619,10 @@ const disabledMinutes = (hour: number) => {
   return []
 }
 
-// 处理日期选择器获得焦点事件
 const handleDatePickerFocus = () => {
-  // 如果当前没有选择时间，自动填充当前时间
   if (!formData.value.send_at) {
     const now = new Date()
     now.setMilliseconds(0)
-    // 格式化为 YYYY-MM-DD HH:mm:ss
     const year = now.getFullYear()
     const month = String(now.getMonth() + 1).padStart(2, '0')
     const day = String(now.getDate()).padStart(2, '0')
@@ -1017,6 +639,17 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.group-info-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.group-id-text {
+  font-size: 14px;
+  color: #909399;
+}
+
 /* 确保表单内容不会超出视口 */
 :deep(.el-dialog__body) {
   max-height: 70vh;
@@ -1064,16 +697,6 @@ onMounted(() => {
 /* 发送周期输入框居中 */
 :deep(.period-input-center .el-input__inner) {
   text-align: center;
-}
-
-/* 优化单选按钮组样式 */
-:deep(.el-radio-group) {
-  display: flex;
-  align-items: center;
-}
-
-:deep(.el-radio) {
-  margin-right: 24px;
 }
 
 /* 优化提示图标样式 */

@@ -21,6 +21,12 @@
         <div class="info-value">{{ previewData.recipientInfo }}</div>
       </div>
 
+      <!-- 群组信息 -->
+      <div v-if="previewData.groupInfo" class="preview-info-item">
+        <div class="info-label">发送群组</div>
+        <div class="info-value">{{ previewData.groupInfo }}</div>
+      </div>
+
       <!-- Telegram 风格消息预览 -->
       <div class="telegram-preview-section">
         <div class="section-label">消息预览：</div>
@@ -120,6 +126,7 @@ export interface MessagePreviewData {
   botName?: string
   botNames?: string[] // 多个机器人名称数组
   recipientInfo?: string
+  groupInfo?: string // 群组信息
   content?: string
   files?: Array<{ type: 'image' | 'video'; url: string; name: string }>
   buttons?: Array<{ text: string; url?: string }>
