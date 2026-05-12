@@ -125,7 +125,9 @@ const handleExport = async () => {
     const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
 
     // 构建导出参数，只包含搜索条件，不包含分页信息
-    const exportParams: any = {}
+    const exportParams: any = {
+      page_size: -1 // 导出所有数据
+    }
 
     // 搜索条件
     if (params.keyword) exportParams.keyword = params.keyword

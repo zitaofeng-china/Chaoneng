@@ -260,7 +260,12 @@ const handleSearch = (params) => {
 const handleExport = async () => {
   try {
     const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
-    await exportAgentRecharge(params as AgentRechargeQueryParams)
+    // 添加 page_size: -1 导出所有数据
+    const exportParams = {
+      ...params,
+      page_size: -1
+    }
+    await exportAgentRecharge(exportParams as AgentRechargeQueryParams)
   } catch (error) {
     handleErrorMessage(error, '导出失败')
   }

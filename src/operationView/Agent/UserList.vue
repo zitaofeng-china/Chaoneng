@@ -374,7 +374,9 @@ const handleExport = async () => {
   try {
     const params = await searchTableRef.value?.searchMethods.getFormData()
 
-    const exportParams: any = {}
+    const exportParams: any = {
+      page_size: -1 // 导出所有数据
+    }
 
     if (params?.keyword) exportParams.keyword = params.keyword
     if (params?.bot_id) exportParams.bot_id = Number(params.bot_id)

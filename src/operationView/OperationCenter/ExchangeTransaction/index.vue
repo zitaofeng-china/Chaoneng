@@ -71,7 +71,9 @@ const handleExport = async () => {
     }
 
     // 构建新接口参数
-    const apiParams: any = {}
+    const apiParams: any = {
+      page_size: -1 // 导出所有数据
+    }
 
     // 处理时间范围 - 转换为秒级时间戳
     if (params?.dateRange && params.dateRange.length === 2) {

@@ -587,7 +587,9 @@ const handleExport = async () => {
     }
 
     // 转换参数格式以适配新接口
-    const adaptedParams: any = {}
+    const adaptedParams: any = {
+      page_size: -1 // 导出所有数据
+    }
 
     // 关键字搜索
     if (params?.keyword) {

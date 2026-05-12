@@ -227,7 +227,10 @@ const fetchDataWrapper = async (
 const handleExport = async () => {
   try {
     const params = await searchTableRef.value?.searchMethods?.getFormData()
-    const apiParams = transformSearchParamsToApiParams(params || {})
+    const apiParams = {
+      ...transformSearchParamsToApiParams(params || {}),
+      page_size: -1 // 导出所有数据
+    }
     const res = await v2GetEnergyList(apiParams)
 
     if (res.code === '000000' && res.data?.list) {

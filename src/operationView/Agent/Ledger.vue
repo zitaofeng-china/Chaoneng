@@ -368,7 +368,9 @@ const handleExport = async () => {
     }
 
     // 构建导出参数，只包含搜索条件，不包含分页信息
-    const exportParams: any = {}
+    const exportParams: any = {
+      page_size: -1 // 导出所有数据
+    }
 
     if (params?.query) exportParams.keyword = params.query
     if (params?.order_type) exportParams.kinds = [Number(params.order_type)]
