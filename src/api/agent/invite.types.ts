@@ -13,28 +13,29 @@ export interface Pager {
  * 邀请记录列表查询参数
  */
 export interface InviteListQueryParams {
+  agent_id?: number // 代理ID
   current_page?: number // 页码
+  keyword?: string // 关键字搜索
+  order?: string // 排序参数，格式：column [ASC|DESC]，多字段用逗号分隔，ASC为升序，DESC为降序
   page_size?: number // 每页大小
-  keyword?: string // 关键字搜索（受邀人ID/受邀人/邀请人/代理名称/机器人用户名）
-  bot_id?: number // 机器人ID筛选
-  start_time?: number // 开始时间（Unix时间戳-秒）
-  end_time?: number // 结束时间（Unix时间戳-秒）
-  order?: string // 排序参数，格式：字段名 ASC/DESC
 }
 
 /**
  * 邀请记录列表项
  */
 export interface InviteRecordItem {
-  id: string // 邀请记录ID
-  invitee_id: string // 受邀人ID
-  invitee_name: string // 受邀人名称
-  promo_bot_name: string // 推广机器人用户名
-  inviter_name: string // 邀请人名称
-  agent_name: string // 代理名称
-  promo_link: string // 推广链接
-  reward_amount: number // 奖励金额
+  id: number // 邀请记录ID
   created_at: number // 创建时间（Unix时间戳-秒）
+  updated_at: number // 更新时间（Unix时间戳-秒）
+  agent_id: number // 代理ID
+  bot_id: number // 机器人ID
+  source_id: number // 邀请人ID（source）
+  target_id: number // 受邀人ID（target）
+  reward: string // 奖励金额
+  agent_name: string // 代理名称
+  bot_name: string // 机器人名称
+  source_tg_name: string // 邀请人TG名称
+  target_tg_name: string // 受邀人TG名称
 }
 
 /**
