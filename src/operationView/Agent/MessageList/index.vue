@@ -459,12 +459,38 @@ const tableColumns: TableColumn[] = [
   },
   {
     field: 'tg_user_ids',
-    label: 'TG用户ID',
-    width: 150,
+    label: '发送对象',
+    width: 180,
     formatter: (row) => {
-      if (!row.tg_user_ids || row.tg_user_ids.length === 0) return '全部用户'
-      if (row.tg_user_ids.length === 1) return String(row.tg_user_ids[0])
-      return `${row.tg_user_ids.length}个用户`
+      const hasUsers = row.tg_user_ids && row.tg_user_ids.length > 0
+      const hasGroups = row.group_ids && row.group_ids.length > 0
+
+      // 如果都没有，表示全部用户
+      if (!hasUsers && !hasGroups) {
+        return '全部用户'
+      }
+
+      const parts: string[] = []
+
+      // 处理用户
+      if (hasUsers) {
+        if (row.tg_user_ids.length === 1) {
+          parts.push(`用户${row.tg_user_ids[0]}`)
+        } else {
+          parts.push(`${row.tg_user_ids.length}个用户`)
+        }
+      }
+
+      // 处理群组
+      if (hasGroups) {
+        if (row.group_ids.length === 1) {
+          parts.push(`群组${row.group_ids[0]}`)
+        } else {
+          parts.push(`${row.group_ids.length}个群组`)
+        }
+      }
+
+      return parts.join(' + ')
     }
   },
   {
