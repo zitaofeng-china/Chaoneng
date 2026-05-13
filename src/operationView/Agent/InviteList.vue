@@ -136,9 +136,9 @@ const searchSchema = computed<FormSchema[]>(() => [
   {
     field: 'agent_id',
     component: 'Input' as const,
-    label: '代理ID',
+    label: '代理名称',
     componentProps: {
-      placeholder: '请输入代理ID',
+      placeholder: '请输入代理名称',
       clearable: true
     }
   },
