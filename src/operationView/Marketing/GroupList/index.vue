@@ -66,12 +66,9 @@ const searchSchema = reactive<FormSchema[]>([
   {
     field: 'keyword',
     component: 'Input',
-    label: {
-      text: '关键字',
-      tips: '支持群组ID/群组名称/机器人ID查询'
-    },
+    label: '关键字',
     componentProps: {
-      placeholder: '请输入关键字搜索',
+      placeholder: '请输入支持群组ID/群组名称搜索',
       clearable: true
     }
   },

@@ -21,9 +21,9 @@
 
       <Descriptions v-else :column="1" :schema="accountSchema" :data="userData" />
 
-      <!-- 代理消息提醒配置 -->
-      <ElDivider />
-      <NotificationConfig :account-id="userData.id" />
+      <!-- 代理消息提醒配置 待开发后续放行-->
+      <!-- <ElDivider /> -->
+      <!-- <NotificationConfig :account-id="userData.id" /> -->
     </ContentWrap>
 
     <!-- 修改密码弹窗 -->

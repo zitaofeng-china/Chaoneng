@@ -90,15 +90,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           meta: {
             title: '托管列表'
           }
-        },
-        {
-          path: 'resource_order',
-          component: () => import('@/operationView/OperationCenter/ResourceOrder/index.vue'),
-          name: 'ResourceOrder',
-          meta: {
-            title: '资源订单'
-          }
         }
+        // {
+        //   path: 'resource_order',
+        //   component: () => import('@/operationView/OperationCenter/ResourceOrder/index.vue'),
+        //   name: 'ResourceOrder',
+        //   meta: {
+        //     title: '资源订单'
+        //   }
+        // }
       ]
     },
     {
@@ -299,25 +299,25 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
             title: '资源池账户',
             buttonList: ['add', 'edit']
           }
-        },
-        {
-          path: 'financial_price',
-          component: () => import('@/operationView/SystemConfig/FinancialPrice.vue'),
-          name: 'FinancialPrice',
-          meta: {
-            title: '理财价格配置',
-            buttonList: ['edit']
-          }
-        },
-        {
-          path: 'resource_supplement_config',
-          component: () => import('@/operationView/SystemConfig/ResourceSupplementConfig.vue'),
-          name: 'ResourceSupplementConfig',
-          meta: {
-            title: '资源补充配置',
-            buttonList: ['add', 'edit']
-          }
         }
+        // ,{
+        //   path: 'financial_price',
+        //   component: () => import('@/operationView/SystemConfig/FinancialPrice.vue'),
+        //   name: 'FinancialPrice',
+        //   meta: {
+        //     title: '理财价格配置',
+        //     buttonList: ['edit']
+        //   }
+        // },
+        // {
+        //   path: 'resource_supplement_config',
+        //   component: () => import('@/operationView/SystemConfig/ResourceSupplementConfig.vue'),
+        //   name: 'ResourceSupplementConfig',
+        //   meta: {
+        //     title: '资源补充配置',
+        //     buttonList: ['add', 'edit']
+        //   }
+        // }
       ]
     }
   ]
