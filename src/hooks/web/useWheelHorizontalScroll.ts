@@ -1,7 +1,8 @@
 /**
  * 表格滚轮横向滚动 Hook
  *
- * 用于在表格上使用鼠标滚轮进行横向滚动
+ * 用于在表格上使用 Shift + 鼠标滚轮进行横向滚动
+ * 默认情况下，只有按住 Shift 键时滚轮才会横向滚动，不会与纵向滚动冲突
  *
  * @example
  * ```vue
@@ -15,7 +16,11 @@
  * import { useWheelHorizontalScroll } from '@/hooks/web/useWheelHorizontalScroll'
  *
  * const tableWrapperRef = ref<HTMLElement | null>(null)
+ * // 默认需要按住 Shift 键才能横向滚动
  * useWheelHorizontalScroll(tableWrapperRef)
+ *
+ * // 或者配置为不需要 Shift 键（旧行为）
+ * useWheelHorizontalScroll(tableWrapperRef, { requireShift: false })
  * </script>
  * ```
  */
@@ -38,10 +43,10 @@ export interface UseWheelHorizontalScrollOptions {
   speed?: number
 
   /**
-   * 是否在按住 Shift 时禁用（让浏览器原生横向滚动生效）
+   * 是否需要按住 Shift 键才能横向滚动
    * @default true
    */
-  disableOnShift?: boolean
+  requireShift?: boolean
 }
 
 /**
@@ -74,14 +79,21 @@ export function useWheelHorizontalScroll(
   const {
     scrollSelectors = ['.el-scrollbar__wrap', '.el-table__body-wrapper'],
     speed = 1,
-    disableOnShift = true
+    requireShift = true
   } = options
 
   const handleWheelScroll = (e: WheelEvent) => {
     if (!wrapperRef.value) return
 
-    // 如果用户按住 shift，浏览器本身已经会横向滚动，这里不重复处理
-    if (disableOnShift && e.shiftKey) return
+    // 如果需要按住 Shift 键才能横向滚动
+    if (requireShift) {
+      // 只有按住 Shift 键时才进行横向滚动
+      if (!e.shiftKey) return
+    } else {
+      // 如果不需要 Shift 键，则直接横向滚动（旧逻辑）
+      // 这种情况下，如果用户按住 shift，让浏览器原生处理
+      if (e.shiftKey) return
+    }
 
     // 查找第一个有横向滚动的容器
     const scrollWrapper = findHorizontalScrollContainer(wrapperRef.value, scrollSelectors)

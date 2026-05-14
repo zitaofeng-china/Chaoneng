@@ -220,15 +220,15 @@ export default defineComponent({
     const elTableRef = ref<ComponentRef<typeof ElTable>>()
     const tableWrapperRef = ref<HTMLElement | null>(null)
 
-    // 启用滚轮横向滚动
-    if (props.wheelScroll) {
-      useWheelHorizontalScroll(tableWrapperRef)
-    }
-
     // 注册
     onMounted(() => {
       const tableRef = unref(elTableRef)
       emit('register', tableRef?.$parent, elTableRef)
+
+      // 在组件挂载后启用滚轮横向滚动
+      if (props.wheelScroll && tableWrapperRef.value) {
+        useWheelHorizontalScroll(tableWrapperRef)
+      }
     })
 
     const pageSizeRef = ref(props.pageSize)
