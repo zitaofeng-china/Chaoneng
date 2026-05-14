@@ -113,12 +113,15 @@ const searchSchema = ref<FormSchema[]>([
   {
     field: 'keyword', // 使用新接口的 keyword 参数
     component: 'Input',
-    label: '关键字',
+    label: {
+      text: '关键字',
+      tips: '支持机器人ID/用户名/代理名称查询'
+    },
     colProps: {
       span: 12 // 增加输入框占用的栅格列数，默认是6
     },
     componentProps: {
-      placeholder: '请输入机器人ID/用户名/代理名称',
+      placeholder: '请输入关键字搜索',
       style: {
         width: '100%'
       }
@@ -144,30 +147,36 @@ const searchSchema = ref<FormSchema[]>([
 const columns = ref<TableColumn[]>([
   {
     field: 'id',
-    label: '机器人ID'
+    label: '机器人ID',
+    minWidth: 110
   },
   {
     field: 'user_name',
-    label: '机器人用户名'
+    label: '机器人用户名',
+    minWidth: 110
   },
   {
     field: 'agent_name',
-    label: '代理名称'
+    label: '代理名称',
+    minWidth: 100
   },
   {
     field: 'first_name',
     label: '机器人昵称',
+    minWidth: 100,
     formatter: (row: AgentBotItem) => {
       return <span>{row.first_name}</span>
     }
   },
   {
     field: 'tg_admin',
-    label: '管理员TG号'
+    label: '管理员TG号',
+    minWidth: 100
   },
   {
     field: 'user_count',
     label: '用户数量',
+    minWidth: 130,
     sortable: 'custom',
     slots: {
       default: (data: any) => {
@@ -186,11 +195,13 @@ const columns = ref<TableColumn[]>([
   {
     field: 'order_count',
     label: '交易订单数',
+    minWidth: 130,
     sortable: 'custom'
   },
   {
     field: 'status',
     label: '机器人状态',
+    minWidth: 100,
     formatter: (row: AgentBotItem) => {
       const status = row.status
       let text = '未知'
