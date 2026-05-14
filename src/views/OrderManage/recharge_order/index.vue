@@ -404,11 +404,38 @@ const columns = computed<TableColumn[]>(() => {
 // 搜索表单配置
 const searchSchema = [
   {
+    field: 'query',
+    component: 'Input' as const,
+    label: {
+      text: '关键词',
+      tips: '支持TG用户名/TG用户昵称/机器人名称/用户账号/用户邮箱查询'
+    },
+    componentProps: {
+      placeholder: '请输入关键字搜索'
+    }
+  },
+  {
     field: 'order_id',
     component: 'Input' as const,
     label: '订单号',
     componentProps: {
       placeholder: '请输入订单号'
+    }
+  },
+  {
+    field: 'receive_address',
+    component: 'Input' as const,
+    label: '收款地址',
+    componentProps: {
+      placeholder: '请输入收款地址'
+    }
+  },
+  {
+    field: 'pay_address',
+    component: 'Input' as const,
+    label: '支付地址',
+    componentProps: {
+      placeholder: '请输入支付地址'
     }
   },
   {
@@ -445,17 +472,6 @@ const searchSchema = [
     }
   },
   {
-    field: 'query',
-    component: 'Input' as const,
-    label: {
-      text: '关键词',
-      tips: '支持TG用户名/TG用户昵称/机器人名称/用户账号/用户邮箱查询'
-    },
-    componentProps: {
-      placeholder: '请输入关键字搜索'
-    }
-  },
-  {
     field: 'order_type',
     component: 'Select' as const,
     label: '订单类型',
@@ -466,22 +482,6 @@ const searchSchema = [
         { label: '充值USDT', value: 2 }
       ],
       placeholder: '请选择订单类型'
-    }
-  },
-  {
-    field: 'receive_address',
-    component: 'Input' as const,
-    label: '收款地址',
-    componentProps: {
-      placeholder: '请输入收款地址'
-    }
-  },
-  {
-    field: 'pay_address',
-    component: 'Input' as const,
-    label: '支付地址',
-    componentProps: {
-      placeholder: '请输入支付地址'
     }
   },
   {

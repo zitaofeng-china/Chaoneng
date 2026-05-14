@@ -341,24 +341,11 @@ const searchSchema = [
     field: 'keyword',
     component: 'Input' as const,
     label: {
-      text: '关键字',
+      text: '关键词',
       tips: 'TG用户名/机器人名称/用户账号/用户邮箱'
     },
     componentProps: {
       placeholder: '请输入关键词'
-    }
-  },
-  {
-    field: 'origin',
-    component: 'Select' as const,
-    label: '来源',
-    componentProps: {
-      options: [
-        { label: '全部', value: '' },
-        { label: 'H5', value: 2 },
-        { label: '机器人', value: 1 }
-      ],
-      placeholder: '请选择来源'
     }
   },
   {
@@ -383,6 +370,19 @@ const searchSchema = [
     label: '订单号',
     componentProps: {
       placeholder: '请输入订单号'
+    }
+  },
+  {
+    field: 'origin',
+    component: 'Select' as const,
+    label: '来源',
+    componentProps: {
+      options: [
+        { label: '全部', value: '' },
+        { label: 'H5', value: 2 },
+        { label: '机器人', value: 1 }
+      ],
+      placeholder: '请选择来源'
     }
   },
   {

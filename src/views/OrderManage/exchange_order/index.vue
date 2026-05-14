@@ -442,7 +442,7 @@ const searchSchema = [
   {
     field: 'query',
     component: 'Input' as const,
-    label: '关键字',
+    label: '机器人名称',
     componentProps: {
       placeholder: '请输入机器人名称'
     }
