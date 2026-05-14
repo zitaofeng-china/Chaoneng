@@ -278,6 +278,17 @@ const columns = computed(() => {
 // 搜索表单配置
 const searchSchema = computed<FormSchema[]>(() => [
   {
+    field: 'keyword',
+    component: 'Input' as const,
+    label: {
+      text: '关键词',
+      tips: '支持TG用户ID/TG用户名/TG用户昵称/用户账号/用户邮箱查询'
+    },
+    componentProps: {
+      placeholder: '请输入关键词搜索'
+    }
+  },
+  {
     field: 'bot_id',
     component: 'Select' as const,
     label: '机器人',
@@ -301,17 +312,6 @@ const searchSchema = computed<FormSchema[]>(() => [
       placeholder: '请选择来源',
       valueKey: 'value',
       labelKey: 'label'
-    }
-  },
-  {
-    field: 'keyword',
-    component: 'Input' as const,
-    label: {
-      text: '关键词',
-      tips: '支持TG用户ID/TG用户名/TG用户昵称/用户账号/用户邮箱查询'
-    },
-    componentProps: {
-      placeholder: '请输入关键字搜索'
     }
   }
 ])

@@ -120,17 +120,6 @@ const columns = ref<TableColumn[]>([
 
 const searchSchema = computed<FormSchema[]>(() => [
   {
-    field: 'bot_id',
-    component: 'Select' as const,
-    label: '机器人',
-    componentProps: {
-      options: botOptions.value,
-      placeholder: '请选择机器人',
-      valueKey: 'value',
-      labelKey: 'label'
-    }
-  },
-  {
     field: 'keyword',
     component: 'Input',
     label: {
@@ -140,6 +129,17 @@ const searchSchema = computed<FormSchema[]>(() => [
     componentProps: {
       placeholder: '请输入关键词搜索',
       clearable: true
+    }
+  },
+  {
+    field: 'bot_id',
+    component: 'Select' as const,
+    label: '机器人',
+    componentProps: {
+      options: botOptions.value,
+      placeholder: '请选择机器人',
+      valueKey: 'value',
+      labelKey: 'label'
     }
   }
 ])
