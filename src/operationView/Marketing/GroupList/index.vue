@@ -66,9 +66,12 @@ const searchSchema = reactive<FormSchema[]>([
   {
     field: 'keyword',
     component: 'Input',
-    label: '关键字',
+    label: {
+      text: '关键字',
+      tips: '支持群组ID/群组名称/机器人ID查询'
+    },
     componentProps: {
-      placeholder: '请输入群组ID/群组名称/机器人ID',
+      placeholder: '请输入关键字搜索',
       clearable: true
     }
   },
@@ -87,12 +90,13 @@ const searchSchema = reactive<FormSchema[]>([
     component: 'DatePicker',
     label: '时间范围',
     componentProps: {
-      type: 'daterange',
+      type: 'datetimerange',
       startPlaceholder: '开始日期',
       endPlaceholder: '结束日期',
-      format: 'YYYY-MM-DD',
-      valueFormat: 'YYYY-MM-DD',
-      style: { width: '240px' }
+      format: 'YYYY-MM-DD HH:mm:ss',
+      valueFormat: 'x',
+      style: { width: '240px' },
+      defaultTime: [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
     }
   }
 ])

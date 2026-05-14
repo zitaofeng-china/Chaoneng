@@ -98,6 +98,7 @@ const formSchema = reactive<FormSchema[]>([
     field: 'menu_name',
     component: 'Input' as const,
     label: '菜单名称',
+    minWidth: 130,
     componentProps: {
       placeholder: '请输入菜单名称'
     },
@@ -140,6 +141,7 @@ const columns: TableColumn[] = [
   {
     field: 'menu_name',
     label: '菜单名称',
+    minWidth: 150,
     slots: {
       default: (data: any) => {
         return h(
@@ -189,7 +191,7 @@ const columns: TableColumn[] = [
   {
     field: 'created_at',
     label: '创建时间',
-    width: 180,
+    minWidth: 170,
     sortable: 'custom',
     formatter: (row: any) => {
       return formatToDateTime(row.created_at)
@@ -198,7 +200,7 @@ const columns: TableColumn[] = [
   {
     field: 'updated_at',
     label: '更新时间',
-    width: 180,
+    minWidth: 170,
     sortable: 'custom',
     formatter: (row: any) => {
       return formatToDateTime(row.updated_at)
