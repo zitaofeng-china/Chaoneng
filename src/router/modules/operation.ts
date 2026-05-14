@@ -308,6 +308,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
             title: '理财价格配置',
             buttonList: ['edit']
           }
+        },
+        {
+          path: 'resource_supplement_config',
+          component: () => import('@/operationView/SystemConfig/ResourceSupplementConfig.vue'),
+          name: 'ResourceSupplementConfig',
+          meta: {
+            title: '资源补充配置',
+            buttonList: ['add', 'edit']
+          }
         }
       ]
     }
