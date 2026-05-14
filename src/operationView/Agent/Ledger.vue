@@ -210,7 +210,8 @@ const searchSchema = ref<FormSchema[]>([
       type: 'datetimerange',
       valueFormat: 'x',
       startPlaceholder: '开始日期',
-      endPlaceholder: '结束日期'
+      endPlaceholder: '结束日期',
+      defaultTime: [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
     }
   }
 ])
@@ -220,7 +221,7 @@ const columns = ref<TableColumn[]>([
   {
     field: 'order_num',
     label: '关联订单ID',
-    minWidth: 120,
+    minWidth: 170,
     formatter: (row: any) => (isEmpty(row.order_num) ? '-' : row.order_num),
     slots: {
       default: ({ row }: any) => {
@@ -265,21 +266,25 @@ const columns = ref<TableColumn[]>([
   {
     field: 'email',
     label: '代理邮箱',
+    minWidth: 180,
     formatter: (row: any) => row.email || '-'
   },
   {
     field: 'username',
     label: '代理名称',
+    minWidth: 120,
     formatter: (row: any) => row.username || '-'
   },
   {
     field: 'bot_name',
     label: '机器人名称',
+    minWidth: 130,
     formatter: (row: any) => row.bot_name || '-'
   },
   {
     field: 'describe',
     label: '交易类型',
+    minWidth: 120,
     formatter: (row: any) => {
       const typeMap = orderTypeMap()
       return typeMap[row.order_type] || row.describe || '-'
@@ -288,7 +293,7 @@ const columns = ref<TableColumn[]>([
   {
     field: 'amount',
     label: '金额变动',
-    width: '100px',
+    width: 100,
     formatter: (row: any) => {
       const value = parseFloat(row.amount)
       const absValue = Math.abs(value)
@@ -304,11 +309,13 @@ const columns = ref<TableColumn[]>([
   {
     field: 'after_amount',
     label: '交易后TRX余额',
+    minWidth: 140,
     formatter: (row: any) => row.after_amount || '-'
   },
   {
     field: 'status',
     label: '扣款状态',
+    minWidth: 100,
     formatter: (row: any) => {
       let type: 'success' | 'warning' | 'info' | 'danger' = 'info'
       const statusMap = {
@@ -338,6 +345,7 @@ const columns = ref<TableColumn[]>([
   {
     field: 'create_time',
     label: '扣款时间',
+    minWidth: 170,
     sortable: 'custom',
     formatter: (row: any) => (row.create_time ? formatToDateTime(row.create_time) : '-')
   }

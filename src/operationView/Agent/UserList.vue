@@ -107,19 +107,21 @@ const columns = computed(() => {
     {
       field: 'tg_user_id',
       label: 'TG用户ID',
-      width: 120,
+      minWidth: 120,
       formatter: (row) => (row.tg_user_id && row.tg_user_id !== 0 ? row.tg_user_id : '-'),
       hideWhen: 2
     },
     {
       field: 'tg_first_name',
       label: 'TG用户昵称',
+      minWidth: 130,
       formatter: (row) => row.tg_first_name || '-',
       hideWhen: 2
     },
     {
       field: 'tg_user_name',
       label: 'TG用户名',
+      minWidth: 120,
       slots: {
         default: ({ row }: any) => {
           if (!row.tg_user_name) return <span>-</span>
@@ -135,18 +137,21 @@ const columns = computed(() => {
     {
       field: 'username',
       label: '用户账号',
+      minWidth: 120,
       formatter: (row) => row.username || '-',
       hideWhen: 1
     },
     {
       field: 'email',
       label: '用户邮箱',
+      minWidth: 180,
       formatter: (row) => row.email || '-',
       hideWhen: 1
     },
     {
       field: 'bot_id',
       label: '机器人ID',
+      minWidth: 110,
       slots: {
         default: ({ row }: any) => {
           return (
@@ -160,11 +165,13 @@ const columns = computed(() => {
     {
       field: 'bot_user_name',
       label: '机器人用户名',
+      minWidth: 140,
       formatter: (row) => row.bot_user_name || '-'
     },
     {
       field: 'agent_name',
       label: '代理名称',
+      minWidth: 120,
       formatter: (row) => row.agent_name || '-'
     },
     {
@@ -183,6 +190,7 @@ const columns = computed(() => {
     {
       field: 'trx_balance',
       label: 'TRX余额',
+      minWidth: 110,
       sortable: 'custom',
       formatter: (row) => `${row.trx_balance || 0} TRX`
     },
@@ -190,20 +198,21 @@ const columns = computed(() => {
       field: 'usdt_balance',
       sortable: 'custom',
       label: 'USDT余额',
+      minWidth: 120,
       hidden: true,
       formatter: (row) => `${row.usdt_balance || 0} USDT`
     },
     {
       field: 'created_at',
       label: '创建时间',
-      width: 180,
+      minWidth: 170,
       sortable: 'custom',
       formatter: (row) => (row.created_at ? formatToDateTime(row.created_at * 1000) : '-')
     },
     {
       field: 'updated_at',
       label: '更新时间',
-      width: 180,
+      minWidth: 170,
       sortable: 'custom',
       formatter: (row) => (row.updated_at ? formatToDateTime(row.updated_at * 1000) : '-')
     },
@@ -283,7 +292,8 @@ const searchSchema = computed<FormSchema[]>(() => [
       type: 'datetimerange',
       valueFormat: 'x',
       startPlaceholder: '开始日期',
-      endPlaceholder: '结束日期'
+      endPlaceholder: '结束日期',
+      defaultTime: [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
     }
   }
 ])

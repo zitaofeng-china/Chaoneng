@@ -449,18 +449,18 @@ const tableColumns: TableColumn[] = [
   {
     field: 'bot_id',
     label: '机器人ID',
-    width: 120
+    minWidth: 110
   },
   {
     field: 'bot_name',
     label: '发送目标',
-    width: 150,
+    minWidth: 120,
     formatter: (row) => row.bot_name || '-'
   },
   {
     field: 'tg_user_ids',
     label: '发送对象',
-    width: 180,
+    minWidth: 180,
     formatter: (row) => {
       const hasUsers = row.tg_user_ids && row.tg_user_ids.length > 0
       const hasGroups = row.group_ids && row.group_ids.length > 0
@@ -496,6 +496,7 @@ const tableColumns: TableColumn[] = [
   {
     field: 'content',
     label: '消息内容',
+    minWidth: 200,
     formatter: (row) => {
       const content = row.content || ''
       return content.length > 50 ? content.substring(0, 50) + '...' : content || '—'
@@ -525,13 +526,13 @@ const tableColumns: TableColumn[] = [
   {
     field: 'send_at',
     label: '发送时间',
-    width: 180,
+    minWidth: 170,
     formatter: (row) => formatSentTime(row.send_at)
   },
   {
     field: 'time_diff',
     label: '距离上次发送',
-    width: 130,
+    minWidth: 130,
     formatter: (row) => {
       if (!row.send_at) return '—'
       const now = Date.now()
@@ -571,7 +572,7 @@ const tableColumns: TableColumn[] = [
   {
     field: 'period',
     label: '信息类别',
-    width: 120,
+    minWidth: 120,
     formatter: (row) => {
       if (row.period === null || row.period === 0 || row.period === 4294967295) return '只发一次'
       return `${row.period}小时`
@@ -580,7 +581,7 @@ const tableColumns: TableColumn[] = [
   {
     field: 'created_at',
     label: '创建时间',
-    width: 180,
+    minWidth: 170,
     sortable: 'custom',
     formatter: (row) =>
       row.created_at ? formatToDateTime(new Date(row.created_at).getTime()) : '-'
@@ -588,7 +589,7 @@ const tableColumns: TableColumn[] = [
   {
     field: 'action',
     label: '操作',
-    width: 350,
+    width: 300,
     fixed: 'right',
     slots: {
       default: ({ row }: { row: any }) => {

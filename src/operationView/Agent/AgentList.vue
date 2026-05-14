@@ -452,7 +452,8 @@ const searchSchema = ref<FormSchema[]>([
       type: 'datetimerange',
       valueFormat: 'x',
       startPlaceholder: '开始日期',
-      endPlaceholder: '结束日期'
+      endPlaceholder: '结束日期',
+      defaultTime: [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
     }
   }
 ])
@@ -472,7 +473,7 @@ const columns = computed<TableColumn[]>(() => [
   {
     field: 'email',
     label: '联系方式',
-    minWidth: '200px',
+    minWidth: 180,
     formatter: (row: AgentItem) => {
       const isEditing = editingEmailId.value === row.id
       if (isEditing) {
@@ -510,12 +511,13 @@ const columns = computed<TableColumn[]>(() => [
   {
     field: 'username',
     label: '代理名称',
+    minWidth: 120,
     formatter: (row: AgentItem) => row.username || '-'
   },
   {
     field: 'price_id',
     label: '代理等级',
-    minWidth: '150px',
+    minWidth: 130,
     slots: {
       header: () => {
         // 批量修改模式下，表头只显示下拉选择框
@@ -570,33 +572,38 @@ const columns = computed<TableColumn[]>(() => [
   {
     field: 'bot_count',
     label: '机器人数量',
+    minWidth: 110,
     formatter: (row: AgentItem) => row.bot_count ?? 0
   },
   {
     field: 'user_count',
     label: '总用户数',
+    minWidth: 100,
     formatter: (row: AgentItem) => row.user_count ?? 0
   },
   {
     field: 'trx_balance',
     label: 'TRX余额',
+    minWidth: 110,
     sortable: 'custom',
     formatter: (row: AgentItem) => row.trx_balance || '-'
   },
   {
     field: 'trx_income',
     label: 'TRX收入',
+    minWidth: 100,
     formatter: (row: AgentItem) => row.trx_income ?? '0'
   },
   {
     field: 'usdt_income',
     label: 'USDT收入',
+    minWidth: 110,
     formatter: (row: AgentItem) => row.usdt_income ?? '0'
   },
   {
     field: 'gift_bandwidth',
     label: '是否赠送带宽',
-    minWidth: '120px',
+    minWidth: 140,
     formatter: (row: AgentItem) => {
       return (
         <ElSwitch
@@ -612,7 +619,7 @@ const columns = computed<TableColumn[]>(() => [
   {
     field: 'status',
     label: '状态',
-    minWidth: '100px',
+    minWidth: 110,
     formatter: (row: AgentItem) => {
       return (
         <ElSwitch
@@ -628,13 +635,14 @@ const columns = computed<TableColumn[]>(() => [
   {
     field: 'created_at',
     label: '创建时间',
+    minWidth: 170,
     sortable: 'custom',
     formatter: (row: AgentItem) => (row.created_at ? formatToDateTime(row.created_at * 1000) : '-')
   },
   {
     field: 'action',
     label: '操作',
-    minWidth: '200px',
+    minWidth: 180,
     fixed: 'right',
     formatter: (row: AgentItem) => renderActionButtons(row)
   }
