@@ -14,6 +14,7 @@ export interface Pager {
  */
 export interface InviteListQueryParams {
   agent_id?: number // 代理ID
+  bot_id?: number // 机器人ID
   current_page?: number // 页码
   keyword?: string // 关键字搜索
   order?: string // 排序参数，格式：column [ASC|DESC]，多字段用逗号分隔，ASC为升序，DESC为降序

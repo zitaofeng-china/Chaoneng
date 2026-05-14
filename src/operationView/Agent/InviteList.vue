@@ -134,20 +134,11 @@ const searchSchema = computed<FormSchema[]>(() => [
     }
   },
   {
-    field: 'agent_id',
-    component: 'Input' as const,
-    label: '代理名称',
-    componentProps: {
-      placeholder: '请输入代理名称',
-      clearable: true
-    }
-  },
-  {
     field: 'keyword',
     component: 'Input',
     label: {
       text: '关键字',
-      tips: '受邀人ID/受邀人/邀请人/代理名称/机器人用户名'
+      tips: '受邀人ID/受邀人/邀请人/机器人名称/代理名称'
     },
     componentProps: {
       placeholder: '请输入关键字',
@@ -165,7 +156,7 @@ const fetchInviteList = async (params: any = {}) => {
     }
 
     if (params?.keyword) apiParams.keyword = params.keyword
-    if (params?.agent_id) apiParams.agent_id = Number(params.agent_id)
+    if (params?.bot_id) apiParams.bot_id = Number(params.bot_id)
 
     // 处理排序参数
     if (params?.order) {
@@ -178,7 +169,7 @@ const fetchInviteList = async (params: any = {}) => {
     const total = response.data?.pager?.total || response.data?.total || 0
 
     // 添加数据为空提示
-    const hasSearchCondition = !!(params?.keyword || params?.agent_id)
+    const hasSearchCondition = !!(params?.keyword || params?.bot_id)
     handleListMessage(list, hasSearchCondition, '邀请记录')
 
     return {
