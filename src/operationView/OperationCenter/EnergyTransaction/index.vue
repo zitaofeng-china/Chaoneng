@@ -170,7 +170,11 @@ const searchSchema = [
       type: 'datetimerange',
       valueFormat: 'x',
       startPlaceholder: '开始日期',
-      endPlaceholder: '结束日期'
+      endPlaceholder: '结束日期',
+      defaultTime: [
+        new Date(2000, 1, 1, 0, 0, 0), // 开始时间默认为 00:00:00
+        new Date(2000, 1, 1, 23, 59, 59) // 结束时间默认为 23:59:59
+      ]
     }
   }
 ]

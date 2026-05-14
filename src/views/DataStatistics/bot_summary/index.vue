@@ -222,11 +222,12 @@ const searchSchema = reactive<FormSchema[]>([
     label: '日期',
     component: 'DatePicker',
     componentProps: {
-      type: 'daterange',
-      valueFormat: 'YYYY-MM-DD',
+      type: 'datetimerange',
+      valueFormat: 'x',
       startPlaceholder: '开始日期',
       endPlaceholder: '结束日期',
-      clearable: true
+      clearable: true,
+      defaultTime: [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
     }
   }
 ])

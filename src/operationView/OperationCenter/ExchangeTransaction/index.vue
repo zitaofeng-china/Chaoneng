@@ -377,10 +377,11 @@ const searchSchema = reactive<FormSchema[]>([
     component: 'DatePicker',
     label: '创建时间',
     componentProps: {
-      type: 'daterange',
+      type: 'datetimerange',
       valueFormat: 'x',
       startPlaceholder: '开始日期',
-      endPlaceholder: '结束日期'
+      endPlaceholder: '结束日期',
+      defaultTime: [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
     }
   }
 ])

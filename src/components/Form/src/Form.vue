@@ -526,12 +526,34 @@ export default defineComponent({
 .@{elNamespace}-form--inline {
   :deep(.el-form-item__content) {
     & > :first-child {
-      min-width: 229.5px;
+      width: 229.5px !important;
+      max-width: 229.5px !important;
+      min-width: 229.5px !important;
+    }
+
+    .el-input,
+    .el-select,
+    .el-cascader {
+      width: 229.5px !important;
+      max-width: 229.5px !important;
+      min-width: 229.5px !important;
+    }
+
+    // 时间控件占用2个控件的宽度（229.5px * 2 + 间距）
+    .el-date-editor,
+    .el-date-picker,
+    .el-date-range-picker,
+    .el-datetime-picker {
+      width: 471px !important;
+      max-width: 471px !important;
+      min-width: 471px !important;
     }
   }
   .@{elNamespace}-input-number {
     // 229.5px是兼容el-input-number的最小宽度,
-    min-width: 229.5px;
+    width: 229.5px !important;
+    max-width: 229.5px !important;
+    min-width: 229.5px !important;
   }
 }
 </style>
