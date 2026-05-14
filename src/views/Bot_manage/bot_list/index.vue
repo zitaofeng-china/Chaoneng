@@ -432,8 +432,8 @@ const handleSubmit = async () => {
 const fetchBotList = async (params: any) => {
   try {
     const apiParams: any = {
-      current_page: params.page || 1,
-      page_size: params.limit || 10
+      current_page: params.current_page || 1,
+      page_size: params.page_size || 10
     }
 
     if (params.keyword) apiParams.keyword = params.keyword
