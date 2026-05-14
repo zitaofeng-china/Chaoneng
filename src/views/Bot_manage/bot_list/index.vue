@@ -98,10 +98,11 @@ const dialogType = ref<'add' | 'edit'>('add')
 
 // 表格列配置
 const columns = [
-  { field: 'id', label: '机器人ID' },
+  { field: 'id', label: '机器人ID', minWidth: 110 },
   {
     field: 'user_name',
     label: '机器人用户名',
+    minWidth: 140,
     slots: {
       default: (data: any) => {
         const username = data.row.user_name
@@ -120,11 +121,13 @@ const columns = [
   {
     field: 'first_name',
     label: '机器人昵称',
+    minWidth: 130,
     formatter: (row: any) => row.first_name || '-'
   },
   {
     field: 'status',
     label: '状态',
+    width: 100,
     slots: {
       default: (data: any) => {
         return (
@@ -140,10 +143,11 @@ const columns = [
   },
   {
     field: 'auto_renew',
+    minWidth: 110,
     slots: {
       header: () => {
         return (
-          <div>
+          <div style="display: inline-flex; align-items: center; white-space: nowrap;">
             自动续费
             <Tips content="当机器人余额不足时，将会自动续费" />
           </div>
@@ -164,6 +168,7 @@ const columns = [
   {
     field: 'user_count',
     label: '用户数量',
+    minWidth: 110,
     slots: {
       default: (data: any) => {
         return (
@@ -181,18 +186,20 @@ const columns = [
   {
     field: 'created_at',
     label: '创建时间',
+    minWidth: 170,
     sortable: 'custom',
     formatter: (row: any) => (row.created_at ? formatToDateTime(row.created_at * 1000) : '-')
   },
   {
     field: 'expired_at',
     label: '到期时间',
+    minWidth: 200,
     sortable: 'custom',
     formatter: (row: any) => (row.expired_at ? formatToDateTime(row.expired_at * 1000) : '-'),
     slots: {
       header: () => {
         return (
-          <div>
+          <div style="display: inline-flex; align-items: center; white-space: nowrap;">
             到期时间
             <Tips content="到期后，您的机器人将会被暂停使用" />
           </div>

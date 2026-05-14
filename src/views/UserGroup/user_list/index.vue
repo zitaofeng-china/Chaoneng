@@ -130,39 +130,42 @@ const columns = computed(() => {
     {
       field: 'tg_user_id',
       label: 'TG用户ID',
-      width: 120,
+      minWidth: 120,
       hideWhen: 2,
       formatter: (row) => (row.tg_user_id === 0 || !row.tg_user_id ? '-' : row.tg_user_id)
     },
     {
       field: 'tg_first_name',
       label: 'TG用户昵称',
+      minWidth: 130,
       hideWhen: 2,
       formatter: (row) => row.tg_first_name || '-'
     },
     {
       field: 'tg_user_name',
       label: 'TG用户名',
+      minWidth: 120,
       hideWhen: 2,
       formatter: (row) => row.tg_user_name || '-'
     },
     {
       field: 'username',
       label: '用户账号',
-      width: 150,
+      minWidth: 120,
       hideWhen: 1,
       formatter: (row) => row.username || '-'
     },
     {
       field: 'email',
       label: '用户邮箱',
-      width: 180,
+      minWidth: 180,
       hideWhen: 1,
       formatter: (row) => row.email || '-'
     },
     {
       field: 'bot_id',
       label: '机器人ID',
+      minWidth: 110,
       slots: {
         default: ({ row }) => {
           return (
@@ -175,7 +178,8 @@ const columns = computed(() => {
     },
     {
       field: 'bot_user_name',
-      label: '机器人用户名'
+      label: '机器人用户名',
+      minWidth: 140
     },
     {
       field: 'origin',
@@ -191,11 +195,13 @@ const columns = computed(() => {
     {
       field: 'trx_balance',
       label: 'TRX余额',
+      minWidth: 110,
       formatter: (row) => `${row.trx_balance || 0} TRX`
     },
     {
       field: 'usdt_balance',
       label: 'USDT余额',
+      minWidth: 120,
       hidden: true,
       formatter: (row) => `${row.usdt_balance || 0} USDT`
     },
@@ -203,14 +209,14 @@ const columns = computed(() => {
       field: 'created_at',
       label: '创建时间',
       sortable: 'custom',
-      width: 180,
+      minWidth: 170,
       formatter: (row) => (row.created_at ? formatToDateTime(row.created_at * 1000) : '-')
     },
     {
       field: 'updated_at',
       label: '更新时间',
       sortable: 'custom',
-      width: 180,
+      minWidth: 170,
       formatter: (row) => (row.updated_at ? formatToDateTime(row.updated_at * 1000) : '-')
     },
     {
