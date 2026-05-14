@@ -214,6 +214,7 @@ const actionColumn = {
   field: 'action',
   label: '操作',
   width: 160,
+  fixed: 'right',
   slots: {
     default: (data: any) => {
       const row = data.row
