@@ -86,13 +86,13 @@ const sharedFields: PriceField[] = [
   },
   {
     key: 'bandwidth_min_sell',
-    label: '带宽收益最低售卖数：',
+    label: '带宽最低售卖数：',
     placeholder: '请输入时长',
     integer: true
   },
   {
     key: 'energy_min_sell',
-    label: '能量收益最低售卖数：',
+    label: '能量最低售卖数：',
     placeholder: '请输入时长',
     integer: true
   }

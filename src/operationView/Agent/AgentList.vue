@@ -517,7 +517,7 @@ const columns = computed<TableColumn[]>(() => [
   {
     field: 'price_id',
     label: '代理等级',
-    minWidth: 130,
+    minWidth: 145,
     slots: {
       header: () => {
         // 批量修改模式下，表头只显示下拉选择框
