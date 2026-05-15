@@ -79,7 +79,7 @@ export interface V2SettlementRecordItem {
   settlement_period: string // 结算周期（如：按日结算、每天结算一次）
   payable_amount: number // 应付金额（TRX）
   paid_amount: number // 实付金额（TRX）
-  settlement_status: number // 结算状态：1-待结算，2-已结算，3-结算失败
+  settlement_status: number // 结算状态原始值：1-待结算，2-已结算，3-结算失败；前端统一展示为成功/失败
   settlement_time?: number // 结算时间（Unix时间戳-秒）
   transaction_hash?: string // 交易哈希
   remark?: string // 备注
