@@ -52,9 +52,9 @@ const resourceTypeMap = {
   3: '能量池子',
   4: '带宽池子',
   5: '激活池子',
-  6: '带宽收购池',
-  7: '能量收购池',
-  8: '财务地址'
+  6: '能量接收池子',
+  7: '带宽接收池子',
+  8: '财务池子'
 }
 
 const columns = ref<TableColumn[]>([
@@ -176,9 +176,9 @@ const searchSchema = reactive<FormSchema[]>([
         { label: '能量池子', value: 3 },
         { label: '带宽池子', value: 4 },
         { label: '激活池子', value: 5 },
-        { label: '带宽收购池', value: 6 },
-        { label: '能量收购池', value: 7 },
-        { label: '财务地址', value: 8 }
+        { label: '能量接收池子', value: 6 },
+        { label: '带宽接收池子', value: 7 },
+        { label: '财务池子', value: 8 }
       ]
     }
   },
