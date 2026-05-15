@@ -343,6 +343,12 @@ const columns = ref<TableColumn[]>([
     }
   },
   {
+    field: 'describe',
+    label: '备注',
+    minWidth: 150,
+    formatter: (row: any) => row.describe || '-'
+  },
+  {
     field: 'create_time',
     label: '扣款时间',
     minWidth: 170,
@@ -405,6 +411,7 @@ const handleExport = async () => {
         金额变动: `${parseFloat(item.amount) < 0 ? '-' : '+'}${Math.abs(parseFloat(item.amount))} ${item.coin || ''}`,
         交易后TRX余额: item.balance || '-',
         扣款状态: '已完成',
+        备注: item.describe || '-',
         扣款时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-'
       }))
 
