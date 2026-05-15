@@ -27,13 +27,15 @@
         disabled
         placeholder="当前用户TG ID"
       />
-      <!-- 群发模式：下拉多选框 -->
-      <ElSelect
+      <!-- 群发模式：虚拟化下拉多选框 -->
+      <ElSelectV2
         v-else
         :model-value="selectedUserIds"
         @update:model-value="handleUserSelectionChange"
+        :options="userOptions"
         multiple
         filterable
+        clearable
         placeholder="请选择用户"
         style="width: 100%"
         :loading="loadingUsers"
@@ -41,33 +43,14 @@
         collapse-tags
         collapse-tags-tooltip
         :max-collapse-tags="3"
-      >
-        <ElOption
-          v-for="user in userOptions"
-          :key="user.value"
-          :label="user.label"
-          :value="user.value"
-        />
-        <!-- 当有机器人但没有用户时显示提示 -->
-        <template v-if="selectedBotId && !loadingUsers && userOptions.length === 0" #empty>
-          <div class="text-center text-gray-400 py-2">此机器人下没有用户</div>
-        </template>
-      </ElSelect>
+      />
     </ElFormItem>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, watch, ref, type PropType } from 'vue'
-import {
-  ElFormItem,
-  ElRadioGroup,
-  ElRadio,
-  ElInput,
-  ElSelect,
-  ElOption,
-  ElMessage
-} from 'element-plus'
+import { ElFormItem, ElRadioGroup, ElRadio, ElInput, ElSelectV2, ElMessage } from 'element-plus'
 import { v1GetBotUserList } from '@/api/tgUser'
 
 const props = defineProps({

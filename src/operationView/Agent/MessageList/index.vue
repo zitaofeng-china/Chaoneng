@@ -284,12 +284,14 @@ const initBotList = async () => {
   }
 }
 
-// 为弹窗准备的机器人列表（转换为 string value）
+// 为弹窗准备的机器人列表（转换为 string value，过滤掉"全部"选项）
 const botsForDialog = computed(() => {
-  return botOptions.value.map((bot) => ({
-    label: bot.label,
-    value: String(bot.value)
-  }))
+  return botOptions.value
+    .filter((bot) => bot.value !== 0) // 过滤掉"全部"选项
+    .map((bot) => ({
+      label: bot.label,
+      value: String(bot.value)
+    }))
 })
 
 // 打开发送消息弹窗
