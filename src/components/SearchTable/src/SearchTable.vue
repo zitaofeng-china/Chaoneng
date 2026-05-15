@@ -20,7 +20,7 @@
       <slot name="toolbar">
         <slot name="leftToolbar"></slot>
         <BaseButton v-if="showAddButton && hasAddPermission" type="primary" @click="$emit('add')">
-          新增
+          {{ addButtonText }}
         </BaseButton>
         <slot name="rightToolbar"></slot>
       </slot>
@@ -100,6 +100,10 @@ const props = defineProps({
   showAddButton: {
     type: Boolean,
     default: true
+  },
+  addButtonText: {
+    type: String,
+    default: '新增'
   },
   // 默认查询参数
   defaultParams: {

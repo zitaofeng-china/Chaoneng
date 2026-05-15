@@ -12,6 +12,7 @@ export interface SearchTableProps {
   fetchDelApi?: () => Promise<boolean>
   immediate?: boolean
   showAddButton?: boolean
+  addButtonText?: string
   defaultParams?: Recordable
   pagination?: {
     total?: number
