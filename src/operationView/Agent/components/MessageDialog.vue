@@ -49,28 +49,20 @@
         label="群组列表："
         prop="group_ids"
       >
-        <ElSelect
+        <ElSelectV2
           v-model="formData.group_ids"
+          :options="groupOptions"
           multiple
           filterable
           clearable
           placeholder="请选择群组（可多选）"
           style="width: 100%"
           :loading="groupListLoading"
+          collapse-tags
+          collapse-tags-tooltip
+          :max-collapse-tags="10"
           @visible-change="handleGroupSelectVisibleChange"
-        >
-          <ElOption
-            v-for="group in groupList"
-            :key="group.id"
-            :label="`${group.group_name} (ID: ${group.group_id})`"
-            :value="group.group_id"
-          >
-            <div style="display: flex; justify-content: space-between; align-items: center">
-              <span>{{ group.group_name }}</span>
-              <span style=" font-size: 12px;color: #8492a6">ID: {{ group.group_id }}</span>
-            </div>
-          </ElOption>
-        </ElSelect>
+        />
       </ElFormItem>
 
       <!-- 消息内容编辑器 -->
@@ -277,6 +269,7 @@ import {
   ElTooltip,
   ElDatePicker,
   ElSelect,
+  ElSelectV2,
   ElOption
 } from 'element-plus'
 import type { UploadUserFile, FormInstance } from 'element-plus'
@@ -362,6 +355,14 @@ const menuList = ref<InnerButtonItem[]>([])
 // 群组列表管理
 const groupList = ref<GroupListItem[]>([])
 const groupListLoading = ref(false)
+
+// 为虚拟化选择器准备群组选项数据
+const groupOptions = computed(() => {
+  return groupList.value.map((group) => ({
+    label: `${group.group_name} (ID: ${group.group_id})`,
+    value: group.group_id
+  }))
+})
 
 // 是否选了多个机器人
 const isMultipleBots = computed(() => {
