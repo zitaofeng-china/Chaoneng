@@ -48,11 +48,6 @@
           :max-height="500"
         >
           <ElTableColumn prop="id" label="结算批次" width="180" align="center" />
-          <ElTableColumn prop="settlement_date" label="结算日期" width="180" align="center">
-            <template #default="{ row }">
-              {{ row.settlement_date ? formatToDateTime(row.settlement_date) : '-' }}
-            </template>
-          </ElTableColumn>
           <ElTableColumn prop="settlement_period" label="结算周期" width="180" align="center">
             <template #default="{ row }">
               {{ row.settlement_period || '-' }}
@@ -75,6 +70,7 @@
               </ElTag>
             </template>
           </ElTableColumn>
+          <ElTableColumn prop="remark" label="备注" min-width="200" show-overflow-tooltip />
           <ElTableColumn prop="settlement_time" label="结算时间" width="180" align="center">
             <template #default="{ row }">
               {{ row.settlement_time ? formatToDateTime(row.settlement_time) : '-' }}
@@ -86,7 +82,6 @@
               <span v-else>-</span>
             </template>
           </ElTableColumn>
-          <ElTableColumn prop="remark" label="备注" min-width="200" show-overflow-tooltip />
         </ElTable>
 
         <!-- 分页 -->
@@ -144,26 +139,13 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 
-// 结算状态映射
-const SETTLEMENT_STATUS_MAP: Record<number, string> = {
-  1: '待结算',
-  2: '已结算',
-  3: '结算失败'
-}
-
-// 获取结算状态标签类型
+// 结算状态统一展示为成功/失败两类
 const getSettlementStatusType = (status: number): string => {
-  const typeMap: Record<number, string> = {
-    1: 'warning', // 待结算 - 橙色
-    2: 'success', // 已结算 - 绿色
-    3: 'danger' // 结算失败 - 红色
-  }
-  return typeMap[status] || 'info'
+  return status === 2 ? 'success' : 'danger'
 }
 
-// 获取结算状态文本
 const getSettlementStatusText = (status: number): string => {
-  return SETTLEMENT_STATUS_MAP[status] || '未知'
+  return status === 2 ? '成功' : '失败'
 }
 
 // 打开弹窗
