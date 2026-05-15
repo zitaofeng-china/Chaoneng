@@ -3,43 +3,90 @@
     <ContentWrap title="能量/带宽价格配置">
       <ElForm
         ref="formRef"
+        v-loading="loading"
         :model="formData"
         :rules="rules"
         label-position="top"
         class="price-form"
-        :disabled="!hasEditPermission || loading"
+        :disabled="!hasEditPermission || loading || saving"
       >
-        <template v-for="section in sections" :key="section.key">
-          <div class="section-title">{{ section.title }}</div>
-          <ElRow :gutter="24">
-            <ElCol
-              v-for="field in section.fields"
-              :key="field.key"
-              :xs="24"
-              :sm="12"
-              :md="8"
-              :lg="8"
-              :xl="8"
-            >
-              <ElFormItem :label="field.label" :prop="`${section.key}_${field.key}`">
-                <ElInput
-                  v-model="formData[`${section.key}_${field.key}` as FieldKey]"
-                  :placeholder="field.placeholder"
-                  clearable
-                  @input="
-                    (v: string) => handleNumberInput(section.key, field.key, v, field.integer)
-                  "
-                />
-              </ElFormItem>
-            </ElCol>
-          </ElRow>
-        </template>
+        <div class="section-title">【工作日】价格：</div>
+        <ElRow :gutter="24">
+          <ElCol :xs="24" :sm="12" :md="8">
+            <ElFormItem label="能量出售单价（SUN/天）" prop="energy_price1">
+              <ElInput
+                v-model="formData.energy_price1"
+                placeholder="请输入金额"
+                clearable
+                @input="(value: string) => handleNumberInput('energy_price1', value)"
+              />
+            </ElFormItem>
+          </ElCol>
+          <ElCol :xs="24" :sm="12" :md="8">
+            <ElFormItem label="带宽出售单价（SUN/天）" prop="bandwidth_price1">
+              <ElInput
+                v-model="formData.bandwidth_price1"
+                placeholder="请输入金额"
+                clearable
+                @input="(value: string) => handleNumberInput('bandwidth_price1', value)"
+              />
+            </ElFormItem>
+          </ElCol>
+        </ElRow>
+
+        <div class="section-title">【节假日】价格：</div>
+        <ElRow :gutter="24">
+          <ElCol :xs="24" :sm="12" :md="8">
+            <ElFormItem label="能量出售单价（SUN/天）" prop="energy_price2">
+              <ElInput
+                v-model="formData.energy_price2"
+                placeholder="请输入金额"
+                clearable
+                @input="(value: string) => handleNumberInput('energy_price2', value)"
+              />
+            </ElFormItem>
+          </ElCol>
+          <ElCol :xs="24" :sm="12" :md="8">
+            <ElFormItem label="带宽出售单价（SUN/天）" prop="bandwidth_price2">
+              <ElInput
+                v-model="formData.bandwidth_price2"
+                placeholder="请输入金额"
+                clearable
+                @input="(value: string) => handleNumberInput('bandwidth_price2', value)"
+              />
+            </ElFormItem>
+          </ElCol>
+        </ElRow>
+
+        <div class="section-title">【最低出售数量】配置：</div>
+        <ElRow :gutter="24">
+          <ElCol :xs="24" :sm="12" :md="8">
+            <ElFormItem label="能量最低出售数量" prop="energy_minimum">
+              <ElInput
+                v-model="formData.energy_minimum"
+                placeholder="请输入能量最低出售数量"
+                clearable
+                @input="(value: string) => handleNumberInput('energy_minimum', value)"
+              />
+            </ElFormItem>
+          </ElCol>
+          <ElCol :xs="24" :sm="12" :md="8">
+            <ElFormItem label="带宽最低出售数量" prop="bandwidth_minimum">
+              <ElInput
+                v-model="formData.bandwidth_minimum"
+                placeholder="请输入带宽最低出售数量"
+                clearable
+                @input="(value: string) => handleNumberInput('bandwidth_minimum', value)"
+              />
+            </ElFormItem>
+          </ElCol>
+        </ElRow>
 
         <div class="form-actions">
           <ElButton v-if="hasEditPermission" type="primary" :loading="saving" @click="handleSave">
             保存配置
           </ElButton>
-          <span class="form-tip">提示：配置保存后每次凌晨按照最新的价格来结算</span>
+          <span class="form-tip">提示：配置保存后，系统会按最新价格进行结算。</span>
         </div>
       </ElForm>
     </ContentWrap>
@@ -47,131 +94,169 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, computed, onMounted } from 'vue'
+import { computed, onActivated, onMounted, reactive, ref } from 'vue'
 import {
+  ElButton,
+  ElCol,
   ElForm,
   ElFormItem,
   ElInput,
-  ElRow,
-  ElCol,
-  ElButton,
   ElMessage,
+  ElRow,
   type FormInstance,
   type FormRules
 } from 'element-plus'
 import { useRoute } from 'vue-router'
+import { getFundPriceConfig, updateFundPriceConfig } from '@/api/fund'
+import type { FundPriceConfig, UpdateFundPriceConfigParams } from '@/api/fund/types'
 
-interface PriceField {
-  key: string
-  label: string
-  placeholder: string
-  integer?: boolean
-  span?: number
-}
+type FormField =
+  | 'energy_price1'
+  | 'bandwidth_price1'
+  | 'energy_price2'
+  | 'bandwidth_price2'
+  | 'energy_minimum'
+  | 'bandwidth_minimum'
 
-interface PriceSection {
-  key: 'workday' | 'holiday'
-  title: string
-  fields: PriceField[]
-}
-
-const sharedFields: PriceField[] = [
-  { key: 'energy_price', label: '能量出售单价（SUN/天）：', placeholder: '请输入金额' },
-  { key: 'bandwidth_price', label: '带宽出售单价（SUN/天）：', placeholder: '请输入金额' },
-  {
-    key: 'min_duration',
-    label: '最低出售时长（小时）：',
-    placeholder: '请输入时长',
-    integer: true
-  },
-  {
-    key: 'bandwidth_min_sell',
-    label: '带宽最低售卖数：',
-    placeholder: '请输入时长',
-    integer: true
-  },
-  {
-    key: 'energy_min_sell',
-    label: '能量最低售卖数：',
-    placeholder: '请输入时长',
-    integer: true
-  }
-]
-
-const sections: PriceSection[] = [
-  { key: 'workday', title: '【工作日】价格：', fields: sharedFields },
-  { key: 'holiday', title: '【节假日】价格：', fields: sharedFields }
-]
-
-type FieldKey = `${PriceSection['key']}_${string}`
-
-const buildInitialData = () => {
-  const data: Record<string, string> = {}
-  sections.forEach((s) => {
-    s.fields.forEach((f) => {
-      data[`${s.key}_${f.key}`] = ''
-    })
-  })
-  return data as Record<FieldKey, string>
-}
+type FormData = Record<FormField, string>
 
 const route = useRoute()
 const formRef = ref<FormInstance>()
-const saving = ref(false)
 const loading = ref(false)
+const saving = ref(false)
+
+const decimalFields: FormField[] = [
+  'energy_price1',
+  'bandwidth_price1',
+  'energy_price2',
+  'bandwidth_price2'
+]
+
+const formData = reactive<FormData>({
+  energy_price1: '',
+  bandwidth_price1: '',
+  energy_price2: '',
+  bandwidth_price2: '',
+  energy_minimum: '',
+  bandwidth_minimum: ''
+})
 
 const hasEditPermission = computed(() => {
   const buttonList = (route.meta.buttonList || []) as string[]
   return buttonList.includes('edit')
 })
 
-const formData = reactive<Record<FieldKey, string>>(buildInitialData())
-
-const rules = computed<FormRules>(() => {
-  const r: FormRules = {}
-  sections.forEach((s) => {
-    s.fields.forEach((f) => {
-      const prop = `${s.key}_${f.key}`
-      r[prop] = [
-        {
-          required: true,
-          message: `请填写${f.label.replace(/[（(][^）)]*[）)]?：?/g, '').replace(/：$/, '')}`,
-          trigger: 'blur'
-        }
-      ]
-    })
-  })
-  return r
-})
-
-const handleNumberInput = (
-  sectionKey: PriceSection['key'],
-  fieldKey: string,
+const validatePositiveNumber = (
+  _rule: unknown,
   value: string,
-  integer?: boolean
+  callback: (error?: Error) => void
 ) => {
-  if (value === '') return
-  const pattern = integer ? /[^\d]/g : /[^\d.]/g
-  let clean = value.replace(pattern, '')
-  if (!integer) {
-    const parts = clean.split('.')
-    if (parts.length > 2) {
-      clean = `${parts[0]}.${parts.slice(1).join('')}`
-    }
+  if (!value) {
+    callback(new Error('请输入数值'))
+    return
   }
-  const prop = `${sectionKey}_${fieldKey}` as FieldKey
-  if (clean !== value) {
-    formData[prop] = clean
+
+  const numberValue = Number(value)
+  if (Number.isNaN(numberValue) || numberValue <= 0) {
+    callback(new Error('请输入大于 0 的数值'))
+    return
   }
+
+  callback()
 }
+
+const rules = computed<FormRules>(() => ({
+  energy_price1: [
+    { required: true, message: '请填写工作日能量出售单价', trigger: 'blur' },
+    { validator: validatePositiveNumber, trigger: 'blur' }
+  ],
+  bandwidth_price1: [
+    { required: true, message: '请填写工作日带宽出售单价', trigger: 'blur' },
+    { validator: validatePositiveNumber, trigger: 'blur' }
+  ],
+  energy_price2: [
+    { required: true, message: '请填写节假日能量出售单价', trigger: 'blur' },
+    { validator: validatePositiveNumber, trigger: 'blur' }
+  ],
+  bandwidth_price2: [
+    { required: true, message: '请填写节假日带宽出售单价', trigger: 'blur' },
+    { validator: validatePositiveNumber, trigger: 'blur' }
+  ],
+  energy_minimum: [
+    { required: true, message: '请填写能量最低出售数量', trigger: 'blur' },
+    { validator: validatePositiveNumber, trigger: 'blur' }
+  ],
+  bandwidth_minimum: [
+    { required: true, message: '请填写带宽最低出售数量', trigger: 'blur' },
+    { validator: validatePositiveNumber, trigger: 'blur' }
+  ]
+}))
+
+const sanitizeDecimalInput = (value: string) => {
+  let sanitized = value.replace(/[^\d.]/g, '')
+
+  if (sanitized.includes('.')) {
+    const [integerPart, ...decimalParts] = sanitized.split('.')
+    const decimalPart = decimalParts.join('').slice(0, 2)
+    sanitized = decimalPart ? `${integerPart}.${decimalPart}` : `${integerPart}.`
+  }
+
+  if (sanitized.length > 1 && sanitized.startsWith('0') && sanitized[1] !== '.') {
+    sanitized = sanitized.replace(/^0+/, '0')
+  }
+
+  return sanitized
+}
+
+const sanitizeIntegerInput = (value: string) => {
+  let sanitized = value.replace(/[^\d]/g, '')
+
+  if (sanitized.length > 1) {
+    sanitized = sanitized.replace(/^0+/, '') || '0'
+  }
+
+  return sanitized
+}
+
+const handleNumberInput = (field: FormField, value: string) => {
+  if (value === '') {
+    formData[field] = ''
+    return
+  }
+
+  formData[field] = decimalFields.includes(field)
+    ? sanitizeDecimalInput(value)
+    : sanitizeIntegerInput(value)
+}
+
+const mapApiDataToForm = (data: FundPriceConfig) => {
+  formData.energy_price1 = String(data.energy_price1 ?? '')
+  formData.bandwidth_price1 = String(data.bandwidth_price1 ?? '')
+  formData.energy_price2 = String(data.energy_price2 ?? '')
+  formData.bandwidth_price2 = String(data.bandwidth_price2 ?? '')
+  formData.energy_minimum = String(data.energy_minimum ?? '')
+  formData.bandwidth_minimum = String(data.bandwidth_minimum ?? '')
+}
+
+const mapFormToApiData = (): UpdateFundPriceConfigParams => ({
+  energy_price1: Number(formData.energy_price1),
+  bandwidth_price1: Number(formData.bandwidth_price1),
+  energy_price2: Number(formData.energy_price2),
+  bandwidth_price2: Number(formData.bandwidth_price2),
+  energy_minimum: Number(formData.energy_minimum),
+  bandwidth_minimum: Number(formData.bandwidth_minimum)
+})
 
 const loadConfig = async () => {
   loading.value = true
   try {
-    // TODO: 对接后端接口获取配置详情，返回后按字段赋值到 formData
-  } catch (err) {
-    console.error('加载配置失败:', err)
-    ElMessage.error('加载配置失败')
+    const response = await getFundPriceConfig()
+    if (response.data) {
+      mapApiDataToForm(response.data)
+    }
+  } catch (error: any) {
+    console.error('加载理财价格配置失败:', error)
+    ElMessage.error(error?.message || '加载理财价格配置失败，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -179,22 +264,32 @@ const loadConfig = async () => {
 
 const handleSave = async () => {
   if (!formRef.value) return
-  const valid = await formRef.value.validate().catch(() => false)
-  if (!valid) return
+
+  try {
+    await formRef.value.validate()
+  } catch {
+    ElMessage.warning('请检查表单填写是否正确')
+    return
+  }
 
   saving.value = true
   try {
-    // TODO: 对接后端接口保存配置，传 { ...formData }
+    await updateFundPriceConfig(mapFormToApiData())
     ElMessage.success('保存成功')
-  } catch (err) {
-    console.error('保存配置失败:', err)
-    ElMessage.error('保存失败')
+    await loadConfig()
+  } catch (error: any) {
+    console.error('更新理财价格配置失败:', error)
+    ElMessage.error(error?.message || '保存失败，请稍后重试')
   } finally {
     saving.value = false
   }
 }
 
 onMounted(() => {
+  loadConfig()
+})
+
+onActivated(() => {
   loadConfig()
 })
 </script>
