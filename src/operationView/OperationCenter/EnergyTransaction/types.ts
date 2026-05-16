@@ -21,7 +21,7 @@ export interface EnergyListParams {
   origin?: number
   kind?: number
   receive_address?: string
-  energy_address?: string
+  payment_address?: string
   status?: number
   order?: string
 }
@@ -33,7 +33,7 @@ export interface SearchFormParams {
   keyword?: string
   origin?: number | string
   receive_address?: string
-  energy_address?: string
+  payment_address?: string
   status?: number
   kind?: number
   dateRange?: [number, number]

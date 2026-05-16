@@ -111,12 +111,7 @@ export function getAllColumns(): ColumnConfig[] {
       label: '收款方式',
       minWidth: 200,
       formatter: (row) => {
-        // 如果能量接收地址为空，显示横杠
-        if (!row.energy_address || row.energy_address.trim() === '') {
-          return '-'
-        }
-
-        // 如果能量接收地址不为空，且收款地址为空，显示"余额支付"
+        // 如果收款地址为空，显示"余额支付"
         if (!row.receive_address || row.receive_address.trim() === '') {
           return '余额支付'
         }
@@ -126,10 +121,10 @@ export function getAllColumns(): ColumnConfig[] {
       }
     },
     {
-      field: 'energy_address',
+      field: 'payment_address',
       label: '能量接收地址',
       minWidth: 200,
-      formatter: (row) => row.energy_address || '-'
+      formatter: (row) => row.payment_address || '-'
     },
     {
       field: 'energy_count',

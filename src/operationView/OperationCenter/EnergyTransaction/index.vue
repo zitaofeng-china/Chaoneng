@@ -135,7 +135,7 @@ const searchSchema = [
     }
   },
   {
-    field: 'energy_address',
+    field: 'payment_address',
     component: 'Input' as const,
     label: '能量接收地址',
     componentProps: {

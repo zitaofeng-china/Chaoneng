@@ -234,12 +234,7 @@ const columns = computed<TableColumn[]>(() => {
       label: '收款方式',
       minWidth: 180,
       formatter: (row) => {
-        // 如果能量接收地址为空，显示横杠
-        if (!row.energy_address || row.energy_address.trim() === '') {
-          return '-'
-        }
-
-        // 如果能量接收地址不为空，且收款地址为空，显示"余额支付"
+        // 如果收款地址为空，显示"余额支付"
         if (!row.receive_address || row.receive_address.trim() === '') {
           return '余额支付'
         }
@@ -249,10 +244,10 @@ const columns = computed<TableColumn[]>(() => {
       }
     },
     {
-      field: 'energy_address',
+      field: 'payment_address',
       label: '能量接收地址',
       minWidth: 180,
-      formatter: (row) => row.energy_address || '-'
+      formatter: (row) => row.payment_address || '-'
     },
     {
       field: 'energy_count',
@@ -357,7 +352,7 @@ const searchSchema = [
     }
   },
   {
-    field: 'energy_address',
+    field: 'payment_address',
     component: 'Input' as const,
     label: '能量接收地址',
     componentProps: {
@@ -486,7 +481,7 @@ const fetchEnergyOrderList = async (params: any) => {
     if (params.keyword) adaptedParams.keyword = params.keyword
     if (params.kind) adaptedParams.kind = params.kind
     if (params.receive_address) adaptedParams.receive_address = params.receive_address
-    if (params.energy_address) adaptedParams.energy_address = params.energy_address
+    if (params.payment_address) adaptedParams.payment_address = params.payment_address
 
     // 处理排序参数
     if (params.order) {
@@ -680,8 +675,8 @@ const handleExport = async () => {
         支付金额: item.amount && item.amount != 0 ? `${item.amount} ${item.coin || ''}` : '-',
         能量数量: formatEnergyNum(item.energy_amount),
         能量有效期: formatExpirationTime(item.kind),
-        收款方式: getPaymentMethodText(item.energy_address, item.receive_address),
-        能量接收地址: item.energy_address || '-',
+        收款方式: getPaymentMethodText(item.payment_address, item.receive_address),
+        能量接收地址: item.payment_address || '-',
         笔数: item.energy_count || '-',
         订单状态: getStatusTextForTable(item.status),
         创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',

@@ -33,6 +33,7 @@ export interface V2EnergyItem {
   amount: string // 金额
   coin: string // 币种: TRX, USDT
   receive_address: string // 接收地址
+  payment_address: string // 能量接收地址
   pay_id: string // 支付ID
   cost: string // 成本
   describe: string // 描述
