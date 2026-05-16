@@ -88,7 +88,7 @@ const handleExport = async () => {
 
     // 处理交易类型查询
     if (params?.in_coin) {
-      apiParams.in_coin = params.in_coin
+      apiParams.coin = params.in_coin // in_coin → coin
     }
 
     // 处理状态
@@ -136,18 +136,18 @@ const handleExport = async () => {
             break
         }
 
-        // 交易类型判断
+        // 交易类型判断 - 根据coin字段
         let transactionType = '未知'
-        if (item.in_coin === 'USDT' && item.out_coin === 'TRX') {
+        if (item.coin === 'USDT') {
           transactionType = 'USDT → TRX'
-        } else if (item.in_coin === 'TRX' && item.out_coin === 'USDT') {
+        } else if (item.coin === 'TRX') {
           transactionType = 'TRX → USDT'
         }
 
         return {
           订单ID: item.id || '-',
           代理名称: item.agent_name || '-',
-          支付金额: `${item.amount || ''} ${item.in_coin || ''}`.trim(),
+          支付金额: `${item.amount || ''} ${item.coin || ''}`.trim(), // 使用coin字段
           兑换汇率: item.actual_rate || '-',
           实时汇率: item.real_rate || '-',
           支出金额: `${item.out_amount || ''} ${item.out_coin || ''}`.trim(),
@@ -198,7 +198,7 @@ const columns = reactive<TableColumn[]>([
     minWidth: 120,
     formatter: (row) => {
       const amount = row.amount || ''
-      const unit = row.in_coin || row.coin || ''
+      const unit = row.coin || '' // 使用coin字段
       return amount || unit ? `${amount}${unit}`.trim() : '-'
     }
   },
@@ -225,19 +225,19 @@ const columns = reactive<TableColumn[]>([
     }
   },
   {
-    field: 'in_coin',
+    field: 'coin',
     label: '交易类型',
     minWidth: 140,
     slots: {
       default: ({ row }: { row: V2ExchangeItem }) => {
-        // 根据 in_coin 和 out_coin 判断交易类型
+        // 根据 coin 判断交易类型
         let label = '未知'
         let color = '#909399'
 
-        if (row.in_coin === 'USDT' && row.out_coin === 'TRX') {
+        if (row.coin === 'USDT') {
           label = 'USDT  → TRX'
           color = '#67C23A'
-        } else if (row.in_coin === 'TRX' && row.out_coin === 'USDT') {
+        } else if (row.coin === 'TRX') {
           label = 'TRX  → USDT'
           color = '#409EFF'
         }
@@ -334,7 +334,7 @@ const searchSchema = reactive<FormSchema[]>([
     field: 'keyword',
     component: 'Input',
     label: {
-      tips: 'TG用户ID/TG用户名/TG用户昵称/机器人名称/代理名称/用户账号/用户邮箱',
+      tips: '订单号/代理名称/机器人用户名/客户地址/闪兑地址',
       text: '关键词'
     },
     componentProps: {
@@ -359,7 +359,7 @@ const searchSchema = reactive<FormSchema[]>([
   {
     field: 'status',
     component: 'Select',
-    label: '交易状态:',
+    label: '订单状态:',
     componentProps: {
       placeholder: '全部',
       options: [
@@ -437,7 +437,7 @@ const fetchExchangeTransactionList = async (params: any) => {
 
     // 处理交易类型查询（使用 in_coin）
     if (params.in_coin) {
-      apiParams.in_coin = params.in_coin
+      apiParams.coin = params.in_coin // in_coin → coin
     }
 
     // 处理状态

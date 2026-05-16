@@ -336,7 +336,7 @@ const columns: TableColumn[] = [
     showOverflowTooltip: false,
     formatter: (row) => {
       if (!row.amount) return '-'
-      const unit = row.in_coin || 'TRX'
+      const unit = row.coin || 'TRX' // 使用coin字段
       return `${row.amount} ${unit}`
     }
   },
@@ -432,19 +432,29 @@ const actionColumn: TableColumn = {
 // 搜索表单配置
 const searchSchema = [
   {
-    field: 'order_id',
-    component: 'Input' as const,
-    label: '订单号',
+    field: 'keyword',
+    component: 'Input',
+    label: {
+      tips: '订单号/机器人用户名/客户地址/闪兑地址',
+      text: '关键词'
+    },
     componentProps: {
-      placeholder: '请输入订单号'
+      placeholder: '请输入关键词',
+      clearable: true
     }
   },
   {
-    field: 'query',
-    component: 'Input' as const,
-    label: '机器人名称',
+    field: 'in_coin',
+    component: 'Select',
+    label: '交易类型:',
     componentProps: {
-      placeholder: '请输入机器人名称'
+      placeholder: '全部',
+      options: [
+        { label: '全部', value: '' },
+        { label: 'USDT → TRX', value: 'USDT' },
+        { label: 'TRX → USDT', value: 'TRX' }
+      ],
+      clearable: true
     }
   },
   {
@@ -460,6 +470,18 @@ const searchSchema = [
         { label: '已中止', value: 9 }
       ],
       placeholder: '请选择订单状态'
+    }
+  },
+  {
+    field: 'dateRange',
+    component: 'DatePicker',
+    label: '创建时间',
+    componentProps: {
+      type: 'datetimerange',
+      valueFormat: 'x',
+      startPlaceholder: '开始日期',
+      endPlaceholder: '结束日期',
+      defaultTime: [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
     }
   }
 ]
@@ -506,9 +528,9 @@ const fetchExchangeOrderList = async (params: any) => {
     const adaptedParams: any = {}
 
     if (params.order_id) adaptedParams.order_id = params.order_id
-    if (params.source) adaptedParams.source = params.source
+    if (params.keyword) adaptedParams.keyword = params.keyword
+    if (params.in_coin) adaptedParams.coin = params.in_coin // in_coin → coin
     if (params.status) adaptedParams.status = params.status
-    if (params.query) adaptedParams.keyword = params.query // query → keyword
 
     // 分页参数
     adaptedParams.current_page = params.current_page || 1
@@ -542,7 +564,7 @@ const fetchExchangeOrderList = async (params: any) => {
     // 简化映射：直接使用API字段，只做必要转换
     const list = (response.data?.list || []).map((item: any) => ({
       ...item, // 保留所有原始字段
-      order_type: item.in_coin === 'USDT' ? 1 : 2, // 计算订单类型：USDT→TRX=1, TRX→USDT=2
+      order_type: item.coin === 'USDT' ? 1 : 2, // 计算订单类型：根据coin判断，USDT→TRX=1, TRX→USDT=2
       created_at: item.created_at * 1000, // 秒转毫秒
       paid_at: item.paid_at ? item.paid_at * 1000 : null // 秒转毫秒
     }))
@@ -552,9 +574,9 @@ const fetchExchangeOrderList = async (params: any) => {
     // 添加数据为空提示
     const hasSearchCondition = !!(
       params.order_id ||
-      params.source ||
+      params.keyword ||
+      params.in_coin ||
       params.status ||
-      params.query ||
       params.dateRange
     )
     handleListMessage(list, hasSearchCondition, '兑换订单')
@@ -578,7 +600,7 @@ const handleViewDetail = async (row: any) => {
       // 直接使用API返回的数据，只添加必要的计算字段
       orderDetail.value = {
         ...response.data,
-        order_type: response.data.exchange?.in_coin === 'USDT' ? 1 : 2,
+        order_type: response.data.coin === 'USDT' ? 1 : 2, // 根据coin判断订单类型
         created_at: response.data.created_at * 1000,
         paid_at: response.data.paid_at ? response.data.paid_at * 1000 : null
       }
@@ -601,7 +623,7 @@ const handleTransactionDetail = async (row: any) => {
       // 直接使用API返回的数据，只做时间转换
       transactionDetail.value = {
         order_id: detail.id,
-        order_type: detail.exchange?.in_coin === 'USDT' ? 1 : 2,
+        order_type: detail.coin === 'USDT' ? 1 : 2, // 根据coin判断订单类型
         // 转入交易信息（直接使用pay_transaction）
         in_txid: detail.pay_transaction?.id || '',
         in_to_address: detail.pay_transaction?.to || '',
@@ -656,9 +678,9 @@ const handleExport = async () => {
     const adaptedParams: any = {}
 
     if (params?.order_id) adaptedParams.order_id = params.order_id
-    if (params?.source) adaptedParams.source = params.source
+    if (params?.keyword) adaptedParams.keyword = params.keyword
+    if (params?.in_coin) adaptedParams.coin = params.in_coin // in_coin → coin
     if (params?.status) adaptedParams.status = params.status
-    if (params?.query) adaptedParams.keyword = params.query
 
     // 处理时间范围
     if (params?.dateRange && params.dateRange.length === 2) {
@@ -679,8 +701,8 @@ const handleExport = async () => {
         // 用户账号: item.user_account || '-',
         // 用户邮箱: item.user_email || '-',
         // 来源: item.source === 'h5' ? 'H5' : item.source === 'bot' ? '机器人' : item.source || '-',
-        订单类型: item.in_coin === 'USDT' ? 'USDT → TRX' : 'TRX → USDT',
-        支付金额: `${item.amount} ${item.in_coin}`,
+        订单类型: item.coin === 'USDT' ? 'USDT → TRX' : 'TRX → USDT', // 根据coin判断
+        支付金额: `${item.amount} ${item.coin}`,
         兑换金额: `${item.out_amount} ${item.out_coin}`,
         兑换汇率: item.actual_rate || '-',
         订单状态: getStatusText(item.status),

@@ -5,6 +5,7 @@
  */
 export interface V2ExchangeListParams {
   bot_name?: string // 机器人名称
+  coin?: string // 币种（USDT/TRX）
   current_page?: number // 当前页码
   end_time?: string // 结束时间
   keyword?: string // 关键字
