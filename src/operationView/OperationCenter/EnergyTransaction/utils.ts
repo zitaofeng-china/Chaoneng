@@ -96,8 +96,11 @@ export function transformOrderToExportData(
     交易金额: `${order.amount || '-'} ${order.coin || ''}`.trim(),
     应发放能量: formatEnergyAmount(order.energy_amount),
     实际发放能量: formatEnergyAmount(order.energy_actual_amount),
-    收款方式: getPaymentMethodText(order.payment_address, order.receive_address),
-    能量接收地址: order.payment_address || '-',
+    收款方式: getPaymentMethodText(
+      order.payment_address || order.energy_address,
+      order.receive_address
+    ),
+    能量接收地址: order.payment_address || order.energy_address || '-',
     笔数: order.energy_count || '-',
     订单状态: getStatusText(order.status),
     备注: order.describe || '-',

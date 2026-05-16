@@ -124,7 +124,7 @@ export function getAllColumns(): ColumnConfig[] {
       field: 'payment_address',
       label: '能量接收地址',
       minWidth: 200,
-      formatter: (row) => row.payment_address || '-'
+      formatter: (row) => row.payment_address || row.energy_address || '-'
     },
     {
       field: 'energy_count',

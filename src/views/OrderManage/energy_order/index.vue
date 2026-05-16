@@ -247,7 +247,7 @@ const columns = computed<TableColumn[]>(() => {
       field: 'payment_address',
       label: '能量接收地址',
       minWidth: 180,
-      formatter: (row) => row.payment_address || '-'
+      formatter: (row) => row.payment_address || row.energy_address || '-'
     },
     {
       field: 'energy_count',
@@ -675,8 +675,11 @@ const handleExport = async () => {
         支付金额: item.amount && item.amount != 0 ? `${item.amount} ${item.coin || ''}` : '-',
         能量数量: formatEnergyNum(item.energy_amount),
         能量有效期: formatExpirationTime(item.kind),
-        收款方式: getPaymentMethodText(item.payment_address, item.receive_address),
-        能量接收地址: item.payment_address || '-',
+        收款方式: getPaymentMethodText(
+          item.payment_address || item.energy_address,
+          item.receive_address
+        ),
+        能量接收地址: item.payment_address || item.energy_address || '-',
         笔数: item.energy_count || '-',
         订单状态: getStatusTextForTable(item.status),
         创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
