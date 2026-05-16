@@ -8,7 +8,7 @@ const BASE_URL = '/v1/fund'
 
 export const getFundPriceConfig = (): Promise<IResponse<FundPriceConfig>> => {
   return request.get({
-    url: BASE_URL
+    url: `${BASE_URL}/config`
   })
 }
 
@@ -16,7 +16,7 @@ export const updateFundPriceConfig = (
   data: UpdateFundPriceConfigParams
 ): Promise<IResponse<unknown>> => {
   return request.put({
-    url: BASE_URL,
+    url: `${BASE_URL}/config`,
     data
   })
 }
