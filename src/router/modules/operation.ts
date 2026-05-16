@@ -80,7 +80,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           component: () => import('@/operationView/OperationCenter/ExchangeTransaction/index.vue'),
           name: 'FlashExchange',
           meta: {
-            title: '闪兑明细'
+            title: '闪兑订单'
           }
         },
         {
@@ -149,45 +149,45 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         }
       ]
     },
-    {
-      path: '/financial_manage',
-      component: Layout,
-      name: 'FinancialManage',
-      redirect: '/financial_manage/financial_price',
-      meta: {
-        title: '理财管理',
-        icon: 'vi-mdi:cash-multiple',
-        alwaysShow: true
-      },
-      children: [
-        {
-          path: 'financial_price',
-          component: () => import('@/operationView/SystemConfig/FinancialPrice.vue'),
-          name: 'FinancialPrice',
-          meta: {
-            title: '理财价格配置',
-            buttonList: ['edit']
-          }
-        },
-        {
-          path: 'resource_order',
-          component: () => import('@/operationView/OperationCenter/ResourceOrder/index.vue'),
-          name: 'ResourceOrder',
-          meta: {
-            title: '资源订单列表'
-          }
-        },
-        {
-          path: 'resource_supplement_config',
-          component: () => import('@/operationView/SystemConfig/ResourceSupplementConfig.vue'),
-          name: 'ResourceSupplementConfig',
-          meta: {
-            title: '资源补充配置',
-            buttonList: ['add', 'edit']
-          }
-        }
-      ]
-    },
+    // {
+    //   path: '/financial_manage',
+    //   component: Layout,
+    //   name: 'FinancialManage',
+    //   redirect: '/financial_manage/financial_price',
+    //   meta: {
+    //     title: '理财管理',
+    //     icon: 'vi-mdi:cash-multiple',
+    //     alwaysShow: true
+    //   },
+    //   children: [
+    //     {
+    //       path: 'financial_price',
+    //       component: () => import('@/operationView/SystemConfig/FinancialPrice.vue'),
+    //       name: 'FinancialPrice',
+    //       meta: {
+    //         title: '理财价格配置',
+    //         buttonList: ['edit']
+    //       }
+    //     },
+    //     {
+    //       path: 'resource_order',
+    //       component: () => import('@/operationView/OperationCenter/ResourceOrder/index.vue'),
+    //       name: 'ResourceOrder',
+    //       meta: {
+    //         title: '资源订单列表'
+    //       }
+    //     },
+    //     {
+    //       path: 'resource_supplement_config',
+    //       component: () => import('@/operationView/SystemConfig/ResourceSupplementConfig.vue'),
+    //       name: 'ResourceSupplementConfig',
+    //       meta: {
+    //         title: '资源补充配置',
+    //         buttonList: ['add', 'edit']
+    //       }
+    //     }
+    //   ]
+    // },
     {
       path: '/agent',
       component: Layout,

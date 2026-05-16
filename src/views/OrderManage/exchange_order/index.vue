@@ -467,7 +467,7 @@ const searchSchema = [
 // 获取订单状态显示类型
 const getStatusType = (status: number): 'success' | 'warning' | 'info' | 'danger' | 'primary' => {
   const statusMap: Record<number, 'success' | 'warning' | 'info' | 'danger' | 'primary'> = {
-    1: 'info', // 新订单
+    2: 'warning', // 已支付
     5: 'success', // 已完成
     6: 'danger', // 已失败
     9: 'danger' // 已中止
@@ -478,7 +478,7 @@ const getStatusType = (status: number): 'success' | 'warning' | 'info' | 'danger
 // 获取订单状态文本
 const getStatusText = (status: number): string => {
   const statusMap = {
-    1: '新订单',
+    2: '已支付',
     5: '已完成',
     6: '已失败',
     9: '已中止'

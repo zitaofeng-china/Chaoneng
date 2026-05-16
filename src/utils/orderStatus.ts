@@ -12,10 +12,10 @@ export enum OrderStatus {
   SENT = 3, // 已发送
   RECYCLED = 4, // 已回收
   COMPLETED = 5, // 已完成
-  FAILED = 6, // 失败订单
+  FAILED = 6, // 已失败
   REFUNDED = 7, // 已退款
   CANCELLED = 8, // 已取消
-  ABORTED = 9 // 中止订单
+  ABORTED = 9 // 已中止
 }
 
 /**
@@ -27,10 +27,10 @@ export const ORDER_STATUS_TEXT: Record<number, string> = {
   [OrderStatus.SENT]: '已发送',
   [OrderStatus.RECYCLED]: '已回收',
   [OrderStatus.COMPLETED]: '已完成',
-  [OrderStatus.FAILED]: '失败订单',
+  [OrderStatus.FAILED]: '已失败',
   [OrderStatus.REFUNDED]: '已退款',
   [OrderStatus.CANCELLED]: '已取消',
-  [OrderStatus.ABORTED]: '中止订单'
+  [OrderStatus.ABORTED]: '已中止'
 }
 
 /**
@@ -85,8 +85,8 @@ export const ORDER_STATUS_OPTIONS = [
   { label: '已发送', value: OrderStatus.SENT },
   { label: '已回收', value: OrderStatus.RECYCLED },
   { label: '已完成', value: OrderStatus.COMPLETED },
-  { label: '失败订单', value: OrderStatus.FAILED },
+  { label: '已失败', value: OrderStatus.FAILED },
   { label: '已退款', value: OrderStatus.REFUNDED },
   { label: '已取消', value: OrderStatus.CANCELLED },
-  { label: '中止订单', value: OrderStatus.ABORTED }
+  { label: '已中止', value: OrderStatus.ABORTED }
 ]
