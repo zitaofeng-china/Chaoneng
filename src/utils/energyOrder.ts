@@ -20,13 +20,13 @@ export enum EnergyOrderKind {
  * 能量订单类型文本映射
  */
 export const ENERGY_ORDER_KIND_TEXT: Record<number, string> = {
-  [EnergyOrderKind.TIME_ENERGY]: '时间能量',
-  [EnergyOrderKind.COUNT_ENERGY]: '笔数能量',
-  [EnergyOrderKind.WELFARE_ENERGY]: '福利能量',
-  [EnergyOrderKind.QUICK_ENERGY]: '快速能量',
-  [EnergyOrderKind.AUTO_HOSTING]: '自动托管',
-  [EnergyOrderKind.BATCH_ENERGY]: '批量能量',
-  [EnergyOrderKind.BATCH_ACTIVE]: '批量激活'
+  [EnergyOrderKind.TIME_ENERGY]: '按时间',
+  [EnergyOrderKind.COUNT_ENERGY]: '按笔数',
+  [EnergyOrderKind.WELFARE_ENERGY]: '福利',
+  [EnergyOrderKind.QUICK_ENERGY]: '闪租',
+  [EnergyOrderKind.AUTO_HOSTING]: '托管',
+  [EnergyOrderKind.BATCH_ENERGY]: '批量下单',
+  [EnergyOrderKind.BATCH_ACTIVE]: '激活'
 }
 
 /**
@@ -44,13 +44,13 @@ export function getEnergyOrderKindText(kind: number | undefined): string {
  */
 export const ENERGY_ORDER_KIND_OPTIONS = [
   { label: '全部', value: undefined },
-  { label: '时间能量', value: EnergyOrderKind.TIME_ENERGY },
-  { label: '笔数能量', value: EnergyOrderKind.COUNT_ENERGY },
-  { label: '福利能量', value: EnergyOrderKind.WELFARE_ENERGY },
-  { label: '快速能量', value: EnergyOrderKind.QUICK_ENERGY },
-  { label: '自动托管', value: EnergyOrderKind.AUTO_HOSTING },
-  { label: '批量能量', value: EnergyOrderKind.BATCH_ENERGY },
-  { label: '批量激活', value: EnergyOrderKind.BATCH_ACTIVE }
+  { label: '按时间', value: EnergyOrderKind.TIME_ENERGY },
+  { label: '按笔数', value: EnergyOrderKind.COUNT_ENERGY },
+  { label: '福利', value: EnergyOrderKind.WELFARE_ENERGY },
+  { label: '闪租', value: EnergyOrderKind.QUICK_ENERGY },
+  { label: '托管', value: EnergyOrderKind.AUTO_HOSTING },
+  { label: '批量下单', value: EnergyOrderKind.BATCH_ENERGY },
+  { label: '激活', value: EnergyOrderKind.BATCH_ACTIVE }
 ]
 
 /**

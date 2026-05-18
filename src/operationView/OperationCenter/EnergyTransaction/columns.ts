@@ -45,6 +45,12 @@ export function getAllColumns(): ColumnConfig[] {
       formatter: (row) => row.agent_name || '-'
     },
     {
+      field: 'bot_name',
+      label: '机器人名称',
+      width: 140,
+      formatter: (row) => row.bot_name || '-'
+    },
+    {
       field: 'tg_user_name',
       label: 'TG用户名',
       width: 120,
@@ -82,7 +88,31 @@ export function getAllColumns(): ColumnConfig[] {
       field: 'kind',
       label: '订单类型',
       width: 120,
-      formatter: (row) => getEnergyOrderKindText(row.kind)
+      slots: {
+        default: ({ row }) => {
+          const typeColorMap: Record<
+            number,
+            'primary' | 'success' | 'warning' | 'danger' | 'info'
+          > = {
+            4: 'success',
+            5: 'primary',
+            6: 'primary',
+            7: 'success',
+            8: 'warning',
+            9: 'danger',
+            10: 'info'
+          }
+          const orderTypeNum = typeof row.kind === 'string' ? parseInt(row.kind, 10) : row.kind
+          const text = getEnergyOrderKindText(orderTypeNum)
+
+          if (!orderTypeNum || text === '未知类型') {
+            return h(ElTag, { type: 'info', size: 'small' }, () => '未知类型')
+          }
+
+          const tagType = typeColorMap[orderTypeNum] || 'info'
+          return h(ElTag, { type: tagType, size: 'small' }, () => text)
+        }
+      }
     },
     {
       field: 'amount',

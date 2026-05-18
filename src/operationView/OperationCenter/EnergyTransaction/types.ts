@@ -45,6 +45,7 @@ export interface SearchFormParams {
 export interface ExportDataItem {
   订单号: string
   代理名称: string
+  机器人昵称: string
   TG用户名?: string
   TG用户昵称?: string
   用户账号?: string

@@ -72,7 +72,8 @@ export function transformOrderToExportData(
   // 基础字段（始终导出）
   const baseData: Partial<ExportDataItem> = {
     订单号: order.id || '-',
-    代理名称: order.agent_name || '-'
+    代理名称: order.agent_name || '-',
+    机器人昵称: order.bot_name || '-'
   }
 
   // 根据来源判断导出哪些字段
