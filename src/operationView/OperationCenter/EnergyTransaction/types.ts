@@ -22,6 +22,7 @@ export interface EnergyListParams {
   kind?: number
   receive_address?: string
   payment_address?: string
+  energy_address?: string
   status?: number
   order?: string
 }

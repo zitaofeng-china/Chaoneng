@@ -6,6 +6,7 @@
 export interface V2EnergyListParams {
   current_page?: number // 当前页码
   end_time?: string // 结束时间
+  payment_address?: string // 能量地址
   energy_address?: string // 能量地址
   keyword?: string // 关键字
   kind?: number // 类型: 4-时间能量, 5-笔数能量, 6-福利能量, 7-快速能量, 8-自动托管, 9-批量能量, 10-批量激活

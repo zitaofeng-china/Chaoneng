@@ -481,7 +481,7 @@ const fetchEnergyOrderList = async (params: any) => {
     if (params.keyword) adaptedParams.keyword = params.keyword
     if (params.kind) adaptedParams.kind = params.kind
     if (params.receive_address) adaptedParams.receive_address = params.receive_address
-    if (params.payment_address) adaptedParams.payment_address = params.payment_address
+    if (params.payment_address) adaptedParams.energy_address = params.payment_address
 
     // 处理排序参数
     if (params.order) {

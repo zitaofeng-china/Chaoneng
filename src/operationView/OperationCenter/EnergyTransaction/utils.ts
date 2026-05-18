@@ -48,7 +48,7 @@ export function transformSearchParamsToApiParams(params: SearchFormParams): Ener
 
   // 处理能量接收地址
   if (params.payment_address) {
-    apiParams.payment_address = params.payment_address
+    apiParams.energy_address = params.payment_address
   }
 
   // 处理状态
