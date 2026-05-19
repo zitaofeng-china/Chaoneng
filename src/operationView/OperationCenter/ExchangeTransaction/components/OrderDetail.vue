@@ -1,16 +1,44 @@
 <template>
-  <Dialog v-model="visible" title="查看详情">
+  <Dialog v-model="visible" title="兑换详情">
     <div v-if="loading" class="flex justify-center items-center min-h-[200px]">
       <Icon icon="ep:loading" class="is-loading" :size="26" />
     </div>
-    <Descriptions
-      v-if="orderDetail && !loading"
-      :schema="detailSchema"
-      :data="orderDetail"
-      :column="3"
-      border
-    />
+
+    <template v-if="orderDetail && !loading">
+      <ElTabs v-model="activeTab">
+        <!-- 标签页1：兑换详情 -->
+        <ElTabPane label="兑换详情" name="detail">
+          <Descriptions :schema="detailSchema" :data="orderDetail" :column="3" border />
+        </ElTabPane>
+
+        <!-- 标签页2：用户转出 -->
+        <ElTabPane :label="userOutTabLabel" name="userOut">
+          <Descriptions
+            v-if="orderDetail.in_txid || orderDetail.pay_from_address"
+            :schema="transactionInSchema"
+            :data="orderDetail"
+            :column="1"
+            border
+          />
+          <ElEmpty v-else description="暂无交易数据" />
+        </ElTabPane>
+
+        <!-- 标签页3：用户接收 -->
+        <ElTabPane :label="userInTabLabel" name="userIn">
+          <Descriptions
+            v-if="orderDetail.out_txid || orderDetail.deliver_from_address"
+            :schema="transactionOutSchema"
+            :data="orderDetail"
+            :column="1"
+            border
+          />
+          <ElEmpty v-else description="暂无交易数据" />
+        </ElTabPane>
+      </ElTabs>
+    </template>
+
     <div v-else-if="!loading" class="text-center p-5">无法加载订单详情数据。</div>
+
     <template #footer>
       <div class="flex justify-end">
         <ElButton type="primary" @click="visible = false">确定</ElButton>
@@ -21,42 +49,30 @@
 
 <script setup lang="ts">
 import { ref, computed, h } from 'vue'
-import { ElButton, ElMessage, ElTag, ElLink } from 'element-plus'
+import { ElButton, ElMessage, ElTag, ElLink, ElTabs, ElTabPane, ElEmpty } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
-import { getExchangeOrderDetailApi, v2GetExchangeDetail } from '@/api/exchange_transaction'
-import type { ExchangeOrderDetailData, V2ExchangeDetail } from '@/api/exchange_transaction/types'
+import { v2GetExchangeDetail } from '@/api/exchange_transaction'
+import type { V2ExchangeDetail } from '@/api/exchange_transaction/types'
 import { formatToDateTime } from '@/utils/dateUtil'
 import Icon from '@/components/Icon/src/Icon.vue'
 
 const visible = ref(false)
 const loading = ref(false)
+const activeTab = ref('detail')
+const orderDetail = ref<any>(null)
 
-type OrderDetailType = Partial<
-  ExchangeOrderDetailData & {
-    user_id?: number
-    username?: string
-    trx_price?: string | number
-    exchange_amount?: string | number
-    exchange_unit?: string
-    plate_profit?: string | number
-    real_price?: string | number
-    resend_amount?: string | number
-    resend_unit?: string
-    receive_address?: string
-    resend_time?: number
-    status?: number
-    agent_out_amount?: string | number // 代理利润
-    agent_cost?: string | number // 代理扣款
-    finish_time?: number
-    describe?: string
-    pay_unit?: string
-    order_type?: number
-  }
->
+// 标签页标题
+const userOutTabLabel = computed(() => {
+  const type = orderDetail.value?.order_type
+  return type === 1 ? '用户转出 USDT' : '用户转出 TRX'
+})
 
-const orderDetail = ref<OrderDetailType | null>(null)
+const userInTabLabel = computed(() => {
+  const type = orderDetail.value?.order_type
+  return type === 1 ? '用户接收 TRX' : '用户接收 USDT'
+})
 
 const getStatusText = (status: number | undefined) => {
   switch (status) {
@@ -85,38 +101,34 @@ const getStatusText = (status: number | undefined) => {
 
 const getStatusType = (status: number | undefined): 'success' | 'warning' | 'info' | 'danger' => {
   switch (status) {
-    case 5: // 已完成
+    case 5:
       return 'success'
-    case 6: // 失败订单
+    case 6:
       return 'danger'
-    case 8: // 已取消
+    case 8:
       return 'warning'
-    case 1: // 新订单
-    case 3: // 已发送
-    case 4: // 已回收
+    case 1:
+    case 3:
+    case 4:
       return 'info'
-    case 2: // 已支付
-    case 7: // 已退款
-    case 9: // 中止订单
+    case 2:
+    case 7:
+    case 9:
       return 'warning'
     default:
       return 'info'
   }
 }
 
-const formatAmount = (amount: string | number | undefined, unit: string | undefined) => {
-  const amountStr = amount ?? '-'
-  return amountStr !== '-' ? `${amountStr}` : amountStr.toString()
+const formatAmount = (amount: string | number | undefined) => {
+  return amount ?? '-'
 }
-
-// const formatRate = (rate: string | number | undefined) => {
-//   return rate !== undefined && rate !== null ? `$${rate}` : '-'
-// }
 
 const formatNullableDateTime = (timestamp: number | undefined) => {
   return timestamp && !isNaN(timestamp) ? formatToDateTime(timestamp * 1000) : '-'
 }
 
+// 兑换详情 Schema
 const detailSchema = computed<DescriptionsSchema[]>(() => [
   { label: '订单ID', field: 'order_id', span: 8 },
   {
@@ -125,7 +137,6 @@ const detailSchema = computed<DescriptionsSchema[]>(() => [
     span: 8,
     slots: { default: (data) => data.username ?? '-' }
   },
-
   {
     label: '交易类型',
     field: 'order_type',
@@ -133,90 +144,54 @@ const detailSchema = computed<DescriptionsSchema[]>(() => [
     slots: { default: () => h('span', { class: 'text-blue-500' }, '闪兑') }
   },
   {
+    label: '兑换类型',
+    field: 'order_type',
+    span: 8,
+    slots: {
+      default: (data) => {
+        const text = data.order_type === 1 ? '兑换TRX' : '兑换USDT'
+        return h('span', text)
+      }
+    }
+  },
+  {
     label: '支付金额',
     field: 'order_amount',
     span: 8,
-    slots: { default: (data) => formatAmount(data.order_amount, data.pay_unit) }
+    slots: {
+      default: (data) => {
+        const amount = formatAmount(data.order_amount)
+        if (amount === '-') return amount
+        return h('span', null, [
+          `${amount} `,
+          h('span', { class: 'text-blue-500' }, data.pay_unit || '')
+        ])
+      }
+    }
   },
-  {
-    label: '兑换汇率',
-    field: 'trx_price',
-    span: 8
-  },
-
+  { label: '兑换汇率', field: 'trx_price', span: 8 },
   {
     label: '支出数量',
     field: 'exchange_amount',
     span: 8,
-    slots: { default: (data) => formatAmount(data.exchange_amount, data.exchange_unit) }
+    slots: {
+      default: (data) => {
+        const amount = formatAmount(data.exchange_amount)
+        if (amount === '-') return amount
+        return h('span', null, [
+          `${amount} `,
+          h('span', { class: 'text-blue-500' }, data.exchange_unit || '')
+        ])
+      }
+    }
   },
   {
     label: '平台利润',
     field: 'plate_profit',
     span: 8,
-    slots: { default: (data) => formatAmount(data.plate_profit, data.exchange_unit) }
+    slots: { default: (data) => `${formatAmount(data.plate_profit)}` }
   },
-  {
-    label: '实时汇率',
-    field: 'real_price',
-    span: 8
-  },
-
-  // { label: '补发TRX', field: 'resend_amount', span: 8, slots: { default: (data) => formatAmount(data.resend_amount, data.resend_unit ?? data.exchange_unit) } },
-  {
-    label: '系统转出TRX',
-    field: 'out_from_address',
-    span: 16,
-    slots: { default: (data) => data.out_from_address || '-' }
-  },
-  {
-    label: '用户接收TRX',
-    field: 'in_from_address',
-    span: 16,
-    slots: { default: (data) => data.in_from_address || '-' }
-  },
-  {
-    label: '代理收用户U',
-    field: 'in_to_address',
-    span: 16,
-    slots: { default: (data) => data.in_to_address || '-' }
-  },
-  {
-    label: orderDetail.value?.order_type === 1 ? '系统发放TRX hash' : '系统发放USDT hash',
-    field: 'out_txid',
-    span: 16,
-    slots: {
-      default: (data) =>
-        h(
-          ElLink,
-          {
-            type: 'primary',
-            href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${data.out_txid}`,
-            target: '_blank'
-          },
-          () => data.out_txid || '-'
-        )
-    }
-  },
-  {
-    label: orderDetail.value?.order_type === 1 ? '用户转USDT hash' : '用户转TRX hash',
-    field: 'in_txid',
-    span: 16,
-    slots: {
-      default: (data) =>
-        h(
-          ElLink,
-          {
-            type: 'primary',
-            href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${data.in_txid}`,
-            target: '_blank'
-          },
-          () => data.in_txid || '-'
-        )
-    }
-  },
-
-  // { label: '补发时间', field: 'resend_time', span: 8, slots: { default: (data) => formatNullableDateTime(data.resend_time) } },
+  { label: '实时汇率', field: 'real_price', span: 8 },
   {
     label: '订单状态',
     field: 'status',
@@ -230,15 +205,8 @@ const detailSchema = computed<DescriptionsSchema[]>(() => [
     label: '代理扣款',
     field: 'agent_cost',
     span: 8,
-    slots: { default: (data) => formatAmount(data.agent_cost, 'TRX') }
+    slots: { default: (data) => `${formatAmount(data.agent_cost)} TRX` }
   },
-
-  // {
-  //   label: '操作人',
-  //   field: 'username',
-  //   span: 8,
-  //   slots: { default: (data) => data.username ?? '-' }
-  // },
   {
     label: '完成时间',
     field: 'finish_time',
@@ -248,8 +216,114 @@ const detailSchema = computed<DescriptionsSchema[]>(() => [
   { label: '备注', field: 'describe', span: 24, slots: { default: (data) => data.describe ?? '-' } }
 ])
 
+// 用户转出 Schema（pay_transaction）
+const transactionInSchema = computed<DescriptionsSchema[]>(() => [
+  {
+    field: 'in_txid',
+    label: '交易Hash',
+    span: 24,
+    slots: {
+      default: (row: any) => {
+        if (!row || !row.in_txid) return h('span', '-')
+        return h(
+          ElLink,
+          {
+            href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${row.in_txid}`,
+            type: 'primary',
+            target: '_blank'
+          },
+          () => row.in_txid
+        )
+      }
+    }
+  },
+  { field: 'pay_from_address', label: '发送人', span: 24 },
+  { field: 'pay_to_address', label: '接收人', span: 24 },
+  {
+    field: 'order_amount',
+    label: '金额',
+    slots: {
+      default: (row: any) => {
+        if (!row || !row.order_amount) return h('span', '-')
+        const unit = row.order_type === 1 ? 'USDT' : 'TRX'
+        return h('span', `${row.order_amount}（${unit}）`)
+      }
+    }
+  },
+  {
+    field: 'in_time',
+    label: '转出时间',
+    slots: {
+      default: (row: any) => {
+        if (!row || !row.in_time) return h('span', '-')
+        return h('span', formatToDateTime(row.in_time))
+      }
+    }
+  }
+])
+
+// 用户接收 Schema（deliver_transaction）
+const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
+  {
+    field: 'out_txid',
+    label: '交易Hash',
+    span: 24,
+    slots: {
+      default: (row: any) => {
+        if (!row || !row.out_txid) return h('span', '-')
+        return h(
+          ElLink,
+          {
+            href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${row.out_txid}`,
+            type: 'primary',
+            target: '_blank'
+          },
+          () => row.out_txid
+        )
+      }
+    }
+  },
+  {
+    field: 'deliver_from_address',
+    label: '发送人',
+    span: 24,
+    slots: {
+      default: (row: any) => h('span', row?.deliver_from_address || '-')
+    }
+  },
+  {
+    field: 'deliver_to_address',
+    label: '接收人',
+    span: 24,
+    slots: {
+      default: (row: any) => h('span', row?.deliver_to_address || '-')
+    }
+  },
+  {
+    field: 'user_get_amount',
+    label: '金额',
+    slots: {
+      default: (row: any) => {
+        if (!row || !row.user_get_amount) return h('span', '-')
+        const unit = row.order_type === 1 ? 'TRX' : 'USDT'
+        return h('span', `${row.user_get_amount}（${unit}）`)
+      }
+    }
+  },
+  {
+    field: 'out_time',
+    label: '接收时间',
+    slots: {
+      default: (row: any) => {
+        if (!row || !row.out_time) return h('span', '-')
+        return h('span', formatToDateTime(row.out_time))
+      }
+    }
+  }
+])
+
 const open = async (orderIdValue: number | string, rowData?: any) => {
-  const id = String(orderIdValue) // 转换为字符串类型
+  const id = String(orderIdValue)
   if (!id) {
     ElMessage.error('无效的订单ID')
     return
@@ -258,6 +332,7 @@ const open = async (orderIdValue: number | string, rowData?: any) => {
   visible.value = true
   loading.value = true
   orderDetail.value = null
+  activeTab.value = 'detail'
 
   try {
     const res = await v2GetExchangeDetail(id)
@@ -266,7 +341,6 @@ const open = async (orderIdValue: number | string, rowData?: any) => {
     const responseMessage = (res as any)?.msg || (res as any)?.message
 
     if (responseCode === '000000' && responseData) {
-      // 字段映射：新接口 → 旧字段格式
       const exchange = responseData.exchange
       const payTx = responseData.pay_transaction
       const deliverTx = responseData.deliver_transaction
@@ -283,26 +357,28 @@ const open = async (orderIdValue: number | string, rowData?: any) => {
         user_id: responseData.user_id,
         order_type: orderType,
         order_amount: responseData.amount,
-        pay_unit: exchange.in_coin,
+        pay_unit: exchange.in_coin || rowData?.coin || '',
         exchange_amount: exchange.out_amount,
         exchange_unit: exchange.out_coin,
-        trx_price: exchange.actual_rate, // 对话汇率
-        real_price: exchange.real_rate, // 实时汇率
+        trx_price: exchange.actual_rate,
+        real_price: exchange.real_rate,
         plate_profit: exchange.plate_profit,
-        agent_out_amount: exchange.agent_profit || 0, // 代理利润
-        agent_cost: rowData?.agent_cost || responseData.agent_cost || 0, // 代理扣款（优先使用列表数据）
-        receive_address: responseData.receive_address,
+        agent_cost: rowData?.agent_cost || responseData.agent_cost || 0,
         status: responseData.status,
         finish_time: responseData.paid_at || exchange.out_at || 0,
         describe: responseData.describe,
-        // 地址信息
-        out_from_address: deliverTx?.from || exchange.out_address, // 系统转出地址（发送方）
-        in_from_address: deliverTx?.to || exchange.out_address, // 用户接收地址（接收方）
-        in_to_address: payTx.to, // 代理收款地址
-        // 交易hash
-        out_txid: exchange.out_txid || deliverTx.id, // 系统发放hash
-        in_txid: payTx.id // 用户支付hash
-      } as OrderDetailType
+        // 用户转出（pay_transaction）
+        pay_from_address: payTx?.from || '',
+        pay_to_address: payTx?.to || '',
+        in_txid: payTx?.id || '',
+        in_time: payTx?.time ? payTx.time * 1000 : 0,
+        // 用户接收（deliver_transaction）
+        deliver_from_address: deliverTx?.from || '',
+        deliver_to_address: deliverTx?.to || '',
+        out_txid: exchange.out_txid || deliverTx?.id || '',
+        out_time: deliverTx?.time ? deliverTx.time * 1000 : 0,
+        user_get_amount: deliverTx?.amount || '0'
+      }
     } else {
       ElMessage.error(responseMessage || '获取订单详情失败')
     }
@@ -334,10 +410,6 @@ defineExpose({ open })
   to {
     transform: rotate(360deg);
   }
-}
-
-:deep(.el-descriptions__label) {
-  /* min-width: 80px; */
 }
 
 :deep(.el-descriptions__content) {

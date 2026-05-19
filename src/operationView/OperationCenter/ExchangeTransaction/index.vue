@@ -397,7 +397,7 @@ const actionColumn = {
       return (
         <>
           <BaseButton type="primary" onClick={() => handleDetail(row)}>
-            详情
+            兑换详情
           </BaseButton>
         </>
       )

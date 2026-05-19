@@ -18,56 +18,42 @@
         </template>
       </SearchTable>
 
-      <!-- 兑换详情弹窗 -->
+      <!-- 兑换详情弹窗（合并版） -->
       <Dialog v-model="dialogVisible" :title="'兑换详情'">
-        <Descriptions
-          :schema="exchangeDetailSchema"
-          :data="orderDetail"
-          :column="2"
-          title="兑换详情"
-        />
+        <ElTabs v-model="activeTab">
+          <!-- 标签页1：兑换详情 -->
+          <ElTabPane label="兑换详情" name="detail">
+            <Descriptions :schema="exchangeDetailSchema" :data="orderDetail" :column="2" border />
+          </ElTabPane>
+
+          <!-- 标签页2：用户转出 -->
+          <ElTabPane :label="userOutTabLabel" name="userOut">
+            <Descriptions
+              v-if="orderDetail.in_txid || orderDetail.in_from_address"
+              :schema="transactionInSchema"
+              :data="orderDetail"
+              :column="1"
+              border
+            />
+            <ElEmpty v-else description="暂无交易数据" />
+          </ElTabPane>
+
+          <!-- 标签页3：用户接收 -->
+          <ElTabPane :label="userInTabLabel" name="userIn">
+            <Descriptions
+              v-if="orderDetail.out_txid || orderDetail.out_from_address"
+              :schema="transactionOutSchema"
+              :data="orderDetail"
+              :column="1"
+              border
+            />
+            <ElEmpty v-else description="暂无交易数据" />
+          </ElTabPane>
+        </ElTabs>
+
         <template #footer>
           <div class="flex justify-end">
             <ElButton @click="dialogVisible = false">关闭</ElButton>
-          </div>
-        </template>
-      </Dialog>
-
-      <!-- 交易详情弹窗 - 综合版 -->
-      <Dialog v-model="transactionDialogVisible" :title="'交易详情'">
-        <ElTabs v-model="activeTransactionTab" class="transaction-tabs">
-          <ElTabPane
-            name="in"
-            :label="transactionDetail?.order_type === 1 ? '用户转USDT hash' : '用户转TRX hash'"
-          >
-            <Descriptions
-              :schema="transactionInSchema"
-              :data="transactionDetail"
-              :column="1"
-              border
-            />
-          </ElTabPane>
-          <ElTabPane
-            name="out"
-            :label="transactionDetail?.order_type === 1 ? '系统发放TRX hash' : '系统发放USDT hash'"
-          >
-            <Descriptions
-              :schema="transactionOutSchema"
-              :data="transactionDetail"
-              :column="1"
-              border
-            />
-          </ElTabPane>
-        </ElTabs>
-        <div
-          v-if="!transactionDetail.in_txid && !transactionDetail.out_txid"
-          class="empty-transaction"
-        >
-          <ElEmpty description="暂无交易数据" />
-        </div>
-        <template #footer>
-          <div class="flex justify-end">
-            <ElButton @click="transactionDialogVisible = false">关闭</ElButton>
           </div>
         </template>
       </Dialog>
@@ -100,15 +86,21 @@ const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 // 订单详情相关
 const dialogVisible = ref(false)
 const orderDetail = ref<any>({})
-
-// 交易详情相关
-const transactionDialogVisible = ref(false)
-const transactionDetail = ref<any>({})
-const activeTransactionTab = ref('in')
+const activeTab = ref('detail')
 
 // 保存当前搜索参数
 const currentSearchParams = ref<any>({})
 
+// 标签页标题（动态根据订单类型）
+const userOutTabLabel = computed(() => {
+  const type = orderDetail.value?.order_type
+  return type === 1 ? '用户转出 USDT' : '用户转出 TRX'
+})
+
+const userInTabLabel = computed(() => {
+  const type = orderDetail.value?.order_type
+  return type === 1 ? '用户接收 TRX' : '用户接收 USDT'
+})
 // 兑换详情Schema
 const exchangeDetailSchema = computed(() => {
   const schema: DescriptionsSchema[] = [
@@ -190,7 +182,7 @@ const exchangeDetailSchema = computed(() => {
   return schema
 })
 
-// 转入详情Schema
+// 用户转出Schema（用户支付交易）
 const transactionInSchema = computed<DescriptionsSchema[]>(() => [
   {
     field: 'in_txid',
@@ -211,8 +203,8 @@ const transactionInSchema = computed<DescriptionsSchema[]>(() => [
       }
     }
   },
-  { field: 'in_to_address', label: '接收人', span: 24 },
   { field: 'in_from_address', label: '发送人', span: 24 },
+  { field: 'in_to_address', label: '接收人', span: 24 },
   {
     field: 'order_amount',
     label: '金额',
@@ -226,17 +218,17 @@ const transactionInSchema = computed<DescriptionsSchema[]>(() => [
   },
   {
     field: 'in_time',
-    label: '转入时间',
+    label: '转出时间',
     slots: {
       default: (row: any) => {
-        console.log('row', row)
+        if (!row || !row.in_time) return h('span', '-')
         return h('span', formatToDateTime(row.in_time))
       }
     }
   }
 ])
 
-// 转出详情Schema
+// 用户接收Schema（系统发放交易）
 const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
   {
     field: 'out_txid',
@@ -258,17 +250,6 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
     }
   },
   {
-    field: 'out_to_address',
-    label: '接收人',
-    span: 24,
-    slots: {
-      default: (row: any) => {
-        if (!row || !row.out_txid) return h('span', '-')
-        return h('span', row.out_to_address || '-')
-      }
-    }
-  },
-  {
     field: 'out_from_address',
     label: '发送人',
     span: 24,
@@ -276,6 +257,17 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
       default: (row: any) => {
         if (!row || !row.out_txid) return h('span', '-')
         return h('span', row.out_from_address || '-')
+      }
+    }
+  },
+  {
+    field: 'out_to_address',
+    label: '接收人',
+    span: 24,
+    slots: {
+      default: (row: any) => {
+        if (!row || !row.out_txid) return h('span', '-')
+        return h('span', row.out_to_address || '-')
       }
     }
   },
@@ -292,10 +284,10 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
   },
   {
     field: 'out_time',
-    label: '转出时间',
+    label: '接收时间',
     slots: {
       default: (row: any) => {
-        if (!row || !row.out_txid) return h('span', '-')
+        if (!row || !row.out_txid || !row.out_time) return h('span', '-')
         return h('span', formatToDateTime(row.out_time))
       }
     }
@@ -411,19 +403,14 @@ const columns: TableColumn[] = [
 const actionColumn: TableColumn = {
   field: 'action',
   label: '操作',
-  width: 240,
+  width: 120,
   fixed: 'right',
   slots: {
     default: ({ row }) => {
       return (
-        <div>
-          <BaseButton type="primary" onClick={() => handleViewDetail(row)}>
-            兑换详情
-          </BaseButton>
-          <BaseButton type="success" onClick={() => handleTransactionDetail(row)}>
-            交易详情
-          </BaseButton>
-        </div>
+        <BaseButton type="primary" onClick={() => handleViewDetail(row)}>
+          兑换详情
+        </BaseButton>
       )
     }
   }
@@ -591,46 +578,28 @@ const fetchExchangeOrderList = async (params: any) => {
   }
 }
 
-// 查看兑换详情
+// 查看兑换详情（包含交易信息）
 const handleViewDetail = async (row: any) => {
   try {
     const response = await v1GetExchangeOrderDetail(row.id)
 
     if (response && response.data) {
-      // 直接使用API返回的数据，只添加必要的计算字段
-      orderDetail.value = {
-        ...response.data,
-        order_type: response.data.coin === 'USDT' ? 1 : 2, // 根据coin判断订单类型
-        created_at: response.data.created_at * 1000,
-        paid_at: response.data.paid_at ? response.data.paid_at * 1000 : null
-      }
-      dialogVisible.value = true
-    } else {
-      ElMessage.warning('数据格式错误')
-    }
-  } catch (error) {
-    handleErrorMessage(error, '获取闪兑详情失败')
-  }
-}
-
-// 查看交易详情
-const handleTransactionDetail = async (row: any) => {
-  try {
-    const response = await v1GetExchangeOrderDetail(row.id)
-
-    if (response.data) {
       const detail = response.data
-      // 直接使用API返回的数据，只做时间转换
-      transactionDetail.value = {
-        order_id: detail.id,
-        order_type: detail.coin === 'USDT' ? 1 : 2, // 根据coin判断订单类型
-        // 转入交易信息（直接使用pay_transaction）
+      const orderType = detail.coin === 'USDT' ? 1 : 2
+
+      // 合并兑换详情 + 交易详情到一个对象
+      orderDetail.value = {
+        ...detail,
+        order_type: orderType,
+        created_at: detail.created_at * 1000,
+        paid_at: detail.paid_at ? detail.paid_at * 1000 : null,
+        // 用户转出（pay_transaction）
         in_txid: detail.pay_transaction?.id || '',
         in_to_address: detail.pay_transaction?.to || '',
         in_from_address: detail.pay_transaction?.from || '',
         in_time: detail.pay_transaction?.time ? detail.pay_transaction.time * 1000 : 0,
         order_amount: detail.amount,
-        // 转出交易信息（直接使用deliver_transaction）
+        // 用户接收（deliver_transaction）
         out_txid: detail.deliver_transaction?.id || '',
         out_to_address: detail.deliver_transaction?.to || '',
         out_from_address: detail.deliver_transaction?.from || '',
@@ -638,27 +607,13 @@ const handleTransactionDetail = async (row: any) => {
         user_get_amount: detail.deliver_transaction?.amount || '0'
       }
 
-      console.log('transactionDetail.value', transactionDetail.value)
-
-      // 设置默认活动标签页
-      if (transactionDetail.value.in_txid && transactionDetail.value.out_txid) {
-        activeTransactionTab.value = 'in'
-      } else if (transactionDetail.value.in_txid) {
-        activeTransactionTab.value = 'in'
-      } else if (transactionDetail.value.out_txid) {
-        activeTransactionTab.value = 'out'
-      } else {
-        ElMessage.info('暂无交易数据')
-      }
-
-      transactionDialogVisible.value = true
+      activeTab.value = 'detail'
+      dialogVisible.value = true
     } else {
-      ElMessage.info('暂无交易数据')
-      transactionDetail.value = { order_id: row.id }
-      transactionDialogVisible.value = true
+      ElMessage.warning('数据格式错误')
     }
   } catch (error) {
-    handleErrorMessage(error, '获取交易详情失败')
+    handleErrorMessage(error, '获取闪兑详情失败')
   }
 }
 
@@ -751,16 +706,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.transaction-tabs {
-  margin-bottom: 20px;
-}
-
-.empty-transaction {
-  display: flex;
-  padding: 30px 0;
-  justify-content: center;
-}
-
 /* 交易哈希长文本处理 */
 :deep(.el-descriptions-item__content) {
   word-break: break-all;
