@@ -3,9 +3,7 @@ import ElementPlus from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 // 需要全局引入一些组件，如ElScrollbar，不然一些下拉项样式有问题
-import { ElLoading, ElScrollbar } from 'element-plus'
-
-const plugins = [ElLoading]
+import { ElScrollbar } from 'element-plus'
 
 const components = [ElScrollbar]
 
@@ -13,10 +11,6 @@ export const setupElementPlus = (app: App<Element>) => {
   // 配置 Element Plus 使用中文语言包
   app.use(ElementPlus, {
     locale: zhCn
-  })
-
-  plugins.forEach((plugin) => {
-    app.use(plugin)
   })
 
   // 为了开发环境启动更快，一次性引入所有样式

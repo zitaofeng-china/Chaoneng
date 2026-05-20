@@ -46,12 +46,14 @@ const route = useRoute()
 const router = useRouter()
 // 引用SearchTable实例
 const searchTableRef = ref()
+const isFirstLoad = ref(true)
 
 // --- API 调用封装 ---
 onMounted(() => {
   console.log('route', route.query)
   searchTableRef.value?.setSearchParams({
-    query: route.query.id
+    query: route.query.id,
+    status: 1
   })
 })
 
@@ -59,6 +61,18 @@ onMounted(() => {
 const getAgentBotList = async (params?: any): Promise<{ list: AgentBotItem[]; total?: number }> => {
   try {
     const apiParams: any = { ...params }
+
+    // 仅首次加载默认筛选启用状态
+    if (isFirstLoad.value) {
+      isFirstLoad.value = false
+      if (!apiParams.status) {
+        apiParams.status = 1
+      }
+    }
+    // status 为空时不传（查全部）
+    if (!apiParams.status) {
+      delete apiParams.status
+    }
 
     // 处理排序参数 - 字段名映射
     if (params?.order) {
@@ -240,6 +254,7 @@ const columns = ref<TableColumn[]>([
     field: 'action',
     label: '操作',
     width: '100px',
+    fixed: 'right',
     formatter: (row: AgentBotItem) => {
       const isEnabled = row.status === 1
       const targetStatus = isEnabled ? 2 : 1
