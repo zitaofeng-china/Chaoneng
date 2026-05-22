@@ -1,55 +1,42 @@
 /**
- * 资源订单相关API
+ * 资源订单（理财订单）相关API
+ * 接口路径：/v1/fund/order
  */
 import request from '@/axios'
 import type {
   V2ResourceOrderListParams,
   V2ResourceOrderListResponse,
-  V2ResourceOrderDetail,
   V2SettlementRecordListParams,
   V2SettlementRecordListResponse
 } from './types'
 
-const BASE_URL = '/v2/manage/order/resource_order/'
+const BASE_URL = '/v1/fund/order'
 
 /**
- * 获取资源订单列表
- * GET /v2/manage/order/resource_order/list
+ * 分页获取理财订单列表
+ * GET /v1/fund/order
  */
 export const v2GetResourceOrderList = (
   params: V2ResourceOrderListParams
 ): Promise<IResponse<V2ResourceOrderListResponse>> => {
-  console.log('[v2GetResourceOrderList] 调用参数:', params)
   return request.get({
-    url: `${BASE_URL}list`,
+    url: BASE_URL,
     params
   })
 }
 
 /**
- * 获取资源订单详情
- * GET /v2/manage/order/resource_order/detail
- */
-export const v2GetResourceOrderDetail = (
-  orderId: string
-): Promise<IResponse<V2ResourceOrderDetail>> => {
-  console.log('[v2GetResourceOrderDetail] 订单ID:', orderId)
-  return request.get({
-    url: `${BASE_URL}detail`,
-    params: { order_id: orderId }
-  })
-}
-
-/**
- * 获取结算记录列表
- * GET /v2/manage/order/resource_order/settlement_record/list
+ * 分页获取理财结算列表
+ * GET /v1/fund/settlement
  */
 export const v2GetSettlementRecordList = (
   params: V2SettlementRecordListParams
 ): Promise<IResponse<V2SettlementRecordListResponse>> => {
-  console.log('[v2GetSettlementRecordList] 调用参数:', params)
   return request.get({
-    url: `${BASE_URL}settlement_record/list`,
+    url: '/v1/fund/settlement',
     params
   })
 }
+
+// 导出类型
+export * from './types'

@@ -174,7 +174,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           component: () => import('@/operationView/OperationCenter/ResourceOrder/index.vue'),
           name: 'ResourceOrder',
           meta: {
-            title: '资源订单列表'
+            title: '理财订单列表'
           }
         },
         {
@@ -184,6 +184,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           meta: {
             title: '资源补充配置',
             buttonList: ['add', 'edit']
+          }
+        },
+        {
+          path: 'resource_supplement_order',
+          component: () =>
+            import('@/operationView/OperationCenter/ResourceSupplementOrder/index.vue'),
+          name: 'ResourceSupplementOrder',
+          meta: {
+            title: '资源补充记录'
           }
         }
       ]
