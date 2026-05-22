@@ -471,8 +471,14 @@ const columns = computed<TableColumn[]>(() => [
     hidden: !isBatchEditMode.value
   },
   {
+    field: 'username',
+    label: '代理用户名',
+    minWidth: 120,
+    formatter: (row: AgentItem) => row.username || '-'
+  },
+  {
     field: 'email',
-    label: '联系方式',
+    label: '代理邮箱',
     minWidth: 180,
     formatter: (row: AgentItem) => {
       const isEditing = editingEmailId.value === row.id
@@ -507,12 +513,6 @@ const columns = computed<TableColumn[]>(() => [
         </div>
       )
     }
-  },
-  {
-    field: 'username',
-    label: '代理名称',
-    minWidth: 120,
-    formatter: (row: AgentItem) => row.username || '-'
   },
   {
     field: 'price_id',
@@ -590,13 +590,13 @@ const columns = computed<TableColumn[]>(() => [
   },
   {
     field: 'trx_income',
-    label: 'TRX收入',
+    label: '代理收入TRX',
     minWidth: 100,
     formatter: (row: AgentItem) => row.trx_income ?? '0'
   },
   {
     field: 'usdt_income',
-    label: 'USDT收入',
+    label: '代理收入USDT',
     minWidth: 110,
     formatter: (row: AgentItem) => row.usdt_income ?? '0'
   },
