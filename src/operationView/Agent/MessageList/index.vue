@@ -116,11 +116,13 @@
                     class="inline-buttons"
                   >
                     <div
-                      v-for="(button, btnIndex) in currentDetailRecord.inner_buttons"
-                      :key="btnIndex"
-                      class="inline-button"
+                      v-for="(row, rowIndex) in currentDetailRecord.inner_buttons"
+                      :key="rowIndex"
+                      class="inline-button-row"
                     >
-                      {{ button.text }}
+                      <div v-for="(button, btnIndex) in row" :key="btnIndex" class="inline-button">
+                        {{ button.text }}
+                      </div>
                     </div>
                   </div>
                 </template>
@@ -145,11 +147,13 @@
                   class="inline-buttons"
                 >
                   <div
-                    v-for="(button, btnIndex) in currentDetailRecord.inner_buttons"
-                    :key="btnIndex"
-                    class="inline-button"
+                    v-for="(row, rowIndex) in currentDetailRecord.inner_buttons"
+                    :key="rowIndex"
+                    class="inline-button-row"
                   >
-                    {{ button.text }}
+                    <div v-for="(button, btnIndex) in row" :key="btnIndex" class="inline-button">
+                      {{ button.text }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -367,7 +371,9 @@ const handleResend = async (row: any) => {
       content: row.content || '',
       delete_sent: row.delete_sent || 2,
       files: row.files || [],
-      inner_buttons: (row.inner_buttons || []).map((btn: any) => btn.id),
+      inner_buttons: (row.inner_buttons || []).map((rowBtns: any[]) =>
+        rowBtns.map((btn: any) => btn.id)
+      ),
       period: 0,
       send_at: Math.floor(Date.now() / 1000),
       tg_user_ids: row.tg_user_ids || []
@@ -710,14 +716,18 @@ onMounted(() => {
 .inline-buttons {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
   gap: 4px;
   padding: 0 8px 8px;
 }
 
+.inline-button-row {
+  display: flex;
+  gap: 4px;
+}
+
 .inline-button {
-  width: 100%;
-  padding: 8px 16px;
+  flex: 1;
+  padding: 8px 12px;
   font-size: 14px;
   font-weight: 500;
   line-height: 1.5;
