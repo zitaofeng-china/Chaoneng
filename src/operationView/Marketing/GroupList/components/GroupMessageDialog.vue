@@ -416,14 +416,14 @@ const handleSubmit = async () => {
     }))
   }
 
-  // 内联按钮
+  // 内联按钮（带 id，传给预览弹窗做行布局）
   if (checkList.value.length > 0) {
     previewData.buttons = checkList.value
       .map((id) => {
         const menu = menuList.value.find((m) => m.id === id)
-        return menu ? { text: menu.text || '' } : null
+        return menu ? { id: Number(id), text: menu.text || '' } : null
       })
-      .filter((btn) => btn !== null) as Array<{ text: string; url?: string }>
+      .filter((btn) => btn !== null) as Array<{ id: number; text: string; url?: string }>
   }
 
   messagePreviewData.value = previewData
@@ -431,7 +431,7 @@ const handleSubmit = async () => {
 }
 
 // 确认发送消息
-const handleConfirmSend = async () => {
+const handleConfirmSend = async (buttonLayout?: number[][]) => {
   if (!props.currentGroup) {
     ElMessage.error('未选择群组')
     return
@@ -467,15 +467,21 @@ const handleConfirmSend = async () => {
       }
     }
 
-    // 处理内联按钮
-    const innerButtons = checkList.value
-      .map((item: any) => {
-        if (typeof item === 'object' && item !== null && 'id' in item) {
-          return Number(item.id)
-        }
-        return typeof item === 'number' ? item : Number(item)
-      })
-      .filter((id: number) => !isNaN(id))
+    // 处理内联按钮（使用预览中调整的二维布局）
+    let innerButtons: number[][] = []
+    if (buttonLayout && Array.isArray(buttonLayout) && buttonLayout.length > 0) {
+      innerButtons = buttonLayout.filter((row) => Array.isArray(row) && row.length > 0)
+    } else if (checkList.value.length > 0) {
+      const ids = checkList.value
+        .map((item: any) => {
+          if (typeof item === 'object' && item !== null && 'id' in item) {
+            return Number(item.id)
+          }
+          return typeof item === 'number' ? item : Number(item)
+        })
+        .filter((id: number) => !isNaN(id))
+      if (ids.length > 0) innerButtons = [ids]
+    }
 
     // 处理发送时间
     let sendAtTimestamp: number
