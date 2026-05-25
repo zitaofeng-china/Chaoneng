@@ -11,6 +11,7 @@ import {
   v1UpdateBotPrice,
   v1UpdateBotWealConfig,
   v1AddAddressList,
+  v1DeleteAddressList,
   v1UpdateAddress,
   syncTgStatusApi
 } from '@/api/botlist'
@@ -37,6 +38,13 @@ export function useBotConfigV1() {
     3: null, // 闪兑
     4: null, // 时间能量
     5: null // 笔数能量
+  })
+  // 缓存原始地址值（用于清空时调用删除接口）
+  const addressRecordValues = reactive<Record<number, string>>({
+    2: '',
+    3: '',
+    4: '',
+    5: ''
   })
   // TG状态同步
   const syncTgStatus = async () => {
@@ -129,6 +137,12 @@ export function useBotConfigV1() {
       addressRecordIds[2] = userDepositAddress ? userDepositAddress.id : null
       addressRecordIds[5] = strokeEnergyAddress ? strokeEnergyAddress.id : null
       addressRecordIds[3] = exchangeAddress ? exchangeAddress.id : null
+
+      // 缓存原始地址值
+      addressRecordValues[4] = timeEnergyAddress?.address || ''
+      addressRecordValues[2] = userDepositAddress?.address || ''
+      addressRecordValues[5] = strokeEnergyAddress?.address || ''
+      addressRecordValues[3] = exchangeAddress?.address || ''
 
       console.log('=== 收款配置 addressRecordIds ===', JSON.parse(JSON.stringify(addressRecordIds)))
 
@@ -378,20 +392,27 @@ export function useBotConfigV1() {
 
       for (const { field, kind } of addressFields) {
         const address = paymentData[field]?.trim()
-        if (!address) continue
-
         const existingId = addressRecordIds[kind]
+        const originalAddress = addressRecordValues[kind]
 
-        if (existingId !== null && existingId !== undefined) {
-          // 已有记录，使用更新接口
+        if (!address && existingId !== null && existingId !== undefined && originalAddress) {
+          // 输入框清空了，但缓存里有值 → 调用删除接口
+          promises.push(
+            v1DeleteAddressList({
+              bot_id: currentBot.value.id,
+              list: [originalAddress]
+            })
+          )
+        } else if (address && existingId !== null && existingId !== undefined) {
+          // 有值且已有记录 → 更新
           promises.push(
             v1UpdateAddress({
               id: existingId,
               address
             })
           )
-        } else {
-          // 无记录，使用创建接口
+        } else if (address && (existingId === null || existingId === undefined)) {
+          // 有值但无记录 → 创建
           promises.push(
             v1AddAddressList({
               bot_id: currentBot.value.id,
@@ -400,11 +421,12 @@ export function useBotConfigV1() {
             })
           )
         }
+        // 无值且无记录 → 什么都不做
       }
 
       if (promises.length === 0) {
-        ElMessage.warning('请至少填写一个收款地址')
-        return false
+        ElMessage.info('没有需要保存的变更')
+        return true
       }
 
       await Promise.all(promises)
