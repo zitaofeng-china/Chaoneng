@@ -19,7 +19,7 @@
         </ElCol>
         <ElCol :span="8">
           <ElFormItem label="客服账号：">
-            <ElInput v-model="h5Config.tg_admin" placeholder="请输入客服账号" />
+            <ElInput v-model="h5Config.site_tg_admin" placeholder="请输入客服账号" />
           </ElFormItem>
         </ElCol>
         <ElCol :span="8">
@@ -61,7 +61,7 @@ const { required } = useValidator()
 const h5Config = ref({
   h5_enable: 0,
   url: '',
-  tg_admin: ''
+  site_tg_admin: ''
 })
 
 // 当前机器人ID
@@ -73,7 +73,7 @@ const fetchSiteDetail = async (botId: number) => {
     const res = await v1GetSiteDetail(botId)
     if (res && res.data) {
       h5Config.value.url = res.data.url || ''
-      h5Config.value.tg_admin = res.data.tg_admin || ''
+      h5Config.value.site_tg_admin = res.data.tg_admin || ''
       h5Config.value.h5_enable = res.data.status === 1 ? 1 : 0
     }
   } catch (error) {
@@ -187,15 +187,17 @@ defineExpose({
 
       if (data.h5_enable !== undefined) h5Config.value.h5_enable = data.h5_enable
       if (data.url !== undefined) h5Config.value.url = data.url
-      if (data.tg_admin !== undefined) {
-        h5Config.value.tg_admin = data.tg_admin
+      if (data.site_tg_admin !== undefined) {
+        h5Config.value.site_tg_admin = data.site_tg_admin
       }
     },
     getFormData: async () => {
       const formData = await formMethods.getFormData()
       return {
         ...formData,
-        ...h5Config.value
+        site_tg_admin: h5Config.value.site_tg_admin,
+        h5_enable: h5Config.value.h5_enable,
+        url: h5Config.value.url
       }
     }
   }
