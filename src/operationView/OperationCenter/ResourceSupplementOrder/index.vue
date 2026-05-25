@@ -39,7 +39,13 @@ const columns: TableColumn[] = [
     field: 'balance',
     label: '余额',
     width: 140,
-    formatter: (row) => (row.balance ? row.balance.toLocaleString() : '-')
+    formatter: (row) => {
+      const fee = Number(row.fee) || 0
+      const amount = Number(row.amount) || 0
+      if (amount === 0) return '-'
+      const balance = (fee * 1000000) / amount
+      return balance.toLocaleString('en-US', { maximumFractionDigits: 2 })
+    }
   },
   { field: 'fee', label: '手续费', width: 100, formatter: (row) => row.fee || '0' },
   {
