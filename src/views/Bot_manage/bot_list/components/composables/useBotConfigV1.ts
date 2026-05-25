@@ -10,7 +10,8 @@ import {
   v1UpdateBot,
   v1UpdateBotPrice,
   v1UpdateBotWealConfig,
-  v1BindAddress,
+  v1AddAddressList,
+  v1UpdateAddress,
   syncTgStatusApi
 } from '@/api/botlist'
 import { v1UpdateSite, v1GetSiteDetail } from '@/api/site'
@@ -29,7 +30,14 @@ export function useBotConfigV1() {
   const costPrices = reactive<Record<string, any>>({})
   // 当前价格配置数据
   const currentPrices = reactive<Record<string, any>>({})
-
+  // 收款地址原始记录（用于区分创建/更新）
+  // key 为 kind，value 为地址记录的 id（存在则说明已绑定过，保存时用 update）
+  const addressRecordIds = reactive<Record<number, number | null>>({
+    2: null, // 余额充值
+    3: null, // 闪兑
+    4: null, // 时间能量
+    5: null // 笔数能量
+  })
   // TG状态同步
   const syncTgStatus = async () => {
     if (syncing.value || !currentBot.value.id) return
@@ -115,6 +123,14 @@ export function useBotConfigV1() {
       const userDepositAddress = addressList.find((item) => Number(item.kind) === 2)
       const strokeEnergyAddress = addressList.find((item) => Number(item.kind) === 5)
       const exchangeAddress = addressList.find((item) => Number(item.kind) === 3)
+
+      // 记录每个 kind 的地址记录 ID，用于保存时判断用创建还是更新接口
+      addressRecordIds[4] = timeEnergyAddress ? timeEnergyAddress.id : null
+      addressRecordIds[2] = userDepositAddress ? userDepositAddress.id : null
+      addressRecordIds[5] = strokeEnergyAddress ? strokeEnergyAddress.id : null
+      addressRecordIds[3] = exchangeAddress ? exchangeAddress.id : null
+
+      console.log('=== 收款配置 addressRecordIds ===', JSON.parse(JSON.stringify(addressRecordIds)))
 
       formMethods.setValues({
         energy_address: timeEnergyAddress?.address || '',
@@ -310,7 +326,7 @@ export function useBotConfigV1() {
       // 2. 更新Site信息（客服账号和H5端开关）
       await v1UpdateSite({
         id: currentBot.value.id,
-        tg_admin: botInfoData.tg_admin,
+        tg_admin: botInfoData.site_tg_admin,
         status: botInfoData.h5_enable === 1 ? 1 : 2
       })
 
@@ -350,58 +366,53 @@ export function useBotConfigV1() {
   const submitPaymentConfig = async (formMethods: any) => {
     try {
       const paymentData = await formMethods.getFormData()
-      const bindPromises: Promise<any>[] = []
+      const promises: Promise<any>[] = []
 
-      // 绑定各种收款地址
-      if (paymentData.energy_address?.trim()) {
-        bindPromises.push(
-          v1BindAddress({
-            address: paymentData.energy_address.trim(),
-            bot_id: currentBot.value.id,
-            kind: 4 // 时间能量
-          })
-        )
+      // 只处理 kind 2/3/4/5，福利(6)通过 SearchTable 独立管理
+      const addressFields: Array<{ field: string; kind: number }> = [
+        { field: 'energy_address', kind: 4 },
+        { field: 'receive_address', kind: 2 },
+        { field: 'energy_usdt_address', kind: 5 },
+        { field: 'transfer_address', kind: 3 }
+      ]
+
+      for (const { field, kind } of addressFields) {
+        const address = paymentData[field]?.trim()
+        if (!address) continue
+
+        const existingId = addressRecordIds[kind]
+
+        if (existingId !== null && existingId !== undefined) {
+          // 已有记录，使用更新接口
+          promises.push(
+            v1UpdateAddress({
+              id: existingId,
+              address
+            })
+          )
+        } else {
+          // 无记录，使用创建接口
+          promises.push(
+            v1AddAddressList({
+              bot_id: currentBot.value.id,
+              kind,
+              list: [address]
+            })
+          )
+        }
       }
 
-      if (paymentData.receive_address?.trim()) {
-        bindPromises.push(
-          v1BindAddress({
-            address: paymentData.receive_address.trim(),
-            bot_id: currentBot.value.id,
-            kind: 2 // 余额充值
-          })
-        )
-      }
-
-      if (paymentData.energy_usdt_address?.trim()) {
-        bindPromises.push(
-          v1BindAddress({
-            address: paymentData.energy_usdt_address.trim(),
-            bot_id: currentBot.value.id,
-            kind: 5 // 笔数能量
-          })
-        )
-      }
-
-      if (paymentData.transfer_address?.trim()) {
-        bindPromises.push(
-          v1BindAddress({
-            address: paymentData.transfer_address.trim(),
-            bot_id: currentBot.value.id,
-            kind: 3 // 闪兑
-          })
-        )
-      }
-
-      // 注意：福利地址（kind: 6）现在通过 SearchTable 独立管理，不在这里保存
-
-      if (bindPromises.length === 0) {
+      if (promises.length === 0) {
         ElMessage.warning('请至少填写一个收款地址')
         return false
       }
 
-      await Promise.all(bindPromises)
+      await Promise.all(promises)
       ElMessage.success('保存成功')
+
+      // 保存成功后重新加载地址列表，更新 addressRecordIds
+      await loadPaymentConfig(currentBot.value.id, formMethods, null)
+
       return true
     } catch (error) {
       console.error('保存收款配置失败:', error)

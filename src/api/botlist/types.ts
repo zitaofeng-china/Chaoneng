@@ -217,6 +217,24 @@ export type BindAddressParams = {
 }
 
 /**
+ * 更新 Address 请求参数
+ * PUT /v1/address/{id}
+ */
+export type UpdateAddressParams = {
+  id: number // 记录ID（必填）
+  address?: string // 地址
+  agent_id?: number // 代理ID（解绑传0）
+  agent_name?: string // 代理名称
+  bot_id?: number // 机器人ID
+  created_at?: string // 创建时间
+  created_by?: string // 创建人
+  email?: string // 邮箱
+  expired_at?: string // 过期时间
+  kind?: number // 类型
+  updated_at?: string // 更新时间
+}
+
+/**
  * 更新机器人请求参数
  */
 export type UpdateBotParams = {

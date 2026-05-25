@@ -11,6 +11,7 @@ import type {
   AddressAddParams,
   AddressDeleteParams,
   BindAddressParams,
+  UpdateAddressParams,
   UpdateBotParams,
   UpdateBotPriceParams,
   UpdateBotWealParams,
@@ -174,6 +175,14 @@ export const v1DeleteAddressList = (data: AddressDeleteParams): Promise<IRespons
  */
 export const v1BindAddress = (data: BindAddressParams): Promise<IResponse> => {
   return request.post({ url: '/v1/address/bind', data })
+}
+
+/**
+ * 更新 Address - v1
+ * PUT /v1/address
+ */
+export const v1UpdateAddress = (data: UpdateAddressParams): Promise<IResponse> => {
+  return request.put({ url: '/v1/address', data })
 }
 
 // ========== 账单管理接口 ==========
