@@ -43,6 +43,28 @@
         :selected-bot-id="selectedBotIdForUserList"
       />
 
+      <!-- 群组列表选择框 -->
+      <ElFormItem
+        v-if="type === 'mass' && formData.filter_type === 'user_custom'"
+        label="群组列表："
+        prop="group_ids"
+      >
+        <ElSelectV2
+          v-model="formData.group_ids"
+          :options="groupOptions"
+          multiple
+          filterable
+          clearable
+          placeholder="请选择群组（可多选）"
+          style="width: 100%"
+          :loading="groupListLoading"
+          collapse-tags
+          collapse-tags-tooltip
+          :max-collapse-tags="10"
+          @visible-change="handleGroupSelectVisibleChange"
+        />
+      </ElFormItem>
+
       <!-- 消息内容编辑器 -->
       <MessageContentEditor
         ref="messageContentEditorRef"
@@ -245,13 +267,16 @@ import {
   ElSwitch,
   ElDivider,
   ElTooltip,
-  ElDatePicker
+  ElDatePicker,
+  ElSelectV2
 } from 'element-plus'
 import type { UploadUserFile, FormInstance } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { v1SendGroupMessage, v2SendGroupMessage } from '@/api/tgUser'
 import { v1GetInnerButtonList } from '@/api/menu_list'
 import { uploadFile as uploadAPI } from '@/api/utils/upload'
+import { getGroupList } from '@/api/group'
+import type { GroupListItem } from '@/api/group/types'
 import type { InnerButtonItem } from '@/api/menu_list/types'
 import { useHtmlInsert } from '@/hooks/web/useHtmlInsert'
 import InlineButtonDialog from '../../../message_list/components/InlineButtonDialog.vue'
@@ -316,6 +341,7 @@ const formData = ref({
   bot_ids: [] as number | string | (number | string)[] | undefined,
   filter_type: 'user_custom' as 'user_custom' | 'all_user',
   user_list: '',
+  group_ids: [] as number[],
   content: '',
   period: 1,
   enable_period: false, // 启用周期开关
@@ -333,6 +359,55 @@ const isMultipleBots = computed(() => {
   const val = formData.value.bot_ids
   return Array.isArray(val) && val.length > 1
 })
+
+// 群组列表管理
+const groupList = ref<GroupListItem[]>([])
+const groupListLoading = ref(false)
+
+// 为虚拟化选择器准备群组选项数据
+const groupOptions = computed(() => {
+  return groupList.value.map((group) => ({
+    label: `${group.group_name} (ID: ${group.group_id})`,
+    value: group.group_id
+  }))
+})
+
+// 获取群组列表
+const fetchGroupList = async (botId?: number | string) => {
+  if (!botId) {
+    groupList.value = []
+    return
+  }
+
+  groupListLoading.value = true
+  try {
+    const res = await getGroupList({
+      bot_id: Number(botId),
+      current_page: 1,
+      page_size: 1000
+    })
+    if (res.code === '000000' && res.data) {
+      groupList.value = res.data.list || []
+    } else {
+      groupList.value = []
+    }
+  } catch (error: any) {
+    groupList.value = []
+    console.error('获取群组列表失败:', error)
+  } finally {
+    groupListLoading.value = false
+  }
+}
+
+// 处理群组选择框显示/隐藏
+const handleGroupSelectVisibleChange = (visible: boolean) => {
+  if (visible && groupList.value.length === 0) {
+    const botId = selectedBotIdForUserList.value
+    if (botId) {
+      fetchGroupList(botId)
+    }
+  }
+}
 
 // 用于获取用户列表的机器人ID（只在单选机器人时有效）
 const selectedBotIdForUserList = computed(() => {
@@ -352,18 +427,46 @@ const selectedBotIdForUserList = computed(() => {
 const formRules = computed(() => ({
   user_list: [
     {
-      required: formData.value.filter_type === 'user_custom' && !isMultipleBots.value,
-      message: '自定义用户时，TG用户ID列表不能为空',
+      required: false,
       trigger: ['blur', 'change'],
       validator: (_rule: any, value: string, callback: Function) => {
-        // 如果不是自定义用户模式，或者是多选机器人，跳过验证
+        // 如果不是自定义用户模式，或者是多机器人模式，不验证
         if (formData.value.filter_type !== 'user_custom' || isMultipleBots.value) {
           callback()
           return
         }
-        // 自定义用户模式下，必须选择用户
-        if (!value || value.trim() === '') {
-          callback(new Error('自定义用户时，TG用户ID列表不能为空'))
+
+        // 检查用户列表和群组列表是否都为空
+        const hasUserList = value && value.trim() !== ''
+        const hasGroupList = formData.value.group_ids && formData.value.group_ids.length > 0
+
+        // 如果两者都为空，报错
+        if (!hasUserList && !hasGroupList) {
+          callback(new Error('TG用户ID列表和群组列表至少需要填写一个'))
+        } else {
+          callback()
+        }
+      }
+    }
+  ],
+  group_ids: [
+    {
+      required: false,
+      trigger: ['blur', 'change'],
+      validator: (_rule: any, value: number[], callback: Function) => {
+        // 如果不是自定义用户模式，或者是多机器人模式，不验证
+        if (formData.value.filter_type !== 'user_custom' || isMultipleBots.value) {
+          callback()
+          return
+        }
+
+        // 检查用户列表和群组列表是否都为空
+        const hasUserList = formData.value.user_list && formData.value.user_list.trim() !== ''
+        const hasGroupList = value && value.length > 0
+
+        // 如果两者都为空，报错
+        if (!hasUserList && !hasGroupList) {
+          callback(new Error('TG用户ID列表和群组列表至少需要填写一个'))
         } else {
           callback()
         }
@@ -489,18 +592,30 @@ const handleBotChange = (value: number | string | (number | string)[]) => {
       // 切换到多选模式，强制设置为"全部用户"并清空用户列表
       formData.value.filter_type = 'all_user'
       formData.value.user_list = ''
+      formData.value.group_ids = []
+      groupList.value = []
     } else if (value.length === 1) {
       // 只有一个机器人，保持自定义用户模式，但清空用户列表（因为机器人可能变了）
       formData.value.filter_type = 'user_custom'
       formData.value.user_list = ''
+      formData.value.group_ids = []
+      fetchGroupList(value[0])
     } else {
       // 没有选择机器人，清空用户列表
       formData.value.user_list = ''
+      formData.value.group_ids = []
+      groupList.value = []
     }
   } else {
     // 单选机器人，清空用户列表
     formData.value.filter_type = 'user_custom'
     formData.value.user_list = ''
+    formData.value.group_ids = []
+    if (value) {
+      fetchGroupList(value)
+    } else {
+      groupList.value = []
+    }
   }
 }
 
@@ -574,6 +689,17 @@ const handleSubmit = async () => {
         ? formData.value.user_list.split(',').filter((id) => id.trim()).length
         : 0
       previewData.recipientInfo = `自定义用户 (${userCount} 人)`
+    }
+
+    // 群组信息
+    if (formData.value.group_ids && formData.value.group_ids.length > 0) {
+      const groupNames = formData.value.group_ids
+        .map((groupId) => {
+          const group = groupList.value.find((g) => g.group_id === groupId)
+          return group ? group.group_name : `群组ID: ${groupId}`
+        })
+        .join(', ')
+      previewData.groupInfo = `群组 (${formData.value.group_ids.length}个): ${groupNames}`
     }
 
     // 消息内容
@@ -691,22 +817,27 @@ const handleConfirmSend = async (buttonLayout?: number[][]) => {
 
     // 如果是自定义用户，设置 tg_user_ids
     if (formData.value.filter_type === 'user_custom') {
-      if (formData.value.user_list) {
+      const hasUserList = formData.value.user_list && formData.value.user_list.trim() !== ''
+      const hasGroupList = formData.value.group_ids && formData.value.group_ids.length > 0
+
+      if (!hasUserList && !hasGroupList) {
+        ElMessage.error('TG用户ID列表和群组列表至少需要填写一个')
+        submitting.value = false
+        return
+      }
+
+      if (hasUserList) {
         const tgUserIdsArray = formData.value.user_list
           .split(',')
           .map((id: string) => Number(id.trim()))
           .filter((id: number) => !isNaN(id) && id !== 0)
         if (tgUserIdsArray.length > 0) {
           apiParams.tg_user_ids = tgUserIdsArray
-        } else {
-          ElMessage.error('自定义用户列表解析后为空或格式不正确，请检查输入')
-          submitting.value = false
-          return
         }
-      } else {
-        ElMessage.error('自定义用户时，TG用户id列表不能为空')
-        submitting.value = false
-        return
+      }
+
+      if (hasGroupList) {
+        apiParams.group_ids = formData.value.group_ids
       }
     }
 
@@ -761,6 +892,7 @@ watch(
         bot_ids: [],
         filter_type: 'user_custom',
         user_list: '',
+        group_ids: [],
         content: '',
         period: 1,
         enable_period: false,
@@ -771,6 +903,7 @@ watch(
       checkList.value = []
       fileToUpload.value = null
       fileListRef.value = []
+      groupList.value = []
 
       // 清理视频预览的 blob URL，避免内存泄漏
       if (videoPreviewUrl.value.startsWith('blob:')) {
@@ -798,6 +931,31 @@ watch(
       formData.value.period = 1
     }
   }
+)
+
+// 监听用户列表变化，触发群组列表验证
+watch(
+  () => formData.value.user_list,
+  () => {
+    if (formData.value.filter_type === 'user_custom' && !isMultipleBots.value) {
+      setTimeout(() => {
+        formRef.value?.validateField('group_ids', () => {})
+      }, 300)
+    }
+  }
+)
+
+// 监听群组列表变化，触发用户列表验证
+watch(
+  () => formData.value.group_ids,
+  () => {
+    if (formData.value.filter_type === 'user_custom' && !isMultipleBots.value) {
+      setTimeout(() => {
+        formRef.value?.validateField('user_list', () => {})
+      }, 300)
+    }
+  },
+  { deep: true }
 )
 
 // 日期时间选择器禁用逻辑
