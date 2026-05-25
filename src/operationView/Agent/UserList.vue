@@ -416,7 +416,8 @@ const handleExport = async () => {
           机器人用户名: botInfo?.user_name || '-',
           代理名称: botInfo?.agent_name || '-',
           来源: hasTgUserId || hasTgUserName ? '机器人' : 'H5',
-          TRX余额: `${item.trx_balance || 0} TRX`,
+          TRX余额: item.trx_balance || 0,
+          余额单位: 'TRX',
           创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
           更新时间: item.updated_at ? formatToDateTime(item.updated_at * 1000) : '-'
         }

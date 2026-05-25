@@ -657,8 +657,10 @@ const handleExport = async () => {
         // 用户邮箱: item.user_email || '-',
         // 来源: item.source === 'h5' ? 'H5' : item.source === 'bot' ? '机器人' : item.source || '-',
         订单类型: item.coin === 'USDT' ? 'USDT → TRX' : 'TRX → USDT', // 根据coin判断
-        支付金额: `${item.amount} ${item.coin}`,
-        兑换金额: `${item.out_amount} ${item.out_coin}`,
+        支付金额: item.amount || '-',
+        支付币种: item.coin || '-',
+        兑换金额: item.out_amount || '-',
+        兑换币种: item.out_coin || '-',
         兑换汇率: item.actual_rate || '-',
         订单状态: getStatusText(item.status),
         备注: item.describe || '-',

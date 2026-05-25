@@ -54,6 +54,7 @@ export interface ExportDataItem {
   来源: string
   订单类型: string
   交易金额: string
+  金额币种: string
   应发放能量: string
   实际发放能量: string
   收款方式: string

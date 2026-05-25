@@ -672,7 +672,8 @@ const handleExport = async () => {
         })(),
         机器人名称: item.bot_name,
         订单类型: typeTextMap[item.kind] || '-',
-        支付金额: item.amount && item.amount != 0 ? `${item.amount} ${item.coin || ''}` : '-',
+        支付金额: item.amount && item.amount != 0 ? item.amount : '-',
+        支付币种: item.coin || '-',
         能量数量: formatEnergyNum(item.energy_amount),
         能量有效期: formatExpirationTime(item.kind),
         收款方式: getPaymentMethodText(

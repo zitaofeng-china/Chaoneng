@@ -94,7 +94,8 @@ export function transformOrderToExportData(
     ...baseData,
     来源: getSourceText(order.origin, order.tg_user_name, order.username),
     订单类型: getEnergyOrderKindText(order.kind),
-    交易金额: `${order.amount || '-'} ${order.coin || ''}`.trim(),
+    交易金额: order.amount || '-',
+    金额币种: order.coin || '-',
     应发放能量: formatEnergyAmount(order.energy_amount),
     实际发放能量: formatEnergyAmount(order.energy_actual_amount),
     收款方式: getPaymentMethodText(
