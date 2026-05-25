@@ -1,6 +1,6 @@
 // 机器人配置管理 V1 - 专门管理重构后的三个标签页（使用 v1 新接口）
 import { ref, reactive } from 'vue'
-import { ElLoading, ElMessage } from 'element-plus'
+import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
 import {
   v1GetBotDetail,
   v1GetBotPriceConfig,
@@ -425,6 +425,56 @@ export function useBotConfigV1() {
   const submitPriceConfig = async (formMethods: any) => {
     try {
       const priceData = await formMethods.getFormData()
+
+      // 检查是否有价格低于成本价，给出确认提示
+      const belowCostFields: string[] = []
+      const priceCheckMap: Array<{ field: string; label: string; costKey: string }> = [
+        { field: 'flash', label: '闪租能量', costKey: 'flash' },
+        { field: 'time_1h', label: '1小时租赁', costKey: 'time_1h' },
+        { field: 'time_1d', label: '1天租赁', costKey: 'time_1d' },
+        { field: 'time_3d', label: '3天租赁', costKey: 'time_3d' },
+        { field: 'time_7d', label: '7天租赁', costKey: 'time_7d' },
+        { field: 'time_15d', label: '15天租赁', costKey: 'time_15d' },
+        { field: 'time_30d', label: '30天租赁', costKey: 'time_30d' },
+        { field: 'stroke', label: '笔数能量TRX', costKey: 'stroke' },
+        { field: 'hosting_65k', label: '65000能量', costKey: 'hosting_65k' },
+        { field: 'hosting_131k', label: '131000能量', costKey: 'hosting_131k' },
+        { field: 'batch_flash', label: '批量能量单价', costKey: 'batch_flash' },
+        { field: 'active', label: '激活地址单价', costKey: 'active' }
+      ]
+
+      for (const item of priceCheckMap) {
+        const price = priceData[item.field] || 0
+        const cost = costPrices[item.costKey]
+        if (cost !== undefined && price < cost) {
+          belowCostFields.push(`${item.label}（当前: ${price}，成本: ${cost}）`)
+        }
+      }
+
+      if (belowCostFields.length > 0) {
+        try {
+          const listHtml = belowCostFields
+            .map((item) => `<li style="margin: 4px 0; color: #e6a23c;">${item}</li>`)
+            .join('')
+          await ElMessageBox.confirm(
+            `<div style="margin-top: 8px;">
+              <p style="margin-bottom: 10px; color: #606266;">以下价格低于成本价：</p>
+              <ul style="list-style: none; padding-left: 0; margin: 0;">${listHtml}</ul>
+              <p style="margin-top: 12px; color: #909399; font-size: 13px;">确定要继续保存吗？</p>
+            </div>`,
+            '低于成本价提示',
+            {
+              confirmButtonText: '确定保存',
+              cancelButtonText: '取消',
+              type: 'warning',
+              dangerouslyUseHTMLString: true
+            }
+          )
+        } catch {
+          // 用户取消
+          return false
+        }
+      }
 
       // 构建价格配置数据
       const priceConfig = {

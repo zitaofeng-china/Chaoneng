@@ -20,18 +20,15 @@ const computedCostPrices = computed(() => props.costPrices || {})
 
 const { formRegister, formMethods } = useForm()
 
-// 创建成本价验证器
-const createCostPriceValidator = (costPriceKey: string, fieldName: string) => {
+// 创建成本价验证器（仅提示，不阻止提交）
+const createCostPriceValidator = (costPriceKey: string, _fieldName: string) => {
   return {
     validator: (_rule: any, value: number, callback: any) => {
-      const costPrice = computedCostPrices.value[costPriceKey]
-      if (costPrice !== undefined && value < costPrice) {
-        callback(new Error(`${fieldName}不能低于成本价 ${costPrice} TRX`))
-      } else {
-        callback()
-      }
+      // 始终通过验证，不阻止提交
+      void computedCostPrices.value[costPriceKey]
+      callback()
     },
-    trigger: ['blur', 'change'] // 添加 change 触发器，实现实时验证
+    trigger: ['blur', 'change']
   }
 }
 
