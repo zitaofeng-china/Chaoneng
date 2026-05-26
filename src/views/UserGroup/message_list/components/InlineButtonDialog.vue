@@ -346,8 +346,8 @@ const fetchCallbackList = async () => {
     const response = await getCallBackListApi()
     if (response.code === '000000' && response.data) {
       callbackList.value = response.data.map((item: any) => ({
-        label: item.name || item.callback_type,
-        value: item.callback_type
+        label: item.name,
+        value: item.key
       }))
     }
   } catch (error) {
