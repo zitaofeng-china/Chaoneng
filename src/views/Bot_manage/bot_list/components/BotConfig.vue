@@ -19,9 +19,10 @@
           <PriceConfigTab ref="priceConfigTabRef" :cost-prices="costPrices" />
         </ElTabPane>
 
-        <ElTabPane label="福利配置" name="welfareConfig">
+        <!-- 福利配置已迁移至运营端营销管理 -->
+        <!-- <ElTabPane label="福利配置" name="welfareConfig">
           <WelfareConfigTab ref="welfareConfigTabRef" />
-        </ElTabPane>
+        </ElTabPane> -->
 
         <ElTabPane label="菜单配置" name="menuConfig">
           <MenuConfigTab ref="menuConfigTabRef" :bot-id="currentBot.id || 0" />

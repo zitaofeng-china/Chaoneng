@@ -490,42 +490,41 @@ const priceSchema = reactive<FormSchema[]>([
       min: 0,
       precision: 2
     }
-  },
-
-  // 福利板块
-  {
-    field: 'divider_welfare',
-    component: 'Divider' as const,
-    label: '福利板块',
-    colProps: { span: 24 }
-  },
-  {
-    field: 'weal',
-    component: 'InputNumber' as const,
-    label: '福利能量（TRX）',
-    componentProps: {
-      placeholder: '请输入福利能量价格',
-      min: 0,
-      precision: 2
-    },
-    formItemProps: {
-      rules: [
-        { required: true, message: '福利能量是必填项' }
-        // 移除成本价验证，允许低于成本价
-      ],
-      slots: {
-        label: () => {
-          const costPrice = computedCostPrices.value.weal
-          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
-          return (
-            <>
-              福利能量（TRX） <small style="color: #909399; font-size: 10px;">（{costText}）</small>
-            </>
-          )
-        }
-      }
-    }
   }
+
+  // 福利板块 - 已迁移至运营端营销管理
+  // {
+  //   field: 'divider_welfare',
+  //   component: 'Divider' as const,
+  //   label: '福利板块',
+  //   colProps: { span: 24 }
+  // },
+  // {
+  //   field: 'weal',
+  //   component: 'InputNumber' as const,
+  //   label: '福利能量（TRX）',
+  //   componentProps: {
+  //     placeholder: '请输入福利能量价格',
+  //     min: 0,
+  //     precision: 2
+  //   },
+  //   formItemProps: {
+  //     rules: [
+  //       { required: true, message: '福利能量是必填项' }
+  //     ],
+  //     slots: {
+  //       label: () => {
+  //         const costPrice = computedCostPrices.value.weal
+  //         const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
+  //         return (
+  //           <>
+  //             福利能量（TRX） <small style="color: #909399; font-size: 10px;">（{costText}）</small>
+  //           </>
+  //         )
+  //       }
+  //     }
+  //   }
+  // }
 ])
 
 defineExpose({

@@ -2,8 +2,8 @@
   <div>
     <Form :isCol="true" labelPosition="top" :schema="paymentSchema" @register="formRegister" />
 
-    <!-- 福利收款钱包地址列表 -->
-    <div class="weal-address-section">
+    <!-- 福利收款钱包地址列表 - 已迁移至运营端营销管理 -->
+    <!-- <div class="weal-address-section">
       <div class="section-header">
         <span class="section-title">【福利】收款钱包地址</span>
       </div>
@@ -19,7 +19,6 @@
           pageSizes: [4, 10, 20, 30, 40, 40, 50, 100]
         }"
       >
-        <!-- 工具栏插槽 -->
         <template #toolbar>
           <el-button type="primary" @click="handleAddAddress">
             <Icon icon="ep:plus" class="mr-5px" />
@@ -33,7 +32,6 @@
       </SearchTable>
     </div>
 
-    <!-- 添加地址对话框 -->
     <Dialog v-model="dialogVisible" title="添加福利收款地址" width="600px" max-height="300px">
       <div style="margin-bottom: 16px">
         <div style="margin-bottom: 8px">
@@ -61,7 +59,6 @@
       </template>
     </Dialog>
 
-    <!-- 批量删除地址对话框 -->
     <Dialog
       v-model="batchDeleteVisible"
       title="批量删除福利收款地址"
@@ -92,7 +89,7 @@
           </el-button>
         </div>
       </template>
-    </Dialog>
+    </Dialog> -->
   </div>
 </template>
 
