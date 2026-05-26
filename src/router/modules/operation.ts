@@ -122,6 +122,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           }
         },
         {
+          path: 'welfare_config',
+          component: () => import('@/operationView/Marketing/WelfareConfig.vue'),
+          name: 'WelfareConfig',
+          meta: {
+            title: '福利配置',
+            buttonList: ['add', 'edit', 'delete']
+          }
+        },
+        {
           path: 'trx_address_book',
           component: () => import('@/operationView/Marketing/TrxAddressBook.vue'),
           name: 'TrxAddressBook',
@@ -338,6 +347,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           meta: {
             title: '资源池账户',
             buttonList: ['add', 'edit']
+          }
+        },
+        {
+          path: 'announcement',
+          component: () => import('@/operationView/SystemConfig/Announcement.vue'),
+          name: 'Announcement',
+          meta: {
+            title: '系统公告',
+            buttonList: ['add', 'edit', 'delete']
           }
         }
       ]
