@@ -33,6 +33,7 @@ export interface InviteRecordItem {
   source_id: number // 邀请人ID（source）
   target_id: number // 受邀人ID（target）
   reward: string // 奖励金额
+  status: number // 状态：1-成功，2-失败
   agent_name: string // 代理名称
   bot_name: string // 机器人名称
   source_tg_name: string // 邀请人TG名称

@@ -1,23 +1,9 @@
 <template>
   <div class="app-container">
     <ContentWrap>
-      <el-tabs v-model="activeTab">
+      <el-tabs v-model="activeTab" @tab-change="handleTabChange">
         <!-- 基础设置 -->
-        <el-tab-pane label="基础设置" name="basic">
-          <!-- 福利价格配置 -->
-          <el-divider content-position="left">福利价格</el-divider>
-          <Form
-            labelPosition="top"
-            :schema="priceSchema"
-            @register="priceFormRegister"
-            :gridColumns="2"
-          />
-          <div class="section-actions">
-            <el-button type="primary" @click="handleSavePrice" :loading="submitting">
-              保存价格配置
-            </el-button>
-          </div>
-
+        <el-tab-pane label="福利地址" name="basic">
           <!-- 福利收款钱包地址 -->
           <el-divider content-position="left">福利收款钱包地址</el-divider>
           <div class="weal-address-section">
@@ -47,7 +33,16 @@
         </el-tab-pane>
 
         <!-- 高级设置 -->
-        <el-tab-pane label="高级设置" name="advanced">
+        <el-tab-pane label="福利条件" name="advanced">
+          <!-- 福利价格配置 -->
+          <el-divider content-position="left">福利价格</el-divider>
+          <Form
+            labelPosition="top"
+            :schema="priceSchema"
+            @register="priceFormRegister"
+            :gridColumns="2"
+          />
+
           <div style="margin: 0 0 16px; font-size: 14px; font-weight: bold; color: #f56c6c">
             提示：满足以下全部条件可发放！！！
           </div>
@@ -133,7 +128,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive, onMounted, h } from 'vue'
+import { ref, reactive, onMounted, h, nextTick } from 'vue'
 import { ElButton, ElMessage, ElMessageBox, ElDivider, ElTabs, ElTabPane } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Icon } from '@/components/Icon'
@@ -144,26 +139,24 @@ import { formatToDateTime } from '@/utils/dateUtil'
 import { SearchTable } from '@/components/SearchTable'
 import type { TableColumn } from '@/components/Table'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import {
-  v1GetBotWealConfig,
-  v1UpdateBotWealConfig,
-  v1GetBotPriceConfig,
-  v1UpdateBotPrice,
-  v1GetAddressList,
-  v1AddAddressList,
-  v1DeleteAddressList,
-  v1GetSystemPrice,
-  v2GetBotList
-} from '@/api/botlist'
+import { v1GetAddressList, v1AddAddressList, v1DeleteAddressList } from '@/api/botlist'
+import request from '@/axios'
+
+// 获取福利条件配置 GET /v1/weal
+const getWealConfig = () => {
+  return request.get({ url: '/v1/weal' })
+}
+
+// 更新福利条件配置 PUT /v1/weal
+const updateWealConfig = (data: any) => {
+  return request.put({ url: '/v1/weal', data })
+}
 
 // 标签页
 const activeTab = ref('basic')
 
 // 状态
 const submitting = ref(false)
-const costPrices = reactive<Record<string, any>>({})
-const currentBotId = ref<number | null>(null)
-const currentPriceId = ref<number | null>(null)
 
 // 地址相关
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -176,52 +169,29 @@ const batchDeleteForm = reactive({ addresses: '' })
 const { formRegister: priceFormRegister, formMethods: priceFormMethods } = useForm()
 const { formRegister: welfareFormRegister, formMethods: welfareFormMethods } = useForm()
 
-// 获取第一个机器人ID
-const loadFirstBot = async () => {
-  try {
-    const res = await v2GetBotList({ current_page: 1, page_size: 1, status: 1 })
-    const list = res.data?.list || []
-    if (list.length > 0) {
-      currentBotId.value = list[0].id
-    }
-  } catch (error) {
-    console.error('获取机器人列表失败:', error)
-  }
-}
-
-// 加载价格配置
-const loadPriceConfig = async () => {
-  if (!currentBotId.value) return
-  try {
-    const [systemPriceRes, botPriceRes] = await Promise.all([
-      v1GetSystemPrice(),
-      v1GetBotPriceConfig(currentBotId.value)
-    ])
-
-    if (systemPriceRes.code === '000000' && systemPriceRes.data) {
-      Object.assign(costPrices, {
-        weal: parseFloat(systemPriceRes.data.weal || '0') || 0
-      })
-    }
-
-    if (botPriceRes.code === '000000' && botPriceRes.data) {
-      currentPriceId.value = botPriceRes.data.id
-      priceFormMethods.setValues({
-        weal: parseFloat(botPriceRes.data.weal) || 0
-      })
-    }
-  } catch (error) {
-    handleErrorMessage(error, '获取价格配置失败')
+// 标签页切换
+const handleTabChange = async (tab: string) => {
+  if (tab === 'basic') {
+    // 切换到福利地址，刷新地址列表
+    await nextTick()
+    searchTableRef.value?.reload()
+  } else if (tab === 'advanced') {
+    // 切换到福利条件，重新加载配置
+    await loadWelfareConfig()
   }
 }
 
 // 加载福利条件配置
 const loadWelfareConfig = async () => {
-  if (!currentBotId.value) return
   try {
-    const res = await v1GetBotWealConfig(currentBotId.value)
+    const res = await getWealConfig()
     if (res.code === '000000' && res.data) {
       const wealData = res.data
+      // 设置价格
+      priceFormMethods.setValues({
+        weal: parseFloat(wealData.price) || 0
+      })
+      // 设置福利条件
       welfareFormMethods.setValues({
         max_count: wealData.max_count || 0,
         min_interval: (wealData.min_interval || 0) / 3600,
@@ -242,40 +212,15 @@ const loadWelfareConfig = async () => {
   }
 }
 
-// 保存价格配置
+// 保存价格配置（和福利条件一起保存）
 const handleSavePrice = async () => {
-  if (!currentBotId.value) {
-    ElMessage.warning('未找到机器人信息')
-    return
-  }
   try {
     submitting.value = true
     const priceData = await priceFormMethods.getFormData()
-
-    await v1UpdateBotPrice({
-      id: currentPriceId.value,
-      weal: priceData.weal || 0
-    })
-    handleSuccessMessage('价格配置保存成功')
-  } catch (error) {
-    handleErrorMessage(error, '保存价格配置失败')
-  } finally {
-    submitting.value = false
-  }
-}
-
-// 保存福利条件配置
-const handleSaveWelfare = async () => {
-  if (!currentBotId.value) {
-    ElMessage.warning('未找到机器人信息')
-    return
-  }
-  try {
-    submitting.value = true
     const welfareData = await welfareFormMethods.getFormData()
 
     const welfareConfig = {
-      bot_id: currentBotId.value,
+      price: priceData.weal || 0,
       max_count: welfareData.max_count || 0,
       min_interval: Math.round((welfareData.min_interval || 0) * 3600),
       max_energy: welfareData.max_energy || 0,
@@ -290,7 +235,39 @@ const handleSaveWelfare = async () => {
       same_send_min_amount_trx: welfareData.same_send_min_amount_trx || 0
     }
 
-    await v1UpdateBotWealConfig(currentBotId.value, welfareConfig)
+    await updateWealConfig(welfareConfig)
+    handleSuccessMessage('保存成功')
+  } catch (error) {
+    handleErrorMessage(error, '保存失败')
+  } finally {
+    submitting.value = false
+  }
+}
+
+// 保存福利条件配置
+const handleSaveWelfare = async () => {
+  try {
+    submitting.value = true
+    const welfareData = await welfareFormMethods.getFormData()
+    const priceData = await priceFormMethods.getFormData()
+
+    const welfareConfig = {
+      price: priceData.weal || 0,
+      max_count: welfareData.max_count || 0,
+      min_interval: Math.round((welfareData.min_interval || 0) * 3600),
+      max_energy: welfareData.max_energy || 0,
+      max_bandwidth: welfareData.max_bandwidth || 0,
+      min_active_day: welfareData.min_active_day || 0,
+      min_balance_trx: welfareData.min_balance_trx || 0,
+      min_balance_usdt: welfareData.min_balance_usdt || 0,
+      min_avg_transfer_trx: welfareData.min_avg_transfer_trx || 0,
+      min_avg_transfer_usdt: welfareData.min_avg_transfer_usdt || 0,
+      min_send_interval: Math.round((welfareData.min_send_interval || 0) * 60),
+      same_send_max_count_trx: welfareData.same_send_max_count_trx || 0,
+      same_send_min_amount_trx: welfareData.same_send_min_amount_trx || 0
+    }
+
+    await updateWealConfig(welfareConfig)
     handleSuccessMessage('福利条件保存成功')
   } catch (error) {
     handleErrorMessage(error, '保存福利条件失败')
@@ -311,18 +288,7 @@ const priceSchema = reactive<FormSchema[]>([
       precision: 2
     },
     formItemProps: {
-      rules: [{ required: true, message: '福利能量是必填项' }],
-      slots: {
-        label: () => {
-          const costPrice = costPrices.weal
-          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
-          return (
-            <>
-              福利能量（TRX） <small style="color: #909399; font-size: 10px;">（{costText}）</small>
-            </>
-          )
-        }
-      }
+      rules: [{ required: true, message: '福利能量是必填项' }]
     }
   }
 ])
@@ -613,12 +579,7 @@ const addressColumns = ref<TableColumn[]>([
 // 获取福利地址列表
 const fetchWealAddresses = async (params: any) => {
   try {
-    if (!currentBotId.value) {
-      return { list: [], totalCount: 0 }
-    }
-
     const res = await v1GetAddressList({
-      bot_id: currentBotId.value,
       kind: 6,
       current_page: params.current_page || 1,
       page_size: params.page_size || 10
@@ -650,7 +611,6 @@ const handleDeleteAddress = async (row: any) => {
     })
 
     await v1DeleteAddressList({
-      bot_id: currentBotId.value!,
       list: [row.address]
     })
 
@@ -690,7 +650,6 @@ const handleConfirmAdd = async () => {
   try {
     submitting.value = true
     await v1AddAddressList({
-      bot_id: currentBotId.value!,
       kind: 6,
       list: addressList
     })
@@ -737,7 +696,6 @@ const handleConfirmBatchDelete = async () => {
 
     submitting.value = true
     await v1DeleteAddressList({
-      bot_id: currentBotId.value!,
       list: addressList
     })
 
@@ -756,10 +714,7 @@ const handleConfirmBatchDelete = async () => {
 
 // 初始化
 onMounted(async () => {
-  await loadFirstBot()
-  if (currentBotId.value) {
-    await Promise.all([loadPriceConfig(), loadWelfareConfig()])
-  }
+  await loadWelfareConfig()
 })
 </script>
 

@@ -24,6 +24,7 @@
 
 <script setup lang="tsx">
 import { ref, onMounted, computed } from 'vue'
+import { ElTag } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import type { TableColumn } from '@/components/Table'
@@ -112,6 +113,21 @@ const columns = ref<TableColumn[]>([
     }
   },
   {
+    field: 'status',
+    label: '状态',
+    minWidth: '100px',
+    slots: {
+      default: ({ row }: { row: InviteRecordItem }) => {
+        if (row.status === 1) {
+          return <ElTag type="success">已发放</ElTag>
+        } else if (row.status === 2) {
+          return <ElTag type="danger">未发放</ElTag>
+        }
+        return <span>-</span>
+      }
+    }
+  },
+  {
     field: 'created_at',
     label: '创建时间',
     minWidth: '170px',
@@ -131,6 +147,20 @@ const searchSchema = computed<FormSchema[]>(() => [
       placeholder: '请选择机器人',
       valueKey: 'value',
       labelKey: 'label'
+    }
+  },
+  {
+    field: 'status',
+    component: 'Select' as const,
+    label: '状态',
+    componentProps: {
+      placeholder: '请选择状态',
+      clearable: true,
+      options: [
+        { label: '全部', value: '' },
+        { label: '已发放', value: 1 },
+        { label: '未发放', value: 2 }
+      ]
     }
   },
   {
@@ -157,6 +187,7 @@ const fetchInviteList = async (params: any = {}) => {
 
     if (params?.keyword) apiParams.keyword = params.keyword
     if (params?.bot_id) apiParams.bot_id = Number(params.bot_id)
+    if (params?.status) apiParams.status = Number(params.status)
 
     // 处理排序参数
     if (params?.order) {
@@ -169,7 +200,7 @@ const fetchInviteList = async (params: any = {}) => {
     const total = response.data?.pager?.total || response.data?.total || 0
 
     // 添加数据为空提示
-    const hasSearchCondition = !!(params?.keyword || params?.bot_id)
+    const hasSearchCondition = !!(params?.keyword || params?.bot_id || params?.status)
     handleListMessage(list, hasSearchCondition, '邀请记录')
 
     return {

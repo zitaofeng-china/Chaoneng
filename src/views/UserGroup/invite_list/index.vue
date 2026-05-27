@@ -24,6 +24,7 @@
 
 <script setup lang="tsx">
 import { ref, onMounted, computed } from 'vue'
+import { ElTag } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import type { TableColumn } from '@/components/Table'
@@ -106,6 +107,21 @@ const columns = ref<TableColumn[]>([
     formatter: (row: InviteRecordItem) => {
       const amount = row.reward
       return amount ? `${amount} TRX` : '-'
+    }
+  },
+  {
+    field: 'status',
+    label: '状态',
+    minWidth: '100px',
+    slots: {
+      default: ({ row }: { row: InviteRecordItem }) => {
+        if (row.status === 1) {
+          return <ElTag type="success">已发放</ElTag>
+        } else if (row.status === 2) {
+          return <ElTag type="danger">未发放</ElTag>
+        }
+        return <span>-</span>
+      }
     }
   },
   {
