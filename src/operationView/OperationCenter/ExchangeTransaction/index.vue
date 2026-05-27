@@ -37,14 +37,14 @@
 
 <script setup lang="tsx">
 import { ref, reactive, onMounted, nextTick } from 'vue'
-import { ElTag, ElMessage } from 'element-plus'
+import { ElTag, ElMessage, ElMessageBox } from 'element-plus'
 import { SearchTable } from '@/components/SearchTable'
 import type { SearchTableExpose } from '@/components/SearchTable/src/types'
 import type { TableColumn } from '@/components/Table/src/types'
 import { FormSchema } from '@/components/Form'
 import { formatToDateTime, formatToDate } from '@/utils/dateUtil'
 import OrderDetail from './components/OrderDetail.vue'
-import { v2GetExchangeList } from '@/api/exchange_transaction'
+import { v2GetExchangeList, v2RetryExchangeOrder } from '@/api/exchange_transaction'
 import type { ExchangeOrderListItem, V2ExchangeItem } from '@/api/exchange_transaction/types'
 import { BaseButton } from '@/components/Button'
 import { ContentWrap } from '@/components/ContentWrap'
@@ -371,6 +371,7 @@ const searchSchema = reactive<FormSchema[]>([
         { label: '已支付', value: 2 },
         { label: '已完成', value: 5 },
         { label: '已失败', value: 6 },
+        { label: '已取消', value: 8 },
         { label: '已中止', value: 9 }
       ],
       clearable: true
@@ -394,14 +395,18 @@ const searchSchema = reactive<FormSchema[]>([
 const actionColumn = {
   field: 'action',
   label: '操作',
-  minWidth: 120,
+  minWidth: 200,
   fixed: 'right' as const,
   slots: {
     default: ({ row }: { row: V2ExchangeItem }) => {
+      const isFailed = row.status === 6 // 状态6为失败订单
       return (
         <>
           <BaseButton type="primary" onClick={() => handleDetail(row)}>
             兑换详情
+          </BaseButton>
+          <BaseButton type="warning" disabled={!isFailed} onClick={() => handleRetry(row)}>
+            补发
           </BaseButton>
         </>
       )
@@ -412,6 +417,29 @@ const actionColumn = {
 // 处理详情查看 - 使用后端字段名
 const handleDetail = (row: V2ExchangeItem) => {
   orderDetailRef.value?.open(row.id, row) // 传递完整的行数据
+}
+
+// 处理补发
+const handleRetry = async (row: V2ExchangeItem) => {
+  try {
+    await ElMessageBox.confirm(`确认要对订单「${row.id}」进行补发吗？`, '补发确认', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    const res = await v2RetryExchangeOrder(row.id)
+    if (res.code === '000000') {
+      handleSuccessMessage('补发成功')
+      searchTableRef.value?.reload()
+    } else {
+      ElMessage.error((res as any).msg || '补发失败')
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      handleErrorMessage(error, '补发失败')
+    }
+  }
 }
 
 // 请求闪兑明细列表数据 - 直接使用后端字段名

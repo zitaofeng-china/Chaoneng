@@ -454,6 +454,7 @@ const searchSchema = [
         { label: '已支付', value: 2 },
         { label: '已完成', value: 5 },
         { label: '已失败', value: 6 },
+        { label: '已取消', value: 8 },
         { label: '已中止', value: 9 }
       ],
       placeholder: '请选择订单状态'
@@ -479,6 +480,7 @@ const getStatusType = (status: number): 'success' | 'warning' | 'info' | 'danger
     2: 'warning', // 已支付
     5: 'success', // 已完成
     6: 'danger', // 已失败
+    8: 'info', // 已取消
     9: 'danger' // 已中止
   }
   return statusMap[status] || 'info'
@@ -490,6 +492,7 @@ const getStatusText = (status: number): string => {
     2: '已支付',
     5: '已完成',
     6: '已失败',
+    8: '已取消',
     9: '已中止'
   }
   return statusMap[status] || '-'
