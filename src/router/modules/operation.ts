@@ -19,7 +19,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
       children: [
         {
           path: 'index',
-          component: () => import('@/operationView/DataStatistics/Analysis.vue'),
+          component: () => import('@/operationView/DataStatistics/AnalysisV2.vue'),
           name: 'Analysis',
           meta: {
             title: '数据统计',
