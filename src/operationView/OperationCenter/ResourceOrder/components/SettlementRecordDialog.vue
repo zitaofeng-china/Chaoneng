@@ -128,16 +128,20 @@ import type { V2SettlementRecordItem } from '@/api/resource_order/types'
 
 const tronscanUrl = import.meta.env.VITE_TRONSCAN_URL || 'https://tronscan.org'
 
-// 将毫秒时长转换为 天+小时 格式
+// 将毫秒时长转换为 天+小时+分钟 格式
 const formatDuration = (ms: number): string => {
   if (!ms) return '-'
-  const totalHours = Math.floor(ms / 3600000)
-  const days = Math.floor(totalHours / 24)
-  const hours = totalHours % 24
-  if (days > 0 && hours > 0) return `${days}天${hours}小时`
-  if (days > 0) return `${days}天`
-  if (hours > 0) return `${hours}小时`
-  return '-'
+  const totalMinutes = Math.floor(ms / 60000)
+  const days = Math.floor(totalMinutes / 1440)
+  const hours = Math.floor((totalMinutes % 1440) / 60)
+  const minutes = totalMinutes % 60
+
+  const parts: string[] = []
+  if (days > 0) parts.push(`${days}天`)
+  if (hours > 0) parts.push(`${hours}小时`)
+  if (minutes > 0 && days === 0) parts.push(`${minutes}分钟`)
+
+  return parts.length > 0 ? parts.join('') : '-'
 }
 
 const visible = ref(false)
