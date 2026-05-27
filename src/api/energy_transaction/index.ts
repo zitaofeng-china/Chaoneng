@@ -15,7 +15,7 @@ import {
 
 // ========== 新接口 v2 ==========
 
-const BASE_URL = '/v2/order/energy/'
+const BASE_URL = '/v1/order/energy'
 
 /**
  * 获取能量交易订单列表 - 新接口 v2
@@ -26,7 +26,7 @@ export const v2GetEnergyList = (
 ): Promise<IResponse<V2EnergyListResponse>> => {
   console.log('[v2GetEnergyList] 调用参数:', params)
   return request.get({
-    url: `${BASE_URL}list`,
+    url: `${BASE_URL}`,
     params
   })
 }
@@ -38,7 +38,7 @@ export const v2GetEnergyList = (
 export const v2GetOrderDetail = (id: string): Promise<IResponse<V2OrderDetailResponse>> => {
   console.log('[v2GetOrderDetail] 调用参数:', { id })
   return request.get({
-    url: `/v2/order/${id}`
+    url: `/v1/order/${id}`
   })
 }
 
@@ -49,7 +49,7 @@ export const v2GetOrderDetail = (id: string): Promise<IResponse<V2OrderDetailRes
 export const v2RecycleOrder = (order_id: string): Promise<IResponse<string>> => {
   console.log('[v2RecycleOrder] 调用参数:', { order_id })
   return request.post({
-    url: '/v2/order/recycle',
+    url: '/v1/order/recycle',
     data: { order_id }
   })
 }

@@ -12,13 +12,13 @@ export * from './types'
 
 /**
  * 获取能量订单列表 - 新接口 v1
- * GET /v1/order/energy/list
+ * GET /v1/order/energy
  */
 export const v1GetEnergyOrderList = (
   params: EnergyOrderListParamsV1
 ): Promise<IResponse<EnergyOrderListResponseV1>> => {
   return request.get({
-    url: '/v1/order/energy/list',
+    url: '/v1/order/energy',
     params
   })
 }
