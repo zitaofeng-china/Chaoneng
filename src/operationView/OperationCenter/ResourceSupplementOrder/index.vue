@@ -192,6 +192,6 @@ const fetchChargeLogListApi = async (params: any) => {
 
 <style scoped>
 .app-container {
-  padding: 20px;
+  padding: 0;
 }
 </style>

@@ -87,8 +87,14 @@ const columns: TableColumn[] = [
   {
     field: 'kind',
     label: '订单类型',
-    width: 100,
-    formatter: (row: V2ResourceOrderItem) => getEnergyOrderKindText(row.kind)
+    minWidth: 120,
+    formatter: (row: V2ResourceOrderItem) => {
+      const kindMap: Record<number, string> = {
+        6: '能量接收池子',
+        7: '带宽接收池子'
+      }
+      return kindMap[row.kind] || row.kind
+    }
   },
   {
     field: 'source',
@@ -212,13 +218,8 @@ const searchSchema = ref([
       clearable: true,
       options: [
         { label: '全部', value: '' },
-        { label: '按时间', value: 4 },
-        { label: '按笔数', value: 5 },
-        { label: '福利', value: 6 },
-        { label: '闪租', value: 7 },
-        { label: '托管', value: 8 },
-        { label: '批量下单', value: 9 },
-        { label: '激活', value: 10 }
+        { label: '能量接收池子', value: 6 },
+        { label: '带宽接收池子', value: 7 }
       ]
     }
   },
@@ -369,6 +370,6 @@ const handleExport = async () => {
 
 <style scoped>
 .app-container {
-  padding: 20px;
+  padding: 0;
 }
 </style>
