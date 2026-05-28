@@ -213,7 +213,19 @@ const detailSchema = computed<DescriptionsSchema[]>(() => [
     span: 8,
     slots: { default: (data) => formatNullableDateTime(data.finish_time) }
   },
-  { label: '备注', field: 'describe', span: 24, slots: { default: (data) => data.describe ?? '-' } }
+  {
+    label: '补发TRX',
+    field: 'resend_trx',
+    span: 8,
+    slots: { default: (data) => (data.resend_trx ? `${data.resend_trx} TRX` : '-') }
+  },
+  {
+    label: '补发时间',
+    field: 'resend_time',
+    span: 8,
+    slots: { default: (data) => formatNullableDateTime(data.resend_time) }
+  },
+  { label: '备注', field: 'describe', span: 8, slots: { default: (data) => data.describe ?? '-' } }
 ])
 
 // 用户转出 Schema（pay_transaction）
@@ -367,6 +379,9 @@ const open = async (orderIdValue: number | string, rowData?: any) => {
         status: responseData.status,
         finish_time: responseData.paid_at || exchange.out_at || 0,
         describe: responseData.describe,
+        // 补发信息
+        resend_trx: (responseData as any).resend_trx || '',
+        resend_time: (responseData as any).resend_time || 0,
         // 用户转出（pay_transaction）
         pay_from_address: payTx?.from || '',
         pay_to_address: payTx?.to || '',
