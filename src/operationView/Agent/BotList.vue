@@ -9,6 +9,8 @@
         :fetchDataApi="getAgentBotList"
         @search="handleSearch"
         :show-add-button="false"
+        :immediate="false"
+        @ready="onSearchTableReady"
       >
         <!-- 可以根据需要添加自定义按钮，这里暂时留空 -->
         <template #searchButtons>
@@ -23,7 +25,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { ElTag, ElMessage, ElMessageBox, ElLink } from 'element-plus'
 import { Icon } from '@/components/Icon'
 import { SearchTable } from '@/components/SearchTable'
@@ -46,29 +48,33 @@ const route = useRoute()
 const router = useRouter()
 // 引用SearchTable实例
 const searchTableRef = ref()
-const isFirstLoad = ref(true)
+
+// 根据路由参数计算初始搜索条件（仅首次加载使用，不作为 defaultParams 避免重置时锁定）
+const initialSearchParams = (() => {
+  if (route.query.keyword) {
+    return { keyword: route.query.keyword, status: '' }
+  }
+  if (route.query.id) {
+    return { keyword: route.query.id, status: '' }
+  }
+  if (route.query.bot_id) {
+    return { keyword: String(route.query.bot_id), status: '' }
+  }
+  return { status: 1 }
+})()
 
 // --- API 调用封装 ---
-onMounted(() => {
-  console.log('route', route.query)
-  searchTableRef.value?.setSearchParams({
-    query: route.query.id,
-    status: 1
-  })
-})
+function onSearchTableReady(instance: any) {
+  // 仅首次加载时设置搜索条件，不影响后续重置操作
+  instance.setSearchParams(initialSearchParams)
+  instance.reload()
+}
 
 // 获取机器人列表API封装
 const getAgentBotList = async (params?: any): Promise<{ list: AgentBotItem[]; total?: number }> => {
   try {
     const apiParams: any = { ...params }
 
-    // 仅首次加载默认筛选启用状态
-    if (isFirstLoad.value) {
-      isFirstLoad.value = false
-      if (!apiParams.status) {
-        apiParams.status = 1
-      }
-    }
     // status 为空时不传（查全部）
     if (!apiParams.status) {
       delete apiParams.status
@@ -210,7 +216,25 @@ const columns = ref<TableColumn[]>([
     field: 'order_count',
     label: '交易订单数',
     minWidth: 130,
-    sortable: 'custom'
+    sortable: 'custom',
+    slots: {
+      default: (data: any) => {
+        return (
+          <ElLink
+            type="primary"
+            style="cursor:pointer"
+            onClick={() =>
+              router.push({
+                path: '/operation/energy_transaction',
+                query: { query: data.row.agent_name }
+              })
+            }
+          >
+            {data.row.order_count || 0}
+          </ElLink>
+        )
+      }
+    }
   },
   {
     field: 'status',
@@ -345,13 +369,6 @@ const handleUserCountClick = (botId: number | string) => {
   router.push({ path: '/agent/user_list', query: { bot_id: botId } })
 }
 
-onMounted(() => {
-  // 优化：支持通过bot_id参数自动筛选
-  if (route.query.bot_id) {
-    searchTableRef.value?.setSearchParams({ query: String(route.query.bot_id) })
-    searchTableRef.value?.reload()
-  }
-})
 // 页面加载时自动查询 (SearchTable 内部会处理首次加载，此行可省略)
 // onMounted(() => {
 //   searchTableRef.value?.reload()

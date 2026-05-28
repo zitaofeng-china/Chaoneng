@@ -139,6 +139,18 @@ const columns = ref<TableColumn[]>([
 
 const searchSchema = computed<FormSchema[]>(() => [
   {
+    field: 'keyword',
+    component: 'Input',
+    label: {
+      text: '关键字',
+      tips: '受邀人ID/受邀人/邀请人/机器人名称/代理名称'
+    },
+    componentProps: {
+      placeholder: '请输入关键字',
+      clearable: true
+    }
+  },
+  {
     field: 'bot_id',
     component: 'Select' as const,
     label: '机器人',
@@ -161,18 +173,6 @@ const searchSchema = computed<FormSchema[]>(() => [
         { label: '已发放', value: 1 },
         { label: '未发放', value: 2 }
       ]
-    }
-  },
-  {
-    field: 'keyword',
-    component: 'Input',
-    label: {
-      text: '关键字',
-      tips: '受邀人ID/受邀人/邀请人/机器人名称/代理名称'
-    },
-    componentProps: {
-      placeholder: '请输入关键字',
-      clearable: true
     }
   }
 ])

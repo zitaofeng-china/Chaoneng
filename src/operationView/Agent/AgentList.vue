@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, nextTick, reactive, computed } from 'vue'
+import { ref, nextTick, reactive, computed, h } from 'vue'
 import {
   ElMessage,
   ElSelect,
@@ -48,8 +48,10 @@ import {
   ElSwitch,
   ElAutocomplete,
   ElForm,
-  ElFormItem
+  ElFormItem,
+  ElLink
 } from 'element-plus'
+import { useRouter } from 'vue-router'
 import { SearchTable } from '@/components/SearchTable'
 import { FormSchema } from '@/components/Form'
 import { TableColumn } from '@/components/Table'
@@ -69,6 +71,7 @@ import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 // 状态管理
+const router = useRouter()
 const searchTableRef = ref<InstanceType<typeof SearchTable>>()
 const agentFormRef = ref<InstanceType<typeof AgentForm>>()
 const rechargeDialogVisible = ref(false)
@@ -573,13 +576,39 @@ const columns = computed<TableColumn[]>(() => [
     field: 'bot_count',
     label: '机器人数量',
     minWidth: 110,
-    formatter: (row: AgentItem) => row.bot_count ?? 0
+    slots: {
+      default: ({ row }: { row: AgentItem }) => {
+        const count = row.bot_count ?? 0
+        return h(
+          ElLink,
+          {
+            type: 'primary',
+            onClick: () =>
+              router.push({ path: '/agent/bot_list', query: { keyword: row.username, status: '' } })
+          },
+          () => count
+        )
+      }
+    }
   },
   {
     field: 'user_count',
     label: '总用户数',
     minWidth: 100,
-    formatter: (row: AgentItem) => row.user_count ?? 0
+    slots: {
+      default: ({ row }: { row: AgentItem }) => {
+        const count = row.user_count ?? 0
+        return h(
+          ElLink,
+          {
+            type: 'primary',
+            onClick: () =>
+              router.push({ path: '/agent/user_list', query: { keyword: row.username } })
+          },
+          () => count
+        )
+      }
+    }
   },
   {
     field: 'trx_balance',

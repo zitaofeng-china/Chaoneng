@@ -7,6 +7,7 @@
         :search-schema="searchSchema"
         :fetch-data-api="fetchUserList"
         :showAddButton="false"
+        :immediate="false"
         ref="searchTableRef"
         @ready="onSearchTableReady"
         :table-props="{
@@ -38,7 +39,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onActivated } from 'vue'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { ElLink } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
@@ -274,6 +275,17 @@ const columns = computed(() => {
 // 搜索表单配置
 const searchSchema = computed<FormSchema[]>(() => [
   {
+    field: 'keyword',
+    component: 'Input' as const,
+    label: {
+      text: '关键字',
+      tips: '支持用户名/昵称/用户账号/用户邮箱查询'
+    },
+    componentProps: {
+      placeholder: '请输入关键字搜索'
+    }
+  },
+  {
     field: 'bot_id',
     component: 'Select' as const,
     label: '机器人',
@@ -282,14 +294,6 @@ const searchSchema = computed<FormSchema[]>(() => [
       placeholder: '请选择机器人',
       valueKey: 'value',
       labelKey: 'label'
-    }
-  },
-  {
-    field: 'keyword',
-    component: 'Input' as const,
-    label: '关键词',
-    componentProps: {
-      placeholder: '请输入用户名/昵称/用户账号/用户邮箱'
     }
   },
   {
@@ -388,6 +392,23 @@ const openBotList = (botId: number) => {
 }
 
 function onSearchTableReady(instance: any) {
+  const query = route.query
+  const params: Record<string, any> = {}
+
+  if (query.bot_id) {
+    const botId = botOptions.value.find((opt) => opt.value === String(query.bot_id))?.value
+    if (botId !== undefined) {
+      params.bot_id = botId
+    }
+  }
+
+  if (query.keyword) {
+    params.keyword = String(query.keyword)
+  }
+
+  if (Object.keys(params).length > 0) {
+    instance.setSearchParams(params)
+  }
   instance.reload()
 }
 
@@ -480,13 +501,28 @@ const handleExport = async () => {
 
 onMounted(async () => {
   await fetchBotList()
+})
+
+// 处理 keep-alive 缓存恢复时的路由参数
+onActivated(() => {
+  if (!searchTableRef.value) return
   const query = route.query
+  const params: Record<string, any> = {}
+
   if (query.bot_id) {
     const botId = botOptions.value.find((opt) => opt.value === String(query.bot_id))?.value
     if (botId !== undefined) {
-      searchTableRef.value?.setSearchParams({ bot_id: botId })
-      searchTableRef.value?.reload()
+      params.bot_id = botId
     }
+  }
+
+  if (query.keyword) {
+    params.keyword = String(query.keyword)
+  }
+
+  if (Object.keys(params).length > 0) {
+    searchTableRef.value.setSearchParams(params)
+    searchTableRef.value.reload()
   }
 })
 </script>
