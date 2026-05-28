@@ -49,8 +49,7 @@ export const v2GetOrderDetail = (id: string): Promise<IResponse<V2OrderDetailRes
 export const v2RecycleOrder = (order_id: string): Promise<IResponse<string>> => {
   console.log('[v2RecycleOrder] 调用参数:', { order_id })
   return request.post({
-    url: '/v1/order/recycle',
-    data: { order_id }
+    url: `/v1/order/${order_id}/recycle`
   })
 }
 
