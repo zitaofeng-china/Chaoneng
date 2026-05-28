@@ -14,13 +14,13 @@ const BASE_URL = '/v2/manage/agent_charge_addr'
 /**
  * 获取TRX地址列表 - 新接口
  */
-const NEW_BASE_URL = '/v2/address'
-
+const JIU_BASE_URL = '/v2/address'
+const NEW_BASE_URL = '/v1/address'
 export const v2GetAddressList = (
   params: V2AddressListParams
 ): Promise<IResponse<V2AddressListResponse>> => {
   return request.get({
-    url: `/v1/address`,
+    url: `${NEW_BASE_URL}`,
     params
   })
 }
@@ -30,7 +30,7 @@ export const v2GetAddressList = (
  */
 export const v2CreateAddress = (data: V2CreateAddressParams): Promise<IResponse> => {
   return request.post({
-    url: `/v1/address`,
+    url: `${NEW_BASE_URL}`,
     data,
     // 添加配置，跳过拦截器的错误提示
     skipErrorHandler: true
@@ -38,11 +38,11 @@ export const v2CreateAddress = (data: V2CreateAddressParams): Promise<IResponse>
 }
 
 /**
- * 更新地址 - 新接口（用于绑定/解绑）
+ * 更新地址 - 绑定/解绑接口
  */
 export const v2UpdateAddress = (data: V2UpdateAddressParams): Promise<IResponse> => {
-  return request.post({
-    url: `${NEW_BASE_URL}/update`,
+  return request.put({
+    url: `${NEW_BASE_URL}`,
     data
   })
 }
@@ -52,7 +52,7 @@ export const v2UpdateAddress = (data: V2UpdateAddressParams): Promise<IResponse>
  */
 export const v2DeleteAddress = (data: V2DeleteAddressParams): Promise<IResponse> => {
   return request.delete({
-    url: `/v1/address`,
+    url: `${JIU_BASE_URL}`,
     data
   })
 }
@@ -62,59 +62,7 @@ export const v2DeleteAddress = (data: V2DeleteAddressParams): Promise<IResponse>
  */
 export const v2GetUnboundAgents = (): Promise<IResponse<V2UnboundAgentsResponse>> => {
   return request.get({
-    url: `${NEW_BASE_URL}/unbound_agents`
-  })
-}
-
-/**
- * 获取TRX地址列表 - 旧接口（保留兼容）
- */
-export const getTrxAddressListApi = (params = {}) => {
-  return request.get({
-    url: `${BASE_URL}/list`,
-    params
-  })
-}
-
-/**
- * 创建TRX地址 (接收逗号分隔的地址字符串)
- */
-export const createTrxAddressApi = (data: { address: string }) => {
-  return request.post({
-    url: `${BASE_URL}/add`,
-    data // Backend expects { Address: "addr1,addr2,..." }
-  })
-}
-
-/**
- * 更新TRX地址 (用于绑定/解绑/修改)
- * Matches UpdateAgentChargeAddrParams
- */
-export const updateTrxAddressApi = (data: { id: number; status: number; user_id: number }) => {
-  return request.post({
-    url: `${BASE_URL}/update`,
-    data
-  })
-}
-
-/**
- * 删除TRX地址
- */
-export const deleteTrxAddressApi = (id: number) => {
-  return request.post({
-    url: `${BASE_URL}/delete`,
-    data: { id }
-  })
-}
-
-/**
- * 批量删除TRX地址
- * Matches BatchDelChargeAddrParams
- */
-export const batchDeleteTrxAddressApi = (data: { id_list: number[] }) => {
-  return request.post({
-    url: `${BASE_URL}/batch_delete`,
-    data // Backend expects { id_list: [...] }
+    url: `${JIU_BASE_URL}/unbound_agents`
   })
 }
 
@@ -132,43 +80,11 @@ export const v2BatchImportAddress = (formData: FormData): Promise<IResponse> => 
 }
 
 /**
- * 批量导入TRX地址 - 旧接口（保留兼容）
- */
-export const batchImportTrxAddressApi = (formData: FormData) => {
-  return request.post({
-    url: `${BASE_URL}/import`,
-    data: formData,
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  })
-}
-
-/**
  * 导出模版 - 新接口
  */
 export const v2ExportAddressModule = () => {
   return request.get({
     url: `${NEW_BASE_URL}/module`,
     responseType: 'blob'
-  })
-}
-
-/**
- * 导出模版 - 旧接口（保留兼容）
- */
-export const exportAddressModuleApi = () => {
-  return request.get({
-    url: `${BASE_URL}/module`,
-    responseType: 'blob'
-  })
-}
-
-/**
- * 获取代理商列表
- */
-export const getAgentListApi = () => {
-  return request.get({
-    url: `${BASE_URL}/list_user`
   })
 }

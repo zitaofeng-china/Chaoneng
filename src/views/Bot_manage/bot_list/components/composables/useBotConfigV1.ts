@@ -414,11 +414,14 @@ export function useBotConfigV1() {
             })
           )
         } else if (address && existingId !== null && existingId !== undefined) {
-          // 有值且已有记录 → 更新
+          // 有值且已有记录 → 更新（传 kind、bot_id、agent_id）
           promises.push(
             v1UpdateAddress({
               id: existingId,
-              address
+              address,
+              kind,
+              bot_id: currentBot.value.id,
+              agent_id: currentBot.value.agent_id || 0
             })
           )
         } else if (address && (existingId === null || existingId === undefined)) {
