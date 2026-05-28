@@ -123,6 +123,48 @@ const botInfoSchema = reactive<FormSchema[]>([
     }
   },
   {
+    field: 'visit_reward',
+    component: 'InputNumber' as const,
+    label: {
+      text: '访问奖励',
+      tips: '访问奖励立即发放'
+    },
+    componentProps: {
+      placeholder: '请输入访问奖励',
+      min: 0,
+      step: 0.1,
+      precision: 2
+    }
+  },
+  {
+    field: 'invite_reward',
+    component: 'InputNumber' as const,
+    label: {
+      text: '邀请奖励（TRX）- 非会员',
+      tips: '被邀请人必须使用1笔能量奖励才给到邀请者'
+    },
+    componentProps: {
+      placeholder: '请输入非会员奖励',
+      min: 0,
+      step: 0.1,
+      precision: 2
+    }
+  },
+  {
+    field: 'invite_reward_vip',
+    component: 'InputNumber' as const,
+    label: {
+      text: '邀请奖励（TRX）- 会员',
+      tips: '被邀请人必须使用1笔能量奖励才给到邀请者'
+    },
+    componentProps: {
+      placeholder: '请输入会员奖励',
+      min: 0,
+      step: 0.1,
+      precision: 2
+    }
+  },
+  {
     field: 'tg_admin',
     component: 'Input' as const,
     label: '管理员TG账号：',
@@ -137,20 +179,6 @@ const botInfoSchema = reactive<FormSchema[]>([
           message: 'TG账号必须以@开头'
         }
       ]
-    }
-  },
-  {
-    field: 'invite_reward',
-    component: 'InputNumber' as const,
-    label: {
-      text: '邀请奖励（TRX）',
-      tips: '用户成功邀请好友后获得的TRX奖励金额'
-    },
-    componentProps: {
-      placeholder: '请输入邀请奖励金额',
-      min: 0,
-      step: 0.1,
-      precision: 2
     }
   },
   {

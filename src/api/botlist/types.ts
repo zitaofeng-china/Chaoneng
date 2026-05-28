@@ -68,7 +68,13 @@ export type BotDetail = {
   token: string // 机器人Token
   tg_admin: string // TG管理员
   describe: string // 描述
-  invite_reward?: number // 邀请奖励（TRX）
+  invite_reward?: number // 邀请奖励（TRX）- 兼容旧字段
+  reward?: {
+    first_deposit: number // 首充奖励
+    first_visit: number // 访问奖励
+    premium_invite: number // 邀请奖励-会员
+    standard_invite: number // 邀请奖励-非会员
+  }
   total_fee: number // 总费用
 }
 
@@ -241,7 +247,13 @@ export type UpdateBotParams = {
   id: number | string // 机器人ID（必填）
   auto_renew?: number // 自动续费：1-是，2-否
   describe?: string // 描述
-  invite_reward?: number // 邀请奖励（TRX）
+  invite_reward?: number // 邀请奖励（TRX）- 兼容旧字段
+  reward?: {
+    first_deposit?: number // 首充奖励
+    first_visit?: number // 访问奖励
+    premium_invite?: number // 邀请奖励-会员
+    standard_invite?: number // 邀请奖励-非会员
+  }
   status?: number // 状态：1-启用，2-禁用
   tg_admin?: string // TG管理员
 }

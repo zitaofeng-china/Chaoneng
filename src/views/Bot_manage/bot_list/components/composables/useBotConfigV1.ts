@@ -91,8 +91,14 @@ export function useBotConfigV1() {
         token: botDetailRes.data.token || '',
         api_key: '',
         tg_admin: botDetailRes.data.tg_admin || '',
-        invite_reward: botDetailRes.data.invite_reward
-          ? Number(botDetailRes.data.invite_reward)
+        invite_reward: botDetailRes.data.reward?.standard_invite
+          ? Number(botDetailRes.data.reward.standard_invite)
+          : 0,
+        invite_reward_vip: botDetailRes.data.reward?.premium_invite
+          ? Number(botDetailRes.data.reward.premium_invite)
+          : 0,
+        visit_reward: botDetailRes.data.reward?.first_visit
+          ? Number(botDetailRes.data.reward.first_visit)
           : 0,
         describe: botDetailRes.data.describe || '',
         status: botDetailRes.data.status || 2
@@ -334,7 +340,11 @@ export function useBotConfigV1() {
         describe: botInfoData.describe,
         status: botInfoData.status,
         tg_admin: botInfoData.tg_admin,
-        invite_reward: botInfoData.invite_reward
+        reward: {
+          standard_invite: botInfoData.invite_reward || 0,
+          premium_invite: botInfoData.invite_reward_vip || 0,
+          first_visit: botInfoData.visit_reward || 0
+        }
       })
 
       // 2. 更新Site信息（客服账号和H5端开关）
