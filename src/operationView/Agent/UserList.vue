@@ -219,22 +219,45 @@ const columns = computed(() => {
     {
       field: 'action',
       label: '操作',
-      width: 150,
+      width: 380,
       fixed: 'right',
       slots: {
         default: ({ row }) => {
-          // 判断是否为机器人用户（有 tg_user_id 且不为0，或有 tg_user_name）
-          const hasTgUserId = row.tg_user_id && row.tg_user_id !== 0
-          const hasTgUserName = row.tg_user_name && row.tg_user_name.trim() !== ''
-          const isBotUser = hasTgUserId || hasTgUserName
+          const isH5User = (!row.tg_user_id || row.tg_user_id === 0) && !row.tg_user_name
+          const isBotUser = (row.tg_user_id && row.tg_user_id !== 0) || row.tg_user_name
+
           return (
-            <BaseButton
-              type="primary"
-              disabled={!isBotUser}
-              onClick={() => openSendMessageDialog(row)}
-            >
-              发送消息
-            </BaseButton>
+            <div>
+              <BaseButton
+                type="primary"
+                disabled={!isBotUser}
+                onClick={() => openSendMessageDialog(row)}
+              >
+                发送消息
+              </BaseButton>
+              <BaseButton
+                type="success"
+                style="margin-left: 8px"
+                onClick={() => openRechargeDialog(row)}
+              >
+                充值
+              </BaseButton>
+              <BaseButton
+                type="warning"
+                style="margin-left: 8px"
+                onClick={() => handleBalanceRecord(row.id)}
+              >
+                余额记录
+              </BaseButton>
+              <BaseButton
+                type="danger"
+                style="margin-left: 8px"
+                disabled={!isH5User}
+                onClick={() => handleChangePassword(row)}
+              >
+                修改密码
+              </BaseButton>
+            </div>
           )
         }
       }
@@ -372,6 +395,28 @@ function onSearchTableReady(instance: any) {
 const openSendMessageDialog = (row: any) => {
   currentUser.value = row
   messageDialogVisible.value = true
+}
+
+// 充值
+const openRechargeDialog = (row: any) => {
+  // TODO: 实现充值弹窗
+  ElMessage.info(`充值功能 - 用户: ${row.tg_user_name || row.id}`)
+}
+
+// 余额记录
+const handleBalanceRecord = (accountId: number | string) => {
+  if (!accountId) {
+    ElMessage.warning('无法获取用户ID')
+    return
+  }
+  // TODO: 实现余额记录弹窗
+  ElMessage.info(`余额记录 - 用户ID: ${accountId}`)
+}
+
+// 修改密码
+const handleChangePassword = (row: any) => {
+  // TODO: 实现修改密码弹窗
+  ElMessage.info(`修改密码 - 用户: ${row.tg_user_name || row.id}`)
 }
 
 // 消息发送成功
