@@ -8,32 +8,32 @@ import type {
   V2UpdateSystemPriceParams
 } from './agent_price_types'
 
-// ========== 系统价格参数相关接口（新接口 v2）==========
+// ========== 系统价格参数相关接口（新接口 v1）==========
 
 // 主分支
-const BASE_URL = '/v2/system/'
+const BASE_URL = '/v1/system/'
 
-// 获取价格列表 - v2
-// GET /v2/price/list
+// 获取价格列表 - v1
+// GET /v1/price
 export const v2GetPriceList = (
   params?: V1PriceListParams
 ): Promise<{ data: V1PriceListResponseData }> => {
   return request.get({
-    url: '/v2/price/list',
+    url: '/v1/price',
     params
   })
 }
 
-// 获取系统价格参数 - 新接口 v2
-// GET /v2/system/price (无请求参数)
+// 获取系统价格参数 - 新接口 v1
+// GET /v1/system/price (无请求参数)
 export const v2GetSystemPrice = (): Promise<{ data: V2SystemPriceResponse }> => {
   return request.get({ url: `${BASE_URL}price` })
 }
 
-// 更新系统价格参数 - 新接口 v2
-// POST /v2/system/price/update
+// 更新系统价格参数 - 新接口 v1
+// PUT /v1/price
 export const v2UpdateSystemPrice = (data: V2UpdateSystemPriceParams): Promise<any> => {
-  return request.put({ url: `/v2/price`, data })
+  return request.put({ url: `/v1/price`, data })
 }
 
 // ========== 旧接口 ==========

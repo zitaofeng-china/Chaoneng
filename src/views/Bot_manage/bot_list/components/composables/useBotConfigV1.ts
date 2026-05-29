@@ -97,8 +97,8 @@ export function useBotConfigV1() {
         invite_reward_vip: botDetailRes.data.reward?.premium_invite
           ? Number(botDetailRes.data.reward.premium_invite)
           : 0,
-        visit_reward: botDetailRes.data.reward?.first_visit
-          ? Number(botDetailRes.data.reward.first_visit)
+        visit_reward: botDetailRes.data.reward?.first_deposit
+          ? Number(botDetailRes.data.reward.first_deposit)
           : 0,
         describe: botDetailRes.data.describe || '',
         status: botDetailRes.data.status || 2
@@ -343,7 +343,7 @@ export function useBotConfigV1() {
         reward: {
           standard_invite: botInfoData.invite_reward || 0,
           premium_invite: botInfoData.invite_reward_vip || 0,
-          first_visit: botInfoData.visit_reward || 0
+          first_deposit: botInfoData.visit_reward || 0
         }
       })
 

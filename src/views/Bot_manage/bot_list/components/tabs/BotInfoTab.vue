@@ -126,11 +126,11 @@ const botInfoSchema = reactive<FormSchema[]>([
     field: 'visit_reward',
     component: 'InputNumber' as const,
     label: {
-      text: '访问奖励',
-      tips: '访问奖励立即发放'
+      text: '首充奖励',
+      tips: '用户首次充值时额外奖励'
     },
     componentProps: {
-      placeholder: '请输入访问奖励',
+      placeholder: '请输入首充奖励',
       min: 0,
       step: 0.1,
       precision: 2
@@ -141,7 +141,7 @@ const botInfoSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: {
       text: '邀请奖励（TRX）- 非会员',
-      tips: '被邀请人必须使用1笔能量奖励才给到邀请者'
+      tips: '被邀请人首充时才发放'
     },
     componentProps: {
       placeholder: '请输入非会员奖励',
@@ -155,7 +155,7 @@ const botInfoSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: {
       text: '邀请奖励（TRX）- 会员',
-      tips: '被邀请人必须使用1笔能量奖励才给到邀请者'
+      tips: '被邀请人首充时才发放'
     },
     componentProps: {
       placeholder: '请输入会员奖励',
