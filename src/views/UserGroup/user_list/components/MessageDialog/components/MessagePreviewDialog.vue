@@ -21,9 +21,9 @@
         <div class="info-value">{{ previewData.recipientInfo }}</div>
       </div>
 
-      <!-- 群组信息 -->
+      <!-- 群组/频道信息 -->
       <div v-if="previewData.groupInfo" class="preview-info-item">
-        <div class="info-label">发送群组</div>
+        <div class="info-label">发送对象</div>
         <div class="info-value">{{ previewData.groupInfo }}</div>
       </div>
 

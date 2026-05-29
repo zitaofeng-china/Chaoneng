@@ -467,10 +467,14 @@ const tableColumns: TableColumn[] = [
     minWidth: 180,
     formatter: (row) => {
       const hasUsers = row.tg_user_ids && row.tg_user_ids.length > 0
-      const hasGroups = row.group_ids && row.group_ids.length > 0
+      const chatIds: (number | string)[] = row.chat_ids || []
+      const channelIds = chatIds.filter((id) => String(id).startsWith('-100'))
+      const groupIds = chatIds.filter((id) => !String(id).startsWith('-100'))
+      const hasChannels = channelIds.length > 0
+      const hasGroups = groupIds.length > 0
 
       // 如果都没有，表示全部用户
-      if (!hasUsers && !hasGroups) {
+      if (!hasUsers && !hasChannels && !hasGroups) {
         return '全部用户'
       }
 
@@ -485,12 +489,21 @@ const tableColumns: TableColumn[] = [
         }
       }
 
+      // 处理频道
+      if (hasChannels) {
+        if (channelIds.length === 1) {
+          parts.push(`频道${channelIds[0]}`)
+        } else {
+          parts.push(`${channelIds.length}个频道`)
+        }
+      }
+
       // 处理群组
       if (hasGroups) {
-        if (row.group_ids.length === 1) {
-          parts.push(`群组${row.group_ids[0]}`)
+        if (groupIds.length === 1) {
+          parts.push(`群组${groupIds[0]}`)
         } else {
-          parts.push(`${row.group_ids.length}个群组`)
+          parts.push(`${groupIds.length}个群组`)
         }
       }
 

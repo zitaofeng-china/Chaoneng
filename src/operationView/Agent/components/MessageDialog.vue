@@ -47,10 +47,10 @@
       <ElFormItem
         v-if="type === 'mass' && formData.filter_type === 'user_custom'"
         label="聊天列表："
-        prop="group_ids"
+        prop="chat_ids"
       >
         <ElSelectV2
-          v-model="formData.group_ids"
+          v-model="formData.chat_ids"
           :options="groupOptions"
           multiple
           filterable
@@ -338,7 +338,7 @@ const formData = ref({
   bot_ids: [] as number | string | (number | string)[] | undefined,
   filter_type: 'user_custom' as 'user_custom' | 'all_user',
   user_list: '',
-  group_ids: [] as number[], // 新增：群组ID列表
+  chat_ids: [] as number[], // 新增：群组ID列表
   content: '',
   period: 1,
   enable_period: false,
@@ -357,10 +357,13 @@ const groupListLoading = ref(false)
 
 // 为虚拟化选择器准备群组选项数据
 const groupOptions = computed(() => {
-  return groupList.value.map((group) => ({
-    label: `${group.name} (ID: ${group.id})`,
-    value: group.id
-  }))
+  return groupList.value.map((group) => {
+    const typeLabel = group.type === 'channel' ? '频道' : '群组'
+    return {
+      label: `[${typeLabel}] ${group.name} (ID: ${group.id})`,
+      value: group.id
+    }
+  })
 })
 
 // 是否选了多个机器人
@@ -396,7 +399,7 @@ const formRules = computed(() => ({
 
         // 检查用户列表和群组列表是否都为空
         const hasUserList = value && value.trim() !== ''
-        const hasGroupList = formData.value.group_ids && formData.value.group_ids.length > 0
+        const hasGroupList = formData.value.chat_ids && formData.value.chat_ids.length > 0
 
         // 如果两者都为空，报错
         if (!hasUserList && !hasGroupList) {
@@ -407,7 +410,7 @@ const formRules = computed(() => ({
       }
     }
   ],
-  group_ids: [
+  chat_ids: [
     {
       required: false, // 不强制必填，使用自定义验证
       trigger: ['blur', 'change'],
@@ -540,26 +543,26 @@ const handleBotChange = (value: number | string | (number | string)[]) => {
       // 切换到多选模式，强制设置为"全部用户"并清空用户列表
       formData.value.filter_type = 'all_user'
       formData.value.user_list = ''
-      formData.value.group_ids = [] // 清空群组选择
+      formData.value.chat_ids = [] // 清空群组选择
       groupList.value = [] // 清空群组列表
     } else if (value.length === 1) {
       // 只有一个机器人，保持自定义用户模式，但清空用户列表（因为机器人可能变了）
       formData.value.filter_type = 'user_custom'
       formData.value.user_list = ''
-      formData.value.group_ids = [] // 清空群组选择
+      formData.value.chat_ids = [] // 清空群组选择
       // 加载新机器人的群组列表
       fetchGroupList(value[0])
     } else {
       // 没有选择机器人，清空用户列表
       formData.value.user_list = ''
-      formData.value.group_ids = []
+      formData.value.chat_ids = []
       groupList.value = []
     }
   } else {
     // 单选机器人，清空用户列表
     formData.value.filter_type = 'user_custom'
     formData.value.user_list = ''
-    formData.value.group_ids = []
+    formData.value.chat_ids = []
     // 加载新机器人的群组列表
     if (value) {
       fetchGroupList(value)
@@ -674,15 +677,27 @@ const handleSubmit = async () => {
       previewData.recipientInfo = `自定义用户 (${userCount} 人)`
     }
 
-    // 群组信息
-    if (formData.value.group_ids && formData.value.group_ids.length > 0) {
-      const groupNames = formData.value.group_ids
-        .map((groupId) => {
-          const group = groupList.value.find((g) => g.id === groupId)
-          return group ? group.name : `群组ID: ${groupId}`
-        })
-        .join(', ')
-      previewData.groupInfo = `群组 (${formData.value.group_ids.length}个): ${groupNames}`
+    // 群组/频道信息
+    if (formData.value.chat_ids && formData.value.chat_ids.length > 0) {
+      const channelNames: string[] = []
+      const groupNames: string[] = []
+      formData.value.chat_ids.forEach((groupId) => {
+        const chat = groupList.value.find((g) => g.id === groupId)
+        const name = chat ? chat.name : `ID: ${groupId}`
+        if (chat?.type === 'channel') {
+          channelNames.push(name)
+        } else {
+          groupNames.push(name)
+        }
+      })
+      const parts: string[] = []
+      if (channelNames.length > 0) {
+        parts.push(`频道 (${channelNames.length}个): ${channelNames.join(', ')}`)
+      }
+      if (groupNames.length > 0) {
+        parts.push(`群组 (${groupNames.length}个): ${groupNames.join(', ')}`)
+      }
+      previewData.groupInfo = parts.join(' | ')
     }
 
     // 消息内容
@@ -799,13 +814,13 @@ const handleConfirmSend = async (buttonLayout?: number[][]) => {
     // 如果是全部用户模式，传递空数组
     if (formData.value.filter_type === 'all_user') {
       apiParams.tg_user_ids = []
-      apiParams.group_ids = []
+      apiParams.chat_ids = []
     }
     // 如果是自定义用户模式
     else if (formData.value.filter_type === 'user_custom') {
       // 检查用户列表和群组列表是否都为空
       const hasUserList = formData.value.user_list && formData.value.user_list.trim() !== ''
-      const hasGroupList = formData.value.group_ids && formData.value.group_ids.length > 0
+      const hasGroupList = formData.value.chat_ids && formData.value.chat_ids.length > 0
 
       if (!hasUserList && !hasGroupList) {
         ElMessage.error('TG用户ID列表和聊天列表至少需要填写一个')
@@ -826,7 +841,7 @@ const handleConfirmSend = async (buttonLayout?: number[][]) => {
 
       // 处理群组列表 - 只有在有值时才添加字段
       if (hasGroupList) {
-        apiParams.group_ids = formData.value.group_ids
+        apiParams.chat_ids = formData.value.chat_ids
       }
     }
 
@@ -876,7 +891,7 @@ watch(
         bot_ids: [],
         filter_type: 'user_custom',
         user_list: '',
-        group_ids: [], // 清空群组选择
+        chat_ids: [], // 清空群组选择
         content: '',
         period: 1,
         enable_period: false,
@@ -921,7 +936,7 @@ watch(
     if (formData.value.filter_type === 'user_custom' && !isMultipleBots.value) {
       // 延迟验证，避免在输入过程中频繁提示
       setTimeout(() => {
-        formRef.value?.validateField('group_ids', () => {})
+        formRef.value?.validateField('chat_ids', () => {})
       }, 300)
     }
   }
@@ -929,7 +944,7 @@ watch(
 
 // 监听群组列表变化，触发用户列表验证
 watch(
-  () => formData.value.group_ids,
+  () => formData.value.chat_ids,
   () => {
     if (formData.value.filter_type === 'user_custom' && !isMultipleBots.value) {
       // 延迟验证，避免在选择过程中频繁提示

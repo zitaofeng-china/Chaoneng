@@ -39,21 +39,14 @@ const isBotOptionsLoaded = ref(false)
 
 const fetchBotOptions = async () => {
   try {
-    const queryParams: V2AgentBotListParams = {
-      page_size: 1000,
-      current_page: 1
-    }
+    console.log('[fetchBotOptions] 调用 v1GetMessageBotList')
 
-    console.log('[fetchBotOptions] 调用新接口 v2GetAgentBotList, 参数:', queryParams)
-
-    const res = await v2GetAgentBotList(queryParams)
+    const res = await v1GetMessageBotList()
     if (res.code === '000000' && res.data) {
-      const bots = (res.data.list || []).map((bot: any) => {
-        return {
-          label: `${bot.tg_user_name} (${bot.first_name})`,
-          value: bot.id
-        }
-      })
+      const bots = (res.data || []).map((bot: any) => ({
+        label: bot.user_name,
+        value: bot.id
+      }))
       botOptions.value = [{ label: '全部', value: '' }, ...bots]
       isBotOptionsLoaded.value = true
 

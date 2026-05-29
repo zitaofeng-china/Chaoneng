@@ -401,8 +401,9 @@ const handleSubmit = async () => {
   // 机器人名称
   previewData.botName = currentBotName.value
 
-  // 群组信息
-  previewData.groupInfo = `群组: ${props.currentGroup.name} (ID: ${props.currentGroup.id})`
+  // 群组/频道信息
+  const chatTypeLabel = props.currentGroup.type === 'channel' ? '频道' : '群组'
+  previewData.groupInfo = `${chatTypeLabel}: ${props.currentGroup.name} (ID: ${props.currentGroup.id})`
 
   // 消息内容
   previewData.content = formData.value.content
@@ -503,7 +504,7 @@ const handleConfirmSend = async (buttonLayout?: number[][]) => {
           : 1
         : 0,
       send_at: sendAtTimestamp,
-      group_ids: [Number(props.currentGroup.id)]
+      chat_ids: [Number(props.currentGroup.id)]
     }
 
     // 使用 v1 接口
