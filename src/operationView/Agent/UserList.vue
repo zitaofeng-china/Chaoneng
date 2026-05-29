@@ -49,7 +49,7 @@ import { Icon } from '@/components/Icon'
 import { FormSchema } from '@/components/Form'
 import type { TableColumn } from '@/components/Table'
 import { v2GetUserList } from '@/api/agent/user_list'
-import { getAgentBotListApi } from '@/api/agent/bot'
+import { v1GetMessageBotList } from '@/api/message'
 import { useRoute, useRouter } from 'vue-router'
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
@@ -73,15 +73,11 @@ const botMap = ref<Map<number, any>>(new Map())
 const fetchBotList = async () => {
   isBotListLoaded.value = false
   try {
-    const res = await getAgentBotListApi({
-      current_page: 1,
-      page_size: 1000
-    })
-
-    const bots = (res.data.list || []).map((bot: any) => {
+    const res = await v1GetMessageBotList()
+    const bots = (res.data || []).map((bot: any) => {
       botMap.value.set(bot.id, bot)
       return {
-        label: `${bot.user_name} (${bot.first_name})`,
+        label: bot.user_name,
         value: String(bot.id)
       }
     })
@@ -503,8 +499,11 @@ onMounted(async () => {
   await fetchBotList()
 })
 
-// 处理 keep-alive 缓存恢复时的路由参数
-onActivated(() => {
+// 处理 keep-alive 缓存恢复
+onActivated(async () => {
+  // 重新获取机器人列表（保持下拉数据最新）
+  await fetchBotList()
+
   if (!searchTableRef.value) return
   const query = route.query
   const params: Record<string, any> = {}

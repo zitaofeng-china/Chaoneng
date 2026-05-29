@@ -24,18 +24,9 @@ import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
-import {
-  v2GetHostingList,
-  v2RemoveHosting,
-  v2GetAgentBotList,
-  v2RecycleOrder
-} from '@/api/trust_transaction'
-import type {
-  HostingItemV2,
-  BotOption,
-  HostingListParamsV2,
-  V2AgentBotListParams
-} from '@/api/trust_transaction/types'
+import { v2GetHostingList, v2RemoveHosting, v2RecycleOrder } from '@/api/trust_transaction'
+import type { HostingItemV2, BotOption, HostingListParamsV2 } from '@/api/trust_transaction/types'
+import { v1GetMessageBotList } from '@/api/message'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import { getSourceText, SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'

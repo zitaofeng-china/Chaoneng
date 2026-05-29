@@ -51,7 +51,7 @@
 <script setup lang="ts">
 import { computed, watch, ref, type PropType } from 'vue'
 import { ElFormItem, ElRadioGroup, ElRadio, ElInput, ElSelectV2, ElMessage } from 'element-plus'
-import { v1GetBotUserList } from '@/api/tgUser'
+import { v1GetMessageUserList } from '@/api/message'
 
 const props = defineProps({
   filterType: {
@@ -119,12 +119,16 @@ const fetchBotUsers = async (botId: number | string) => {
 
   loadingUsers.value = true
   try {
-    const res = await v1GetBotUserList(Number(botId))
-    if (res.code === '000000' && res.data) {
-      userOptions.value = res.data.map((user) => ({
+    const res = await v1GetMessageUserList(Number(botId))
+    if (res.code === '000000') {
+      const list = res.data || []
+      userOptions.value = list.map((user) => ({
         label: `${user.tg_user_name || user.tg_first_name || 'Unknown'} (${user.tg_user_id})`,
         value: user.tg_user_id
       }))
+      if (userOptions.value.length === 0) {
+        ElMessage({ type: 'info', message: '没有可选择的用户', grouping: false, offset: 20 })
+      }
     } else {
       userOptions.value = []
       ElMessage.warning('获取用户列表失败')

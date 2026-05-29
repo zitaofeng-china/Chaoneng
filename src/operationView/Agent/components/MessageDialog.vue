@@ -46,7 +46,7 @@
       <!-- 群组列表选择框 -->
       <ElFormItem
         v-if="type === 'mass' && formData.filter_type === 'user_custom'"
-        label="群组列表："
+        label="聊天列表："
         prop="group_ids"
       >
         <ElSelectV2
@@ -55,7 +55,7 @@
           multiple
           filterable
           clearable
-          placeholder="请选择群组（可多选）"
+          placeholder="请选择聊天（可多选）"
           style="width: 100%"
           :loading="groupListLoading"
           collapse-tags
@@ -279,8 +279,7 @@ import { v1GetInnerButtonList } from '@/api/menu_list'
 import type { InnerButtonItem } from '@/api/menu_list/types'
 import { uploadFileV2 as uploadAPI } from '@/api/utils/upload'
 import { useHtmlInsert } from '@/hooks/web/useHtmlInsert'
-import { getGroupList } from '@/api/group'
-import type { GroupListItem } from '@/api/group/types'
+import { v1GetMessageChatList, type MessageChatItem } from '@/api/message'
 
 // 导入子组件
 import BotSelector from './MessageDialog/BotSelector.vue'
@@ -353,14 +352,14 @@ const checkList = ref<(number | string)[]>([])
 const menuList = ref<InnerButtonItem[]>([])
 
 // 群组列表管理
-const groupList = ref<GroupListItem[]>([])
+const groupList = ref<MessageChatItem[]>([])
 const groupListLoading = ref(false)
 
 // 为虚拟化选择器准备群组选项数据
 const groupOptions = computed(() => {
   return groupList.value.map((group) => ({
-    label: `${group.group_name} (ID: ${group.group_id})`,
-    value: group.group_id
+    label: `${group.name} (ID: ${group.id})`,
+    value: group.id
   }))
 })
 
@@ -401,7 +400,7 @@ const formRules = computed(() => ({
 
         // 如果两者都为空，报错
         if (!hasUserList && !hasGroupList) {
-          callback(new Error('TG用户ID列表和群组列表至少需要填写一个'))
+          callback(new Error('TG用户ID列表和聊天列表至少需要填写一个'))
         } else {
           callback()
         }
@@ -425,7 +424,7 @@ const formRules = computed(() => ({
 
         // 如果两者都为空，报错
         if (!hasUserList && !hasGroupList) {
-          callback(new Error('TG用户ID列表和群组列表至少需要填写一个'))
+          callback(new Error('TG用户ID列表和聊天列表至少需要填写一个'))
         } else {
           callback()
         }
@@ -586,7 +585,7 @@ const fetchMenuList = async () => {
   }
 }
 
-// 获取群组列表
+// 获取聊天列表
 const fetchGroupList = async (botId?: number | string) => {
   if (!botId) {
     groupList.value = []
@@ -595,20 +594,19 @@ const fetchGroupList = async (botId?: number | string) => {
 
   groupListLoading.value = true
   try {
-    const res = await getGroupList({
-      bot_id: Number(botId),
-      current_page: 1,
-      page_size: 1000 // 获取所有群组
-    })
-    if (res.code === '000000' && res.data) {
-      groupList.value = res.data.list || []
+    const res = await v1GetMessageChatList(botId)
+    if (res.code === '000000') {
+      groupList.value = res.data || []
+      if (groupList.value.length === 0) {
+        ElMessage({ type: 'info', message: '没有可选择的聊天', grouping: false, offset: 80 })
+      }
     } else {
       groupList.value = []
     }
   } catch (error: any) {
     groupList.value = []
-    console.error('获取群组列表失败:', error)
-    ElMessage.error('获取群组列表失败: ' + (error?.msg || '未知错误'))
+    console.error('获取聊天列表失败:', error)
+    ElMessage.error('获取聊天列表失败: ' + (error?.msg || '未知错误'))
   } finally {
     groupListLoading.value = false
   }
@@ -680,8 +678,8 @@ const handleSubmit = async () => {
     if (formData.value.group_ids && formData.value.group_ids.length > 0) {
       const groupNames = formData.value.group_ids
         .map((groupId) => {
-          const group = groupList.value.find((g) => g.group_id === groupId)
-          return group ? group.group_name : `群组ID: ${groupId}`
+          const group = groupList.value.find((g) => g.id === groupId)
+          return group ? group.name : `群组ID: ${groupId}`
         })
         .join(', ')
       previewData.groupInfo = `群组 (${formData.value.group_ids.length}个): ${groupNames}`
@@ -810,7 +808,7 @@ const handleConfirmSend = async (buttonLayout?: number[][]) => {
       const hasGroupList = formData.value.group_ids && formData.value.group_ids.length > 0
 
       if (!hasUserList && !hasGroupList) {
-        ElMessage.error('TG用户ID列表和群组列表至少需要填写一个')
+        ElMessage.error('TG用户ID列表和聊天列表至少需要填写一个')
         submitting.value = false
         return
       }

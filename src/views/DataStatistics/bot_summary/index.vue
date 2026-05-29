@@ -36,7 +36,7 @@ import { TableColumn } from '@/components/Table'
 import { FormSchema } from '@/components/Form'
 import { BaseButton } from '@/components/Button'
 import { ElMessage, ElDialog } from 'element-plus'
-import { v1GetBotList } from '@/api/botlist'
+import { v1GetMessageBotList } from '@/api/message'
 import { getBotSummaryApi } from '@/api/statistics'
 import { BotSummaryItem } from '@/api/statistics/types'
 import { Descriptions } from '@/components/Descriptions'
@@ -191,9 +191,9 @@ const detailSchema = reactive<DescriptionsSchema[]>([
 // 获取机器人列表选项
 const getBotOptions = async () => {
   try {
-    const res = await v1GetBotList({ page_size: 1000, current_page: 1 })
-    if (res?.data?.list) {
-      return res.data.list.map((item) => ({
+    const res = await v1GetMessageBotList()
+    if (res?.data) {
+      return res.data.map((item: any) => ({
         label: item.user_name,
         value: item.id
       }))

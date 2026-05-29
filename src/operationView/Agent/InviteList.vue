@@ -31,7 +31,7 @@ import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { getInviteListApi, type InviteRecordItem } from '@/api/agent/invite'
-import { getAgentBotListApi } from '@/api/agent/bot'
+import { v1GetMessageBotList } from '@/api/message'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 
 const searchTableRef = ref()
@@ -45,15 +45,11 @@ const botMap = ref<Map<number, any>>(new Map())
 const fetchBotList = async () => {
   isBotListLoaded.value = false
   try {
-    const res = await getAgentBotListApi({
-      current_page: 1,
-      page_size: 1000
-    })
-
-    const bots = (res.data.list || []).map((bot: any) => {
+    const res = await v1GetMessageBotList()
+    const bots = (res.data || []).map((bot: any) => {
       botMap.value.set(bot.id, bot)
       return {
-        label: `${bot.user_name} (${bot.first_name})`,
+        label: bot.user_name,
         value: String(bot.id)
       }
     })

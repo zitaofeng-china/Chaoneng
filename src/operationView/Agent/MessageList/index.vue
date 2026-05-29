@@ -207,12 +207,8 @@ import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { ElMessage, ElMessageBox, ElDivider, ElImage, ElImageViewer } from 'element-plus'
-import {
-  v1GetMassSendList,
-  v1SendGroupMessage,
-  v1DeleteMassSend,
-  v1GetMessageBotList
-} from '@/api/tgUser'
+import { v1GetMassSendList, v1SendGroupMessage, v1DeleteMassSend } from '@/api/tgUser'
+import { v1GetMessageBotList } from '@/api/message'
 import type { MassSendListParamsV1 } from '@/api/tgUser/types'
 import MessageDialog from '../components/MessageDialog.vue'
 import InlineButtonDialog from './components/InlineButtonDialog.vue'

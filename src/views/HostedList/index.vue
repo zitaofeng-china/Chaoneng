@@ -26,7 +26,7 @@ import { BaseButton } from '@/components/Button'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import { v1GetHostingList, v1RemoveHosting } from '@/api/hosted_list'
-import { v1GetBotList } from '@/api/botlist'
+import { v1GetMessageBotList } from '@/api/message'
 import type { AutoManageAddressItem, BotOption, HostingListParamsV1 } from '@/api/hosted_list/types'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
@@ -41,11 +41,11 @@ const isBotOptionsLoaded = ref(false)
 
 const fetchBotOptions = async () => {
   try {
-    const res = await v1GetBotList({ page_size: 1000, current_page: 1 })
+    const res = await v1GetMessageBotList()
     if (res.code === '000000' && res.data) {
-      const bots = (res.data.list || []).map((bot: any) => {
+      const bots = (res.data || []).map((bot: any) => {
         return {
-          label: `${bot.user_name} (${bot.first_name})`,
+          label: bot.user_name,
           value: bot.id
         }
       })

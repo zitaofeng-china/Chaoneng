@@ -69,7 +69,7 @@ import type { FormSchema } from '@/components/Form'
 import type { TableColumn } from '@/components/Table'
 import { v1GetUserList } from '@/api/tgUser'
 import type { UserListParamsV1 } from '@/api/tgUser/types'
-import { v1GetBotList } from '@/api/botlist'
+import { v1GetMessageBotList } from '@/api/message'
 import MessageDialog from './components/MessageDialog/index.vue'
 import { useRoute, useRouter } from 'vue-router'
 import RechargeDialog from './components/RechargeDialog.vue'
@@ -90,15 +90,15 @@ const botInfoMap = ref<Map<number, { user_name: string; first_name: string }>>(n
 const fetchBotList = async () => {
   isBotListLoaded.value = false
   try {
-    const res = await v1GetBotList({ page_size: 1000, current_page: 1 })
+    const res = await v1GetMessageBotList()
     if (res.code === '000000' && res.data) {
-      const bots = (res.data.list || []).map((bot: any) => {
+      const bots = (res.data || []).map((bot: any) => {
         botInfoMap.value.set(bot.id, {
           user_name: bot.user_name,
-          first_name: bot.first_name
+          first_name: ''
         })
         return {
-          label: `${bot.user_name} (${bot.first_name})`,
+          label: bot.user_name,
           value: String(bot.id)
         }
       })

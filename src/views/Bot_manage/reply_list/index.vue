@@ -54,7 +54,7 @@ import {
   v1DeleteReply,
   updateReplyStatusApi
 } from '@/api/reply_list'
-import { v1GetBotList } from '@/api/botlist'
+import { v1GetMessageBotList } from '@/api/message'
 import type {
   ReplyItem,
   ReplySaveParams,
@@ -81,15 +81,15 @@ const botInfoMap = ref<Map<number, { user_name: string; first_name: string }>>(n
 
 const fetchBotOptionsForPage = async () => {
   try {
-    const res = await v1GetBotList({ page_size: 1000, current_page: 1 })
+    const res = await v1GetMessageBotList()
     if (res.code === '000000' && res.data) {
-      botOptionsForDialog.value = (res.data.list || []).map((bot: any) => {
+      botOptionsForDialog.value = (res.data || []).map((bot: any) => {
         botInfoMap.value.set(bot.id, {
           user_name: bot.user_name,
-          first_name: bot.first_name
+          first_name: ''
         })
         return {
-          label: `${bot.user_name} (${bot.first_name})`,
+          label: bot.user_name,
           value: bot.id
         }
       })

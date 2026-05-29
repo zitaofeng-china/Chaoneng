@@ -37,7 +37,7 @@ import { Icon } from '@/components/Icon'
 import type { TableColumn } from '@/components/Table'
 import { v2GetResourceOrderList } from '@/api/resource_order'
 import type { V2ResourceOrderItem } from '@/api/resource_order/types'
-import { getAgentBotListApi } from '@/api/agent/bot'
+import { v1GetMessageBotList } from '@/api/message'
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleErrorMessage, handleSuccessMessage, handleListMessage } from '@/utils/messageHelper'
 import { getEnergyOrderKindText } from '@/utils/energyOrder'
@@ -293,12 +293,12 @@ const fetchResourceOrderList = async (params: any) => {
 // 加载机器人列表
 const loadBotList = async () => {
   try {
-    const res = await getAgentBotListApi({ current_page: 1, page_size: 1000 })
-    if (res.code === '000000' && res.data?.list) {
+    const res = await v1GetMessageBotList()
+    if (res.code === '000000' && res.data) {
       const botOptions = [
         { label: '全部', value: '' },
-        ...res.data.list.map((bot: any) => ({
-          label: bot.user_name || bot.first_name || `机器人${bot.id}`,
+        ...res.data.map((bot: any) => ({
+          label: bot.user_name || `机器人${bot.id}`,
           value: bot.id
         }))
       ]
