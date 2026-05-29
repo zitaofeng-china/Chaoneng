@@ -4,28 +4,26 @@ import type { UserListParamsV2, UserListResponseV2, UserListQueryParams } from '
 // 导出类型定义
 export * from './user_list.types'
 
-// ========== 新接口 v2 ==========
-
-const BASE_URL = '/v2/manage/agent_bot/'
+// ========== 用户管理接口（代理端 + 运营端通用） ==========
 
 /**
- * 获取用户列表 - 新接口 v2
- * GET /v2/manage/agent_bot/user_list
+ * 获取用户列表
+ * GET /v1/user
  */
 export const v2GetUserList = (params: UserListParamsV2): Promise<IResponse<UserListResponseV2>> => {
   return request.get({
-    url: `${BASE_URL}user_list`,
+    url: '/v1/user',
     params
   })
 }
 
 /**
- * 导出用户列表 - 新接口 v2
- * GET /v2/manage/agent_bot/user_export
+ * 导出用户列表
+ * GET /v1/user/export
  */
 export const v2ExportUserList = (params: UserListParamsV2): Promise<IResponse<Blob>> => {
   return request.get({
-    url: `${BASE_URL}user_export`,
+    url: '/v1/user/export',
     params,
     responseType: 'blob'
   })
