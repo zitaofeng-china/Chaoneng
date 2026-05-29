@@ -10,6 +10,7 @@ export interface AgentQueryParams {
   current_page?: number // 页码
   page_size?: number // 每页数量
   status?: number | string // 状态：'' 或 undefined 表示全部, 1 表示启用, 2 表示禁用
+  price_id?: number | string // 价格ID，即代理等级 (1:一级代理, 2:二级代理, 3:三级代理)
   start_time?: string // 开始时间 (Unix 时间戳字符串，秒级)
   end_time?: string // 结束时间 (Unix 时间戳字符串，秒级)
 }

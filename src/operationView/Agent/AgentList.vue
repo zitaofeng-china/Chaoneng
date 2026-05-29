@@ -135,6 +135,7 @@ const handleExport = async () => {
     // 搜索条件
     if (params.keyword) exportParams.keyword = params.keyword
     if (params.status) exportParams.status = params.status
+    if (params.price_id) exportParams.price_id = params.price_id
 
     // 处理时间范围 - 转换为 Unix 时间戳（秒级，字符串格式）
     if (params.dateRange && params.dateRange.length === 2) {
@@ -263,7 +264,12 @@ const getAgentList = async (params?: any) => {
     const total = data.totalCount || data.total || 0
 
     // 添加数据为空提示
-    const hasSearchCondition = !!(params?.keyword || params?.status || params?.dateRange)
+    const hasSearchCondition = !!(
+      params?.keyword ||
+      params?.status ||
+      params?.price_id ||
+      params?.dateRange
+    )
     handleListMessage(list, hasSearchCondition, '代理')
 
     return {
@@ -445,6 +451,21 @@ const searchSchema = ref<FormSchema[]>([
       placeholder: '请选择状态',
       clearable: true,
       options: STATUS_OPTIONS
+    }
+  },
+  {
+    field: 'price_id',
+    component: 'Select',
+    label: '代理等级',
+    componentProps: {
+      placeholder: '请选择代理等级',
+      clearable: true,
+      options: [
+        { label: '全部', value: '' },
+        { label: '一级代理', value: 1 },
+        { label: '二级代理', value: 2 },
+        { label: '三级代理', value: 3 }
+      ]
     }
   },
   {
