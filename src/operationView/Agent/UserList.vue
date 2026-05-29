@@ -34,6 +34,27 @@
         :is-single-user="true"
         @success="handleMessageSent"
       />
+
+      <!-- 充值弹窗 -->
+      <RechargeDialog
+        v-model:visible="rechargeDialogVisible"
+        :user="currentUser"
+        @success="handleRechargeSuccess"
+      />
+
+      <!-- 余额记录弹窗 -->
+      <BalanceRecordDialog
+        v-if="currentAccountId !== null"
+        v-model:visible="balanceRecordDialogVisible"
+        :account-id="currentAccountId"
+      />
+
+      <!-- 修改密码弹窗 -->
+      <ChangePasswordDialog
+        v-model:visible="changePasswordDialogVisible"
+        :user="currentUser"
+        @success="handlePasswordChangeSuccess"
+      />
     </ContentWrap>
   </div>
 </template>
@@ -41,7 +62,7 @@
 <script setup lang="tsx">
 import { ref, onMounted, computed, onActivated } from 'vue'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { ElLink } from 'element-plus'
+import { ElLink, ElMessage } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
@@ -54,15 +75,24 @@ import { useRoute, useRouter } from 'vue-router'
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import MessageDialog from './components/MessageDialog.vue'
+import RechargeDialog from '@/views/UserGroup/user_list/components/RechargeDialog.vue'
+import BalanceRecordDialog from '@/views/UserGroup/user_list/components/BalanceRecordDialog.vue'
+import ChangePasswordDialog from '@/views/UserGroup/user_list/components/ChangePasswordDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
 
 // 当前选中用户
 const currentUser = ref<any>({})
+const currentAccountId = ref<number | string | null>(null)
 
 // 消息发送相关
 const messageDialogVisible = ref(false)
+
+// 充值/余额记录/修改密码弹窗
+const rechargeDialogVisible = ref(false)
+const balanceRecordDialogVisible = ref(false)
+const changePasswordDialogVisible = ref(false)
 
 // 机器人列表
 const isBotListLoaded = ref(false)
@@ -416,8 +446,12 @@ const openSendMessageDialog = (row: any) => {
 
 // 充值
 const openRechargeDialog = (row: any) => {
-  // TODO: 实现充值弹窗
-  ElMessage.info(`充值功能 - 用户: ${row.tg_user_name || row.id}`)
+  currentUser.value = row
+  rechargeDialogVisible.value = true
+}
+
+const handleRechargeSuccess = () => {
+  searchTableRef.value?.reload()
 }
 
 // 余额记录
@@ -426,14 +460,18 @@ const handleBalanceRecord = (accountId: number | string) => {
     ElMessage.warning('无法获取用户ID')
     return
   }
-  // TODO: 实现余额记录弹窗
-  ElMessage.info(`余额记录 - 用户ID: ${accountId}`)
+  currentAccountId.value = accountId
+  balanceRecordDialogVisible.value = true
 }
 
 // 修改密码
 const handleChangePassword = (row: any) => {
-  // TODO: 实现修改密码弹窗
-  ElMessage.info(`修改密码 - 用户: ${row.tg_user_name || row.id}`)
+  currentUser.value = row
+  changePasswordDialogVisible.value = true
+}
+
+const handlePasswordChangeSuccess = () => {
+  searchTableRef.value?.reload()
 }
 
 // 消息发送成功
