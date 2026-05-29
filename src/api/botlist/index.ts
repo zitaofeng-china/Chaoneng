@@ -10,7 +10,6 @@ import type {
   AddressListResponse,
   AddressAddParams,
   AddressDeleteParams,
-  BindAddressParams,
   UpdateAddressParams,
   UpdateBotParams,
   UpdateBotPriceParams,
@@ -30,14 +29,6 @@ import type {
  */
 export const v1GetBotList = (params: BotListParams): Promise<IResponse<BotListResponse>> => {
   return request.get({ url: '/v1/bot', params })
-}
-
-/**
- * 获取机器人列表 - 运营端
- * GET /v2/bot/list
- */
-export const v2GetBotList = (params: BotListParams): Promise<IResponse<BotListResponse>> => {
-  return request.get({ url: '/v2/bot/list', params })
 }
 
 /**
@@ -161,14 +152,6 @@ export const v1AddAddressList = (data: AddressAddParams): Promise<IResponse> => 
  */
 export const v1DeleteAddressList = (data: AddressDeleteParams): Promise<IResponse> => {
   return request.delete({ url: '/v1/address', data })
-}
-
-/**
- * 绑定地址
- * POST /v1/address/bind
- */
-export const v1BindAddress = (data: BindAddressParams): Promise<IResponse> => {
-  return request.post({ url: '/v1/address/bind', data })
 }
 
 /**

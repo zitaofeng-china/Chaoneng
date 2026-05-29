@@ -1,6 +1,5 @@
 import request from '@/axios'
 import type {
-  UserBalanceRecordParams,
   UserListParamsV1,
   UserListResponseV1,
   RechargeUserParamsV1,
@@ -110,76 +109,9 @@ export const v1GetUserBillList = (
 }
 
 /**
- * 获取用户余额记录
- * GET /v1/bill/user
- */
-export const getUserBalanceRecordsApi = (id: number | string, params?: UserBalanceRecordParams) => {
-  return request.get({ url: '/v1/bill/user', params: { ...(params || {}), user_id: id } })
-}
-
-/**
  * 导出用户列表
  * GET /v1/user/export
  */
 export const exportTgUserListApi = (params: any) => {
   return request.get({ url: '/v1/user/export', params, responseType: 'blob' })
-}
-
-// ==================== v2 接口（运营端） ====================
-
-/**
- * 获取群发消息列表 - 新接口
- * GET /v2/message
- */
-export const v2GetMassSendList = (
-  params: MassSendListParamsV1
-): Promise<IResponse<MassSendListResponseV1>> => {
-  return request.get({
-    url: '/v2/message',
-    params
-  })
-}
-
-/**
- * 删除群发消息 - 新接口
- * DELETE /v2/message/{id}
- */
-export const v2DeleteMassSend = (id: number): Promise<IResponse> => {
-  return request.delete({
-    url: `/v2/message/${id}`
-  })
-}
-
-/**
- * 给指定的机器人名下用户群发信息（支持多机器人）
- * POST /v2/message
- */
-export const v2SendGroupMessage = (data: SendGroupMessageParamsV1): Promise<IResponse> => {
-  return request.post({
-    url: '/v2/message',
-    data
-  })
-}
-
-/**
- * 更新群发消息
- * PUT /v2/message
- */
-export const v2UpdateGroupMessage = (data: UpdateGroupMessageParams): Promise<IResponse> => {
-  return request.put({
-    url: '/v2/message',
-    data
-  })
-}
-
-/**
- * 获取机器人列表（用于消息列表筛选）
- * GET /v2/message/bot
- */
-export const v2GetMessageBotList = (): Promise<
-  IResponse<Array<{ id: number; user_name: string }>>
-> => {
-  return request.get({
-    url: '/v2/message/bot'
-  })
 }

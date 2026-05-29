@@ -18,15 +18,3 @@ export const v2GetAgentBillList = (
     params
   })
 }
-
-/**
- * 导出代理账单
- * GET /v1/bill/agent/export
- */
-export const v2ExportAgentBill = (params: AgentBillListParamsV2): Promise<IResponse<Blob>> => {
-  return request.get({
-    url: '/v1/bill/agent/export',
-    params,
-    responseType: 'blob'
-  })
-}

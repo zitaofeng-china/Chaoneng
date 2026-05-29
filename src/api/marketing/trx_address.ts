@@ -9,7 +9,6 @@ import type {
 } from './trx_address_types'
 
 // --- Base URL updated to v2 ---
-const BASE_URL = '/v2/manage/agent_charge_addr'
 
 /**
  * 获取TRX地址列表 - 新接口

@@ -30,11 +30,7 @@ import { Dialog } from '@/components/Dialog'
 import { Table, TableColumn } from '@/components/Table'
 import { Search } from '@/components/Search'
 import type { FormSchema } from '@/components/Form'
-import {
-  getUserBalanceRecordsApi,
-  v1GetUserBillList,
-  type UserBalanceRecordParams
-} from '@/api/tgUser/index'
+import { v1GetUserBillList } from '@/api/tgUser/index'
 import { formatToDateTime } from '@/utils/dateUtil'
 
 // ----------- Props and Emits -----------

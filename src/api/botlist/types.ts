@@ -214,15 +214,6 @@ export type AddressListResponse = {
 }
 
 /**
- * 绑定地址请求参数
- */
-export type BindAddressParams = {
-  address: string // 地址（必填）
-  bot_id: number // 机器人ID（必填）
-  kind: number // 类型（必填）：1-代理充值, 2-用户充值, 3-兑换, 4-时间能量, 5-笔数能量, 6-福利能量, 7-快速能量, 8-自动托管, 9-批量能量, 10-批量激活, 11-机器人付费
-}
-
-/**
  * 更新 Address 请求参数
  * PUT /v1/address/{id}
  */

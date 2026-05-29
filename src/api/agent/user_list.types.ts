@@ -56,18 +56,3 @@ export interface UserListResponseV2 {
   list: UserListItemV2[] // 用户列表
   pager: Pager // 分页信息
 }
-
-// ========== 旧接口类型定义 ==========
-
-/**
- * 用户列表查询参数
- */
-export interface UserListQueryParams {
-  query?: string // 关键字
-  bot_id?: string // 机器人ID
-  dateRange?: number[] // 前端表单使用的时间范围 [startTime, endTime] (时间戳)
-  start_time?: number // API 使用的开始时间 (时间戳)
-  end_time?: number // API 使用的结束时间 (时间戳)
-  current_page?: number // 当前页码
-  page_size?: number // 每页大小
-}
