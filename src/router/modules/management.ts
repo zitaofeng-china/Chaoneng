@@ -114,7 +114,7 @@ const managementRoutes: AppRouteRecordRaw[] = [
         component: () => import('@/operationView/Marketing/GroupList/index.vue'),
         name: 'GroupList',
         meta: {
-          title: '群组列表'
+          title: '聊天列表'
         }
       }
     ]

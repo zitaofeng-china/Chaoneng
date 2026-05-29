@@ -27,15 +27,12 @@ import { ElTag, ElLink, ElMessage } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
-import { Icon } from '@/components/Icon'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { getGroupList, getGroupBotList } from '@/api/group'
-import type { GroupListParams } from '@/api/group/types'
+import { v1GetMessageBotList, v1GetChatList, type ChatListParams } from '@/api/message'
 import GroupMessageDialog from './components/GroupMessageDialog.vue'
 
-// SearchTable 引用
 const searchTableRef = ref()
 
 // 机器人列表
@@ -44,10 +41,10 @@ const botList = ref<Array<{ label: string; value: number }>>([])
 // 消息弹窗相关
 const messageDialogVisible = ref(false)
 const currentGroup = ref<any>(null)
+
 const fetchBotList = async () => {
   try {
-    const res = await getGroupBotList()
-
+    const res = await v1GetMessageBotList()
     if (res.code === '000000' && res.data) {
       botList.value = (res.data || []).map((bot: any) => ({
         label: bot.user_name,
@@ -61,14 +58,14 @@ const fetchBotList = async () => {
   }
 }
 
-// 使用 reactive 而不是 computed
+// 搜索表单
 const searchSchema = reactive<FormSchema[]>([
   {
     field: 'keyword',
     component: 'Input',
     label: '关键字',
     componentProps: {
-      placeholder: '请输入支持群组ID/群组名称搜索',
+      placeholder: '请输入聊天ID/聊天名称搜索',
       clearable: true
     }
   },
@@ -80,6 +77,20 @@ const searchSchema = reactive<FormSchema[]>([
       options: botList,
       placeholder: '请选择机器人',
       clearable: true
+    }
+  },
+  {
+    field: 'type',
+    component: 'Select',
+    label: '类型',
+    componentProps: {
+      placeholder: '请选择类型',
+      clearable: true,
+      options: [
+        { label: '全部', value: '' },
+        { label: '群组', value: 'group' },
+        { label: '频道', value: 'channel' }
+      ]
     }
   },
   {
@@ -100,15 +111,24 @@ const searchSchema = reactive<FormSchema[]>([
 
 const columns: TableColumn[] = [
   {
-    field: 'group_id',
-    label: '群组ID',
+    field: 'id',
+    label: 'ID',
     width: 150
   },
   {
-    field: 'group_name',
-    label: '群组名称',
+    field: 'name',
+    label: '名称',
     minWidth: 180,
-    formatter: (row: any) => row.group_name || '-'
+    formatter: (row: any) => row.name || '-'
+  },
+  {
+    field: 'type',
+    label: '类型',
+    width: 100,
+    formatter: (row: any) => {
+      const map: Record<string, string> = { group: '群组', channel: '频道' }
+      return map[row.type] || row.type || '-'
+    }
   },
   {
     field: 'bot_user_name',
@@ -138,26 +158,32 @@ const columns: TableColumn[] = [
     formatter: (row: any) => row.bot_first_name || '-'
   },
   {
-    field: 'group_size',
-    label: '群人数',
+    field: 'agent_name',
+    label: '代理名称',
+    width: 140,
+    formatter: (row: any) => row.agent_name || '-'
+  },
+  {
+    field: 'size',
+    label: '人数',
     width: 100,
     slots: {
       default: (data: any) => {
         return (
           <ElTag type="info" size="small">
-            {data.row.group_size || 0}
+            {data.row.size || 0}
           </ElTag>
         )
       }
     }
   },
   {
-    field: 'group_link',
-    label: '群链接',
+    field: 'link',
+    label: '链接',
     width: 200,
     slots: {
       default: (data: any) => {
-        const link = data.row.group_link
+        const link = data.row.link
         if (!link) return <span>-</span>
         return (
           <ElLink type="primary" onClick={() => window.open(link, '_blank')}>
@@ -172,18 +198,20 @@ const columns: TableColumn[] = [
     label: '创建时间',
     width: 180,
     sortable: 'custom',
-    formatter: (row: any) => (row.created_at ? formatToDateTime(row.created_at) : '-')
+    formatter: (row: any) =>
+      row.created_at ? formatToDateTime(Number(row.created_at) * 1000) : '-'
   },
   {
     field: 'updated_at',
     label: '更新时间',
     width: 180,
     sortable: 'custom',
-    formatter: (row: any) => (row.updated_at ? formatToDateTime(row.updated_at) : '-')
+    formatter: (row: any) =>
+      row.updated_at ? formatToDateTime(Number(row.updated_at) * 1000) : '-'
   }
 ]
 
-// 操作列配置
+// 操作列
 const actionColumn = {
   field: 'action',
   label: '操作',
@@ -200,38 +228,26 @@ const actionColumn = {
   }
 }
 
+// 获取聊天列表
 const fetchGroupList = async (params: any) => {
   try {
-    const requestParams: GroupListParams = {
+    const apiParams: ChatListParams = {
       current_page: params.current_page || 1,
       page_size: params.page_size || 10
     }
 
-    // 只在有值时添加可选参数
-    if (params.keyword) {
-      requestParams.keyword = params.keyword
-    }
-
-    if (params.bot_id) {
-      requestParams.bot_id = params.bot_id
-    }
+    if (params.keyword) apiParams.keyword = params.keyword
+    if (params.bot_id) apiParams.bot_id = Number(params.bot_id)
+    if (params.type) apiParams.type = params.type
 
     if (params.date_range && params.date_range.length === 2) {
-      // 将日期字符串转换为 Unix 时间戳（秒）
-      // 开始时间：当天 00:00:00
-      const startDate = new Date(`${params.date_range[0]} 00:00:00`)
-      requestParams.start_time = Math.floor(startDate.getTime() / 1000).toString()
-
-      // 结束时间：当天 23:59:59
-      const endDate = new Date(`${params.date_range[1]} 23:59:59`)
-      requestParams.end_time = Math.floor(endDate.getTime() / 1000).toString()
+      apiParams.start_time = String(Math.floor(Number(params.date_range[0]) / 1000))
+      apiParams.end_time = String(Math.floor(Number(params.date_range[1]) / 1000))
     }
 
-    if (params.order) {
-      requestParams.order = params.order
-    }
+    if (params.order) apiParams.order = params.order
 
-    const response = await getGroupList(requestParams)
+    const response = await v1GetChatList(apiParams)
 
     if (response.code === '000000' && response.data) {
       return {
@@ -239,12 +255,12 @@ const fetchGroupList = async (params: any) => {
         total: response.data.pager?.total || 0
       }
     } else {
-      ElMessage.error((response as any).msg || '获取群组列表失败')
+      ElMessage.error((response as any).msg || '获取聊天列表失败')
       return { list: [], total: 0 }
     }
   } catch (error) {
-    console.error('获取群组列表失败:', error)
-    ElMessage.error('获取群组列表失败')
+    console.error('获取聊天列表失败:', error)
+    ElMessage.error('获取聊天列表失败')
     return { list: [], total: 0 }
   }
 }
@@ -257,11 +273,9 @@ const handleViewDetail = (row: any) => {
 // 消息发送成功回调
 const handleMessageSuccess = () => {
   ElMessage.success('消息发送成功')
-  // 刷新列表
   searchTableRef.value?.reload()
 }
 
-// 组件挂载时获取机器人列表
 onMounted(() => {
   fetchBotList()
 })

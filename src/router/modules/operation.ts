@@ -153,7 +153,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           component: () => import('@/operationView/Marketing/GroupList/index.vue'),
           name: 'MarketingGroupList',
           meta: {
-            title: '群组列表'
+            title: '聊天列表'
           }
         }
       ]

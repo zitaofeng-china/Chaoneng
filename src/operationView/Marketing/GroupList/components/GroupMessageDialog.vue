@@ -10,7 +10,7 @@
       <ElFormItem label="目标群组：">
         <div class="group-tag-container">
           <ElTag type="info" size="large" :disable-transitions="false" class="group-tag">
-            {{ currentGroup?.group_name || '-' }} ({{ currentGroup?.group_id || '-' }})
+            {{ currentGroup?.name || '-' }} ({{ currentGroup?.id || '-' }})
           </ElTag>
         </div>
       </ElFormItem>
@@ -243,7 +243,7 @@ const dialogVisible = computed({
 })
 
 const dialogTitle = computed(() => {
-  return `发送消息到群组: ${props.currentGroup?.group_name || ''}`
+  return `发送消息到群组: ${props.currentGroup?.name || ''}`
 })
 
 // 当前机器人名称
@@ -402,7 +402,7 @@ const handleSubmit = async () => {
   previewData.botName = currentBotName.value
 
   // 群组信息
-  previewData.groupInfo = `群组: ${props.currentGroup.group_name} (ID: ${props.currentGroup.group_id})`
+  previewData.groupInfo = `群组: ${props.currentGroup.name} (ID: ${props.currentGroup.id})`
 
   // 消息内容
   previewData.content = formData.value.content
@@ -503,7 +503,7 @@ const handleConfirmSend = async (buttonLayout?: number[][]) => {
           : 1
         : 0,
       send_at: sendAtTimestamp,
-      group_ids: [Number(props.currentGroup.group_id)]
+      group_ids: [Number(props.currentGroup.id)]
     }
 
     // 使用 v1 接口
