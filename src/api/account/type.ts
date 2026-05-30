@@ -3,13 +3,19 @@
 export interface AccountDetail {
   id: number
   username: string
-  trx_mount: number
-  usdt_mount: number
-  create_time: number
-  update_time: number
-  pay_address: string
-  qr_address: string
   email: string
+  address: string
+  trx_balance: number | string
+  status: number
+  role_id: number
+  price_id: number
+  gift_bandwidth: boolean
+  notify_threshold: number | string
+  notify_chat_id: number | string
+  created_at: number | string
+  updated_at: number | string
+  // 仅充值弹窗使用：调用 ?address=true 时后端可能返回二维码地址
+  qr_address?: string
 }
 
 export interface AccountDetailResponse {

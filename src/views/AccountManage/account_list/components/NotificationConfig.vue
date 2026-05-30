@@ -7,34 +7,44 @@
         <!-- 余额不足提醒 -->
         <ElFormItem label="余额不足提醒">
           <div class="flex items-center gap-4 w-full">
-            <ElSwitch v-model="form.enabled" />
-            <ElInput
+            <ElSwitch v-model="form.enabled" :loading="saving" @change="handleSwitchChange" />
+            <ElInputNumber
               v-model="form.threshold"
               placeholder="请输入提醒阈值"
+              :min="0"
+              :precision="2"
+              :step="1"
+              :controls="false"
               class="flex-1"
               :disabled="!form.enabled"
-            >
-              <template #append>TRX</template>
-            </ElInput>
+            />
+            <span class="text-gray-500">TRX</span>
           </div>
-          <div class="text-sm text-gray-500 mt-1"> 当账户TRX余额低于该阈值时，将发送提醒通知 </div>
+          <div class="text-sm text-gray-500 mt-1">
+            当账户TRX余额低于该阈值时，将发送提醒通知（开关关闭即禁用）
+          </div>
         </ElFormItem>
 
         <!-- TG账号 -->
         <ElFormItem label="TG账号">
           <ElInput
-            v-model="form.tgAccount"
-            placeholder="请输入TG用户账户ID"
+            v-model="form.chatId"
+            placeholder="请输入TG账号数字ID"
             :disabled="!form.enabled"
+            style="width: 100%"
+            maxlength="20"
+            @input="handleChatIdInput"
           />
-          <div class="text-sm text-gray-500 mt-1"> 将发送给Telegram账户ID提醒账户 </div>
+          <div class="text-sm text-gray-500 mt-1"
+            >将发送给该 Telegram 账号提醒消息（仅支持数字 ID）</div
+          >
         </ElFormItem>
 
         <!-- 操作按钮 -->
         <ElFormItem label=" ">
           <div class="flex gap-2 justify-end w-full">
             <ElButton @click="handleReset">取消</ElButton>
-            <ElButton type="primary" :loading="saving" @click="handleSave"> 保存 </ElButton>
+            <ElButton type="primary" :loading="saving" @click="handleSave">保存</ElButton>
           </div>
         </ElFormItem>
       </ElForm>
@@ -43,17 +53,31 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue'
-import { ElForm, ElFormItem, ElSwitch, ElInput, ElButton, ElMessage } from 'element-plus'
+import { reactive, ref, watch } from 'vue'
+import {
+  ElForm,
+  ElFormItem,
+  ElSwitch,
+  ElInput,
+  ElInputNumber,
+  ElButton,
+  ElMessage
+} from 'element-plus'
+import { v1UpdateUserNotify } from '@/api/account'
 
-interface NotificationConfig {
+interface NotificationFormState {
   enabled: boolean
-  threshold: string
-  tgAccount: string
+  threshold: number | undefined
+  chatId: string
 }
 
 const props = defineProps<{
   accountId?: number
+  /**
+   * 后端返回的字段：notify_threshold（0 表示禁用，>0 表示启用）、chat_id
+   */
+  notifyThreshold?: number | string
+  chatId?: number | string
 }>()
 
 const emit = defineEmits<{
@@ -61,102 +85,157 @@ const emit = defineEmits<{
 }>()
 
 // 表单数据
-const form = reactive<NotificationConfig>({
+const form = reactive<NotificationFormState>({
   enabled: false,
-  threshold: '',
-  tgAccount: ''
+  threshold: undefined,
+  chatId: ''
 })
-
-// 保存状态
-const saving = ref(false)
 
 // 原始数据备份（用于取消时恢复）
-const originalData = reactive<NotificationConfig>({
+const originalData = reactive<NotificationFormState>({
   enabled: false,
-  threshold: '',
-  tgAccount: ''
+  threshold: undefined,
+  chatId: ''
 })
 
-// 获取配置
-const fetchConfig = async () => {
-  if (!props.accountId) return
+const saving = ref(false)
 
-  try {
-    // TODO: 调用获取配置接口
-    // const response = await getNotificationConfigApi(props.accountId)
-    // if (response && response.data) {
-    //   form.enabled = response.data.enabled
-    //   form.threshold = response.data.threshold
-    //   form.tgAccount = response.data.tg_account
-    //
-    //   // 备份原始数据
-    //   Object.assign(originalData, form)
-    // }
-  } catch (error) {
-    console.error('获取消息提醒配置失败:', error)
-  }
+// 同步父组件传入的数据到表单
+const syncFromProps = () => {
+  const threshold = Number(props.notifyThreshold || 0)
+  const chatIdStr = props.chatId !== undefined && props.chatId !== null ? String(props.chatId) : ''
+  form.enabled = threshold > 0
+  form.threshold = threshold > 0 ? threshold : undefined
+  form.chatId = chatIdStr === '0' ? '' : chatIdStr
+  Object.assign(originalData, form)
 }
+
+watch(
+  () => [props.accountId, props.notifyThreshold, props.chatId],
+  () => syncFromProps(),
+  { immediate: true }
+)
 
 // 保存配置
 const handleSave = async () => {
+  if (!props.accountId) {
+    ElMessage.warning('账户信息未加载完成')
+    return
+  }
+
+  let threshold = 0
+  // 关闭开关时也保留原 TG 账号，只把阈值置 0 表示禁用
+  let chatId: number = Number(String(form.chatId || '').trim()) || 0
+
   if (form.enabled) {
-    // 验证必填字段
-    if (!form.threshold) {
+    if (form.threshold === undefined || form.threshold === null) {
       ElMessage.warning('请输入提醒阈值')
       return
     }
-    if (!form.tgAccount) {
+    threshold = Number(form.threshold)
+    if (isNaN(threshold) || threshold <= 0) {
+      ElMessage.warning('请输入大于 0 的提醒阈值')
+      return
+    }
+    const chatIdStr = String(form.chatId || '').trim()
+    if (chatIdStr === '') {
       ElMessage.warning('请输入TG账号')
       return
     }
-
-    // 验证阈值是否为有效数字
-    const thresholdNum = Number(form.threshold)
-    if (isNaN(thresholdNum) || thresholdNum < 0) {
-      ElMessage.warning('请输入有效的提醒阈值')
+    if (!/^\d+$/.test(chatIdStr)) {
+      ElMessage.warning('TG账号仅支持数字 ID')
+      return
+    }
+    chatId = Number(chatIdStr)
+    if (isNaN(chatId) || chatId <= 0) {
+      ElMessage.warning('请输入有效的TG账号')
       return
     }
   }
 
   saving.value = true
   try {
-    // TODO: 调用保存接口
-    // await saveNotificationConfigApi({
-    //   account_id: props.accountId,
-    //   enabled: form.enabled,
-    //   threshold: form.threshold,
-    //   tg_account: form.tgAccount
-    // })
+    await v1UpdateUserNotify({
+      id: Number(props.accountId),
+      chat_id: chatId,
+      threshold
+    })
 
     ElMessage.success('保存成功')
-
-    // 更新原始数据
     Object.assign(originalData, form)
-
     emit('saved')
-  } catch (error) {
-    console.error('保存消息提醒配置失败:', error)
-    ElMessage.error('保存失败')
+  } catch (error: any) {
+    console.error('保存代理消息提醒配置失败:', error)
+    ElMessage.error(error?.msg || '保存失败')
   } finally {
     saving.value = false
   }
 }
 
-// 重置配置
+// 取消：恢复到原始数据
 const handleReset = () => {
-  // 恢复到原始数据
   Object.assign(form, originalData)
 }
 
-// 组件挂载时获取配置
-onMounted(() => {
-  fetchConfig()
-})
+// 切换开关时直接调用接口（开 -> 关 立即禁用；关 -> 开 立即启用，阈值默认 1）
+const handleSwitchChange = async (val: boolean | string | number) => {
+  if (!props.accountId) return
 
-// 暴露方法供父组件调用
-defineExpose({
-  fetchConfig
-})
+  // 关 -> 开：阈值优先用之前保存过的，否则默认 1
+  if (val) {
+    const prevThreshold = Number(originalData.threshold || 0)
+    const prevChatIdStr = String(originalData.chatId || '').trim()
+    const prevChatId = /^\d+$/.test(prevChatIdStr) ? Number(prevChatIdStr) : 0
+    const threshold = prevThreshold > 0 ? prevThreshold : 1
+
+    saving.value = true
+    try {
+      await v1UpdateUserNotify({
+        id: Number(props.accountId),
+        chat_id: prevChatId,
+        threshold
+      })
+      form.threshold = threshold
+      form.chatId = prevChatId > 0 ? String(prevChatId) : ''
+      Object.assign(originalData, form)
+      ElMessage.success('已开启余额提醒')
+      emit('saved')
+    } catch (error: any) {
+      // 失败回退
+      form.enabled = false
+      ElMessage.error(error?.msg || '开启失败')
+    } finally {
+      saving.value = false
+    }
+    return
+  }
+
+  // 开 -> 关：直接置 threshold 为 0 禁用
+  saving.value = true
+  try {
+    const chatIdStr = String(form.chatId || '').trim()
+    const chatId = /^\d+$/.test(chatIdStr) ? Number(chatIdStr) : 0
+    await v1UpdateUserNotify({
+      id: Number(props.accountId),
+      chat_id: chatId,
+      threshold: 0
+    })
+    Object.assign(originalData, form)
+    ElMessage.success('已关闭余额提醒')
+    emit('saved')
+  } catch (error: any) {
+    // 失败回退
+    form.enabled = true
+    ElMessage.error(error?.msg || '关闭失败')
+  } finally {
+    saving.value = false
+  }
+}
+
+// TG账号输入过滤：只保留数字
+const handleChatIdInput = (value: string) => {
+  form.chatId = String(value || '').replace(/\D/g, '')
+}
 </script>
 
 <style scoped>

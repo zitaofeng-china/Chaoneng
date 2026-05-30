@@ -21,9 +21,14 @@
 
       <Descriptions v-else :column="1" :schema="accountSchema" :data="userData" />
 
-      <!-- 代理消息提醒配置 待开发后续放行-->
+      <!-- 代理消息提醒配置 -->
       <ElDivider />
-      <NotificationConfig :account-id="userData.id" />
+      <NotificationConfig
+        :account-id="userData.id"
+        :notify-threshold="userData.notify_threshold"
+        :chat-id="userData.notify_chat_id"
+        @saved="fetchAccountList({})"
+      />
     </ContentWrap>
 
     <!-- 修改密码弹窗 -->
@@ -95,16 +100,16 @@
 
     <!-- 充值弹窗 -->
     <Dialog v-model="rechargeDialogVisible" title="账户充值" width="600px">
-      <div v-if="userData.pay_address">
+      <div v-if="userData.address">
         <ElDescriptions :column="1" border label-width="120px">
           <ElDescriptionsItem label="账户ID">{{ userData.id }}</ElDescriptionsItem>
           <ElDescriptionsItem label="账户名">{{ userData.username }}</ElDescriptionsItem>
           <ElDescriptionsItem label="TRX余额">{{
-            formatTrx(userData.trx_mount)
+            formatTrx(userData.trx_balance)
           }}</ElDescriptionsItem>
           <ElDescriptionsItem label="收款地址">
             <div class="flex items-center">
-              <div class="truncate mr-2">{{ userData.pay_address }}</div>
+              <div class="truncate mr-2">{{ userData.address }}</div>
               <ElButton type="primary" size="small" @click="copyAddress">复制</ElButton>
             </div>
           </ElDescriptionsItem>
@@ -184,27 +189,35 @@ const rechargeDialogVisible = ref(false)
 const accountSchema: DescriptionsSchema[] = [
   { field: 'id', label: '账户ID' },
   { field: 'username', label: '账户名' },
-  { field: 'trx_mount', label: 'TRX余额' },
   {
-    field: 'create_time',
-    label: '创建时间',
+    field: 'trx_balance',
+    label: 'TRX余额',
     slots: {
-      default: (data: any) => <UnixTime timestamp={data.create_time} />
+      default: (data: any) => <span>{formatTrx(data.trx_balance)}</span>
     }
   },
   {
-    field: 'update_time',
+    field: 'created_at',
+    label: '创建时间',
+    slots: {
+      default: (data: any) => <UnixTime timestamp={data.created_at} />
+    }
+  },
+  {
+    field: 'updated_at',
     label: '更新时间',
     slots: {
-      default: (data: any) => <UnixTime timestamp={data.update_time} />
+      default: (data: any) => <UnixTime timestamp={data.updated_at} />
     }
   }
 ]
 
 // 格式化TRX数量
 const formatTrx = (value: number | string) => {
-  if (value === undefined || value === null) return '暂无'
-  return `${value} TRX`
+  if (value === undefined || value === null || value === '') return '暂无'
+  const num = Number(value)
+  if (isNaN(num)) return `${value} TRX`
+  return `${num.toFixed(2)} TRX`
 }
 
 // API 封装 - 获取账户信息
@@ -399,11 +412,12 @@ const openRechargeDialog = async () => {
     const response = await getAccountListApi({ address: true })
 
     if (response && response.data) {
-      // 更新 userData，包含充值地址和二维码
+      const data = response.data as any
+      // 更新 userData，包含充值地址和二维码（兼容 address / pay_address 字段）
       userData.value = {
         ...userData.value,
-        pay_address: (response.data as any).pay_address,
-        qr_address: (response.data as any).qr_address
+        address: data.address || data.pay_address || userData.value.address,
+        qr_address: data.qr_address || userData.value.qr_address
       }
 
       rechargeDialogVisible.value = true
@@ -439,12 +453,12 @@ const handleDeductionRecord = () => {
 // 复制地址
 const { copy } = useClipboard()
 const copyAddress = () => {
-  if (!userData.value.pay_address) {
+  if (!userData.value.address) {
     ElMessage.warning('收款地址为空，无法复制')
     return
   }
 
-  copy(userData.value.pay_address)
+  copy(userData.value.address)
   ElMessage.success('地址复制成功')
 }
 

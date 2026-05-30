@@ -42,3 +42,18 @@ export const v1GetBillList = (params: BillListParamsV1) => {
 export const getAccountListApi = (params?: any) => {
   return request.get<AccountDetailResponse>({ url: '/user/get_detail', params })
 }
+
+/**
+ * 更新代理通知设置
+ * 接口路径：PUT /v1/user/notify
+ * 参数：id（账户ID）、chat_id（TG用户数字ID）、threshold（提醒阈值，0 表示禁用）
+ */
+export interface UpdateNotifyParams {
+  id: number
+  chat_id: number
+  threshold: number
+}
+
+export const v1UpdateUserNotify = (data: UpdateNotifyParams): Promise<IResponse> => {
+  return request.put({ url: '/v1/user/notify', data })
+}
