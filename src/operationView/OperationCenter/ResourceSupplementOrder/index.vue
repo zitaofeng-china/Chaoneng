@@ -35,18 +35,6 @@ const columns: TableColumn[] = [
   { field: 'target', label: '供给对象', minWidth: 200, formatter: (row) => row.target || '-' },
   { field: 'vault', label: '财务地址', minWidth: 200, formatter: (row) => row.vault || '-' },
   { field: 'amount', label: '补充数量', width: 120, formatter: (row) => row.amount ?? '-' },
-  {
-    field: 'balance',
-    label: '余额',
-    width: 140,
-    formatter: (row) => {
-      const fee = Number(row.fee) || 0
-      const amount = Number(row.amount) || 0
-      if (amount === 0) return '-'
-      const balance = (fee * 1000000) / amount
-      return balance.toLocaleString('en-US', { maximumFractionDigits: 2 })
-    }
-  },
   { field: 'fee', label: '手续费', width: 100, formatter: (row) => row.fee || '0' },
   {
     field: 'status',
