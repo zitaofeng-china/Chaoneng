@@ -601,6 +601,23 @@ const columns = computed<TableColumn[]>(() => [
     }
   },
   {
+    field: 'notify_chat_id',
+    label: '代理TG_ID',
+    minWidth: 130,
+    formatter: (row: AgentItem) => row.notify_chat_id || '未开启'
+  },
+  {
+    field: 'notify_threshold',
+    label: '提醒阈值',
+    minWidth: 110,
+    formatter: (row: AgentItem) =>
+      row.notify_threshold !== undefined &&
+      row.notify_threshold !== null &&
+      row.notify_threshold !== ''
+        ? row.notify_threshold
+        : '未开启'
+  },
+  {
     field: 'bot_count',
     label: '机器人数量',
     minWidth: 110,

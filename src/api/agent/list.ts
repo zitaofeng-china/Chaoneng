@@ -28,6 +28,8 @@ export interface AgentItem {
   gift_bandwidth: boolean // 是否赠送带宽
   trx_balance: string // TRX余额
   usdt_balance: string // USDT余额
+  notify_chat_id?: number // 代理TGID (通知 chat id)
+  notify_threshold?: string // 提醒阈值
   created_at: number // 创建时间 (时间戳-秒)
   updated_at: number // 更新时间 (时间戳-秒)
   bot_count: number // 机器人数量
