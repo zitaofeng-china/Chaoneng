@@ -38,14 +38,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import {
-  ElButton,
-  ElDescriptions,
-  ElDescriptionsItem,
-  ElEmpty,
-  ElInput,
-  vLoading
-} from 'element-plus'
+import { ElButton, ElDescriptions, ElDescriptionsItem, ElEmpty, ElInput } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { useClipboard } from '@/hooks/web/useClipboard'
