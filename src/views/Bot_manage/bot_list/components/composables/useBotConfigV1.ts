@@ -354,26 +354,45 @@ export function useBotConfigV1() {
         status: botInfoData.h5_enable === 1 ? 1 : 2
       })
 
-      // 3. 重新获取Site详情，刷新显示数据
+      // 3. 重新获取机器人详情 + Site详情，刷新显示数据
+      // 注意：bot 详情的 tg_admin = 管理员TG账号；site 详情的 tg_admin = 客服账号(site_tg_admin)
+      // 两个接口都返回 tg_admin 字段名但含义不同，不要串了
       try {
-        const siteRes = await v1GetSiteDetail(currentBot.value.id)
-        if (siteRes && siteRes.data) {
-          // 更新表单中的H5配置数据
-          const updatedH5Config = {
-            url: siteRes.data.url || '',
-            tg_admin: siteRes.data.tg_admin || '',
-            h5_enable: siteRes.data.status === 1 ? 1 : 0
-          }
+        const [botRes, siteRes] = await Promise.all([
+          v1GetBotDetail(currentBot.value.id),
+          v1GetSiteDetail(currentBot.value.id)
+        ])
 
-          // 合并当前表单数据和更新后的H5配置
-          const currentFormData = await formMethods.getFormData()
-          formMethods.setValues({
-            ...currentFormData,
-            ...updatedH5Config
-          })
+        const currentFormData = await formMethods.getFormData()
+        const refreshedData: Record<string, any> = { ...currentFormData }
+
+        // 刷新机器人详情：管理员TG账号、备注、状态、奖励
+        if (botRes && botRes.code === '000000' && botRes.data) {
+          currentBot.value = botRes.data
+          refreshedData.tg_admin = botRes.data.tg_admin || ''
+          refreshedData.describe = botRes.data.describe || ''
+          refreshedData.status = botRes.data.status || 2
+          refreshedData.invite_reward = botRes.data.reward?.standard_invite
+            ? Number(botRes.data.reward.standard_invite)
+            : 0
+          refreshedData.invite_reward_vip = botRes.data.reward?.premium_invite
+            ? Number(botRes.data.reward.premium_invite)
+            : 0
+          refreshedData.visit_reward = botRes.data.reward?.first_deposit
+            ? Number(botRes.data.reward.first_deposit)
+            : 0
         }
+
+        // 刷新Site详情：客服账号(site_tg_admin)、H5地址、H5开关
+        if (siteRes && siteRes.data) {
+          refreshedData.url = siteRes.data.url || ''
+          refreshedData.site_tg_admin = siteRes.data.tg_admin || ''
+          refreshedData.h5_enable = siteRes.data.status === 1 ? 1 : 0
+        }
+
+        formMethods.setValues(refreshedData)
       } catch (refreshError) {
-        console.warn('刷新Site数据失败:', refreshError)
+        console.warn('刷新机器人/Site数据失败:', refreshError)
         // 刷新失败不影响保存成功的提示
       }
 
