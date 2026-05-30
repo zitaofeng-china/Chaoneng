@@ -225,7 +225,7 @@
             </div>
           </div>
 
-          <!-- 第二行：闪租 - 按笔数 - 福利 - 首次激活 - 批量下单 - 机器人价格 -->
+          <!-- 第二行：闪租 - 按笔数 - 首次激活 - 批量下单 - 机器人价格 -->
           <div class="row-second">
             <!-- 闪租 -->
             <div class="price-item-card">
@@ -302,26 +302,6 @@
                 />
                 <span v-else class="value-text">{{ formDataMap[agent.id].batch_flash }}</span>
                 <span class="unit">TRX</span>
-              </div>
-            </div>
-
-            <!-- 福利 -->
-            <div class="price-item-card">
-              <div class="item-title">福利</div>
-              <div class="item-content single-input">
-                <div class="value-wrapper">
-                  <el-input-number
-                    v-if="editModeMap[agent.id]"
-                    v-model="formDataMap[agent.id].weal"
-                    :precision="2"
-                    :step="0.1"
-                    :min="0"
-                    size="small"
-                    controls-position="right"
-                  />
-                  <span v-else class="value-text">{{ formDataMap[agent.id].weal }}</span>
-                  <span class="unit">TRX</span>
-                </div>
               </div>
             </div>
 
@@ -668,11 +648,13 @@ onActivated(() => {
 }
 
 .row-second {
-  display: contents;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-column: 1 / -1;
+  gap: 12px;
 }
 
 .row-second > .price-item-card {
-  grid-column: span 2;
   min-width: 0;
 }
 
