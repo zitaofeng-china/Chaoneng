@@ -14,6 +14,7 @@
           <BaseButton type="primary" @click="handleAddAgent">新增代理</BaseButton>
           <template v-if="!isBatchEditMode">
             <BaseButton type="warning" @click="handleBatchEdit">批量修改</BaseButton>
+            <BaseButton type="success" @click="handleNotifyBot">通知机器人</BaseButton>
           </template>
           <template v-else>
             <BaseButton type="success" @click="handleBatchSave">保存</BaseButton>
@@ -34,6 +35,8 @@
       :user="currentAccount"
       @success="handleRechargeSuccess"
     />
+
+    <NotifyBotDialog v-model:visible="notifyBotDialogVisible" />
 
     <AgentForm ref="agentFormRef" @success="handleAgentSuccess" @error="handleAgentError" />
   </div>
@@ -67,6 +70,7 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
 import RechargeDialog from './components/RechargeDialog.vue'
 import AgentForm from './components/AgentForm.vue'
+import NotifyBotDialog from './components/NotifyBotDialog.vue'
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
@@ -76,6 +80,9 @@ const searchTableRef = ref<InstanceType<typeof SearchTable>>()
 const agentFormRef = ref<InstanceType<typeof AgentForm>>()
 const rechargeDialogVisible = ref(false)
 const currentAccount = ref<AgentItem>()
+
+// 通知机器人弹窗
+const notifyBotDialogVisible = ref(false)
 
 // 批量修改状态
 const isBatchEditMode = ref(false)
@@ -720,6 +727,11 @@ const handleAddAgent = () => {
 const handleBatchEdit = () => {
   resetBatchEditState()
   isBatchEditMode.value = true
+}
+
+// 通知机器人
+const handleNotifyBot = () => {
+  notifyBotDialogVisible.value = true
 }
 
 const handleBatchSave = async () => {
