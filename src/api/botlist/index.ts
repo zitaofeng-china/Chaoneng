@@ -41,10 +41,10 @@ export const v1GetBotDetail = (id: number | string): Promise<IResponse<BotDetail
 
 /**
  * 创建机器人
- * POST /v1/bot/add
+ * POST /v1/bot
  */
 export const v1CreateBot = (data: CreateBotParams): Promise<IResponse> => {
-  return request.post({ url: '/v1/bot/add', data })
+  return request.post({ url: '/v1/bot', data })
 }
 
 /**
