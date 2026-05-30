@@ -115,9 +115,9 @@
           </ElDescriptionsItem>
         </ElDescriptions>
 
-        <div v-if="userData.qr_address" class="mt-4 text-center">
+        <div v-if="qrCodeDataUrl" class="mt-4 text-center">
           <div class="font-bold mb-2">扫描二维码充值</div>
-          <img :src="userData.qr_address" alt="收款二维码" />
+          <img :src="qrCodeDataUrl" alt="收款二维码" class="recharge-qrcode" />
           <div class="flex items-center justify-center mt-2">
             <Icon icon="cryptocurrency-color:trx" :size="24" />
             <div class="text-sm text-gray-500">（可转入大于 1TRX 的任意金额）</div>
@@ -166,6 +166,7 @@ import { useClipboard } from '@/hooks/web/useClipboard'
 import { changePasswordApi, sendEmailCodeApi } from '@/api/login'
 import { debounce } from 'lodash-es'
 import { useUserStore } from '@/store/modules/user'
+import QRCode from 'qrcode'
 
 // 表单校验
 const { required } = useValidator()
@@ -184,6 +185,27 @@ const submitting = ref(false)
 // 弹窗状态
 const passwordDialogVisible = ref(false)
 const rechargeDialogVisible = ref(false)
+
+// 收款地址生成的二维码 DataURL
+const qrCodeDataUrl = ref('')
+
+// 根据收款地址生成二维码
+const generateQrCode = async (address: string) => {
+  if (!address) {
+    qrCodeDataUrl.value = ''
+    return
+  }
+  try {
+    qrCodeDataUrl.value = await QRCode.toDataURL(address, {
+      width: 200,
+      margin: 2,
+      errorCorrectionLevel: 'M'
+    })
+  } catch (error) {
+    console.error('生成二维码失败:', error)
+    qrCodeDataUrl.value = ''
+  }
+}
 
 // 账户信息显示Schema
 const accountSchema: DescriptionsSchema[] = [
@@ -413,12 +435,15 @@ const openRechargeDialog = async () => {
 
     if (response && response.data) {
       const data = response.data as any
-      // 更新 userData，包含充值地址和二维码（兼容 address / pay_address 字段）
+      // 更新 userData，包含充值地址（兼容 address / pay_address 字段）
+      const address = data.address || data.pay_address || userData.value.address
       userData.value = {
         ...userData.value,
-        address: data.address || data.pay_address || userData.value.address,
-        qr_address: data.qr_address || userData.value.qr_address
+        address
       }
+
+      // 根据收款地址生成二维码
+      await generateQrCode(address)
 
       rechargeDialogVisible.value = true
     } else {
@@ -483,5 +508,13 @@ onMounted(() => {
 /* 给账户信息卡片添加阴影 */
 .account-info-card :deep(.el-card) {
   box-shadow: 0 2px 12px 0 rgb(0 0 0 / 10%);
+}
+
+/* 收款二维码 */
+.recharge-qrcode {
+  width: 200px;
+  height: 200px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
 }
 </style>
