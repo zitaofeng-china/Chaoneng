@@ -1,5 +1,5 @@
 import request from '@/axios'
-import type { StatisticsResponse, V2StatsResponse } from './types'
+import type { StatisticsResponse, V2StatsResponse, V2StatsParams } from './types'
 
 // ========== 新接口 v2 ==========
 
@@ -7,10 +7,10 @@ import type { StatisticsResponse, V2StatsResponse } from './types'
  * 获取统计数据 - 新接口 v2
  * GET /v2/system/stats
  */
-export const v2GetStats = () => {
-  console.log('[v2GetStats] 调用统计数据接口')
+export const v2GetStats = (params?: V2StatsParams) => {
   return request.get<V2StatsResponse>({
-    url: '/v2/system/stats'
+    url: '/v2/system/stats',
+    params
   })
 }
 

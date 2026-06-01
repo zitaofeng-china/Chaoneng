@@ -128,10 +128,12 @@ import type { V2SettlementRecordItem } from '@/api/resource_order/types'
 
 const tronscanUrl = import.meta.env.VITE_TRONSCAN_URL || 'https://tronscan.org'
 
-// 将毫秒时长转换为 天+小时+分钟 格式
-const formatDuration = (ms: number): string => {
-  if (!ms) return '-'
-  const totalMinutes = Math.floor(ms / 60000)
+// 将纳秒时长（后端单位）转换为 天+小时+分钟 格式
+const formatDuration = (ns: number): string => {
+  if (!ns) return '-'
+  // 后端 duration 单位为纳秒（ns），先除 1000000000 转为秒
+  const totalSeconds = Math.floor(Number(ns) / 1000000000)
+  const totalMinutes = Math.floor(totalSeconds / 60)
   const days = Math.floor(totalMinutes / 1440)
   const hours = Math.floor((totalMinutes % 1440) / 60)
   const minutes = totalMinutes % 60

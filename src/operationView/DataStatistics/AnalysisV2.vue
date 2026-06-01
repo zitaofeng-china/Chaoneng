@@ -81,7 +81,8 @@
               >
                 <span class="resource-item-label">{{ item.label }}</span>
                 <span class="resource-item-value">
-                  {{ item.value }}<span class="resource-item-unit">{{ item.unit }}</span>
+                  {{ item.value }}<span class="resource-item-unit">{{ item.unit }}</span
+                  >{{ item.suffix || '' }}
                 </span>
               </div>
             </div>
@@ -115,7 +116,7 @@
             <span class="chart-card-title">支出构成</span>
             <div class="chart-card-right">
               <span class="chart-card-total">
-                {{ formatNumber(statsData.expense) }} TRX
+                {{ formatNumber(statsData.expenseTrxOnly) }} TRX
                 <span v-if="toNum(statsData.exchangeUsdtOut) > 0" class="chart-card-total-sub">
                   + {{ formatNumber(toNum(statsData.exchangeUsdtOut)) }} USDT
                 </span>
@@ -141,7 +142,7 @@
           <div class="chart-card-head">
             <span class="chart-card-title">利润构成</span>
             <div class="chart-card-right">
-              <span class="chart-card-total">{{ formatNumber(statsData.profit) }} TRX</span>
+              <span class="chart-card-total">{{ formatNumber(profitTotal) }} TRX</span>
               <ViewToggle v-model="viewModes.profit" />
             </div>
           </div>
@@ -159,17 +160,9 @@
         <div class="chart-card">
           <div class="chart-card-head">
             <span class="chart-card-title">资源消耗 / 收购</span>
-            <div class="chart-card-right">
-              <ViewToggle v-model="viewModes.resource" />
-            </div>
           </div>
           <template v-if="hasResourceData">
-            <Echart
-              v-if="viewModes.resource === 'chart'"
-              :options="resourceChartOption"
-              height="300px"
-            />
-            <DataList v-else :data="resourceChartData" :show-percent="false" />
+            <DataList :data="resourceChartData" :show-percent="false" />
           </template>
           <div v-else class="chart-empty">暂无资源数据</div>
         </div>
@@ -234,6 +227,13 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { Echart } from '@/components/Echart'
 import { Icon } from '@/components/Icon'
 import { handleErrorMessage } from '@/utils/messageHelper'
+import { v2GetStats } from '@/api/statistics'
+import {
+  startStatsPolling,
+  setStatsPollingCallback,
+  stopStatsPolling,
+  isPolling
+} from '@/utils/statsPolling'
 import ViewToggle from './components/ViewToggle.vue'
 import DataList from './components/DataList.vue'
 
@@ -272,38 +272,40 @@ const statsData = reactive({
   expense: 0,
   profit: 0,
   // 收入明细
-  agentIncome: 0,
+  timeEnergyIncome: 0,
+  strokeEnergyIncome: 0,
+  wealEnergyIncome: 0,
   flashIncome: 0,
   hostingIncome: 0,
+  batchEnergyIncome: 0,
+  batchActiveIncome: 0,
   exchangeIncome: 0,
-  strokeIncome: 0,
-  activeIncome: 0,
   // 支出明细
   exchangeExpense: 0,
   exchangeUsdtOut: 0,
+  expenseTrxOnly: 0,
   exchangeUsdtCount: 0,
   exchangeTrxOut: 0,
   exchangeTrxCount: 0,
-  resourceSupplyExpense: 0,
+  energyExpense: 0,
+  bandwidthExpense: 0,
   justlendExpense: 0,
   feeExpense: 0,
   trxfeeExpense: 0,
-  energyPurchaseExpense: 0,
-  energyPurchaseEnergy: 0,
-  energyPurchaseBandwidth: 0,
   activeExpense: 0,
   // 利润明细
   exchangeProfit: 0,
   energyProfit: 0,
   activeProfit: 0,
   // 资源明细
-  bandwidthUsed: '',
-  energyUsed: '',
+  energyCount: '',
+  energySum: '',
+  bandwidthCount: '',
+  bandwidthSum: '',
   activeAddress: '',
-  energyPurchaseCount: '',
-  bandwidthPurchaseCount: '',
-  welfareExpense: '',
-  welfareCount: ''
+  wealCount: '',
+  energyInSum: '',
+  bandwidthInSum: ''
 })
 
 const loading = ref(false)
@@ -344,7 +346,7 @@ const kpiCards = computed(() => [
     title: '超能利润',
     value: formatNumber(statsData.profit),
     unit: 'TRX',
-    sub: '收入 − 支出',
+    sub: '闪兑+能量+激活利润合计',
     tone: 'profit',
     icon: 'ep:wallet'
   }
@@ -352,13 +354,19 @@ const kpiCards = computed(() => [
 
 // 资源指标（走马灯轮播展示）
 const resourceItems = computed(() => [
-  { label: '能量消耗', value: statsData.energyUsed || '0', unit: '' },
-  { label: '带宽消耗', value: statsData.bandwidthUsed || '0', unit: '' },
-  { label: '能量收购数量', value: statsData.energyPurchaseCount || '0', unit: '' },
-  { label: '带宽收购数量', value: statsData.bandwidthPurchaseCount || '0', unit: '' },
-  { label: '激活地址', value: statsData.activeAddress || '0', unit: '个' },
-  { label: '福利订单支出', value: statsData.welfareExpense || '0', unit: 'TRX' },
-  { label: '福利订单数量', value: statsData.welfareCount || '0', unit: '笔' }
+  { label: '能量消耗笔数', value: statsData.energyCount || '0', unit: '笔' },
+  { label: '能量消耗总量', value: statsData.energySum || '0', unit: '' },
+  { label: '带宽消耗笔数', value: statsData.bandwidthCount || '0', unit: '笔' },
+  { label: '带宽消耗总量', value: statsData.bandwidthSum || '0', unit: '' },
+  {
+    label: '激活地址',
+    value: `${statsData.activeAddress || '0'}（${(toNum(statsData.activeAddress) * 1.1).toFixed(2)} `,
+    unit: 'TRX',
+    suffix: '）'
+  },
+  { label: '福利订单数量', value: statsData.wealCount || '0', unit: '笔' },
+  { label: '能量收购总量', value: statsData.energyInSum || '0', unit: '' },
+  { label: '带宽收购总量', value: statsData.bandwidthInSum || '0', unit: '' }
 ])
 
 // 走马灯：视口同时显示 2 行（当前 + 下一项），故首部补 2 项实现无缝循环
@@ -439,36 +447,24 @@ const pauseResourceRoll = () => {
 
 // ============== 明细行（表格化）==============
 const incomeRows = computed(() => [
-  { label: '代理收款', value: statsData.agentIncome },
+  { label: '按时间', value: statsData.timeEnergyIncome },
+  { label: '按笔数', value: statsData.strokeEnergyIncome },
+  { label: '福利', value: statsData.wealEnergyIncome },
   { label: '闪租', value: statsData.flashIncome },
   { label: '托管', value: statsData.hostingIncome },
-  { label: '闪兑', value: statsData.exchangeIncome },
-  { label: '按笔数', value: statsData.strokeIncome },
-  { label: '激活', value: statsData.activeIncome }
+  { label: '批量下单', value: statsData.batchEnergyIncome },
+  { label: '激活', value: statsData.batchActiveIncome },
+  { label: '闪兑', value: statsData.exchangeIncome }
 ])
 
 const expenseRows = computed(() => [
-  { label: '闪兑支出', value: statsData.exchangeExpense },
-  {
-    label: '闪兑支出',
-    value: statsData.exchangeUsdtOut,
-    unit: 'USDT',
-    count: statsData.exchangeUsdtCount
-  },
-  {
-    label: '闪兑支出',
-    value: statsData.exchangeTrxOut,
-    unit: 'TRX',
-    count: statsData.exchangeTrxCount
-  },
-  { label: '资源补充支出', value: statsData.resourceSupplyExpense },
+  { label: '闪兑支出(TRX)', value: statsData.exchangeExpense },
+  { label: '闪兑支出(USDT)', value: statsData.exchangeUsdtOut },
+  { label: '能量支出', value: statsData.energyExpense },
+  { label: '带宽支出', value: statsData.bandwidthExpense },
   { label: 'justlend', value: statsData.justlendExpense },
   { label: 'feee', value: statsData.feeExpense },
-  { label: 'trxfee', value: statsData.trxfeeExpense },
-  { label: '能量收购支出', value: statsData.energyPurchaseExpense },
-  { label: '能量', value: statsData.energyPurchaseEnergy },
-  { label: '带宽', value: statsData.energyPurchaseBandwidth },
-  { label: '激活支出', value: statsData.activeExpense }
+  { label: 'trxfee', value: statsData.trxfeeExpense }
 ])
 
 const profitRows = computed(() => [
@@ -478,13 +474,17 @@ const profitRows = computed(() => [
 ])
 
 const resourceRows = computed(() => [
-  { label: '带宽消耗', value: statsData.bandwidthUsed || '0' },
-  { label: '能量消耗', value: statsData.energyUsed || '0' },
-  { label: '激活地址', value: statsData.activeAddress || '0' },
-  { label: '能量收购数量', value: statsData.energyPurchaseCount || '0' },
-  { label: '带宽收购数量', value: statsData.bandwidthPurchaseCount || '0' },
-  { label: '福利订单支出', value: statsData.welfareExpense || '0' },
-  { label: '福利订单数量', value: statsData.welfareCount || '0' }
+  { label: '能量消耗笔数', value: statsData.energyCount || '0' },
+  { label: '能量消耗总量', value: statsData.energySum || '0' },
+  { label: '带宽消耗笔数', value: statsData.bandwidthCount || '0' },
+  { label: '带宽消耗总量', value: statsData.bandwidthSum || '0' },
+  {
+    label: '激活地址',
+    value: `${statsData.activeAddress || '0'}（${(toNum(statsData.activeAddress) * 1.1).toFixed(2)} TRX）`
+  },
+  { label: '福利订单数量', value: statsData.wealCount || '0' },
+  { label: '能量收购总量', value: statsData.energyInSum || '0' },
+  { label: '带宽收购总量', value: statsData.bandwidthInSum || '0' }
 ])
 
 // ============== 饼图/环形图配置 ==============
@@ -547,42 +547,37 @@ const buildDonut = (title: string, data: { name: string; value: number }[]): ECh
 }
 
 // 收入构成
-const incomeData = computed(() =>
-  [
-    { name: '代理收款', value: toNum(statsData.agentIncome) },
-    { name: '闪租', value: toNum(statsData.flashIncome) },
-    { name: '托管', value: toNum(statsData.hostingIncome) },
-    { name: '闪兑', value: toNum(statsData.exchangeIncome) },
-    { name: '按笔数', value: toNum(statsData.strokeIncome) },
-    { name: '激活', value: toNum(statsData.activeIncome) }
-  ].filter((d) => d.value > 0)
-)
+const incomeData = computed(() => [
+  { name: '按时间', value: toNum(statsData.timeEnergyIncome) },
+  { name: '按笔数', value: toNum(statsData.strokeEnergyIncome) },
+  { name: '福利', value: toNum(statsData.wealEnergyIncome) },
+  { name: '闪租', value: toNum(statsData.flashIncome) },
+  { name: '托管', value: toNum(statsData.hostingIncome) },
+  { name: '批量下单', value: toNum(statsData.batchEnergyIncome) },
+  { name: '激活', value: toNum(statsData.batchActiveIncome) },
+  { name: '闪兑', value: toNum(statsData.exchangeIncome) }
+])
 const incomeTotal = computed(() => incomeData.value.reduce((s, d) => s + d.value, 0))
 const incomeChartOption = computed(() => buildDonut('收入构成', incomeData.value))
 
 // 支出构成（>5 项，用柱状图避免饼图过碎）
-const expenseData = computed(() =>
-  [
-    {
-      name: '闪兑支出(TRX)',
-      value: toNum(statsData.exchangeExpense),
-      unit: 'TRX',
-      count: toNum(statsData.exchangeTrxCount)
-    },
-    {
-      name: '闪兑支出(USDT)',
-      value: toNum(statsData.exchangeUsdtOut),
-      unit: 'USDT',
-      count: toNum(statsData.exchangeUsdtCount)
-    },
-    { name: '资源补充', value: toNum(statsData.resourceSupplyExpense), unit: 'TRX' },
-    { name: 'justlend', value: toNum(statsData.justlendExpense), unit: 'TRX' },
-    { name: 'feee', value: toNum(statsData.feeExpense), unit: 'TRX' },
-    { name: 'trxfee', value: toNum(statsData.trxfeeExpense), unit: 'TRX' },
-    { name: '能量收购', value: toNum(statsData.energyPurchaseExpense), unit: 'TRX' },
-    { name: '激活支出', value: toNum(statsData.activeExpense), unit: 'TRX' }
-  ].filter((d) => d.value > 0)
-)
+const expenseData = computed(() => [
+  {
+    name: '闪兑支出(TRX)',
+    value: toNum(statsData.exchangeExpense),
+    unit: 'TRX'
+  },
+  {
+    name: '闪兑支出(USDT)',
+    value: toNum(statsData.exchangeUsdtOut),
+    unit: 'USDT'
+  },
+  { name: '能量支出', value: toNum(statsData.energyExpense), unit: 'TRX' },
+  { name: '带宽支出', value: toNum(statsData.bandwidthExpense), unit: 'TRX' },
+  { name: 'justlend', value: toNum(statsData.justlendExpense), unit: 'TRX' },
+  { name: 'feee', value: toNum(statsData.feeExpense), unit: 'TRX' },
+  { name: 'trxfee', value: toNum(statsData.trxfeeExpense), unit: 'TRX' }
+])
 const expenseTotal = computed(() => expenseData.value.reduce((s, d) => s + d.value, 0))
 // 大额数值缩写：1.2w / 3.5k
 const abbrNum = (v: number) => {
@@ -657,26 +652,29 @@ const expenseChartOption = computed<EChartsOption>(() => {
 })
 
 // 利润构成
-const profitData = computed(() =>
-  [
-    { name: '闪兑利润', value: toNum(statsData.exchangeProfit) },
-    { name: '能量利润', value: toNum(statsData.energyProfit) },
-    { name: '激活利润', value: toNum(statsData.activeProfit) }
-  ].filter((d) => d.value > 0)
-)
+const profitData = computed(() => [
+  { name: '闪兑利润', value: toNum(statsData.exchangeProfit) },
+  { name: '能量利润', value: toNum(statsData.energyProfit) },
+  { name: '激活利润', value: toNum(statsData.activeProfit) }
+])
 const profitTotal = computed(() => profitData.value.reduce((s, d) => s + d.value, 0))
 const profitChartOption = computed(() => buildDonut('利润构成', profitData.value))
 
 // 资源消耗/收购（柱状图）
 const resourceChartData = computed(() => {
   return [
-    { name: '能量消耗', value: toNum(statsData.energyUsed), unit: '' },
-    { name: '带宽消耗', value: toNum(statsData.bandwidthUsed), unit: '' },
-    { name: '能量收购', value: toNum(statsData.energyPurchaseCount), unit: '' },
-    { name: '带宽收购', value: toNum(statsData.bandwidthPurchaseCount), unit: '' },
-    { name: '激活地址', value: toNum(statsData.activeAddress), unit: '' },
-    { name: '福利订单支出', value: toNum(statsData.welfareExpense), unit: 'TRX' },
-    { name: '福利订单数量', value: toNum(statsData.welfareCount), unit: '' }
+    { name: '能量消耗笔数', value: toNum(statsData.energyCount), unit: '笔' },
+    { name: '能量消耗总量', value: toNum(statsData.energySum), unit: '' },
+    { name: '带宽消耗笔数', value: toNum(statsData.bandwidthCount), unit: '笔' },
+    { name: '带宽消耗总量', value: toNum(statsData.bandwidthSum), unit: '' },
+    {
+      name: '激活地址',
+      value: toNum(statsData.activeAddress),
+      unit: `个（${(toNum(statsData.activeAddress) * 1.1).toFixed(2)} TRX）`
+    },
+    { name: '福利订单数量', value: toNum(statsData.wealCount), unit: '笔' },
+    { name: '能量收购总量', value: toNum(statsData.energyInSum), unit: '' },
+    { name: '带宽收购总量', value: toNum(statsData.bandwidthInSum), unit: '' }
   ]
 })
 const hasResourceData = computed(() => resourceChartData.value.some((d) => d.value > 0))
@@ -751,22 +749,119 @@ const handleCustomRange = (val: [string, string] | null) => {
 const loadData = async () => {
   loading.value = true
   try {
-    // TODO: 调用实际的统计接口
-    // const res = await getStatisticsData({
-    //   range: currentRange.value,
-    //   start: customRange.value?.[0],
-    //   end: customRange.value?.[1]
-    // })
-    // Object.assign(statsData, res.data)
+    // 构建时间参数
+    const params: Record<string, string> = {}
+    if (customRange.value && customRange.value.length === 2) {
+      // value-format="YYYY-MM-DD"，需要转为秒级时间戳
+      params.start_time = String(Math.floor(new Date(customRange.value[0]).getTime() / 1000))
+      params.end_time = String(Math.floor(new Date(customRange.value[1]).getTime() / 1000))
+    } else if (currentRange.value) {
+      const now = Math.floor(Date.now() / 1000)
+      const dayStart = now - (now % 86400) - 8 * 3600
+      const rangeMap: Record<string, number> = {
+        today: dayStart,
+        yesterday: dayStart - 86400,
+        '7d': dayStart - 6 * 86400,
+        '30d': dayStart - 29 * 86400
+      }
+      const start = rangeMap[currentRange.value]
+      if (start !== undefined) {
+        params.start_time = String(start)
+        params.end_time = String(currentRange.value === 'yesterday' ? dayStart : now)
+      }
+    }
 
-    // ===== 模拟数据（接口接入后删除）=====
-    await new Promise((r) => setTimeout(r, 300))
-    Object.assign(statsData, buildMockData(currentRange.value))
+    const res = await v2GetStats(params)
+    if (res.code !== '000000' || !res.data) {
+      handleErrorMessage(new Error(res.msg || '接口返回异常'), '获取统计数据失败')
+      return
+    }
+
+    const data = res.data as any
+
+    // 异步计算策略：updated_at 为 0 或空表示后端正在计算
+    if (!data.updated_at) {
+      startStatsPolling(params, applyStatsData)
+      return
+    }
+
+    // 计算完成，更新数据
+    applyStatsData(data)
   } catch (error) {
     handleErrorMessage(error, '获取统计数据失败')
   } finally {
     loading.value = false
   }
+}
+
+// 将接口数据映射到 statsData
+const applyStatsData = (data: any) => {
+  const { revenue, expense, resource, income } = data
+  const n = (v: any) => Number(v) || 0
+  const priceTrx = n(data.price_trx) || 1 // TRX/USDT 汇率
+
+  const totalIncome =
+    n(revenue?.time_energy) +
+    n(revenue?.stroke_energy) +
+    n(revenue?.weal_energy) +
+    n(revenue?.flash_energy) +
+    n(revenue?.hosting) +
+    n(revenue?.batch_energy) +
+    n(revenue?.batch_active) +
+    n(revenue?.exchange)
+
+  // 支出：USDT 按汇率折算为 TRX（用于 KPI 卡片总支出）
+  const usdtAsTrx = priceTrx > 0 ? n(expense?.exchange_usdt) / priceTrx : 0
+  const totalExpense =
+    n(expense?.exchange_trx) +
+    usdtAsTrx +
+    n(expense?.energy_reward) +
+    n(expense?.bandwidth_reward) +
+    n(expense?.justlend) +
+    n(expense?.feee) +
+    n(expense?.trxfee)
+
+  // 利润：直接用接口返回的利润明细合计
+  const totalProfit = n(income?.exchange) + n(income?.energy) + n(income?.activation)
+
+  Object.assign(statsData, {
+    income: totalIncome,
+    expense: totalExpense,
+    profit: totalProfit,
+    timeEnergyIncome: n(revenue?.time_energy),
+    strokeEnergyIncome: n(revenue?.stroke_energy),
+    wealEnergyIncome: n(revenue?.weal_energy),
+    flashIncome: n(revenue?.flash_energy),
+    hostingIncome: n(revenue?.hosting),
+    batchEnergyIncome: n(revenue?.batch_energy),
+    batchActiveIncome: n(revenue?.batch_active),
+    exchangeIncome: n(revenue?.exchange),
+    exchangeExpense: n(expense?.exchange_trx),
+    exchangeUsdtOut: n(expense?.exchange_usdt),
+    expenseTrxOnly:
+      n(expense?.exchange_trx) +
+      n(expense?.energy_reward) +
+      n(expense?.bandwidth_reward) +
+      n(expense?.justlend) +
+      n(expense?.feee) +
+      n(expense?.trxfee),
+    energyExpense: n(expense?.energy_reward),
+    bandwidthExpense: n(expense?.bandwidth_reward),
+    justlendExpense: n(expense?.justlend),
+    feeExpense: n(expense?.feee),
+    trxfeeExpense: n(expense?.trxfee),
+    exchangeProfit: n(income?.exchange),
+    energyProfit: n(income?.energy),
+    activeProfit: n(income?.activation),
+    energyCount: resource?.energy_count || '0',
+    energySum: resource?.energy_sum || '0',
+    bandwidthCount: resource?.bandwidth_count || '0',
+    bandwidthSum: resource?.bandwidth_sum || '0',
+    activeAddress: resource?.activation_count || '0',
+    wealCount: resource?.weal_count || '0',
+    energyInSum: resource?.energy_in_sum || '0',
+    bandwidthInSum: resource?.bandwidth_in_sum || '0'
+  })
 }
 
 // ===== 模拟数据生成（接口接入后删除）=====
@@ -781,29 +876,40 @@ const buildMockData = (range: string) => {
   const f = factorMap[range] ?? 8
   const r = (base: number) => Math.round(base * f * (0.85 + Math.random() * 0.3) * 100) / 100
 
-  const agentIncome = r(3200)
+  const timeEnergyIncome = r(1600)
+  const strokeEnergyIncome = r(900)
+  const wealEnergyIncome = r(200)
   const flashIncome = r(2600)
   const hostingIncome = r(1800)
+  const batchEnergyIncome = r(740)
+  const batchActiveIncome = r(200)
   const exchangeIncome = r(1500)
-  const strokeIncome = r(900)
-  const activeIncome = r(700)
   const income =
-    agentIncome + flashIncome + hostingIncome + exchangeIncome + strokeIncome + activeIncome
+    timeEnergyIncome +
+    strokeEnergyIncome +
+    wealEnergyIncome +
+    flashIncome +
+    hostingIncome +
+    batchEnergyIncome +
+    batchActiveIncome +
+    exchangeIncome
 
   const exchangeExpense = r(1200)
-  const resourceSupplyExpense = r(2100)
+  const exchangeUsdtOut = r(450)
+  const energyExpense = r(360)
+  const bandwidthExpense = r(100)
   const justlendExpense = r(800)
   const feeExpense = r(150)
   const trxfeeExpense = r(90)
-  const energyPurchaseExpense = r(1600)
   const activeExpense = r(500)
   const expense =
     exchangeExpense +
-    resourceSupplyExpense +
+    exchangeUsdtOut +
+    energyExpense +
+    bandwidthExpense +
     justlendExpense +
     feeExpense +
     trxfeeExpense +
-    energyPurchaseExpense +
     activeExpense
 
   const exchangeProfit = r(620)
@@ -815,43 +921,46 @@ const buildMockData = (range: string) => {
     expense,
     profit: income - expense,
     // 收入明细
-    agentIncome,
+    timeEnergyIncome,
+    strokeEnergyIncome,
+    wealEnergyIncome,
     flashIncome,
     hostingIncome,
+    batchEnergyIncome,
+    batchActiveIncome,
     exchangeIncome,
-    strokeIncome,
-    activeIncome,
     // 支出明细
     exchangeExpense,
-    exchangeUsdtOut: r(450),
-    exchangeUsdtCount: Math.round(12 * f),
-    exchangeTrxOut: r(680),
-    exchangeTrxCount: Math.round(20 * f),
-    resourceSupplyExpense,
+    exchangeUsdtOut,
+    energyExpense,
+    bandwidthExpense,
     justlendExpense,
     feeExpense,
     trxfeeExpense,
-    energyPurchaseExpense,
-    energyPurchaseEnergy: r(980),
-    energyPurchaseBandwidth: r(320),
     activeExpense,
     // 利润明细
     exchangeProfit,
     energyProfit,
     activeProfit,
     // 资源明细
-    bandwidthUsed: String(Math.round(8200 * f)),
-    energyUsed: String(Math.round(130000 * f)),
-    activeAddress: String(Math.round(46 * f)),
-    energyPurchaseCount: String(Math.round(115000 * f)),
-    bandwidthPurchaseCount: String(Math.round(7600 * f)),
-    welfareExpense: String(r(260)),
-    welfareCount: String(Math.round(18 * f))
+    energyCount: String(Math.round(171 * f)),
+    energySum: String(Math.round(43847000 * f)),
+    bandwidthCount: String(Math.round(15 * f)),
+    bandwidthSum: String(Math.round(6000 * f)),
+    activeAddress: String(Math.round(14 * f)),
+    wealCount: String(Math.round(19 * f)),
+    energyInSum: String(Math.round(100014 * f)),
+    bandwidthInSum: String(Math.round(0 * f))
   }
 }
 
 onMounted(() => {
-  loadData()
+  // 如果全局轮询正在进行（用户从别的页面切回来），重新绑定回调
+  if (isPolling()) {
+    setStatsPollingCallback(applyStatsData)
+  } else {
+    loadData()
+  }
   startResourceRoll()
 })
 
@@ -861,8 +970,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-
-
 /* 响应式：窄屏降级为 2 列 / 1 列 */
 @media (width <= 1200px) {
   .kpi-grid {
