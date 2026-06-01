@@ -145,7 +145,8 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           component: () => import('@/operationView/Marketing/MenuList/index.vue'),
           name: 'MarketingMenuList',
           meta: {
-            title: '菜单列表'
+            title: '菜单列表',
+            buttonList: ['add', 'edit', 'delete']
           }
         },
         {
@@ -226,15 +227,6 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           }
         },
         {
-          path: 'agent_recharge',
-          component: () => import('@/operationView/Agent/AgentRecharge.vue'),
-          name: 'AgentRecharge',
-          meta: {
-            hidden: true,
-            title: '代理充值明细'
-          }
-        },
-        {
           path: 'ledger',
           component: () => import('@/operationView/Agent/Ledger.vue'),
           name: 'AgentLedger',
@@ -264,7 +256,8 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           component: () => import('@/operationView/Agent/MessageList/index.vue'),
           name: 'AgentMessageList',
           meta: {
-            title: '消息列表'
+            title: '消息列表',
+            buttonList: ['add', 'edit', 'delete']
           }
         },
         {
@@ -346,7 +339,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           name: 'ResourcePool',
           meta: {
             title: '资源池账户',
-            buttonList: ['add', 'edit']
+            buttonList: ['add', 'edit', 'delete']
           }
         },
         {
@@ -354,8 +347,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           component: () => import('@/operationView/SystemConfig/Announcement.vue'),
           name: 'Announcement',
           meta: {
-            title: '系统公告',
-            buttonList: ['add', 'edit', 'delete']
+            title: '系统公告'
           }
         }
       ]
