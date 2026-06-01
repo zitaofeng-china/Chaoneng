@@ -86,7 +86,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         {
           path: 'hosted_list',
           component: () => import('@/operationView/OperationCenter/HostedList/index.vue'),
-          name: 'HostedList',
+          name: 'CustodyDetails',
           meta: {
             title: '托管列表'
           }
@@ -109,7 +109,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           name: 'AgentPrice',
           meta: {
             title: '代理价格配置',
-            buttonList: ['edit']
+            buttonList: ['add', 'edit', 'delete']
           }
         },
         {
