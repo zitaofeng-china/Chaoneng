@@ -26,6 +26,9 @@
       </slot>
     </div>
 
+    <!-- 表格前自定义区域 -->
+    <slot name="beforeTable"></slot>
+
     <!-- 表格 -->
     <Table
       :pageSize="unref(tableState.pageSize)"
@@ -185,6 +188,11 @@ const {
 })
 console.log('tableState', tableState)
 
+// 如果 pagination 传入了 pageSize，覆盖默认值
+if (props.pagination?.pageSize) {
+  tableState.pageSize.value = props.pagination.pageSize
+}
+
 const handlePageChange = (page: number) => {
   tableState.currentPage.value = page
   tableMethods.getList()
@@ -219,7 +227,14 @@ const doDelete = async (row: Recordable) => {
 // 计算所有插槽名
 const slotKeys = computed(() => {
   const slotNames = Object.keys(slots)
-  const excludeSlots = ['toolbar', 'empty']
+  const excludeSlots = [
+    'toolbar',
+    'empty',
+    'beforeTable',
+    'leftToolbar',
+    'rightToolbar',
+    'searchButtons'
+  ]
   return slotNames.filter((key) => !excludeSlots.includes(key))
 })
 

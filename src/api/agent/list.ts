@@ -52,11 +52,24 @@ export interface AgentItem {
 }
 
 /**
+ * 代理统计数据
+ */
+export interface AgentStats {
+  sum_balance_trx: string // 代理余额合计
+  sum_user_count: number // 关注量合计
+  sum_bot_count: number // 机器人数量合计
+  sum_income_trx: string // 代理收入TRX合计
+  sum_income_usdt: string // 代理收入USDT合计
+  sum_deposit_trx: string // 代理充值合计
+}
+
+/**
  * 代理列表响应数据
  */
 export interface AgentListResponseData {
   list: AgentItem[]
   totalCount: number
+  stats?: AgentStats
 }
 
 /**
@@ -122,7 +135,8 @@ export const getAgentListApi = async (
     ...res,
     data: {
       list: backendData?.list || [],
-      totalCount: backendData?.pager?.total || 0
+      totalCount: backendData?.pager?.total || 0,
+      stats: backendData?.stats || undefined
     }
   }
 }

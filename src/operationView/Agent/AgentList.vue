@@ -9,6 +9,7 @@
         @search="handleSearch"
         @selection-change="handleSelectionChange"
         :show-add-button="false"
+        :pagination="{ pageSize: 8, pageSizes: [8, 10, 20, 30, 50, 100] }"
       >
         <template #leftToolbar>
           <BaseButton type="primary" @click="handleAddAgent">新增代理</BaseButton>
@@ -26,6 +27,39 @@
             <Icon icon="ep:download" class="mr-5px" />
             导出
           </BaseButton>
+        </template>
+        <template #beforeTable>
+          <div v-if="agentStats" class="agent-stats-row">
+            <div class="stat-box">
+              <div class="stat-label">代理数量</div>
+              <div class="stat-value">{{ agentTotal }}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">代理余额</div>
+              <div class="stat-value">{{ formatStatNum(agentStats.sum_balance_trx) }}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">关注量</div>
+              <div class="stat-value">{{ agentStats.sum_user_count ?? 0 }}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">机器人数量</div>
+              <div class="stat-value">{{ agentStats.sum_bot_count ?? 0 }}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">代理收入TRX</div>
+              <div class="stat-value">{{ formatStatNum(agentStats.sum_income_trx) }}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">代理收入USDT</div>
+              <div class="stat-value">{{ formatStatNum(agentStats.sum_income_usdt) }}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">代理充值</div>
+              <div class="stat-value">{{ formatStatNum(agentStats.sum_deposit_trx) }}</div>
+              <div class="stat-sub">只统计线上数据</div>
+            </div>
+          </div>
         </template>
       </SearchTable>
     </ContentWrap>
@@ -64,6 +98,7 @@ import {
   updateAgentApi,
   batchUpdateAgentApi,
   type AgentItem,
+  type AgentStats,
   type UpdateAgentPayload
 } from '@/api/agent/list'
 import { ContentWrap } from '@/components/ContentWrap'
@@ -83,6 +118,10 @@ const currentAccount = ref<AgentItem>()
 
 // 通知机器人弹窗
 const notifyBotDialogVisible = ref(false)
+
+// 代理统计数据
+const agentStats = ref<AgentStats | null>(null)
+const agentTotal = ref(0)
 
 // 批量修改状态
 const isBatchEditMode = ref(false)
@@ -236,6 +275,14 @@ const getAgentLevelText = (priceId?: number): string => {
   return priceId ? AGENT_LEVEL_MAP[priceId] || '未设置' : '未设置'
 }
 
+// 辅助函数：格式化统计数字
+const formatStatNum = (value?: string | number): string => {
+  if (value === undefined || value === null || value === '') return '0'
+  const num = Number(value)
+  if (isNaN(num)) return '0'
+  return num.toLocaleString('zh-CN', { maximumFractionDigits: 2 })
+}
+
 // API 调用
 const getAgentList = async (params?: any) => {
   try {
@@ -269,6 +316,12 @@ const getAgentList = async (params?: any) => {
     const data = (res?.data as any) || {}
     const list = data.list || data.items || []
     const total = data.totalCount || data.total || 0
+
+    // 保存统计数据
+    if (data.stats) {
+      agentStats.value = data.stats
+    }
+    agentTotal.value = total
 
     // 添加数据为空提示
     const hasSearchCondition = !!(
@@ -857,5 +910,41 @@ const handleAgentError = (error: { type: 'add' | 'edit'; error: any }) => {
 .suggestion-item {
   padding: 4px 0;
   font-size: 14px;
+}
+
+/* 代理统计盒子 */
+.agent-stats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.stat-box {
+  min-width: 120px;
+  padding: 12px 16px;
+  text-align: center;
+  background: #fff;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  flex: 1;
+}
+
+.stat-label {
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #909399;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.stat-sub {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #c0c4cc;
 }
 </style>
