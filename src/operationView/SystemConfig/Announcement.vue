@@ -50,21 +50,20 @@
         <div class="stat-card stat-card-green">
           <div class="stat-title">总USDT余额</div>
           <div class="stat-value">{{ formatNumber(statsData.totalUsdt) }}</div>
-          <div class="stat-desc">超能专户+猫猫账户+USDT池子+代理账户</div>
         </div>
         <div class="stat-card stat-card-blue">
           <div class="stat-title">总TRX余额</div>
           <div class="stat-value">{{ formatNumber(statsData.totalTrx) }}</div>
         </div>
         <div class="stat-card stat-card-purple">
-          <div class="stat-title">折合总资产（U,汇率*0.3）</div>
-          <div class="stat-value">{{ formatNumber(statsData.totalAsset) }}</div>
+          <div class="stat-title">折合总资产</div>
+          <div class="stat-value">{{ formatNumber(statsData.totalAsset) }}（USDT）</div>
         </div>
         <div class="stat-card stat-card-pink">
           <div class="stat-title">资金池变化（较昨天）</div>
           <div class="stat-value">{{ formatNumber(statsData.dailyChange) }}</div>
           <div class="stat-desc">
-            资金变化（较上个月）{{ formatNumber(statsData.monthlyChange) }}
+            资金变化（{{ avgChangeLabel }}）{{ formatNumber(statsData.avgChange) }}
           </div>
         </div>
       </div>
@@ -80,7 +79,7 @@
           :cell-style="{ textAlign: 'center' }"
           empty-text="暂无数据"
         >
-          <el-table-column prop="date" label="日期" width="80" fixed="left" align="center" />
+          <el-table-column prop="date" label="日期" width="110" fixed="left" align="center" />
           <!-- 动态账户列 -->
           <el-table-column
             v-for="account in accountColumns"
@@ -177,7 +176,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import {
   ElMessage,
   ElTable,
@@ -191,13 +190,24 @@ import {
 import { ContentWrap } from '@/components/ContentWrap'
 import { Echart } from '@/components/Echart'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { createAssetAccount, getAssetReport } from '@/api/asset'
+import type { AssetBalanceData, AccountBalanceSnapshot } from '@/api/asset/types'
 import type { EChartsOption } from 'echarts'
+
+const DEFAULT_STATS = {
+  totalUsdt: 0,
+  totalTrx: 0,
+  totalAsset: 0,
+  dailyChange: 0,
+  avgChange: 0
+}
 
 // 状态
 const dateRange = ref('7')
 const customDateRange = ref<[Date, Date] | null>(null)
 const addressInput = ref('')
 const nameInput = ref('')
+const submitting = ref(false)
 
 // 机器人设置
 const botSettingVisible = ref(false)
@@ -208,144 +218,27 @@ const botSetting = reactive({
 })
 
 // 动态账户列配置
-const accountColumns = ref<Array<{ key: string; name: string; address: string }>>([
-  { key: 'chaoneng', name: '超能专户', address: 'TXa1b2c3d4e5f6g7h8' },
-  { key: 'maomao', name: '猫猫账户', address: 'TYb2c3d4e5f6g7h8i9' },
-  { key: 'trx_pool', name: 'TRX池子', address: 'TZc3d4e5f6g7h8i9j0' },
-  { key: 'usdt_pool', name: 'USDT池子', address: 'TWd4e5f6g7h8i9j0k1' },
-  { key: 'agent', name: '代理收款账户', address: 'TVe5f6g7h8i9j0k1l2' }
-])
+const accountColumns = ref<Array<{ key: string; name: string }>>([])
+
 // 统计数据
 const statsData = reactive({
-  totalUsdt: 95988.94,
-  totalTrx: 81328.7,
-  totalAsset: 206129.8,
-  dailyChange: 3120.76,
-  monthlyChange: 9856254
+  ...DEFAULT_STATS
 })
 
+// TRX 价格
+const priceTrx = ref(0)
+
 // 每日报表数据
-const dailyReport = ref<any[]>([
-  {
-    date: '4月6日',
-    chaoneng_usdt: '30497.55',
-    chaoneng_trx: '33575.64',
-    maomao_usdt: '30497.55',
-    maomao_trx: '33575.64',
-    trx_pool_usdt: '30497.55',
-    trx_pool_trx: '33575.64',
-    usdt_pool_usdt: '30497.55',
-    usdt_pool_trx: '33575.64',
-    agent_usdt: '30497.55',
-    agent_trx: '33575.64',
-    total_usdt: '30497.55',
-    total_trx: '33575.64',
-    total_u: '30497.55',
-    pool_change: '33575.64'
-  },
-  {
-    date: '4月5日',
-    chaoneng_usdt: '30497.55',
-    chaoneng_trx: '33575.64',
-    maomao_usdt: '30497.55',
-    maomao_trx: '33575.64',
-    trx_pool_usdt: '30497.55',
-    trx_pool_trx: '33575.64',
-    usdt_pool_usdt: '30497.55',
-    usdt_pool_trx: '33575.64',
-    agent_usdt: '30497.55',
-    agent_trx: '33575.64',
-    total_usdt: '30497.55',
-    total_trx: '33575.64',
-    total_u: '30497.55',
-    pool_change: '33575.64'
-  },
-  {
-    date: '4月4日',
-    chaoneng_usdt: '30497.55',
-    chaoneng_trx: '33575.64',
-    maomao_usdt: '30497.55',
-    maomao_trx: '33575.64',
-    trx_pool_usdt: '30497.55',
-    trx_pool_trx: '33575.64',
-    usdt_pool_usdt: '30497.55',
-    usdt_pool_trx: '33575.64',
-    agent_usdt: '30497.55',
-    agent_trx: '33575.64',
-    total_usdt: '30497.55',
-    total_trx: '33575.64',
-    total_u: '30497.55',
-    pool_change: '33575.64'
-  },
-  {
-    date: '4月3日',
-    chaoneng_usdt: '30497.55',
-    chaoneng_trx: '33575.64',
-    maomao_usdt: '30497.55',
-    maomao_trx: '33575.64',
-    trx_pool_usdt: '30497.55',
-    trx_pool_trx: '33575.64',
-    usdt_pool_usdt: '30497.55',
-    usdt_pool_trx: '33575.64',
-    agent_usdt: '30497.55',
-    agent_trx: '33575.64',
-    total_usdt: '30497.55',
-    total_trx: '33575.64',
-    total_u: '30497.55',
-    pool_change: '33575.64'
-  },
-  {
-    date: '4月2日',
-    chaoneng_usdt: '30497.55',
-    chaoneng_trx: '33575.64',
-    maomao_usdt: '30497.55',
-    maomao_trx: '33575.64',
-    trx_pool_usdt: '30497.55',
-    trx_pool_trx: '33575.64',
-    usdt_pool_usdt: '30497.55',
-    usdt_pool_trx: '33575.64',
-    agent_usdt: '30497.55',
-    agent_trx: '33575.64',
-    total_usdt: '30497.55',
-    total_trx: '33575.64',
-    total_u: '30497.55',
-    pool_change: '33575.64'
-  },
-  {
-    date: '4月1日',
-    chaoneng_usdt: '30497.55',
-    chaoneng_trx: '33575.64',
-    maomao_usdt: '30497.55',
-    maomao_trx: '33575.64',
-    trx_pool_usdt: '30497.55',
-    trx_pool_trx: '33575.64',
-    usdt_pool_usdt: '30497.55',
-    usdt_pool_trx: '33575.64',
-    agent_usdt: '30497.55',
-    agent_trx: '33575.64',
-    total_usdt: '30497.55',
-    total_trx: '33575.64',
-    total_u: '30497.55',
-    pool_change: '33575.64'
-  },
-  {
-    date: '3月31日',
-    chaoneng_usdt: '30497.55',
-    chaoneng_trx: '33575.64',
-    maomao_usdt: '30497.55',
-    maomao_trx: '33575.64',
-    trx_pool_usdt: '30497.55',
-    trx_pool_trx: '33575.64',
-    usdt_pool_usdt: '30497.55',
-    usdt_pool_trx: '33575.64',
-    agent_usdt: '30497.55',
-    agent_trx: '33575.64',
-    total_usdt: '30497.55',
-    total_trx: '33575.64',
-    total_u: '30497.55',
-    pool_change: '33575.64'
+const dailyReport = ref<any[]>([])
+
+const avgChangeLabel = computed(() => {
+  if (dateRange.value === 'custom') {
+    return '较所选时间平均值'
   }
-])
+
+  const days = parseInt(dateRange.value, 10)
+  return Number.isNaN(days) ? '较所选时间平均值' : `较近${days}天平均值`
+})
 
 // 格式化数字
 const formatNumber = (num: number) => {
@@ -353,19 +246,20 @@ const formatNumber = (num: number) => {
   return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+const isSameNumber = (a: number, b: number, epsilon = 0.000001) => {
+  return Math.abs(a - b) < epsilon
+}
+
 // 图表配置 - 折合总资产变化趋势
 const totalAssetChartOptions = reactive<EChartsOption>({
   title: { text: '折合总资产变化趋势（U）', left: 'left' },
   tooltip: { trigger: 'axis' },
-  xAxis: {
-    type: 'category',
-    data: ['4月1日', '4月2日', '4月3日', '4月4日', '4月5日', '4月6日', '4月7日']
-  },
-  yAxis: { type: 'value', min: 123000 },
+  xAxis: { type: 'category', data: [] },
+  yAxis: { type: 'value' },
   series: [
     {
       type: 'line',
-      data: [123000, 123200, 126800, 128000, 127500, 129000, 130000],
+      data: [],
       smooth: true,
       areaStyle: { opacity: 0.2 },
       itemStyle: { color: '#409EFF' },
@@ -380,16 +274,13 @@ const balanceTrendChartOptions = reactive<EChartsOption>({
   title: { text: 'USDT / TRX 余额走势', left: 'left' },
   tooltip: { trigger: 'axis' },
   legend: { data: ['USDT', 'TRX'], top: 10, right: 20 },
-  xAxis: {
-    type: 'category',
-    data: ['4月1日', '4月2日', '4月3日', '4月4日', '4月5日', '4月6日', '4月7日']
-  },
+  xAxis: { type: 'category', data: [] },
   yAxis: { type: 'value' },
   series: [
     {
       name: 'USDT',
       type: 'line',
-      data: [36000, 36500, 63000, 64000, 63500, 65000, 67000],
+      data: [],
       smooth: true,
       itemStyle: { color: '#409EFF' },
       lineStyle: { width: 2 }
@@ -397,7 +288,7 @@ const balanceTrendChartOptions = reactive<EChartsOption>({
     {
       name: 'TRX',
       type: 'line',
-      data: [162000, 160000, 80000, 81000, 80500, 82000, 85000],
+      data: [],
       smooth: true,
       itemStyle: { color: '#67C23A' },
       lineStyle: { width: 2 }
@@ -410,36 +301,158 @@ const balanceTrendChartOptions = reactive<EChartsOption>({
 const dailyChangeChartOptions = reactive<EChartsOption>({
   title: { text: '每日资金池净变化（U）', left: 'left' },
   tooltip: { trigger: 'axis' },
-  xAxis: {
-    type: 'category',
-    data: ['4月1日', '4月2日', '4月3日', '4月4日', '4月5日', '4月6日', '4月7日']
-  },
+  xAxis: { type: 'category', data: [] },
   yAxis: { type: 'value' },
   series: [
     {
       type: 'bar',
-      data: [
-        { value: 0, itemStyle: { color: '#67C23A' } },
-        { value: 200, itemStyle: { color: '#67C23A' } },
-        { value: 3300, itemStyle: { color: '#67C23A' } },
-        { value: 1300, itemStyle: { color: '#67C23A' } },
-        { value: -300, itemStyle: { color: '#F56C6C' } },
-        { value: 1500, itemStyle: { color: '#67C23A' } },
-        { value: 1000, itemStyle: { color: '#67C23A' } }
-      ]
+      data: []
     }
   ],
   grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true }
 })
 
+// 获取时间范围参数
+const getTimeParams = () => {
+  const now = new Date()
+  let startTime: string
+  let endTime: string = formatDateStr(now)
+
+  if (dateRange.value === 'custom' && customDateRange.value) {
+    startTime = formatDateStr(customDateRange.value[0])
+    endTime = formatDateStr(customDateRange.value[1])
+  } else {
+    const days = parseInt(dateRange.value) || 7
+    const start = new Date(now)
+    start.setDate(start.getDate() - days)
+    startTime = formatDateStr(start)
+  }
+
+  return { start_time: startTime, end_time: endTime }
+}
+
+// 格式化日期为 Unix 时间戳（秒）
+const formatDateStr = (date: Date) => {
+  return String(Math.floor(date.getTime() / 1000))
+}
+
 // 加载数据
 const loadData = async () => {
   try {
-    // TODO: 替换为实际的API接口
-    // const res = await getFundPoolStats({ days: dateRange.value })
-    // statsData.totalUsdt = res.data.totalUsdt
-    // statsData.totalTrx = res.data.totalTrx
-    // ...
+    Object.assign(statsData, DEFAULT_STATS)
+
+    const params = getTimeParams()
+    const res = await getAssetReport(params)
+
+    if (res?.data) {
+      const data = res.data
+      priceTrx.value = parseFloat(data.price_trx) || 0
+
+      // 更新当前余额统计
+      const currentUsdt = parseFloat(data.current.balance_usdt) || 0
+      const currentTrx = parseFloat(data.current.balance_trx) || 0
+      statsData.totalUsdt = currentUsdt
+      statsData.totalTrx = currentTrx
+      statsData.totalAsset = currentUsdt + currentTrx * priceTrx.value
+
+      // 解析历史数据
+      const history = data.history
+      const dates = Object.keys(history).sort()
+
+      // 提取所有账户名称（动态列）
+      const accountNameSet = new Set<string>()
+      dates.forEach((date) => {
+        history[date].forEach((item: AccountBalanceSnapshot) => {
+          accountNameSet.add(item.name)
+        })
+      })
+      const accountNames = Array.from(accountNameSet)
+      accountColumns.value = accountNames.map((name) => ({
+        key: name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_'),
+        name
+      }))
+
+      // 构建表格数据
+      const tableData: any[] = []
+      const dateLabels: string[] = []
+      const totalUsdtArr: number[] = []
+      const totalTrxArr: number[] = []
+      const totalAssetArr: number[] = []
+
+      dates.forEach((date, index) => {
+        const row: any = { date }
+        let dayUsdt = 0
+        let dayTrx = 0
+
+        history[date].forEach((item: AccountBalanceSnapshot) => {
+          const key = item.name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')
+          const usdt = parseFloat(item.balance_usdt) || 0
+          const trx = parseFloat(item.balance_trx) || 0
+          row[`${key}_usdt`] = item.balance_usdt
+          row[`${key}_trx`] = item.balance_trx
+          dayUsdt += usdt
+          dayTrx += trx
+        })
+
+        row.total_usdt = dayUsdt.toFixed(2)
+        row.total_trx = dayTrx.toFixed(2)
+        const dayAsset = dayUsdt + dayTrx * priceTrx.value
+        row.total_u = dayAsset.toFixed(2)
+
+        // 资金池变化（与前一天对比）
+        if (index > 0) {
+          const prevAsset = totalAssetArr[index - 1]
+          row.pool_change = (dayAsset - prevAsset).toFixed(2)
+        } else {
+          row.pool_change = '0.00'
+        }
+
+        tableData.push(row)
+        dateLabels.push(date)
+        totalUsdtArr.push(dayUsdt)
+        totalTrxArr.push(dayTrx)
+        totalAssetArr.push(dayAsset)
+      })
+
+      // 卡片统计：
+      // 如果历史数据最后一天已经是今天，则“较昨天”要对比倒数第二天。
+      if (totalAssetArr.length >= 1) {
+        let yesterdayAsset = totalAssetArr[totalAssetArr.length - 1]
+
+        if (totalAssetArr.length >= 2 && isSameNumber(yesterdayAsset, statsData.totalAsset)) {
+          yesterdayAsset = totalAssetArr[totalAssetArr.length - 2]
+        }
+
+        statsData.dailyChange = statsData.totalAsset - yesterdayAsset
+      }
+
+      // 较平均值 = 当前折合总资产 - 所选时间范围内日折合资产平均值
+      if (totalAssetArr.length >= 1) {
+        const avg = totalAssetArr.reduce((sum, val) => sum + val, 0) / totalAssetArr.length
+        statsData.avgChange = statsData.totalAsset - avg
+      }
+
+      dailyReport.value = tableData.reverse() // 最新日期在前
+
+      // 更新图表
+      ;(totalAssetChartOptions.xAxis as any).data = dateLabels
+      ;(totalAssetChartOptions.series as any[])[0].data = totalAssetArr
+      ;(balanceTrendChartOptions.xAxis as any).data = dateLabels
+      ;(balanceTrendChartOptions.series as any[])[0].data = totalUsdtArr
+      ;(balanceTrendChartOptions.series as any[])[1].data = totalTrxArr
+
+      // 每日净变化
+      const dailyChanges = totalAssetArr.map((val, i) => {
+        if (i === 0) return { value: 0, itemStyle: { color: '#67C23A' } }
+        const change = val - totalAssetArr[i - 1]
+        return {
+          value: parseFloat(change.toFixed(2)),
+          itemStyle: { color: change >= 0 ? '#67C23A' : '#F56C6C' }
+        }
+      })
+      ;(dailyChangeChartOptions.xAxis as any).data = dateLabels
+      ;(dailyChangeChartOptions.series as any[])[0].data = dailyChanges
+    }
   } catch (error) {
     handleErrorMessage(error, '获取数据失败')
   }
@@ -474,7 +487,7 @@ const handleDownloadTemplate = () => {
 }
 
 // 手动添加
-const handleManualAdd = () => {
+const handleManualAdd = async () => {
   if (!addressInput.value) {
     ElMessage.warning('请输入地址')
     return
@@ -484,19 +497,26 @@ const handleManualAdd = () => {
     return
   }
 
-  // 生成唯一key
-  const key = `account_${Date.now()}`
-  accountColumns.value.push({
-    key,
-    name: nameInput.value,
-    address: addressInput.value
-  })
+  try {
+    await createAssetAccount({
+      address: addressInput.value,
+      name: nameInput.value
+    })
+    handleSuccessMessage(`已添加账户：${nameInput.value}`)
 
-  ElMessage.success(`已添加账户列：${nameInput.value}`)
-  addressInput.value = ''
-  nameInput.value = ''
+    // 添加到本地列表
+    const key = nameInput.value.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')
+    accountColumns.value.push({
+      key,
+      name: nameInput.value
+    })
 
-  // TODO: 调用后端接口保存新账户
+    addressInput.value = ''
+    nameInput.value = ''
+    loadData()
+  } catch (error) {
+    handleErrorMessage(error, '添加账户失败')
+  }
 }
 
 // 导出数据
