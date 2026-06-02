@@ -16,12 +16,11 @@
           </el-select>
           <el-date-picker
             v-if="dateRange === 'custom'"
-            v-model="customDateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            style="width: 240px"
+            v-model="customStartDate"
+            type="date"
+            placeholder="选择开始日期"
+            style="width: 160px"
+            :disabled-date="disableFutureDate"
             @change="handleCustomDateChange"
           />
           <el-upload
@@ -75,6 +74,7 @@
           :data="dailyReport"
           border
           style="width: 100%"
+          max-height="380"
           :header-cell-style="{ background: '#fafafa', color: '#606266', textAlign: 'center' }"
           :cell-style="{ textAlign: 'center' }"
           empty-text="暂无数据"
@@ -191,6 +191,7 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { Echart } from '@/components/Echart'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import { createAssetAccount, getAssetReport, updateAssetNotify, getAssetNotify } from '@/api/asset'
+import { simpleExportToExcel } from '@/utils/excel'
 import type { AssetBalanceData, AccountBalanceSnapshot } from '@/api/asset/types'
 import type { EChartsOption } from 'echarts'
 
@@ -204,8 +205,13 @@ const DEFAULT_STATS = {
 
 // 状态
 const dateRange = ref('7')
-const customDateRange = ref<[Date, Date] | null>(null)
+const customStartDate = ref<Date | null>(null)
 const addressInput = ref('')
+
+// 禁用今天之后的日期
+const disableFutureDate = (time: Date) => {
+  return time.getTime() > Date.now()
+}
 const nameInput = ref('')
 const submitting = ref(false)
 
@@ -244,6 +250,14 @@ const avgChangeLabel = computed(() => {
 const formatNumber = (num: number) => {
   if (!num && num !== 0) return '-'
   return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+// 格式化本地日期为 YYYY-MM-DD
+const formatLocalDate = (date: Date) => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 const isSameNumber = (a: number, b: number, epsilon = 0.000001) => {
@@ -318,9 +332,8 @@ const getTimeParams = () => {
   let startTime: string
   let endTime: string = formatDateStr(now)
 
-  if (dateRange.value === 'custom' && customDateRange.value) {
-    startTime = formatDateStr(customDateRange.value[0])
-    endTime = formatDateStr(customDateRange.value[1])
+  if (dateRange.value === 'custom' && customStartDate.value) {
+    startTime = formatDateStr(customStartDate.value)
   } else {
     const days = parseInt(dateRange.value) || 7
     const start = new Date(now)
@@ -447,9 +460,9 @@ const loadData = async () => {
       const historyAssetArr = totalAssetArr.filter((_, i) => dateLabels[i] !== today)
       if (historyAssetArr.length >= 1) {
         const selectedDays =
-          dateRange.value === 'custom' && customDateRange.value
+          dateRange.value === 'custom' && customStartDate.value
             ? Math.ceil(
-                (customDateRange.value[1].getTime() - customDateRange.value[0].getTime()) /
+                (new Date().getTime() - customStartDate.value.getTime()) /
                   (1000 * 60 * 60 * 24)
               ) + 1
             : parseInt(dateRange.value) || 7
@@ -546,9 +559,102 @@ const handleManualAdd = async () => {
 }
 
 // 导出数据
-const handleExport = () => {
-  // TODO: 调用导出接口
-  ElMessage.info('导出功能待实现')
+const handleExport = async () => {
+  try {
+    const params = getTimeParams()
+    const res = await getAssetReport(params)
+
+    if (!res?.data || !res.data.history) {
+      ElMessage.warning('暂无数据可导出')
+      return
+    }
+
+    const data = res.data
+    const price = parseFloat(data.price_trx) || 0
+    const history = data.history
+
+    // 将当天 current 数据加入 history
+    const today = new Date().toISOString().slice(0, 10)
+    if (data.current.length > 0) {
+      history[today] = data.current.map((item) => ({
+        created_at: 0,
+        name: item.name,
+        balance_trx: item.balance_trx,
+        balance_usdt: item.balance_usdt
+      }))
+    }
+
+    const dates = Object.keys(history).sort().reverse()
+
+    // 提取所有账户名称
+    const accountNameSet = new Set<string>()
+    dates.forEach((date) => {
+      history[date].forEach((item: AccountBalanceSnapshot) => {
+        accountNameSet.add(item.name)
+      })
+    })
+    const accountNames = Array.from(accountNameSet)
+
+    // 构建导出数据
+    const exportData = dates.map((date, index) => {
+      const row: Record<string, string | number> = { 日期: date }
+      let dayUsdt = 0
+      let dayTrx = 0
+
+      history[date].forEach((item: AccountBalanceSnapshot) => {
+        const usdt = parseFloat(item.balance_usdt) || 0
+        const trx = parseFloat(item.balance_trx) || 0
+        row[`${item.name}-USDT`] = item.balance_usdt
+        row[`${item.name}-TRX`] = item.balance_trx
+        dayUsdt += usdt
+        dayTrx += trx
+      })
+
+      // 补齐没有数据的账户列
+      accountNames.forEach((name) => {
+        if (row[`${name}-USDT`] === undefined) row[`${name}-USDT`] = ''
+        if (row[`${name}-TRX`] === undefined) row[`${name}-TRX`] = ''
+      })
+
+      row['合计-USDT'] = dayUsdt.toFixed(2)
+      row['合计-TRX'] = dayTrx.toFixed(2)
+      row['折合（U）汇率*0.3'] = (dayUsdt + dayTrx * price).toFixed(2)
+
+      // 资金池变化需要与前一天对比（注意dates是倒序的，所以下一个index是前一天）
+      if (index < dates.length - 1) {
+        const prevDate = dates[index + 1]
+        let prevAsset = 0
+        history[prevDate].forEach((item: AccountBalanceSnapshot) => {
+          prevAsset +=
+            (parseFloat(item.balance_usdt) || 0) +
+            (parseFloat(item.balance_trx) || 0) * price
+        })
+        const currentAsset = dayUsdt + dayTrx * price
+        row['资金池变化'] = (currentAsset - prevAsset).toFixed(2)
+      } else {
+        row['资金池变化'] = '0.00'
+      }
+
+      return row
+    })
+
+    // 生成文件名（根据用户选择的时间范围）
+    const now = new Date()
+    let startDateStr: string
+    let endDateStr: string = formatLocalDate(now)
+    if (dateRange.value === 'custom' && customStartDate.value) {
+      startDateStr = formatLocalDate(customStartDate.value)
+    } else {
+      const days = parseInt(dateRange.value) || 7
+      const start = new Date(now)
+      start.setDate(start.getDate() - days)
+      startDateStr = formatLocalDate(start)
+    }
+    simpleExportToExcel(exportData, `资金明细报表_${startDateStr}_${endDateStr}`)
+    handleSuccessMessage('导出成功')
+  } catch (error) {
+    handleErrorMessage(error, '导出失败')
+  }
 }
 
 // 推送余额播报
@@ -595,14 +701,14 @@ const handleSaveBotSetting = async () => {
 // 时间范围变更
 const handleDateRangeChange = (val: string) => {
   if (val !== 'custom') {
-    customDateRange.value = null
+    customStartDate.value = null
     loadData()
   }
 }
 
 // 自定义时间变更
 const handleCustomDateChange = () => {
-  if (customDateRange.value) {
+  if (customStartDate.value) {
     loadData()
   }
 }
