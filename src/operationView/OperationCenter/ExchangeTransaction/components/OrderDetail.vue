@@ -214,10 +214,18 @@ const detailSchema = computed<DescriptionsSchema[]>(() => [
     slots: { default: (data) => formatNullableDateTime(data.finish_time) }
   },
   {
-    label: '补发TRX',
+    label: '补发' + (orderDetail.value?.exchange_unit || 'TRX'),
     field: 'resend_trx',
     span: 8,
-    slots: { default: (data) => (data.resend_trx ? `${data.resend_trx} TRX` : '-') }
+    slots: {
+      default: (data) => {
+        if (!data.resend_trx) return '-'
+        return h('span', null, [
+          `${data.resend_trx} `,
+          h('span', { class: 'text-blue-500' }, data.exchange_unit || 'TRX')
+        ])
+      }
+    }
   },
   {
     label: '补发时间',
@@ -379,9 +387,10 @@ const open = async (orderIdValue: number | string, rowData?: any) => {
         status: responseData.status,
         finish_time: responseData.paid_at || exchange.out_at || 0,
         describe: responseData.describe,
-        // 补发信息
-        resend_trx: (responseData as any).resend_trx || '',
-        resend_time: (responseData as any).resend_time || 0,
+        // 补发信息：基于 exchange.retry_at 判断是否补发
+        // retry_at 不存在/为空/为0 → 未补发，显示横杠；否则表示已补发
+        resend_trx: exchange.retry_at ? exchange.out_amount || '' : '',
+        resend_time: exchange.retry_at || 0,
         // 用户转出（pay_transaction）
         pay_from_address: payTx?.from || '',
         pay_to_address: payTx?.to || '',

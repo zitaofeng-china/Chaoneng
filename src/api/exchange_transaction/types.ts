@@ -72,6 +72,7 @@ export interface V2ExchangeInfo {
   out_at: number // 输出时间（Unix时间戳-秒）
   agent_profit: string // 代理利润
   plate_profit: string // 平台利润
+  retry_at?: number // 补发时间（Unix时间戳-秒），不存在/为空/为0表示未补发
 }
 
 /**
