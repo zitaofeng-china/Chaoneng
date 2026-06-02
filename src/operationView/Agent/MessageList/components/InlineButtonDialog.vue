@@ -30,8 +30,10 @@
           align="center"
           header-align="center"
         >
-          <template #default>
-            <ElTag type="primary">URL链接</ElTag>
+          <template #default="{ row }">
+            <ElTag :type="row.inner_type === 'url' ? 'primary' : 'success'">
+              {{ row.inner_type === 'url' ? 'URL链接' : '回调函数' }}
+            </ElTag>
           </template>
         </ElTableColumn>
         <ElTableColumn
@@ -94,14 +96,31 @@
             <ElSelect
               v-model="formData.inner_type"
               placeholder="请选择内联类型"
-              disabled
               style="width: 100%"
             >
               <ElOption label="URL链接" value="url" />
+              <ElOption label="回调函数" value="call" />
             </ElSelect>
           </ElFormItem>
-          <ElFormItem label="链接地址" prop="inner_value" style="margin-bottom: 18px">
-            <div style="width: 100%">
+          <ElFormItem
+            :label="formData.inner_type === 'url' ? '链接地址' : '回调函数'"
+            prop="inner_value"
+            style="margin-bottom: 18px"
+          >
+            <ElSelect
+              v-if="formData.inner_type === 'call'"
+              v-model="formData.inner_value"
+              placeholder="请选择回调函数"
+              style="width: 100%"
+            >
+              <ElOption
+                v-for="item in callbackList"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </ElSelect>
+            <div v-else style="width: 100%">
               <ElInput v-model="formData.inner_value" placeholder="请输入链接地址" />
               <div style="margin-top: 4px; font-size: 12px; color: #999">
                 例如：https://www.123456789.com
@@ -121,7 +140,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, nextTick } from 'vue'
 import {
   ElMessage,
   ElButton,
@@ -142,7 +161,8 @@ import {
   v1GetInnerButtonList,
   v1CreateInnerButton,
   v1UpdateInnerButton,
-  v1DeleteInnerButton
+  v1DeleteInnerButton,
+  getCallBackListApi
 } from '@/api/menu_list'
 import type {
   CreateInnerButtonParams,
@@ -173,9 +193,11 @@ watch(
 )
 
 // 监听dialogVisible变化，同步到父组件
-watch(dialogVisible, (val) => {
+watch(dialogVisible, async (val) => {
   emit('update:modelValue', val)
   if (val) {
+    fetchCallbackList()
+    await nextTick()
     fetchData()
   }
 })
@@ -206,6 +228,7 @@ const formatTimestamp = (timestamp: number): string => {
 }
 
 // 表单相关
+const callbackList = ref<Array<{ label: string; value: string }>>([])
 const formDialogVisible = ref(false)
 const formDialogTitle = ref('添加内联按钮')
 const formRef = ref<FormInstance>()
@@ -214,7 +237,7 @@ const formRef = ref<FormInstance>()
 const formData = reactive({
   id: undefined as number | undefined,
   menu_name: '',
-  inner_type: 'url' as const,
+  inner_type: 'url' as 'url' | 'call',
   inner_value: '',
   order_num: 0,
   status: 1
@@ -225,10 +248,10 @@ const formRules: FormRules = {
   menu_name: [{ required: true, message: '内联按钮名称不能为空', trigger: 'blur' }],
   inner_type: [{ required: true, message: '内联类型不能为空', trigger: 'change' }],
   inner_value: [
-    { required: true, message: '链接地址不能为空', trigger: 'blur' },
+    { required: true, message: '该字段不能为空', trigger: 'blur' },
     {
       validator: (_rule, value, callback) => {
-        if (value) {
+        if (formData.inner_type === 'url' && value) {
           // URL 验证
           const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
           if (!urlPattern.test(value)) {
@@ -315,6 +338,21 @@ const handleDelete = async (row: InnerButtonItem) => {
   }
 }
 
+// 获取回调函数列表
+const fetchCallbackList = async () => {
+  try {
+    const response = await getCallBackListApi()
+    if (response.code === '000000' && response.data) {
+      callbackList.value = response.data.map((item: any) => ({
+        label: item.name,
+        value: item.key
+      }))
+    }
+  } catch (error) {
+    ElMessage.error('获取回调函数列表失败')
+  }
+}
+
 // 事件处理
 const handleAdd = () => {
   formDialogVisible.value = true
@@ -355,11 +393,11 @@ const handleFormSubmit = async () => {
 
     // 判断是添加还是更新
     if (formData.id) {
-      // 更新操作（运营端固定为URL类型）
+      // 更新操作
       const updateParams: UpdateInnerButtonParams = {
         id: formData.id,
         text: formData.menu_name,
-        inner_type: 'url',
+        inner_type: formData.inner_type,
         inner_value: formData.inner_value,
         order_num: formData.order_num || 0,
         status: formData.status || 1
@@ -368,10 +406,10 @@ const handleFormSubmit = async () => {
       await v1UpdateInnerButton(updateParams)
       ElMessage.success('更新成功')
     } else {
-      // 添加操作 - 使用新的创建接口（运营端固定为URL类型）
+      // 添加操作 - 使用新的创建接口
       const createParams: CreateInnerButtonParams = {
         text: formData.menu_name,
-        inner_type: 'url',
+        inner_type: formData.inner_type,
         inner_value: formData.inner_value,
         order_num: formData.order_num || 0,
         status: formData.status || 1
@@ -394,7 +432,6 @@ const handleFormSubmit = async () => {
   }
 }
 
-// 运营端不需要监听inner_type变化，因为固定为URL类型
 </script>
 
 <style scoped>
