@@ -2,7 +2,16 @@
  * 资产账户相关 API
  */
 import request from '@/axios'
-import type { CreateAssetAccountParams, GetAssetBalanceParams, AssetBalanceData } from './types'
+import type {
+  CreateAssetAccountParams,
+  GetAssetBalanceParams,
+  AssetBalanceData,
+  UpdateAssetNotifyParams,
+  AssetNotifyData,
+  GetAssetAccountListParams,
+  AssetAccountListData,
+  DeleteAssetAccountParams
+} from './types'
 
 const BASE_URL = '/v1/asset'
 
@@ -15,6 +24,26 @@ export const createAssetAccount = (data: CreateAssetAccountParams): Promise<IRes
 }
 
 /**
+ * 分页查询资产账户
+ * GET /v1/asset/account
+ */
+export const getAssetAccountList = (
+  params?: GetAssetAccountListParams
+): Promise<IResponse<AssetAccountListData>> => {
+  return request.get({ url: `${BASE_URL}/account`, params })
+}
+
+/**
+ * 删除资产账户
+ * DELETE /v1/asset/account
+ */
+export const deleteAssetAccount = (
+  params: DeleteAssetAccountParams
+): Promise<IResponse<unknown>> => {
+  return request.delete({ url: `${BASE_URL}/account`, params })
+}
+
+/**
  * 统计资产历史
  * GET /v1/asset/report
  */
@@ -22,4 +51,20 @@ export const getAssetReport = (
   params: GetAssetBalanceParams
 ): Promise<IResponse<AssetBalanceData>> => {
   return request.get({ url: `${BASE_URL}/report`, params })
+}
+
+/**
+ * 获取资产通知配置
+ * GET /v1/asset/notify
+ */
+export const getAssetNotify = (): Promise<IResponse<AssetNotifyData>> => {
+  return request.get({ url: `${BASE_URL}/notify` })
+}
+
+/**
+ * 更新资产通知配置
+ * PUT /v1/asset/notify
+ */
+export const updateAssetNotify = (data: UpdateAssetNotifyParams): Promise<IResponse<unknown>> => {
+  return request.put({ url: `${BASE_URL}/notify`, data })
 }

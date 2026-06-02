@@ -190,7 +190,7 @@ import {
 import { ContentWrap } from '@/components/ContentWrap'
 import { Echart } from '@/components/Echart'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import { createAssetAccount, getAssetReport } from '@/api/asset'
+import { createAssetAccount, getAssetReport, updateAssetNotify, getAssetNotify } from '@/api/asset'
 import type { AssetBalanceData, AccountBalanceSnapshot } from '@/api/asset/types'
 import type { EChartsOption } from 'echarts'
 
@@ -348,15 +348,31 @@ const loadData = async () => {
       const data = res.data
       priceTrx.value = parseFloat(data.price_trx) || 0
 
-      // 更新当前余额统计
-      const currentUsdt = parseFloat(data.current.balance_usdt) || 0
-      const currentTrx = parseFloat(data.current.balance_trx) || 0
+      // 更新当前余额统计（current 为当天各账户数组）
+      const currentUsdt = data.current.reduce(
+        (sum, item) => sum + (parseFloat(item.balance_usdt) || 0),
+        0
+      )
+      const currentTrx = data.current.reduce(
+        (sum, item) => sum + (parseFloat(item.balance_trx) || 0),
+        0
+      )
       statsData.totalUsdt = currentUsdt
       statsData.totalTrx = currentTrx
       statsData.totalAsset = currentUsdt + currentTrx * priceTrx.value
 
       // 解析历史数据
       const history = data.history
+      // 将当天 current 数据加入 history（以今天日期为 key）
+      const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+      if (data.current.length > 0) {
+        history[today] = data.current.map((item) => ({
+          created_at: 0,
+          name: item.name,
+          balance_trx: item.balance_trx,
+          balance_usdt: item.balance_usdt
+        }))
+      }
       const dates = Object.keys(history).sort()
 
       // 提取所有账户名称（动态列）
@@ -426,9 +442,19 @@ const loadData = async () => {
         statsData.dailyChange = statsData.totalAsset - yesterdayAsset
       }
 
-      // 较平均值 = 当前折合总资产 - 所选时间范围内日折合资产平均值
-      if (totalAssetArr.length >= 1) {
-        const avg = totalAssetArr.reduce((sum, val) => sum + val, 0) / totalAssetArr.length
+      // 较平均值 = 当前折合总资产 - (历史折合汇率总和 / 选择的天数)
+      // 分母用用户选择的天数，不含当天
+      const historyAssetArr = totalAssetArr.filter((_, i) => dateLabels[i] !== today)
+      if (historyAssetArr.length >= 1) {
+        const selectedDays =
+          dateRange.value === 'custom' && customDateRange.value
+            ? Math.ceil(
+                (customDateRange.value[1].getTime() - customDateRange.value[0].getTime()) /
+                  (1000 * 60 * 60 * 24)
+              ) + 1
+            : parseInt(dateRange.value) || 7
+        const totalSum = historyAssetArr.reduce((sum, val) => sum + val, 0)
+        const avg = totalSum / selectedDays
         statsData.avgChange = statsData.totalAsset - avg
       }
 
@@ -526,8 +552,18 @@ const handleExport = () => {
 }
 
 // 推送余额播报
-const handlePushReport = () => {
+const handlePushReport = async () => {
   botSettingVisible.value = true
+  try {
+    const res = await getAssetNotify()
+    if (res?.data) {
+      botSetting.token = res.data.token || ''
+      botSetting.groupId = res.data.chat_id ? String(res.data.chat_id) : ''
+      botSetting.interval = res.data.interval ? String(res.data.interval) : '30'
+    }
+  } catch (error) {
+    // 获取失败不影响弹窗展示
+  }
 }
 
 // 保存机器人设置
@@ -542,8 +578,11 @@ const handleSaveBotSetting = async () => {
   }
   try {
     submitting.value = true
-    // TODO: 调用保存机器人设置接口
-    // await saveBotPushSetting(botSetting)
+    await updateAssetNotify({
+      token: botSetting.token,
+      chat_id: Number(botSetting.groupId),
+      interval: Number(botSetting.interval)
+    })
     handleSuccessMessage('机器人设置保存成功')
     botSettingVisible.value = false
   } catch (error) {
