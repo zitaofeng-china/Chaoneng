@@ -68,3 +68,13 @@ export const getAssetNotify = (): Promise<IResponse<AssetNotifyData>> => {
 export const updateAssetNotify = (data: UpdateAssetNotifyParams): Promise<IResponse<unknown>> => {
   return request.put({ url: `${BASE_URL}/notify`, data })
 }
+
+/**
+ * 批量创建资产账户
+ * POST /v1/asset/account/batch
+ */
+export const batchCreateAssetAccount = (
+  data: Array<{ address: string; name: string }>
+): Promise<IResponse<unknown>> => {
+  return request.post({ url: `${BASE_URL}/account/batch`, data })
+}

@@ -26,7 +26,7 @@
           <el-upload
             :auto-upload="false"
             :show-file-list="false"
-            accept=".xlsx,.xls,.csv"
+            accept=".xlsx,.xls,.csv,.txt"
             @change="handleFileChange"
           >
             <el-button>选择文件</el-button>
@@ -190,7 +190,7 @@ import {
 import { ContentWrap } from '@/components/ContentWrap'
 import { Echart } from '@/components/Echart'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import { createAssetAccount, getAssetReport, updateAssetNotify, getAssetNotify } from '@/api/asset'
+import { createAssetAccount, getAssetReport, updateAssetNotify, getAssetNotify, batchCreateAssetAccount } from '@/api/asset'
 import { simpleExportToExcel } from '@/utils/excel'
 import type { AssetBalanceData, AccountBalanceSnapshot } from '@/api/asset/types'
 import type { EChartsOption } from 'echarts'
@@ -498,15 +498,50 @@ const loadData = async () => {
 }
 
 // 文件变更
-const handleFileChange = (file: any) => {
-  // TODO: 处理文件上传
-  ElMessage.info(`已选择文件: ${file.name}`)
+const importFile = ref<File | null>(null)
+const handleFileChange = (uploadFile: any) => {
+  importFile.value = uploadFile.raw
 }
 
 // 导入
-const handleImport = () => {
-  // TODO: 调用导入接口
-  ElMessage.info('导入功能待实现')
+const handleImport = async () => {
+  if (!importFile.value) {
+    ElMessage.warning('请先选择文件')
+    return
+  }
+
+  try {
+    const XLSX = await import('xlsx')
+    const arrayBuffer = await importFile.value.arrayBuffer()
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+    const sheet = workbook.Sheets[workbook.SheetNames[0]]
+    const jsonData = XLSX.utils.sheet_to_json<any>(sheet)
+
+    if (!jsonData || jsonData.length === 0) {
+      ElMessage.warning('文件中无有效数据')
+      return
+    }
+
+    // 解析数据，支持表头为"名称"/"地址" 或 "name"/"address"
+    const accounts = jsonData
+      .map((row: any) => ({
+        name: String(row['名称'] || row['name'] || ''),
+        address: String(row['地址'] || row['address'] || '')
+      }))
+      .filter((item: any) => item.name && item.address)
+
+    if (accounts.length === 0) {
+      ElMessage.warning('未识别到有效的名称和地址数据')
+      return
+    }
+
+    await batchCreateAssetAccount(accounts)
+    handleSuccessMessage(`成功导入 ${accounts.length} 条账户`)
+    importFile.value = null
+    loadData()
+  } catch (error) {
+    handleErrorMessage(error, '导入失败')
+  }
 }
 
 // 下载模板
