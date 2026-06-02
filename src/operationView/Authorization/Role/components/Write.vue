@@ -26,6 +26,10 @@ interface ButtonListItem {
   label: string
 }
 
+type RolePermission = string
+
+const excludedRoutes = ['ExchangeRate', 'ExchangeRateIndex']
+
 const props = defineProps({
   currentRow: Object as PropType<RoleFormData | null | undefined>,
   dialogTitle: String,
@@ -51,11 +55,73 @@ const buttonCodeMap: Record<string, string> = {
   // 根据你的实际路由 buttonList 中的 code 添加更多映射
 }
 
+const routeParentMap: Record<string, string | null> = {}
+
+function buildRouteParentMap(routes: any[], parentName: string | null = null) {
+  routes.forEach((route) => {
+    const routeName = typeof route.name === 'string' ? route.name : null
+    if (routeName && !excludedRoutes.includes(routeName) && route.meta?.title) {
+      routeParentMap[routeName] = parentName
+      if (Array.isArray(route.children) && route.children.length > 0) {
+        buildRouteParentMap(route.children, routeName)
+      }
+      return
+    }
+
+    if (Array.isArray(route.children) && route.children.length > 0) {
+      buildRouteParentMap(route.children, parentName)
+    }
+  })
+}
+
+function getAncestorPermissions(permission: string): string[] {
+  const ancestors: string[] = []
+  let current = routeParentMap[permission]
+
+  while (current) {
+    ancestors.unshift(current)
+    current = routeParentMap[current]
+  }
+
+  return ancestors
+}
+
+function expandPermissionsWithParents(permissions: RolePermission[]): RolePermission[] {
+  if (permissions.includes('*')) {
+    return ['*']
+  }
+
+  const expanded: RolePermission[] = []
+  const seen = new Set<RolePermission>()
+
+  const append = (permission: RolePermission) => {
+    if (!permission || seen.has(permission)) {
+      return
+    }
+    seen.add(permission)
+    expanded.push(permission)
+  }
+
+  permissions.forEach((permission) => {
+    if (permission.includes('.')) {
+      const menuPermission = permission.split('.')[0]
+      getAncestorPermissions(menuPermission).forEach(append)
+      append(menuPermission)
+      append(permission)
+      return
+    }
+
+    getAncestorPermissions(permission).forEach(append)
+    append(permission)
+  })
+
+  return expanded
+}
+
+buildRouteParentMap(operationRoutes)
+
 // --- 修改：递归构建菜单树 --- (移除收集叶子节点)
 function buildMenuTree(routes: any[]): any[] {
-  // 需要排除的首页路由
-  const excludedRoutes = ['ExchangeRate', 'ExchangeRateIndex']
-
   return routes
     .filter((route) => {
       // 过滤掉需要排除的路由
@@ -104,7 +170,21 @@ const selectedNodeId = ref<string | null>(null)
 const selectedNodeButtonList = ref<ButtonListItem[]>([])
 
 // 新增：用于响应式跟踪当前权限的 ref
-const currentPermissionsRef = ref<string[]>([])
+const currentPermissionsRef = ref<RolePermission[]>([])
+
+const getMenuPermissions = (permissions: RolePermission[]) =>
+  permissions.filter((permission) => !permission.includes('.'))
+
+const getButtonPermissions = (permissions: RolePermission[]) =>
+  permissions.filter((permission) => permission.includes('.'))
+
+const syncFormPermissions = async (permissions: RolePermission[]) => {
+  currentPermissionsRef.value = permissions
+  setValues({ permissions })
+
+  const elForm = await getElFormExpose()
+  elForm?.validateField('permissions')
+}
 
 // useForm
 const { formRegister, formMethods } = useForm()
@@ -132,11 +212,7 @@ const renderButtonCheckboxes = () => {
       newPermissions = newPermissions.filter((p) => p !== buttonPermission)
     }
 
-    currentPermissionsRef.value = newPermissions
-    setValues({ permissions: newPermissions })
-
-    const elForm = await getElFormExpose()
-    elForm?.validateField('permissions')
+    await syncFormPermissions(newPermissions)
   }
 
   // 返回渲染的 JSX
@@ -263,13 +339,15 @@ const handleCheckChange = async () => {
 
   // 获取所有被勾选的节点（父子联动，ElTree 默认行为）
   const checkedKeys = treeRef.value?.getCheckedKeys(false) ?? []
+  const menuPermissions = checkedKeys.map(String)
+  const buttonPermissions = getButtonPermissions(currentPermissionsRef.value).filter(
+    (permission) => {
+      const menuId = permission.split('.')[0]
+      return menuPermissions.includes(menuId)
+    }
+  )
 
-  // 直接作为权限
-  currentPermissionsRef.value = checkedKeys.map(String)
-  setValues({ permissions: currentPermissionsRef.value })
-
-  const elForm = await getElFormExpose()
-  elForm?.validateField('permissions')
+  await syncFormPermissions([...menuPermissions, ...buttonPermissions])
 }
 
 // --- 更新 nodeClick 函数 ---
@@ -332,10 +410,14 @@ watch(
       const valuesToSet = {
         name: validRow.Name ?? validRow.name ?? '',
         status: validRow.status ?? 1,
-        permissions: isSuperAdmin ? menuPermissions : currentPermissions
+        permissions: isSuperAdmin
+          ? [...menuPermissions]
+          : [...menuPermissions, ...getButtonPermissions(currentPermissions)]
       }
       setValues(valuesToSet)
-      currentPermissionsRef.value = isSuperAdmin ? menuPermissions : currentPermissions
+      currentPermissionsRef.value = isSuperAdmin
+        ? [...menuPermissions]
+        : [...menuPermissions, ...getButtonPermissions(currentPermissions)]
 
       nextTick(() => {
         treeRef.value?.setCheckedKeys([], false)
@@ -370,7 +452,7 @@ const open = () => {
       const currentPermissions = Array.isArray(rowData.permissions)
         ? rowData.permissions.map(String)
         : []
-      const menuPermissions = currentPermissions.filter((p) => !p.includes('.'))
+      const menuPermissions = getMenuPermissions(currentPermissions)
 
       const valuesToSet = {
         name: rowData.Name ?? rowData.name ?? '',
@@ -414,12 +496,13 @@ const submit = async () => {
   const flatPermissions = Array.isArray(formData.permissions)
     ? formData.permissions.map(String)
     : []
+  const normalizedPermissions = expandPermissionsWithParents(flatPermissions)
 
   // 构建最终发送给后端的数据
   const dataToSave = {
     name: formData.name,
     status: formData.status,
-    permissions: flatPermissions // 新接口使用简单的字符串数组
+    permissions: normalizedPermissions
   }
 
   try {

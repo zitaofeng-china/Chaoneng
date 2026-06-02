@@ -1,5 +1,5 @@
 <script setup lang="tsx">
-import { ref, h, nextTick, onMounted } from 'vue'
+import { ref, h, nextTick, onMounted, computed, VNode } from 'vue'
 import { getRoleListApi, getRoleDetailApi, deleteRoleApiV2 } from '@/api/role'
 import { useI18n } from '@/hooks/web/useI18n'
 import { ContentWrap } from '@/components/ContentWrap'
@@ -10,8 +10,18 @@ import { Table, TableColumn } from '@/components/Table'
 import Write from './components/Write.vue'
 import { useTable } from '@/hooks/web/useTable'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { useUserStore } from '@/store/modules/user'
 
 const { t } = useI18n()
+const userStore = useUserStore()
+const userPermissions = computed(() => (userStore.userInfo?.permissions || []).map(String))
+
+const hasPermission = (permission: string) => {
+  if (userStore.isSuperAdmin) {
+    return true
+  }
+  return userPermissions.value.includes(permission)
+}
 
 // 表格列配置
 const columns: TableColumn[] = [
@@ -48,28 +58,38 @@ const columns: TableColumn[] = [
       default: ({ row }: any) => {
         // 判断是否为超级管理员角色（id === 1）
         const isSuperAdmin = row.id === 1
+        const actions: VNode[] = []
 
-        return [
-          h(
-            BaseButton,
-            {
-              type: 'primary',
-              disabled: isSuperAdmin, // id为1时禁用
-              onClick: () => handleAction(row, 'edit'),
-              style: { marginRight: '8px' }
-            },
-            () => t('exampleDemo.edit')
-          ),
-          h(
-            BaseButton,
-            {
-              type: 'danger',
-              disabled: isSuperAdmin, // id为1时禁用
-              onClick: () => handleDelete(row)
-            },
-            () => t('exampleDemo.del')
+        if (hasPermission('Role.edit')) {
+          actions.push(
+            h(
+              BaseButton,
+              {
+                type: 'primary',
+                disabled: isSuperAdmin, // id为1时禁用
+                onClick: () => handleAction(row, 'edit'),
+                style: { marginRight: '8px' }
+              },
+              () => t('exampleDemo.edit')
+            )
           )
-        ]
+        }
+
+        if (hasPermission('Role.delete')) {
+          actions.push(
+            h(
+              BaseButton,
+              {
+                type: 'danger',
+                disabled: isSuperAdmin, // id为1时禁用
+                onClick: () => handleDelete(row)
+              },
+              () => t('exampleDemo.del')
+            )
+          )
+        }
+
+        return actions
       }
     }
   }
@@ -175,7 +195,7 @@ onMounted(() => {
 <template>
   <ContentWrap>
     <!-- Add Button -->
-    <div class="mb-4">
+    <div v-if="hasPermission('Role.add')" class="mb-4">
       <BaseButton type="primary" @click="handleAdd">{{ t('exampleDemo.add') }}</BaseButton>
     </div>
 
