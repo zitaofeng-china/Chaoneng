@@ -32,11 +32,76 @@
 
         <!-- 操作列内容通过 columns formatter 定义 -->
       </SearchTable>
-      <Dialog v-model="addDialogVisible" title="新增地址" width="500px" max-height="300px">
-        <Form :schema="addFormSchema" @register="addFormRegister" label-position="top" />
+      <Dialog
+        v-model="addressDialogVisible"
+        :title="addressDialogTitle"
+        width="560px"
+        max-height="360px"
+      >
+        <ElForm
+          ref="addressFormRef"
+          :model="addressForm"
+          :rules="addressFormRules"
+          label-width="100px"
+        >
+          <ElFormItem label="收款类型:" prop="kind">
+            <ElSelect
+              v-model="addressForm.kind"
+              placeholder="请选择收款类型"
+              class="w-full"
+              @change="handleAddressKindChange"
+            >
+              <ElOption
+                v-for="item in addressKindOptions"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </ElSelect>
+          </ElFormItem>
+          <ElFormItem v-if="!isAgentDepositKind" label="代理:" prop="agent_id">
+            <ElSelect
+              v-model="addressForm.agent_id"
+              placeholder="请选择代理"
+              class="w-full"
+              filterable
+              @change="handleAddressAgentChange"
+            >
+              <ElOption
+                v-for="item in agentList"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </ElSelect>
+          </ElFormItem>
+          <ElFormItem v-if="!isAgentDepositKind" label="机器人:" prop="bot_id">
+            <ElSelect
+              v-model="addressForm.bot_id"
+              placeholder="请选择机器人"
+              class="w-full"
+              filterable
+            >
+              <ElOption
+                v-for="item in filteredBotList"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </ElSelect>
+          </ElFormItem>
+          <ElFormItem label="收款地址:" prop="address">
+            <ElInput
+              v-model="addressForm.address"
+              :type="isMultiAddressKind ? 'textarea' : 'text'"
+              :rows="isMultiAddressKind ? 6 : undefined"
+              :placeholder="isMultiAddressKind ? '请输入地址，每行一个' : '请输入地址'"
+            />
+          </ElFormItem>
+        </ElForm>
         <template #footer>
           <div class="flex justify-end">
-            <ElButton @click="addDialogVisible = false">取消</ElButton>
+            <ElButton @click="addressDialogVisible = false">取消</ElButton>
             <ElButton type="primary" @click="submitAddAddresses" :loading="submitting"
               >确定</ElButton
             >
@@ -56,35 +121,24 @@
           </div>
         </template>
       </Dialog>
-
-      <!-- 绑定代理弹窗 (重新添加) -->
-      <Dialog
-        v-model="bindDialogVisible"
-        title="绑定代理"
-        width="500px"
-        max-height="300px"
-        @open="getAgentList"
-      >
-        <Form :schema="bindFormSchema" @register="bindFormRegister" :isCol="true" />
-        <template #footer>
-          <div class="flex justify-end">
-            <ElButton @click="bindDialogVisible = false">取消</ElButton>
-            <ElButton type="primary" @click="submitBindAgent" :loading="submitting">确定</ElButton>
-          </div>
-        </template>
-      </Dialog>
     </ContentWrap>
   </div>
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive, nextTick } from 'vue'
+import { computed, ref, reactive, nextTick, onMounted } from 'vue'
 import {
   ElButton,
   ElMessageBox,
   ElMessage,
-  ElTag // 重新导入，用于显示状态
+  ElTag,
+  ElForm,
+  ElFormItem,
+  ElInput,
+  ElSelect,
+  ElOption
 } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Icon } from '@/components/Icon'
 import { Dialog } from '@/components/Dialog'
@@ -102,13 +156,14 @@ import { downloadByData, downloadByBase64 } from '@/utils/download' // Revert im
 import {
   v2GetAddressList, // 新接口 - 获取列表
   v2CreateAddress, // 新接口 - 创建地址
-  v2UpdateAddress, // 新接口 - 更新地址（绑定/解绑）
+  v2UpdateAddress, // 新接口 - 更新地址
   v2DeleteAddress, // 新接口 - 删除地址
-  v2GetUnboundAgents, // 新接口 - 获取未绑定的代理列表
   v2ExportAddressModule, // 新接口 - 导出模版
   v2BatchImportAddress // 新接口 - 批量导入
 } from '@/api/marketing/trx_address'
-import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { getAgentListApi } from '@/api/agent/list'
+import { v1GetMessageBotList } from '@/api/message'
 
 // Separate imports for clarity
 
@@ -116,19 +171,88 @@ import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/u
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null) // SearchTable 引用
 const submitting = ref(false)
 const batchImportVisible = ref(false)
-const addDialogVisible = ref(false) // 新增弹窗
-const bindDialogVisible = ref(false) // 绑定弹窗
-const currentBindAddress = ref<any>(null) // 当前操作地址 (用于绑定/解绑)
-const agentList = ref<Array<{ label: string; value: number | string }>>([])
+const addressDialogVisible = ref(false)
+const addressDialogMode = ref<'add' | 'edit'>('add')
+const currentAddress = ref<any>(null)
+const addressFormRef = ref<FormInstance>()
+const agentList = ref<Array<{ label: string; value: number }>>([])
+const botList = ref<Array<{ label: string; value: number; agent_id: number }>>([])
+
+const addressForm = reactive({
+  kind: 1,
+  agent_id: undefined as number | undefined,
+  bot_id: undefined as number | undefined,
+  address: ''
+})
 
 // 使用表单Hook - 导入表单
 const { formRegister: importFormRegister, formMethods: importFormMethods } = useForm()
 
-// 使用表单Hook - 新增表单
-const { formRegister: addFormRegister, formMethods: addFormMethods } = useForm()
+const addressKindMap: Record<number, { label: string; className: string }> = {
+  1: { label: '【代理余额充值】收款地址', className: 'kind-agent' },
+  2: { label: '【用户余额充值】收款地址', className: 'kind-user' },
+  3: { label: '【闪兑T / U】收款地址', className: 'kind-exchange' },
+  4: { label: '【能量闪租】收款地址', className: 'kind-flash' },
+  5: { label: '【按笔数购买】收款地址', className: 'kind-count' },
+  6: { label: '【福利能量】收款地址', className: 'kind-welfare' }
+}
 
-// 使用表单Hook - 绑定代理表单
-const { formRegister: bindFormRegister, formMethods: bindFormMethods } = useForm()
+const addressKindOptions = Object.entries(addressKindMap).map(([value, item]) => ({
+  label: item.label,
+  value: Number(value)
+}))
+
+const allowedAddressKinds = new Set(addressKindOptions.map((item) => item.value))
+
+const isAgentDepositKind = computed(() => Number(addressForm.kind) === 1)
+
+const isMultiAddressKind = computed(() => [1, 6].includes(Number(addressForm.kind)))
+
+const addressDialogTitle = computed(() =>
+  addressDialogMode.value === 'add' ? '新增地址' : '编辑地址'
+)
+
+const filteredBotList = computed(() => {
+  if (!addressForm.agent_id) return botList.value
+  return botList.value.filter((item) => Number(item.agent_id) === Number(addressForm.agent_id))
+})
+
+const validateAgent = (
+  _rule: any,
+  value: number | undefined,
+  callback: (error?: Error) => void
+) => {
+  if (isAgentDepositKind.value || value) {
+    callback()
+    return
+  }
+  callback(new Error('请选择代理'))
+}
+
+const validateBot = (_rule: any, value: number | undefined, callback: (error?: Error) => void) => {
+  if (isAgentDepositKind.value || value) {
+    callback()
+    return
+  }
+  callback(new Error('请选择机器人'))
+}
+
+const addressFormRules: FormRules = {
+  kind: [{ required: true, message: '请选择收款类型', trigger: 'change' }],
+  agent_id: [{ required: true, validator: validateAgent, trigger: 'change' }],
+  bot_id: [{ required: true, validator: validateBot, trigger: 'change' }],
+  address: [{ required: true, message: '请输入地址', trigger: 'blur' }]
+}
+
+const getAddressKindInfo = (kind: number | string) => {
+  const kindValue = Number(kind)
+  return (
+    addressKindMap[kindValue] || {
+      label: kind ? `未知类型(${kind})` : '-',
+      className: 'kind-default'
+    }
+  )
+}
 
 // 表格列配置 - 根据新接口 v2 的响应字段调整
 const columns = ref<TableColumn[]>([
@@ -149,6 +273,14 @@ const columns = ref<TableColumn[]>([
     }
   },
   {
+    field: 'bot_id',
+    label: '机器人',
+    minWidth: '140px',
+    formatter: (row) => {
+      return row.bot_user_name || row.bot_name || row.user_name || '——'
+    }
+  },
+  {
     field: 'created_by',
     label: '创建人',
     width: '120px',
@@ -156,6 +288,15 @@ const columns = ref<TableColumn[]>([
   },
   {
     field: 'kind',
+    label: '收款类型',
+    minWidth: '220px',
+    formatter: (row) => {
+      const kindInfo = getAddressKindInfo(row.kind)
+      return <span class={['address-kind', kindInfo.className]}>{kindInfo.label}</span>
+    }
+  },
+  {
+    field: 'status',
     label: '状态',
     width: '100px',
     formatter: (row) => {
@@ -178,30 +319,22 @@ const columns = ref<TableColumn[]>([
     width: '180px',
     formatter: (row) => formatToDateTime(row.updated_at * 1000) // Unix时间戳转换
   },
-  // 操作列 - 暂时保留，但需要根据新接口调整逻辑
   {
     label: '操作',
     field: 'action',
-    width: '200px',
+    width: '160px',
     fixed: 'right',
+    showOverflowTooltip: false,
     formatter: (row) => {
-      // 新接口中没有明确的绑定状态字段，暂时根据 agent_id 判断
-      const isBound = !!row.agent_id && row.agent_id > 0
       return (
-        <>
-          {isBound ? (
-            <BaseButton type="warning" onClick={() => handleUnbind(row)}>
-              解绑
-            </BaseButton>
-          ) : (
-            <BaseButton type="success" onClick={() => handleBind(row)}>
-              绑定
-            </BaseButton>
-          )}
+        <div class="address-action-buttons">
+          <BaseButton type="primary" onClick={() => handleEdit(row)}>
+            编辑
+          </BaseButton>
           <BaseButton type="danger" onClick={() => handleDelete(row)}>
             删除
           </BaseButton>
-        </>
+        </div>
       )
     }
   }
@@ -217,8 +350,17 @@ const searchSchema = reactive<FormSchema[]>([
       placeholder: 'TRX地址/代理信息',
       clearable: true
     }
+  },
+  {
+    field: 'kind',
+    component: 'Select',
+    label: '收款类型',
+    componentProps: {
+      placeholder: '全部',
+      clearable: true,
+      options: addressKindOptions
+    }
   }
-  // Removed status dropdown
 ])
 
 // 数据获取函数，供 SearchTable 使用
@@ -246,14 +388,14 @@ const fetchData = async (params) => {
       }
     }
 
-    // 使用新接口 v2GetAddressList，指定 kind: 1
-    const res = await v2GetAddressList({ ...processedParams, kind: 1 })
+    const res = await v2GetAddressList(processedParams)
     const data = res.data || {}
+    const list = (data.list || []).filter((item) => allowedAddressKinds.has(Number(item.kind)))
 
     // 新接口返回的数据结构：{ list: [...], pager: { current_page, page_size, total } }
     // SearchTable 需要的格式：{ list: [...], totalCount: number }
     return {
-      list: data.list || [],
+      list,
       totalCount: data.pager?.total || 0
     }
   } catch (error) {
@@ -265,24 +407,30 @@ const fetchData = async (params) => {
 // --- Agent List Loading ---
 const getAgentList = async () => {
   try {
-    const res = await v2GetUnboundAgents()
-    if (res && res.data && res.data.list) {
-      agentList.value = res.data.list.map((agent: any) => ({
-        label: `${agent.username} ${agent.email ? `(${agent.email})` : ''}`,
-        value: agent.id
-      }))
-    } else {
-      console.error('Failed to parse agent list from API response:', res)
-      agentList.value = []
-    }
+    const res = await getAgentListApi({ current_page: 1, page_size: 1000 })
+    agentList.value = (res.data?.list || []).map((agent: any) => ({
+      label: `${agent.username} ${agent.email ? `(${agent.email})` : ''}`,
+      value: Number(agent.id)
+    }))
   } catch (error) {
     handleErrorMessage(error, '获取代理列表失败')
     agentList.value = []
   }
 }
 
-// Call after definition
-getAgentList()
+const getBotList = async () => {
+  try {
+    const res = await v1GetMessageBotList()
+    botList.value = (res.data || []).map((bot: any) => ({
+      label: bot.user_name || bot.first_name || '未命名机器人',
+      value: Number(bot.id),
+      agent_id: Number(bot.agent_id || 0)
+    }))
+  } catch (error) {
+    handleErrorMessage(error, '获取机器人列表失败')
+    botList.value = []
+  }
+}
 
 // 刷新表格方法
 const reloadTable = () => {
@@ -291,10 +439,63 @@ const reloadTable = () => {
 
 // 新增地址
 const handleAdd = () => {
-  addDialogVisible.value = true
-  nextTick(() => {
-    addFormMethods.setValues({ addresses: '' })
+  addressDialogMode.value = 'add'
+  currentAddress.value = null
+  Object.assign(addressForm, {
+    kind: 1,
+    agent_id: undefined,
+    bot_id: undefined,
+    address: ''
   })
+  addressDialogVisible.value = true
+  nextTick(() => {
+    addressFormRef.value?.clearValidate()
+  })
+}
+
+const handleEdit = (row: any) => {
+  addressDialogMode.value = 'edit'
+  currentAddress.value = row
+  Object.assign(addressForm, {
+    kind: Number(row.kind) || 1,
+    agent_id: row.agent_id ? Number(row.agent_id) : undefined,
+    bot_id: row.bot_id ? Number(row.bot_id) : undefined,
+    address: row.address || ''
+  })
+  addressDialogVisible.value = true
+  nextTick(() => {
+    addressFormRef.value?.clearValidate()
+  })
+}
+
+const handleAddressKindChange = () => {
+  if (isAgentDepositKind.value) {
+    addressForm.agent_id = undefined
+    addressForm.bot_id = undefined
+  }
+  nextTick(() => {
+    addressFormRef.value?.clearValidate(['agent_id', 'bot_id'])
+  })
+}
+
+const handleAddressAgentChange = () => {
+  if (
+    addressForm.bot_id &&
+    !filteredBotList.value.some((item) => Number(item.value) === Number(addressForm.bot_id))
+  ) {
+    addressForm.bot_id = undefined
+  }
+}
+
+const parseAddressList = () => {
+  if (!isMultiAddressKind.value) {
+    return addressForm.address.trim() ? [addressForm.address.trim()] : []
+  }
+
+  return addressForm.address
+    .split(/[\n\r]+/)
+    .map((address) => address.trim())
+    .filter(Boolean)
 }
 
 // 批量导入按钮点击
@@ -387,135 +588,8 @@ const submitBatchImport = async () => {
   }
 }
 
-// 绑定代理按钮点击
-const handleBind = (row: any) => {
-  currentBindAddress.value = row
-  bindDialogVisible.value = true
-  nextTick(() => {
-    // Reset Select value to undefined for proper placeholder display
-    bindFormMethods.setValues({ userId: undefined })
-    bindFormMethods.setValues({ address: row.address })
-  })
-}
-
-// 绑定代理表单配置
-const bindFormSchema = reactive<FormSchema[]>([
-  {
-    field: 'address',
-    component: 'Input',
-    label: '当前地址:',
-    componentProps: {
-      disabled: true
-    },
-    colProps: {
-      span: 24
-    }
-  },
-  {
-    field: 'userId',
-    label: '所属代理：',
-    component: 'Select',
-    componentProps: {
-      placeholder: '请选择所属代理',
-      options: agentList, // <--- 绑定到 agentList ref
-      filterable: true // 允许搜索
-    },
-    formItemProps: {
-      rules: [{ required: true, message: '请选择所属代理', trigger: 'change' }] // Updated message
-    },
-    colProps: {
-      span: 24
-    }
-  }
-])
-
-// 提交绑定代理
-const submitBindAgent = async () => {
-  try {
-    const formData = await bindFormMethods.getFormData()
-    const userId = formData.userId
-    if (!userId) {
-      ElMessage.error('请选择所属代理')
-      return
-    }
-
-    submitting.value = true
-    // 使用新接口 v2UpdateAddress 进行绑定
-    const updateData = {
-      address: currentBindAddress.value.address,
-      agent_id: parseInt(userId, 10), // 绑定的代理ID
-      bot_id: currentBindAddress.value.bot_id,
-      created_at: currentBindAddress.value.created_at,
-      created_by: currentBindAddress.value.created_by,
-      id: currentBindAddress.value.id,
-      kind: currentBindAddress.value.kind,
-      updated_at: currentBindAddress.value.updated_at
-    }
-
-    console.log('=== 收款配置 - 绑定代理 ===')
-    console.log('提交数据:', JSON.stringify(updateData, null, 2))
-
-    await v2UpdateAddress(updateData)
-    handleSuccessMessage('绑定成功')
-    bindDialogVisible.value = false
-    reloadTable()
-  } catch (error) {
-    handleErrorMessage(error, '绑定失败')
-  } finally {
-    submitting.value = false
-  }
-}
-
-// 解绑代理按钮点击 - 使用新接口 v2UpdateAddress
-const handleUnbind = async (row: any) => {
-  // 新接口使用 agent_id 字段
-  if (!row.agent_id) {
-    ElMessage.error('无法获取当前绑定代理的ID')
-    return
-  }
-  try {
-    await ElMessageBox.confirm(`确认要解绑地址 ${row.address} 吗？`, '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-    submitting.value = true
-    // 使用新接口 v2UpdateAddress，将 agent_id 设为 0 表示解绑
-    const updateData = {
-      address: row.address,
-      agent_id: 0, // 解绑时设为0
-      bot_id: row.bot_id,
-      created_at: row.created_at,
-      created_by: row.created_by,
-      id: row.id,
-      kind: row.kind,
-      updated_at: row.updated_at
-    }
-
-    console.log('=== 收款配置 - 解绑代理 ===')
-    console.log('提交数据:', JSON.stringify(updateData, null, 2))
-
-    await v2UpdateAddress(updateData)
-    handleSuccessMessage('解绑成功')
-    reloadTable()
-  } catch (error) {
-    if (error !== 'cancel') {
-      handleErrorMessage(error, '解绑失败')
-    }
-  } finally {
-    submitting.value = false
-  }
-}
-
 // 删除地址
 const handleDelete = async (row) => {
-  // 判断是否已绑定代理
-  const isBound = !!row.agent_id && row.agent_id > 0
-  if (isBound) {
-    ElMessage.warning('该地址已绑定代理，无法删除。请先解绑后再删除。')
-    return
-  }
-
   try {
     await ElMessageBox.confirm(`确认要删除地址 ${row.address} 吗？`, '提示', {
       confirmButtonText: '确定',
@@ -532,65 +606,56 @@ const handleDelete = async (row) => {
   }
 }
 
-// 批量删除功能已注释
-// const handleBatchDelete = async () => { ... }
-
-// --- 新增地址逻辑 ---
-const addFormSchema = reactive<FormSchema[]>([
-  {
-    field: 'addresses',
-    label: 'TRX地址:',
-    component: 'Input',
-    componentProps: {
-      type: 'textarea',
-      rows: 10,
-      placeholder: '请输入TRX地址，每行一个'
-    },
-    formItemProps: {
-      rules: [{ required: true, message: '地址不能为空', trigger: 'blur' }]
-    },
-    // 添加 colProps 使其占满整行
-    colProps: {
-      span: 24
-    }
-  }
-])
-
 const submitAddAddresses = async () => {
   try {
-    const formData = await addFormMethods.getFormData()
-    if (!formData.addresses) {
+    await addressFormRef.value?.validate()
+    const kind = Number(addressForm.kind)
+    const addressList = parseAddressList()
+    if (addressList.length === 0) {
       ElMessage.warning('请输入地址')
       return
     }
-    const addressList = formData.addresses
-      .split(/[\n\r]+/)
-      .filter((addr: string) => addr.trim() !== '')
-    if (addressList.length === 0) {
-      ElMessage.warning('未输入有效地址')
+    if (addressDialogMode.value === 'edit' && addressList.length > 1) {
+      ElMessage.warning('编辑时只能填写一个地址')
       return
     }
+    const address = addressList[0]
+    const agentId = kind === 1 ? 0 : Number(addressForm.agent_id)
+    const botId = kind === 1 ? 0 : Number(addressForm.bot_id)
 
     submitting.value = true
-    await v2CreateAddress({ kind: 1, list: addressList })
-    handleSuccessMessage('新增成功')
-    addDialogVisible.value = false
+    if (addressDialogMode.value === 'edit' && currentAddress.value?.id) {
+      await v2UpdateAddress({
+        ...currentAddress.value,
+        id: currentAddress.value.id,
+        address,
+        kind,
+        agent_id: agentId,
+        bot_id: botId
+      })
+      handleSuccessMessage('编辑成功')
+    } else {
+      await v2CreateAddress({
+        kind,
+        agent_id: kind === 1 ? undefined : agentId,
+        bot_id: kind === 1 ? undefined : botId,
+        list: addressList
+      })
+      handleSuccessMessage('新增成功')
+    }
+    addressDialogVisible.value = false
     reloadTable()
   } catch (error: any) {
-    console.log('新增地址错误:', error)
-    // 检查错误码，000007 表示地址重复
+    if (error === false) return
     const errorCode = error?.code
     const errorMsg = error?.msg || error?.message || ''
-    console.log('错误信息:', errorMsg)
-    console.log('错误码:', errorCode)
 
     if (errorCode === '000007') {
       ElMessage.error('地址重复，请检查后重新输入')
     } else if (errorMsg) {
-      // 如果有具体错误信息，直接显示
       ElMessage.error(errorMsg)
     } else {
-      ElMessage.error('新增地址失败')
+      ElMessage.error(addressDialogMode.value === 'add' ? '新增地址失败' : '编辑地址失败')
     }
   } finally {
     submitting.value = false
@@ -612,4 +677,50 @@ const handleExportTemplate = async () => {
     handleErrorMessage(error, '模版下载失败')
   }
 }
+
+onMounted(() => {
+  getAgentList()
+  getBotList()
+})
 </script>
+
+<style scoped>
+.address-kind {
+  font-weight: 500;
+}
+
+.kind-agent {
+  color: #e67e22;
+}
+
+.kind-user {
+  color: #303133;
+}
+
+.kind-flash {
+  color: #1890ff;
+}
+
+.kind-count {
+  color: #722ed1;
+}
+
+.kind-exchange {
+  color: #1d39c4;
+}
+
+.kind-welfare {
+  color: #409eff;
+}
+
+.kind-default {
+  color: #606266;
+}
+
+.address-action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+</style>
