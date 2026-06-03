@@ -89,6 +89,7 @@ export type SystemPrice = {
   name: string // 名称
   agent_id: number // 代理ID
   active: string // 激活价格
+  bandwidth?: string // 带宽价格
   time_1h: string // 1小时时间价格
   time_1d: string // 1天时间价格
   time_3d: string // 3天时间价格

@@ -225,7 +225,7 @@
             </div>
           </div>
 
-          <!-- 第二行：闪租 - 按笔数 - 首次激活 - 批量下单 - 机器人价格 -->
+          <!-- 第二行：闪租 - 按笔数 - 首次激活 - 带宽 - 批量下单 - 机器人价格 -->
           <div class="row-second">
             <!-- 闪租 -->
             <div class="price-item-card">
@@ -282,6 +282,26 @@
                     controls-position="right"
                   />
                   <span v-else class="value-text">{{ formDataMap[agent.id].active }}</span>
+                  <span class="unit">TRX</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 带宽 -->
+            <div class="price-item-card">
+              <div class="item-title">带宽</div>
+              <div class="item-content single-input">
+                <div class="value-wrapper">
+                  <el-input-number
+                    v-if="editModeMap[agent.id]"
+                    v-model="formDataMap[agent.id].bandwidth"
+                    :precision="2"
+                    :step="0.1"
+                    :min="0"
+                    size="small"
+                    controls-position="right"
+                  />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].bandwidth }}</span>
                   <span class="unit">TRX</span>
                 </div>
               </div>
@@ -419,6 +439,7 @@ const hasChanges = (agentId: number) => {
     Number(formData.usdt_2_trx) !== Number(original.usdt_2_trx) ||
     Number(formData.bot_fee) !== Number(original.bot_fee) ||
     Number(formData.batch_flash) !== Number(original.batch_flash || 0) ||
+    Number(formData.bandwidth) !== Number(original.bandwidth || 0) ||
     Number(formData.weal) !== Number(original.weal || 0)
   )
 }
@@ -452,6 +473,7 @@ const handleCancel = (agentId: number) => {
       usdt_2_trx: Number(original.usdt_2_trx),
       bot_fee: Number(original.bot_fee),
       batch_flash: Number(original.batch_flash || 0),
+      bandwidth: Number(original.bandwidth || 0),
       weal: Number(original.weal || 0)
     }
   }
@@ -502,6 +524,7 @@ const loadPriceData = async () => {
         usdt_2_trx: Number(item.usdt_2_trx),
         bot_fee: Number(item.bot_fee),
         batch_flash: Number(item.batch_flash || 0),
+        bandwidth: Number(item.bandwidth || 0),
         weal: Number(item.weal || 0)
       }
     })
@@ -545,6 +568,7 @@ const handleSave = async (agentId: number) => {
       usdt_2_trx: formData.usdt_2_trx,
       bot_fee: formData.bot_fee,
       batch_flash: formData.batch_flash,
+      bandwidth: formData.bandwidth,
       weal: formData.weal
     })
 
@@ -649,7 +673,7 @@ onActivated(() => {
 
 .row-second {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   grid-column: 1 / -1;
   gap: 12px;
 }

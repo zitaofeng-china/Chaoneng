@@ -205,6 +205,7 @@ export function useBotConfigV1() {
         hosting_65k: parseFloat(systemPrice.hosting_65k) || 0,
         hosting_131k: parseFloat(systemPrice.hosting_131k) || 0,
         batch_flash: parseFloat(systemPrice.batch_flash) || 0,
+        bandwidth: parseFloat(systemPrice.bandwidth || '0') || 0,
         active: parseFloat(systemPrice.active) || 0,
         weal: parseFloat(systemPrice.weal || '0') || 0
       })

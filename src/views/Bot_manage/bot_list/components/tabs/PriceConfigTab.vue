@@ -26,7 +26,7 @@ const formatCostValue = (value: any) => {
   return Number.isInteger(num) ? String(num) : num.toFixed(2).replace(/\.?0+$/, '')
 }
 
-const getCombinedCostText = (energyCostKey: string, bandwidthCostKey = 'active') => {
+const getCombinedCostText = (energyCostKey: string, bandwidthCostKey = 'bandwidth') => {
   const energyCost = computedCostPrices.value[energyCostKey]
   const bandwidthCost = computedCostPrices.value[bandwidthCostKey]
 
