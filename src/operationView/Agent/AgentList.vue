@@ -201,7 +201,7 @@ const handleExport = async () => {
         代理等级: getAgentLevelText(item.price_id),
         机器人数量: item.bot_count ?? 0,
         总用户数: item.user_count ?? 0,
-        TRX余额: item.trx_balance || '-',
+        TRX余额: item.trx_balance ? parseFloat(item.trx_balance).toFixed(2) : '-',
         TRX收入: item.trx_income ?? '0',
         USDT收入: item.usdt_income ?? '0',
         是否赠送带宽: item.gift_bandwidth ? '赠送' : '不赠送',
@@ -713,7 +713,10 @@ const columns = computed<TableColumn[]>(() => [
     label: 'TRX余额',
     minWidth: 110,
     sortable: 'custom',
-    formatter: (row: AgentItem) => row.trx_balance || '-'
+    formatter: (row: AgentItem) => {
+      const val = parseFloat(row.trx_balance)
+      return isNaN(val) ? '-' : val.toFixed(2)
+    }
   },
   {
     field: 'trx_income',
