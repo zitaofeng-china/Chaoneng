@@ -1,145 +1,43 @@
 <template>
   <div class="app-container">
     <ContentWrap>
-      <el-tabs v-model="activeTab" @tab-change="handleTabChange">
-        <!-- 基础设置 -->
-        <el-tab-pane label="福利地址" name="basic">
-          <!-- 福利收款钱包地址 -->
-          <el-divider content-position="left">福利收款钱包地址</el-divider>
-          <div class="weal-address-section">
-            <SearchTable
-              ref="searchTableRef"
-              :columns="addressColumns"
-              :fetch-data-api="fetchWealAddresses"
-              :table-props="{ border: true }"
-              :show-search="false"
-              :pagination="{
-                pageSize: 10,
-                pageSizes: [10, 20, 50, 100]
-              }"
-            >
-              <template #toolbar>
-                <el-button type="primary" @click="handleAddAddress">
-                  <Icon icon="ep:plus" class="mr-5px" />
-                  添加地址
-                </el-button>
-                <el-button type="danger" @click="handleBatchDeleteDialog">
-                  <Icon icon="ep:delete" class="mr-5px" />
-                  批量删除
-                </el-button>
-              </template>
-            </SearchTable>
-          </div>
-        </el-tab-pane>
+      <el-divider content-position="left">福利价格</el-divider>
+      <Form
+        labelPosition="top"
+        :schema="priceSchema"
+        @register="priceFormRegister"
+        :gridColumns="2"
+      />
 
-        <!-- 高级设置 -->
-        <el-tab-pane label="福利条件" name="advanced">
-          <!-- 福利价格配置 -->
-          <el-divider content-position="left">福利价格</el-divider>
-          <Form
-            labelPosition="top"
-            :schema="priceSchema"
-            @register="priceFormRegister"
-            :gridColumns="2"
-          />
+      <div style="margin: 0 0 16px; font-size: 14px; font-weight: bold; color: #f56c6c">
+        提示：满足以下全部条件可发放！！！
+      </div>
 
-          <div style="margin: 0 0 16px; font-size: 14px; font-weight: bold; color: #f56c6c">
-            提示：满足以下全部条件可发放！！！
-          </div>
-
-          <!-- 购买限制 -->
-          <el-divider content-position="left">
-            购买限制<span style="font-size: 10px; color: #f56c6c">(需小于以下条件)</span>
-          </el-divider>
-          <Form
-            labelPosition="top"
-            :schema="welfareSchema"
-            @register="welfareFormRegister"
-            :gridColumns="2"
-          />
-          <div class="section-actions">
-            <el-button type="primary" @click="handleSaveWelfare" :loading="submitting">
-              保存福利条件
-            </el-button>
-          </div>
-        </el-tab-pane>
-      </el-tabs>
-
-      <!-- 添加地址对话框 -->
-      <Dialog v-model="addDialogVisible" title="添加福利收款地址" width="600px" max-height="300px">
-        <div style="margin-bottom: 16px">
-          <div style="margin-bottom: 8px">
-            <span style="font-size: 14px; font-weight: 500">钱包地址</span>
-            <span style="margin-left: 8px; font-size: 12px; color: #909399">
-              （每行一个地址，支持批量添加）
-            </span>
-          </div>
-          <el-input
-            v-model="addressForm.addresses"
-            type="textarea"
-            :rows="12"
-            placeholder="请输入福利收款钱包地址，每行一个"
-            style="font-family: monospace"
-          />
-        </div>
-        <template #footer>
-          <div style="display: flex; justify-content: flex-end; gap: 12px">
-            <el-button @click="addDialogVisible = false">取消</el-button>
-            <el-button type="primary" @click="handleConfirmAdd" :loading="submitting">
-              确定添加
-            </el-button>
-          </div>
-        </template>
-      </Dialog>
-
-      <!-- 批量删除对话框 -->
-      <Dialog
-        v-model="batchDeleteVisible"
-        title="批量删除福利收款地址"
-        width="600px"
-        max-height="300px"
-      >
-        <div style="margin-bottom: 16px">
-          <div style="margin-bottom: 8px">
-            <span style="font-size: 14px; font-weight: 500">要删除的钱包地址</span>
-            <span style="margin-left: 8px; font-size: 12px; color: #909399">
-              （每行一个地址，支持批量删除）
-            </span>
-          </div>
-          <el-input
-            v-model="batchDeleteForm.addresses"
-            type="textarea"
-            :rows="12"
-            placeholder="请输入要删除的钱包地址，每行一个"
-            style="font-family: monospace"
-          />
-        </div>
-        <template #footer>
-          <div style="display: flex; justify-content: flex-end; gap: 12px">
-            <el-button @click="batchDeleteVisible = false">取消</el-button>
-            <el-button type="danger" @click="handleConfirmBatchDelete" :loading="submitting">
-              确定删除
-            </el-button>
-          </div>
-        </template>
-      </Dialog>
+      <el-divider content-position="left">
+        购买限制<span style="font-size: 10px; color: #f56c6c">(需小于以下条件)</span>
+      </el-divider>
+      <Form
+        labelPosition="top"
+        :schema="welfareSchema"
+        @register="welfareFormRegister"
+        :gridColumns="2"
+      />
+      <div class="section-actions">
+        <ElButton type="primary" @click="handleSaveWelfare" :loading="submitting">
+          保存福利条件
+        </ElButton>
+      </div>
     </ContentWrap>
   </div>
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive, onMounted, h, nextTick } from 'vue'
-import { ElButton, ElMessage, ElMessageBox, ElDivider, ElTabs, ElTabPane } from 'element-plus'
+import { ref, reactive, onMounted } from 'vue'
+import { ElButton } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
-import { Icon } from '@/components/Icon'
-import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
-import { formatToDateTime } from '@/utils/dateUtil'
-import { SearchTable } from '@/components/SearchTable'
-import type { TableColumn } from '@/components/Table'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import { v1GetAddressList, v1AddAddressList, v1DeleteAddressList } from '@/api/botlist'
 import request from '@/axios'
 
 // 获取福利条件配置 GET /v1/weal
@@ -152,34 +50,12 @@ const updateWealConfig = (data: any) => {
   return request.put({ url: '/v1/weal', data })
 }
 
-// 标签页
-const activeTab = ref('basic')
-
 // 状态
 const submitting = ref(false)
-
-// 地址相关
-const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
-const addDialogVisible = ref(false)
-const batchDeleteVisible = ref(false)
-const addressForm = reactive({ addresses: '' })
-const batchDeleteForm = reactive({ addresses: '' })
 
 // 表单
 const { formRegister: priceFormRegister, formMethods: priceFormMethods } = useForm()
 const { formRegister: welfareFormRegister, formMethods: welfareFormMethods } = useForm()
-
-// 标签页切换
-const handleTabChange = async (tab: string) => {
-  if (tab === 'basic') {
-    // 切换到福利地址，刷新地址列表
-    await nextTick()
-    searchTableRef.value?.reload()
-  } else if (tab === 'advanced') {
-    // 切换到福利条件，重新加载配置
-    await loadWelfareConfig()
-  }
-}
 
 // 加载福利条件配置
 const loadWelfareConfig = async () => {
@@ -209,38 +85,6 @@ const loadWelfareConfig = async () => {
     }
   } catch (error) {
     handleErrorMessage(error, '获取福利配置失败')
-  }
-}
-
-// 保存价格配置（和福利条件一起保存）
-const handleSavePrice = async () => {
-  try {
-    submitting.value = true
-    const priceData = await priceFormMethods.getFormData()
-    const welfareData = await welfareFormMethods.getFormData()
-
-    const welfareConfig = {
-      price: priceData.weal || 0,
-      max_count: welfareData.max_count || 0,
-      min_interval: Math.round((welfareData.min_interval || 0) * 3600),
-      max_energy: welfareData.max_energy || 0,
-      max_bandwidth: welfareData.max_bandwidth || 0,
-      min_active_day: welfareData.min_active_day || 0,
-      min_balance_trx: welfareData.min_balance_trx || 0,
-      min_balance_usdt: welfareData.min_balance_usdt || 0,
-      min_avg_transfer_trx: welfareData.min_avg_transfer_trx || 0,
-      min_avg_transfer_usdt: welfareData.min_avg_transfer_usdt || 0,
-      min_send_interval: Math.round((welfareData.min_send_interval || 0) * 60),
-      same_send_max_count_trx: welfareData.same_send_max_count_trx || 0,
-      same_send_min_amount_trx: welfareData.same_send_min_amount_trx || 0
-    }
-
-    await updateWealConfig(welfareConfig)
-    handleSuccessMessage('保存成功')
-  } catch (error) {
-    handleErrorMessage(error, '保存失败')
-  } finally {
-    submitting.value = false
   }
 }
 
@@ -538,180 +382,6 @@ const welfareSchema = reactive<FormSchema[]>([
   }
 ])
 
-// ========== 地址列表 ==========
-const addressColumns = ref<TableColumn[]>([
-  {
-    field: 'address',
-    label: '地址',
-    minWidth: '200px'
-  },
-  {
-    field: 'created_at',
-    label: '创建时间',
-    width: '180px',
-    formatter: (row) => formatToDateTime(row.created_at * 1000)
-  },
-  {
-    field: 'updated_at',
-    label: '修改时间',
-    width: '180px',
-    formatter: (row) => formatToDateTime(row.updated_at * 1000)
-  },
-  {
-    label: '操作',
-    field: 'action',
-    width: '120px',
-    fixed: 'right',
-    formatter: (row) => {
-      return h(
-        ElButton,
-        {
-          type: 'danger',
-          size: 'small',
-          onClick: () => handleDeleteAddress(row)
-        },
-        () => '删除'
-      )
-    }
-  }
-])
-
-// 获取福利地址列表
-const fetchWealAddresses = async (params: any) => {
-  try {
-    const res = await v1GetAddressList({
-      kind: 6,
-      current_page: params.current_page || 1,
-      page_size: params.page_size || 10
-    })
-
-    const data = res.data || {}
-    return {
-      list: data.list || [],
-      totalCount: data.pager?.total || 0
-    }
-  } catch (error) {
-    console.error('获取福利地址列表失败:', error)
-    return { list: [], totalCount: 0 }
-  }
-}
-
-// 刷新表格
-const reloadTable = () => {
-  searchTableRef.value?.reload()
-}
-
-// 删除单个地址
-const handleDeleteAddress = async (row: any) => {
-  try {
-    await ElMessageBox.confirm('确定要删除该地址吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-
-    await v1DeleteAddressList({
-      list: [row.address]
-    })
-
-    ElMessage.success('删除成功')
-    reloadTable()
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      const errorMsg = error?.msg || error?.message || '删除失败'
-      ElMessage.error(errorMsg)
-    }
-  }
-}
-
-// 添加地址
-const handleAddAddress = () => {
-  addressForm.addresses = ''
-  addDialogVisible.value = true
-}
-
-// 确认添加
-const handleConfirmAdd = async () => {
-  if (!addressForm.addresses.trim()) {
-    ElMessage.warning('请输入地址')
-    return
-  }
-
-  const addressList = addressForm.addresses
-    .split(/[\n\r]+/)
-    .map((addr: string) => addr.trim())
-    .filter((addr: string) => addr !== '')
-
-  if (addressList.length === 0) {
-    ElMessage.warning('未输入有效地址')
-    return
-  }
-
-  try {
-    submitting.value = true
-    await v1AddAddressList({
-      kind: 6,
-      list: addressList
-    })
-    ElMessage.success(`成功添加 ${addressList.length} 个地址`)
-    addDialogVisible.value = false
-    reloadTable()
-  } catch (error: any) {
-    const errorMsg = error?.msg || error?.message || '添加失败'
-    ElMessage.error(errorMsg)
-  } finally {
-    submitting.value = false
-  }
-}
-
-// 批量删除对话框
-const handleBatchDeleteDialog = () => {
-  batchDeleteForm.addresses = ''
-  batchDeleteVisible.value = true
-}
-
-// 确认批量删除
-const handleConfirmBatchDelete = async () => {
-  if (!batchDeleteForm.addresses.trim()) {
-    ElMessage.warning('请输入要删除的地址')
-    return
-  }
-
-  const addressList = batchDeleteForm.addresses
-    .split(/[\n\r]+/)
-    .map((addr: string) => addr.trim())
-    .filter((addr: string) => addr !== '')
-
-  if (addressList.length === 0) {
-    ElMessage.warning('未输入有效地址')
-    return
-  }
-
-  try {
-    await ElMessageBox.confirm(`确定要删除 ${addressList.length} 个地址吗？`, '批量删除确认', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-
-    submitting.value = true
-    await v1DeleteAddressList({
-      list: addressList
-    })
-
-    ElMessage.success(`成功删除 ${addressList.length} 个地址`)
-    batchDeleteVisible.value = false
-    reloadTable()
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      const errorMsg = error?.msg || error?.message || '批量删除失败'
-      ElMessage.error(errorMsg)
-    }
-  } finally {
-    submitting.value = false
-  }
-}
-
 // 初始化
 onMounted(async () => {
   await loadWelfareConfig()
@@ -723,11 +393,5 @@ onMounted(async () => {
   display: flex;
   justify-content: flex-end;
   margin: 16px 0 24px;
-}
-
-.weal-address-section {
-  padding: 10px;
-  background-color: var(--el-fill-color-light);
-  border-radius: 4px;
 }
 </style>
