@@ -1,6 +1,12 @@
 <template>
   <div class="notification-config-section">
-    <h3 class="text-lg font-semibold mb-2">代理消息提醒配置</h3>
+    <div class="notification-config-header">
+      <h3 class="text-lg font-semibold">代理消息提醒配置</h3>
+      <div class="official-bot-tip">
+        该功能启用前,请务必关注官方机器人
+        <a href="https://t.me/trxtoo" target="_blank" rel="noopener noreferrer">@trxtoo</a>!
+      </div>
+    </div>
 
     <div class="flex justify-center">
       <ElForm :model="form" label-width="100px" class="max-w-2xl">
@@ -246,5 +252,37 @@ const handleChatIdInput = (value: string) => {
   border: 1px solid #ebeef5;
   border-radius: 4px;
   box-shadow: 0 2px 12px 0 rgb(0 0 0 / 10%);
+}
+
+.notification-config-header {
+  position: relative;
+  display: flex;
+  min-height: 24px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.notification-config-header h3 {
+  margin: 0;
+}
+
+.official-bot-tip {
+  position: absolute;
+  left: 50%;
+  font-size: 14px;
+  font-weight: 500;
+  color: #f56c6c;
+  text-align: center;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.official-bot-tip a {
+  color: #409eff;
+  text-decoration: none;
+}
+
+.official-bot-tip a:hover {
+  text-decoration: underline;
 }
 </style>

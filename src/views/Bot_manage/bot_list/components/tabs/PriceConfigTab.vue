@@ -20,6 +20,26 @@ const computedCostPrices = computed(() => props.costPrices || {})
 
 const { formRegister, formMethods } = useForm()
 
+const formatCostValue = (value: any) => {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return 'N/A'
+  return Number.isInteger(num) ? String(num) : num.toFixed(2).replace(/\.?0+$/, '')
+}
+
+const getCombinedCostText = (energyCostKey: string, bandwidthCostKey = 'active') => {
+  const energyCost = computedCostPrices.value[energyCostKey]
+  const bandwidthCost = computedCostPrices.value[bandwidthCostKey]
+
+  if (energyCost === undefined || bandwidthCost === undefined) {
+    return '能量成本价: N/A + 带宽成本价: N/A = N/A TRX'
+  }
+
+  const total = Number(energyCost) + Number(bandwidthCost)
+  return `能量成本价: ${formatCostValue(energyCost)} + 带宽成本价: ${formatCostValue(
+    bandwidthCost
+  )} = ${formatCostValue(total)} TRX`
+}
+
 // 创建成本价验证器（仅提示，不阻止提交）
 const createCostPriceValidator = (costPriceKey: string, _fieldName: string) => {
   return {
@@ -313,8 +333,7 @@ const priceSchema = reactive<FormSchema[]>([
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.hosting_65k
-          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX/笔` : '成本价: N/A'
+          const costText = getCombinedCostText('hosting_65k')
           return (
             <>
               65000能量 <small style="color: #909399; font-size: 10px;">（{costText}）</small>
@@ -340,8 +359,7 @@ const priceSchema = reactive<FormSchema[]>([
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.hosting_131k
-          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX/笔` : '成本价: N/A'
+          const costText = getCombinedCostText('hosting_131k')
           return (
             <>
               131000能量 <small style="color: #909399; font-size: 10px;">（{costText}）</small>
@@ -375,8 +393,7 @@ const priceSchema = reactive<FormSchema[]>([
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.batch_flash
-          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
+          const costText = getCombinedCostText('batch_flash')
           return (
             <>
               能量单价 <small style="color: #909399; font-size: 10px;">（{costText}）</small>
