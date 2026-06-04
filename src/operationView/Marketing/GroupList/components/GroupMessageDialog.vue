@@ -246,6 +246,15 @@ const dialogTitle = computed(() => {
   return `发送消息到群组: ${props.currentGroup?.name || ''}`
 })
 
+const getChatTypeLabel = (type?: string) => {
+  const map: Record<string, string> = {
+    group: '群组',
+    supergroup: '超级群组',
+    channel: '频道'
+  }
+  return type ? map[type] || type : '群组'
+}
+
 // 当前机器人名称
 const currentBotName = computed(() => {
   if (!props.currentGroup) return ''
@@ -402,7 +411,7 @@ const handleSubmit = async () => {
   previewData.botName = currentBotName.value
 
   // 群组/频道信息
-  const chatTypeLabel = props.currentGroup.type === 'channel' ? '频道' : '群组'
+  const chatTypeLabel = getChatTypeLabel(props.currentGroup.type)
   previewData.groupInfo = `${chatTypeLabel}: ${props.currentGroup.name} (ID: ${props.currentGroup.id})`
 
   // 消息内容

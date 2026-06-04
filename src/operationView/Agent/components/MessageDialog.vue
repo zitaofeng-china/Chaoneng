@@ -355,10 +355,19 @@ const menuList = ref<InnerButtonItem[]>([])
 const groupList = ref<MessageChatItem[]>([])
 const groupListLoading = ref(false)
 
+const getChatTypeLabel = (type?: string) => {
+  const map: Record<string, string> = {
+    group: '群组',
+    supergroup: '超级群组',
+    channel: '频道'
+  }
+  return type ? map[type] || type : '群组'
+}
+
 // 为虚拟化选择器准备群组选项数据
 const groupOptions = computed(() => {
   return groupList.value.map((group) => {
-    const typeLabel = group.type === 'channel' ? '频道' : '群组'
+    const typeLabel = getChatTypeLabel(group.type)
     return {
       label: `[${typeLabel}] ${group.name} (ID: ${group.id})`,
       value: group.id
@@ -680,12 +689,15 @@ const handleSubmit = async () => {
     // 群组/频道信息
     if (formData.value.chat_ids && formData.value.chat_ids.length > 0) {
       const channelNames: string[] = []
+      const supergroupNames: string[] = []
       const groupNames: string[] = []
       formData.value.chat_ids.forEach((groupId) => {
         const chat = groupList.value.find((g) => g.id === groupId)
         const name = chat ? chat.name : `ID: ${groupId}`
         if (chat?.type === 'channel') {
           channelNames.push(name)
+        } else if (chat?.type === 'supergroup') {
+          supergroupNames.push(name)
         } else {
           groupNames.push(name)
         }
@@ -693,6 +705,9 @@ const handleSubmit = async () => {
       const parts: string[] = []
       if (channelNames.length > 0) {
         parts.push(`频道 (${channelNames.length}个): ${channelNames.join(', ')}`)
+      }
+      if (supergroupNames.length > 0) {
+        parts.push(`超级群组 (${supergroupNames.length}个): ${supergroupNames.join(', ')}`)
       }
       if (groupNames.length > 0) {
         parts.push(`群组 (${groupNames.length}个): ${groupNames.join(', ')}`)
