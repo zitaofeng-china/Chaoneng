@@ -23,17 +23,23 @@
 
 <script setup lang="tsx">
 import { ref, reactive, onMounted } from 'vue'
-import { ElTag, ElLink, ElMessage } from 'element-plus'
+import { ElTag, ElLink, ElMessage, ElSwitch } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { v1GetMessageBotList, v1GetChatList, type ChatListParams } from '@/api/message'
+import {
+  v1GetMessageBotList,
+  v1GetChatList,
+  v1UpdateBotChat,
+  type ChatListParams
+} from '@/api/message'
 import GroupMessageDialog from './components/GroupMessageDialog.vue'
 
 const searchTableRef = ref()
+const broadcastUpdatingMap = reactive<Record<string, boolean>>({})
 
 // 机器人列表
 const botList = ref<Array<{ label: string; value: number }>>([])
@@ -89,6 +95,7 @@ const searchSchema = reactive<FormSchema[]>([
       options: [
         { label: '全部', value: '' },
         { label: '群组', value: 'group' },
+        { label: '超级群组', value: 'supergroup' },
         { label: '频道', value: 'channel' }
       ]
     }
@@ -124,10 +131,35 @@ const columns: TableColumn[] = [
   {
     field: 'type',
     label: '类型',
-    width: 100,
+    width: 110,
     formatter: (row: any) => {
-      const map: Record<string, string> = { group: '群组', channel: '频道' }
+      const map: Record<string, string> = {
+        group: '群组',
+        supergroup: '超级群组',
+        channel: '频道'
+      }
       return map[row.type] || row.type || '-'
+    }
+  },
+  {
+    field: 'broadcast',
+    label: '是否启用',
+    width: 110,
+    slots: {
+      default: ({ row }: any) => {
+        return (
+          <ElSwitch
+            v-model={row.broadcast}
+            activeValue={1}
+            inactiveValue={2}
+            active-text="启用"
+            inactive-text="禁用"
+            inline-prompt
+            loading={!!broadcastUpdatingMap[String(row.id)]}
+            onChange={(value: number) => handleBroadcastChange(row, value)}
+          />
+        )
+      }
     }
   },
   {
@@ -250,8 +282,12 @@ const fetchGroupList = async (params: any) => {
     const response = await v1GetChatList(apiParams)
 
     if (response.code === '000000' && response.data) {
+      const list = (response.data.list || []).map((item: any) => ({
+        ...item,
+        broadcast: Number(item.broadcast || 2)
+      }))
       return {
-        list: response.data.list || [],
+        list,
         total: response.data.pager?.total || 0
       }
     } else {
@@ -268,6 +304,25 @@ const fetchGroupList = async (params: any) => {
 const handleViewDetail = (row: any) => {
   currentGroup.value = row
   messageDialogVisible.value = true
+}
+
+const handleBroadcastChange = async (row: any, value: number) => {
+  const id = String(row.id)
+  const previousValue = value === 1 ? 2 : 1
+  broadcastUpdatingMap[id] = true
+  try {
+    await v1UpdateBotChat({
+      id: row.id,
+      bot_id: row.bot_id,
+      broadcast: value
+    })
+    ElMessage.success(value === 1 ? '已启用' : '已禁用')
+  } catch (error: any) {
+    row.broadcast = previousValue
+    ElMessage.error(error?.msg || error?.message || '更新启用状态失败')
+  } finally {
+    broadcastUpdatingMap[id] = false
+  }
 }
 
 // 消息发送成功回调

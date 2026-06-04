@@ -30,6 +30,7 @@ export interface MessageChatItem {
   name: string
   link: string
   type: string
+  broadcast?: number
   size: number
   created_at: string | number
   updated_at: string | number
@@ -60,6 +61,15 @@ export interface ChatListResponse {
     page_size: number
     total: number
   }
+}
+
+/**
+ * 更新聊天配置参数
+ */
+export interface UpdateChatParams {
+  id: number | string
+  bot_id: number | string
+  broadcast: number
 }
 
 /**
@@ -107,6 +117,14 @@ export const v1GetMessageChatList = (
  */
 export const v1GetChatList = (params: ChatListParams): Promise<IResponse<ChatListResponse>> => {
   return request.get({ url: '/v1/bot/chat', params })
+}
+
+/**
+ * 更新聊天配置
+ * PUT /v1/bot/chat
+ */
+export const v1UpdateBotChat = (data: UpdateChatParams): Promise<IResponse> => {
+  return request.put({ url: '/v1/bot/chat', data })
 }
 
 /**
