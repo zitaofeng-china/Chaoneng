@@ -278,6 +278,7 @@ const formSchema = computed<FormSchema[]>(() => [
                 ref={treeRef}
                 data={menuTree}
                 show-checkbox
+                check-strictly
                 node-key="id"
                 highlight-current
                 default-expand-all

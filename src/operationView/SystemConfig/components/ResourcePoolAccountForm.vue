@@ -76,17 +76,7 @@ const baseSchema: FormSchema[] = [
 
 const trxPoolSchema: FormSchema[] = []
 
-const energyPoolSchema: FormSchema[] = [
-  {
-    field: 'amount_limit',
-    component: 'InputNumber',
-    label: '阈值：',
-    componentProps: {
-      placeholder: '请输入阈值',
-      precision: 2,
-      remark: '说明：当达到阈值时，自动切换至最高优先级备用地址'
-    }
-  },
+const permissionNameSchema: FormSchema[] = [
   {
     field: 'permission_name',
     component: 'Input',
@@ -102,6 +92,20 @@ const energyPoolSchema: FormSchema[] = [
       rules: [{ required: true, message: ' ', trigger: 'blur' }]
     }
   }
+]
+
+const energyPoolSchema: FormSchema[] = [
+  {
+    field: 'amount_limit',
+    component: 'InputNumber',
+    label: '阈值：',
+    componentProps: {
+      placeholder: '请输入阈值',
+      precision: 2,
+      remark: '说明：当达到阈值时，自动切换至最高优先级备用地址'
+    }
+  },
+  ...permissionNameSchema
 ]
 
 // 构建完整 Schema 的函数
@@ -135,19 +139,15 @@ const buildSchema = (type: number | string | undefined): FormSchema[] => {
   }
 
   let specificSchema: FormSchema[] = []
-  if (
-    numericType === 1 ||
-    numericType === 2 ||
-    numericType === 5 ||
-    numericType === 6 ||
-    numericType === 7 ||
-    numericType === 8
-  ) {
-    // TRX池子、USDT池子、激活池子、能量接收池子、带宽接收池子、财务池子使用相同的Schema（空数组，只需要基础字段）
+  if (numericType === 1 || numericType === 2 || numericType === 5 || numericType === 8) {
+    // TRX池子、USDT池子、激活池子、财务池子使用相同的Schema（空数组，只需要基础字段）
     specificSchema = trxPoolSchema
   } else if (numericType === 3 || numericType === 4) {
     // 能量池子和带宽池子使用相同的Schema
     specificSchema = energyPoolSchema
+  } else if (numericType === 6 || numericType === 7) {
+    // 能量接收池子和带宽接收池子只需要额外填写授权账户权限名称
+    specificSchema = permissionNameSchema
   }
 
   return [configSchema, ...baseSchema, ...specificSchema]
@@ -227,6 +227,8 @@ const open = async (params: OpenParams) => {
     // Energy / Bandwidth
     // 使用 ?? undefined 确保数字字段在没有值时设置为 undefined
     valuesToSet.amount_limit = currentData.value.amount_limit ?? undefined
+  }
+  if ([3, 4, 6, 7].includes(initialConfigType)) {
     valuesToSet.permission_name = currentData.value.permission_name || ''
   }
   // TRX池子(1) 和 USDT池子(2) 只需要基础字段，不需要额外设置
