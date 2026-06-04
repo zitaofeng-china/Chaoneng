@@ -76,6 +76,8 @@ export interface ChargeLogItem {
   amount: number // 补充数量
   status: number // 状态
   txid?: string // 交易hash
+  delegated_txid?: string // 代理交易hash
+  recycled_txid?: string // 回收交易hash
 }
 
 /**

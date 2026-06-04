@@ -29,6 +29,19 @@ import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 const searchTableRef = ref()
 const tronscanUrl = import.meta.env.VITE_TRONSCAN_URL || 'https://tronscan.org'
 
+const renderTxidLink = (txid?: string) => {
+  if (!txid) return h('span', '-')
+  return h(
+    ElLink,
+    {
+      type: 'primary',
+      href: `${tronscanUrl}/#/transaction/${txid}`,
+      target: '_blank'
+    },
+    () => '查看'
+  )
+}
+
 // 表格列
 const columns: TableColumn[] = [
   { field: 'origin', label: '供给源', minWidth: 180, formatter: (row) => row.origin || '-' },
@@ -54,21 +67,23 @@ const columns: TableColumn[] = [
   },
   {
     field: 'delegated_txid',
-    label: '交易哈希',
+    label: '代理哈希',
     width: 100,
     slots: {
       default: (data: any) => {
         const row = data.row || data
-        if (!row.delegated_txid) return h('span', '-')
-        return h(
-          ElLink,
-          {
-            type: 'primary',
-            href: `${tronscanUrl}/#/transaction/${row.delegated_txid}`,
-            target: '_blank'
-          },
-          () => '查看'
-        )
+        return renderTxidLink(row.delegated_txid)
+      }
+    }
+  },
+  {
+    field: 'recycled_txid',
+    label: '回收哈希',
+    width: 100,
+    slots: {
+      default: (data: any) => {
+        const row = data.row || data
+        return renderTxidLink(row.recycled_txid)
       }
     }
   },
