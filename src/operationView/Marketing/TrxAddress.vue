@@ -49,6 +49,7 @@
               v-model="addressForm.kind"
               placeholder="请选择收款类型"
               class="w-full"
+              :disabled="isAddressKindDisabled"
               @change="handleAddressKindChange"
             >
               <ElOption
@@ -59,43 +60,40 @@
               />
             </ElSelect>
           </ElFormItem>
-          <ElFormItem v-if="showAgentAndBotFields" label="代理:" prop="agent_id">
-            <ElSelect
+          <ElFormItem
+            v-if="showAgentField"
+            label="代理:"
+            prop="agent_id"
+            :required="isAgentRequired"
+          >
+            <ElSelectV2
               v-model="addressForm.agent_id"
               placeholder="请选择代理"
+              :options="agentList"
               class="w-full"
               filterable
+              clearable
               @change="handleAddressAgentChange"
-            >
-              <ElOption
-                v-for="item in agentList"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </ElSelect>
+            />
           </ElFormItem>
-          <ElFormItem v-if="showAgentAndBotFields" label="机器人:" prop="bot_id">
-            <ElSelect
+          <ElFormItem v-if="showBotField" label="机器人:" prop="bot_id" :required="isBotRequired">
+            <ElSelectV2
               v-model="addressForm.bot_id"
-              placeholder="请选择机器人"
+              :placeholder="addressForm.agent_id ? '请选择机器人' : '请先选择代理'"
+              :options="filteredBotList"
               class="w-full"
               filterable
-            >
-              <ElOption
-                v-for="item in filteredBotList"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </ElSelect>
+              clearable
+              :disabled="!addressForm.agent_id"
+            />
           </ElFormItem>
           <ElFormItem label="收款地址:" prop="address">
             <ElInput
               v-model="addressForm.address"
-              :type="isMultiAddressKind ? 'textarea' : 'text'"
-              :rows="isMultiAddressKind ? 6 : undefined"
-              :placeholder="isMultiAddressKind ? '请输入地址，每行一个' : '请输入地址'"
+              :type="isAddressTextarea ? 'textarea' : 'text'"
+              :rows="isAddressTextarea ? 6 : undefined"
+              :placeholder="isAddressTextarea ? '请输入地址，每行一个' : '请输入地址'"
+              clearable
             />
           </ElFormItem>
         </ElForm>
@@ -136,7 +134,8 @@ import {
   ElFormItem,
   ElInput,
   ElSelect,
-  ElOption
+  ElOption,
+  ElSelectV2
 } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
@@ -162,8 +161,7 @@ import {
   v2BatchImportAddress // 新接口 - 批量导入
 } from '@/api/marketing/trx_address'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import { getAgentListApi } from '@/api/agent/list'
-import { v1GetMessageBotList } from '@/api/message'
+import { v1GetMessageAgentList, v1GetMessageBotList } from '@/api/message'
 
 // Separate imports for clarity
 
@@ -172,7 +170,7 @@ const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null) // Sea
 const submitting = ref(false)
 const batchImportVisible = ref(false)
 const addressDialogVisible = ref(false)
-const addressDialogMode = ref<'add' | 'edit' | 'bind'>('add')
+const addressDialogMode = ref<'add' | 'edit'>('add')
 const currentAddress = ref<any>(null)
 const addressFormRef = ref<FormInstance>()
 const agentList = ref<Array<{ label: string; value: number }>>([])
@@ -204,35 +202,49 @@ const addressKindOptions = Object.entries(addressKindMap).map(([value, item]) =>
 
 const allowedAddressKinds = new Set(addressKindOptions.map((item) => item.value))
 
-const showAgentAndBotFields = computed(() => {
+const isAddressKindDisabled = computed(() => addressDialogMode.value !== 'add')
+
+const showAgentField = computed(() => {
   const kind = Number(addressForm.kind)
-  if (addressDialogMode.value === 'bind') {
-    return kind !== 1
+  if (addressDialogMode.value === 'edit') {
+    return kind === 1
+  }
+  return ![1, 6].includes(kind)
+})
+
+const showBotField = computed(() => {
+  const kind = Number(addressForm.kind)
+  if (addressDialogMode.value === 'edit') {
+    return false
   }
   return ![1, 6].includes(kind)
 })
 
 const isMultiAddressKind = computed(() => [1, 6].includes(Number(addressForm.kind)))
 
-const addressDialogTitle = computed(() =>
-  addressDialogMode.value === 'add'
-    ? '新增地址'
-    : addressDialogMode.value === 'bind'
-      ? '绑定地址'
-      : '编辑地址'
+const isAddressTextarea = computed(
+  () => addressDialogMode.value === 'add' && isMultiAddressKind.value
 )
 
-const filteredBotList = computed(() => {
-  if (!addressForm.agent_id) return botList.value
-  return botList.value.filter((item) => Number(item.agent_id) === Number(addressForm.agent_id))
-})
+const isAgentRequired = computed(
+  () =>
+    showAgentField.value && !(addressDialogMode.value === 'edit' && Number(addressForm.kind) === 1)
+)
+
+const isBotRequired = computed(() => showBotField.value)
+
+const addressDialogTitle = computed(() =>
+  addressDialogMode.value === 'add' ? '新增地址' : '编辑地址'
+)
+
+const filteredBotList = computed(() => botList.value)
 
 const validateAgent = (
   _rule: any,
   value: number | undefined,
   callback: (error?: Error) => void
 ) => {
-  if (!showAgentAndBotFields.value || value) {
+  if (!isAgentRequired.value || value) {
     callback()
     return
   }
@@ -240,7 +252,7 @@ const validateAgent = (
 }
 
 const validateBot = (_rule: any, value: number | undefined, callback: (error?: Error) => void) => {
-  if (!showAgentAndBotFields.value || value) {
+  if (!isBotRequired.value || value) {
     callback()
     return
   }
@@ -249,8 +261,8 @@ const validateBot = (_rule: any, value: number | undefined, callback: (error?: E
 
 const addressFormRules: FormRules = {
   kind: [{ required: true, message: '请选择收款类型', trigger: 'change' }],
-  agent_id: [{ required: true, validator: validateAgent, trigger: 'change' }],
-  bot_id: [{ required: true, validator: validateBot, trigger: 'change' }],
+  agent_id: [{ validator: validateAgent, trigger: 'change' }],
+  bot_id: [{ validator: validateBot, trigger: 'change' }],
   address: [{ required: true, message: '请输入地址', trigger: 'blur' }]
 }
 
@@ -263,8 +275,6 @@ const getAddressKindInfo = (kind: number | string) => {
     }
   )
 }
-
-const isBindableKind = (kind: number | string) => Number(kind) !== 1
 
 // 表格列配置 - 根据新接口 v2 的响应字段调整
 const columns = ref<TableColumn[]>([
@@ -334,25 +344,12 @@ const columns = ref<TableColumn[]>([
   {
     label: '操作',
     field: 'action',
-    width: '230px',
+    width: '160px',
     fixed: 'right',
     showOverflowTooltip: false,
     formatter: (row) => {
-      const canBind = isBindableKind(row.kind)
-      const isBound = !!row.agent_id && row.agent_id > 0
       return (
         <div class="address-action-buttons">
-          {canBind ? (
-            isBound ? (
-              <BaseButton type="warning" onClick={() => handleUnbind(row)}>
-                解绑
-              </BaseButton>
-            ) : (
-              <BaseButton type="success" onClick={() => handleBind(row)}>
-                绑定
-              </BaseButton>
-            )
-          ) : null}
           <BaseButton type="primary" onClick={() => handleEdit(row)}>
             编辑
           </BaseButton>
@@ -430,10 +427,10 @@ const fetchData = async (params) => {
 }
 
 // --- Agent List Loading ---
-const getAgentList = async () => {
+const getAgentList = async (bound?: boolean) => {
   try {
-    const res = await getAgentListApi({ current_page: 1, page_size: 1000 })
-    agentList.value = (res.data?.list || []).map((agent: any) => ({
+    const res = await v1GetMessageAgentList(bound === undefined ? undefined : { bound })
+    agentList.value = (res.data || []).map((agent: any) => ({
       label: `${agent.username} ${agent.email ? `(${agent.email})` : ''}`,
       value: Number(agent.id)
     }))
@@ -443,9 +440,13 @@ const getAgentList = async () => {
   }
 }
 
-const getBotList = async () => {
+const getBotList = async (agentId?: number | string) => {
+  if (!agentId) {
+    botList.value = []
+    return
+  }
   try {
-    const res = await v1GetMessageBotList()
+    const res = await v1GetMessageBotList({ agent_id: agentId })
     botList.value = (res.data || []).map((bot: any) => ({
       label: bot.user_name || bot.first_name || '未命名机器人',
       value: Number(bot.id),
@@ -466,6 +467,8 @@ const reloadTable = () => {
 const handleAdd = () => {
   addressDialogMode.value = 'add'
   currentAddress.value = null
+  getAgentList()
+  getBotList()
   Object.assign(addressForm, {
     kind: 1,
     agent_id: undefined,
@@ -481,23 +484,13 @@ const handleAdd = () => {
 const handleEdit = (row: any) => {
   addressDialogMode.value = 'edit'
   currentAddress.value = row
+  const kind = Number(row.kind) || 1
+  if (kind === 1) {
+    getAgentList(false)
+  }
+  getBotList()
   Object.assign(addressForm, {
-    kind: Number(row.kind) || 1,
-    agent_id: row.agent_id ? Number(row.agent_id) : undefined,
-    bot_id: row.bot_id ? Number(row.bot_id) : undefined,
-    address: row.address || ''
-  })
-  addressDialogVisible.value = true
-  nextTick(() => {
-    addressFormRef.value?.clearValidate()
-  })
-}
-
-const handleBind = (row: any) => {
-  addressDialogMode.value = 'bind'
-  currentAddress.value = row
-  Object.assign(addressForm, {
-    kind: Number(row.kind) || 2,
+    kind,
     agent_id: row.agent_id ? Number(row.agent_id) : undefined,
     bot_id: row.bot_id ? Number(row.bot_id) : undefined,
     address: row.address || ''
@@ -509,9 +502,14 @@ const handleBind = (row: any) => {
 }
 
 const handleAddressKindChange = () => {
-  if (!showAgentAndBotFields.value) {
+  if (!showAgentField.value) {
     addressForm.agent_id = undefined
+  }
+  if (!showBotField.value) {
     addressForm.bot_id = undefined
+    botList.value = []
+  } else if (addressForm.agent_id) {
+    getBotList(addressForm.agent_id)
   }
   nextTick(() => {
     addressFormRef.value?.clearValidate(['agent_id', 'bot_id'])
@@ -519,16 +517,16 @@ const handleAddressKindChange = () => {
 }
 
 const handleAddressAgentChange = () => {
-  if (
-    addressForm.bot_id &&
-    !filteredBotList.value.some((item) => Number(item.value) === Number(addressForm.bot_id))
-  ) {
-    addressForm.bot_id = undefined
+  addressForm.bot_id = undefined
+  if (showBotField.value && addressForm.agent_id) {
+    getBotList(addressForm.agent_id)
+  } else {
+    botList.value = []
   }
 }
 
 const parseAddressList = () => {
-  if (!isMultiAddressKind.value) {
+  if (!isAddressTextarea.value) {
     return addressForm.address.trim() ? [addressForm.address.trim()] : []
   }
 
@@ -646,34 +644,6 @@ const handleDelete = async (row) => {
   }
 }
 
-const handleUnbind = async (row: any) => {
-  try {
-    await ElMessageBox.confirm(`确认要解绑地址 ${row.address} 吗？`, '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-
-    submitting.value = true
-    await v2UpdateAddress({
-      ...row,
-      id: row.id,
-      address: row.address,
-      kind: Number(row.kind),
-      agent_id: 0,
-      bot_id: 0
-    })
-    handleSuccessMessage('解绑成功')
-    reloadTable()
-  } catch (error) {
-    if (error !== 'cancel') {
-      handleErrorMessage(error, '解绑失败')
-    }
-  } finally {
-    submitting.value = false
-  }
-}
-
 const submitAddAddresses = async () => {
   try {
     await addressFormRef.value?.validate()
@@ -688,18 +658,15 @@ const submitAddAddresses = async () => {
       return
     }
     const address = addressList[0]
-    const agentId = showAgentAndBotFields.value
-      ? Number(addressForm.agent_id)
+    const agentId = showAgentField.value
+      ? Number(addressForm.agent_id || 0)
       : Number(currentAddress.value?.agent_id || 0)
-    const botId = showAgentAndBotFields.value
-      ? Number(addressForm.bot_id)
+    const botId = showBotField.value
+      ? Number(addressForm.bot_id || 0)
       : Number(currentAddress.value?.bot_id || 0)
 
     submitting.value = true
-    if (
-      (addressDialogMode.value === 'edit' || addressDialogMode.value === 'bind') &&
-      currentAddress.value?.id
-    ) {
+    if (addressDialogMode.value === 'edit' && currentAddress.value?.id) {
       await v2UpdateAddress({
         ...currentAddress.value,
         id: currentAddress.value.id,
@@ -708,12 +675,12 @@ const submitAddAddresses = async () => {
         agent_id: agentId,
         bot_id: botId
       })
-      handleSuccessMessage(addressDialogMode.value === 'bind' ? '绑定成功' : '编辑成功')
+      handleSuccessMessage('编辑成功')
     } else {
       await v2CreateAddress({
         kind,
-        agent_id: showAgentAndBotFields.value ? agentId : undefined,
-        bot_id: showAgentAndBotFields.value ? botId : undefined,
+        agent_id: showAgentField.value ? agentId : undefined,
+        bot_id: showBotField.value ? botId : undefined,
         list: addressList
       })
       handleSuccessMessage('新增成功')

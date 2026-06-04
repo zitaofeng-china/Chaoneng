@@ -10,6 +10,15 @@ export interface MessageBotItem {
 }
 
 /**
+ * 代理简要信息（用于下拉选择）
+ */
+export interface MessageAgentItem {
+  id: number
+  username: string
+  email: string
+}
+
+/**
  * 聊天列表项（机器人名下的聊天/群/频道）
  */
 export interface MessageChatItem {
@@ -63,11 +72,23 @@ export interface MessageUserItem {
 }
 
 /**
+ * 获取代理简要列表（下拉选择用）
+ * GET /v1/message/agent
+ */
+export const v1GetMessageAgentList = (params?: {
+  bound?: boolean
+}): Promise<IResponse<MessageAgentItem[]>> => {
+  return request.get({ url: '/v1/message/agent', params })
+}
+
+/**
  * 获取机器人简要列表（下拉选择用）
  * GET /v1/message/bot
  */
-export const v1GetMessageBotList = (): Promise<IResponse<MessageBotItem[]>> => {
-  return request.get({ url: '/v1/message/bot' })
+export const v1GetMessageBotList = (params?: {
+  agent_id?: number | string
+}): Promise<IResponse<MessageBotItem[]>> => {
+  return request.get({ url: '/v1/message/bot', params })
 }
 
 /**
