@@ -280,6 +280,7 @@ const statsData = reactive({
   batchEnergyIncome: 0,
   batchActiveIncome: 0,
   exchangeIncome: 0,
+  botFeeIncome: 0,
   // 支出明细
   exchangeExpense: 0,
   exchangeUsdtOut: 0,
@@ -454,7 +455,8 @@ const incomeRows = computed(() => [
   { label: '托管', value: statsData.hostingIncome },
   { label: '批量下单', value: statsData.batchEnergyIncome },
   { label: '激活', value: statsData.batchActiveIncome },
-  { label: '闪兑', value: statsData.exchangeIncome }
+  { label: '闪兑', value: statsData.exchangeIncome },
+  { label: '机器人费用', value: statsData.botFeeIncome }
 ])
 
 const expenseRows = computed(() => [
@@ -555,7 +557,8 @@ const incomeData = computed(() => [
   { name: '托管', value: toNum(statsData.hostingIncome) },
   { name: '批量下单', value: toNum(statsData.batchEnergyIncome) },
   { name: '激活', value: toNum(statsData.batchActiveIncome) },
-  { name: '闪兑', value: toNum(statsData.exchangeIncome) }
+  { name: '闪兑', value: toNum(statsData.exchangeIncome) },
+  { name: '机器人费用', value: toNum(statsData.botFeeIncome) }
 ])
 const incomeTotal = computed(() => incomeData.value.reduce((s, d) => s + d.value, 0))
 const incomeChartOption = computed(() => buildDonut('收入构成', incomeData.value))
@@ -808,7 +811,8 @@ const applyStatsData = (data: any) => {
     n(revenue?.hosting) +
     n(revenue?.batch_energy) +
     n(revenue?.batch_active) +
-    n(revenue?.exchange)
+    n(revenue?.exchange) +
+    n(revenue?.bot_fee)
 
   // 支出：USDT 按汇率折算为 TRX（用于 KPI 卡片总支出）
   const usdtAsTrx = priceTrx > 0 ? n(expense?.exchange_usdt) / priceTrx : 0
@@ -836,6 +840,7 @@ const applyStatsData = (data: any) => {
     batchEnergyIncome: n(revenue?.batch_energy),
     batchActiveIncome: n(revenue?.batch_active),
     exchangeIncome: n(revenue?.exchange),
+    botFeeIncome: n(revenue?.bot_fee),
     exchangeExpense: n(expense?.exchange_trx),
     exchangeUsdtOut: n(expense?.exchange_usdt),
     expenseTrxOnly:
@@ -884,6 +889,7 @@ const buildMockData = (range: string) => {
   const batchEnergyIncome = r(740)
   const batchActiveIncome = r(200)
   const exchangeIncome = r(1500)
+  const botFeeIncome = r(320)
   const income =
     timeEnergyIncome +
     strokeEnergyIncome +
@@ -892,7 +898,8 @@ const buildMockData = (range: string) => {
     hostingIncome +
     batchEnergyIncome +
     batchActiveIncome +
-    exchangeIncome
+    exchangeIncome +
+    botFeeIncome
 
   const exchangeExpense = r(1200)
   const exchangeUsdtOut = r(450)
@@ -929,6 +936,7 @@ const buildMockData = (range: string) => {
     batchEnergyIncome,
     batchActiveIncome,
     exchangeIncome,
+    botFeeIncome,
     // 支出明细
     exchangeExpense,
     exchangeUsdtOut,
