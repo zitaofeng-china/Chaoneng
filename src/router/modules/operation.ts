@@ -90,6 +90,14 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           meta: {
             title: '托管列表'
           }
+        },
+        {
+          path: 'quick_charge_order',
+          component: () => import('@/operationView/OperationCenter/QuickChargeOrder/index.vue'),
+          name: 'QuickChargeOrder',
+          meta: {
+            title: '速充订单'
+          }
         }
       ]
     },
