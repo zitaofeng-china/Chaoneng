@@ -41,6 +41,7 @@ export interface V1PriceListResponse {
   bot_fee: string | number // 机器人价格
   batch_flash: string | number // 批量下单价格
   bandwidth?: string | number // 带宽价格
+  energy_price1?: string | number // 速充价格
   weal?: string | number // 福利价格
 }
 
@@ -74,6 +75,7 @@ export interface V2SystemPriceResponse {
   bot_fee: string | number // 机器人价格
   batch_flash: string | number // 批量下单价格
   bandwidth?: string | number // 带宽价格
+  energy_price1?: string | number // 速充价格
   weal?: string | number // 福利价格
 }
 
@@ -97,6 +99,7 @@ export interface V2UpdateSystemPriceParams {
   bot_fee?: string | number // 机器人价格
   batch_flash?: string | number // 批量下单价格
   bandwidth?: string | number // 带宽价格
+  energy_price1?: string | number // 速充价格
   weal?: string | number // 福利价格
 }
 

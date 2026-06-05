@@ -39,7 +39,7 @@
         </template>
 
         <div class="price-items-grid">
-          <!-- 第一行：托管 - 按时间 - 闪兑 -->
+          <!-- 第一行：托管 - 按时间 - 速充 - 闪兑 -->
           <div class="row-first">
             <!-- 托管 -->
             <div class="price-item-card">
@@ -179,6 +179,26 @@
                     <span v-else class="value-text">{{ formDataMap[agent.id].time_30d }}</span>
                     <span class="unit">TRX</span>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 速充 -->
+            <div class="price-item-card quick-charge-card">
+              <div class="item-title">速充</div>
+              <div class="item-content single-input">
+                <div class="value-wrapper">
+                  <el-input-number
+                    v-if="editModeMap[agent.id]"
+                    v-model="formDataMap[agent.id].energy_price1"
+                    :precision="2"
+                    :step="0.1"
+                    :min="0"
+                    size="small"
+                    controls-position="right"
+                  />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].energy_price1 }}</span>
+                  <span class="unit">TRX</span>
                 </div>
               </div>
             </div>
@@ -440,6 +460,7 @@ const hasChanges = (agentId: number) => {
     Number(formData.bot_fee) !== Number(original.bot_fee) ||
     Number(formData.batch_flash) !== Number(original.batch_flash || 0) ||
     Number(formData.bandwidth) !== Number(original.bandwidth || 0) ||
+    Number(formData.energy_price1) !== Number(original.energy_price1 || 0) ||
     Number(formData.weal) !== Number(original.weal || 0)
   )
 }
@@ -474,6 +495,7 @@ const handleCancel = (agentId: number) => {
       bot_fee: Number(original.bot_fee),
       batch_flash: Number(original.batch_flash || 0),
       bandwidth: Number(original.bandwidth || 0),
+      energy_price1: Number(original.energy_price1 || 0),
       weal: Number(original.weal || 0)
     }
   }
@@ -525,6 +547,7 @@ const loadPriceData = async () => {
         bot_fee: Number(item.bot_fee),
         batch_flash: Number(item.batch_flash || 0),
         bandwidth: Number(item.bandwidth || 0),
+        energy_price1: Number(item.energy_price1 || 0),
         weal: Number(item.weal || 0)
       }
     })
@@ -569,6 +592,7 @@ const handleSave = async (agentId: number) => {
       bot_fee: formData.bot_fee,
       batch_flash: formData.batch_flash,
       bandwidth: formData.bandwidth,
+      energy_price1: formData.energy_price1,
       weal: formData.weal
     })
 
@@ -593,6 +617,24 @@ onActivated(() => {
 </script>
 
 <style scoped>
+
+
+@media (width <= 1280px) {
+  .row-first > .price-item-card:nth-child(1),
+  .row-first > .price-item-card:nth-child(3),
+  .row-first > .price-item-card:nth-child(4) {
+    grid-column: span 3;
+  }
+
+  .row-first > .price-item-card:nth-child(2) {
+    grid-column: span 6;
+  }
+
+  .row-second {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .price-cards-container {
   display: flex;
   flex-direction: column;
@@ -604,7 +646,7 @@ onActivated(() => {
 }
 
 .agent-card :deep(.el-card__body) {
-  padding: 8px;
+  padding: 10px;
 }
 
 .card-header {
@@ -636,7 +678,8 @@ onActivated(() => {
 
 .value-text {
   display: inline-block;
-  max-width: 100px;
+  max-width: 110px;
+  min-width: 42px;
   padding: 0 8px;
   font-size: 14px;
   font-weight: 500;
@@ -648,7 +691,7 @@ onActivated(() => {
 .price-items-grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(60px, 1fr));
-  gap: 12px;
+  gap: 10px;
   contain: layout;
 }
 
@@ -657,7 +700,7 @@ onActivated(() => {
 }
 
 .row-first > .price-item-card:nth-child(1) {
-  grid-column: span 3;
+  grid-column: span 2;
   min-width: 0;
 }
 
@@ -667,7 +710,12 @@ onActivated(() => {
 }
 
 .row-first > .price-item-card:nth-child(3) {
-  grid-column: span 3;
+  grid-column: span 2;
+  min-width: 0;
+}
+
+.row-first > .price-item-card:nth-child(4) {
+  grid-column: span 2;
   min-width: 0;
 }
 
@@ -684,8 +732,9 @@ onActivated(() => {
 
 .price-item-card {
   display: flex;
-  padding: 10px;
-  background: var(--el-fill-color-light);
+  min-height: 78px;
+  padding: 10px 12px;
+  background: var(--el-fill-color-blank);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 6px;
   flex-direction: column;
@@ -694,7 +743,7 @@ onActivated(() => {
 
 .item-title {
   padding-bottom: 6px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   font-size: 13px;
   font-weight: 600;
   color: var(--el-text-color-primary);
@@ -704,7 +753,7 @@ onActivated(() => {
 .item-content {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
   flex: 1;
   align-items: center;
   justify-content: center;
@@ -713,7 +762,7 @@ onActivated(() => {
 .item-content.time-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 6px 12px;
+  gap: 7px 14px;
 }
 
 .item-content.single-input {

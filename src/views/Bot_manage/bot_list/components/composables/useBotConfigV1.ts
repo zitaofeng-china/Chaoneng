@@ -205,6 +205,10 @@ export function useBotConfigV1() {
         hosting_65k: parseFloat(systemPrice.hosting_65k) || 0,
         hosting_131k: parseFloat(systemPrice.hosting_131k) || 0,
         batch_flash: parseFloat(systemPrice.batch_flash) || 0,
+        energy_price1: parseFloat(systemPrice.energy_price1 || '0') || 0,
+        bandwidth_price1: parseFloat(systemPrice.bandwidth_price1 || '0') || 0,
+        energy_price2: parseFloat(systemPrice.energy_price2 || '0') || 0,
+        bandwidth_price2: parseFloat(systemPrice.bandwidth_price2 || '0') || 0,
         bandwidth: parseFloat(systemPrice.bandwidth || '0') || 0,
         active: parseFloat(systemPrice.active) || 0,
         weal: parseFloat(systemPrice.weal || '0') || 0
@@ -228,6 +232,10 @@ export function useBotConfigV1() {
         hosting_65k: parseFloat(botPriceData.hosting_65k) || 0,
         hosting_131k: parseFloat(botPriceData.hosting_131k) || 0,
         batch_flash: parseFloat(botPriceData.batch_flash) || 0,
+        energy_price1: parseFloat(botPriceData.energy_price1) || 0,
+        bandwidth_price1: parseFloat(botPriceData.bandwidth_price1) || 0,
+        energy_price2: parseFloat(botPriceData.energy_price2) || 0,
+        bandwidth_price2: parseFloat(botPriceData.bandwidth_price2) || 0,
         active: parseFloat(botPriceData.active) || 0,
         min_trx_balance: parseFloat(botPriceData.min_trx_balance) || 0,
         usdt_2_trx: (parseFloat(botPriceData.usdt_2_trx) || 0) * 100,
@@ -495,6 +503,10 @@ export function useBotConfigV1() {
         { field: 'hosting_65k', label: '65000能量', costKey: 'hosting_65k' },
         { field: 'hosting_131k', label: '131000能量', costKey: 'hosting_131k' },
         { field: 'batch_flash', label: '批量能量单价', costKey: 'batch_flash' },
+        { field: 'energy_price1', label: '工作日能量出售单价', costKey: 'energy_price1' },
+        { field: 'bandwidth_price1', label: '工作日带宽出售单价', costKey: 'bandwidth_price1' },
+        { field: 'energy_price2', label: '节假日能量出售单价', costKey: 'energy_price2' },
+        { field: 'bandwidth_price2', label: '节假日带宽出售单价', costKey: 'bandwidth_price2' },
         { field: 'active', label: '激活地址单价', costKey: 'active' }
       ]
 
@@ -546,6 +558,10 @@ export function useBotConfigV1() {
         hosting_65k: priceData.hosting_65k || 0,
         hosting_131k: priceData.hosting_131k || 0,
         batch_flash: priceData.batch_flash || 0,
+        energy_price1: priceData.energy_price1 || 0,
+        bandwidth_price1: priceData.bandwidth_price1 || 0,
+        energy_price2: priceData.energy_price2 || 0,
+        bandwidth_price2: priceData.bandwidth_price2 || 0,
         active: priceData.active || 0,
         usdt_2_trx: (priceData.usdt_2_trx || 0) / 100,
         trx_2_usdt: (priceData.trx_2_usdt || 0) / 100,
