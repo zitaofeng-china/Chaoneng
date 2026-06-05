@@ -57,6 +57,7 @@ export interface ChargeLogParams {
   keyword?: string // 关键字
   kind?: string // 资源类型 [能量, 带宽]
   origin?: string // 供给源
+  status?: number // 状态：1=成功, 2=失败
   order?: string // 排序
   start_time?: string // 开始时间
   end_time?: string // 结束时间

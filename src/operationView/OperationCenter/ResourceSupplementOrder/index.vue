@@ -11,7 +11,14 @@
           layout: 'inline',
           buttonPosition: 'center'
         }"
-      />
+      >
+        <template #searchButtons>
+          <BaseButton type="primary" @click="handleExport">
+            <Icon icon="ep:download" class="mr-5px" />
+            导出
+          </BaseButton>
+        </template>
+      </SearchTable>
     </ContentWrap>
   </div>
 </template>
@@ -21,10 +28,13 @@ import { ref, h } from 'vue'
 import { ElTag, ElLink } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
+import { BaseButton } from '@/components/Button'
+import { Icon } from '@/components/Icon'
 import type { TableColumn } from '@/components/Table'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { getChargeLogList } from '@/api/charge'
-import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
+import { simpleExportToExcel } from '@/utils/excel'
+import { handleErrorMessage, handleListMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const searchTableRef = ref()
 const tronscanUrl = import.meta.env.VITE_TRONSCAN_URL || 'https://tronscan.org'
@@ -42,6 +52,35 @@ const renderTxidLink = (txid?: string) => {
   )
 }
 
+const getStatusText = (status?: number) => {
+  const statusMap: Record<number, string> = {
+    1: '成功',
+    2: '失败'
+  }
+  return status ? statusMap[status] || '未知' : '未知'
+}
+
+const buildChargeLogParams = (params: any = {}) => {
+  const apiParams: any = {
+    current_page: params.current_page || 1,
+    page_size: params.page_size || 10
+  }
+
+  if (params?.keyword) apiParams.keyword = params.keyword
+  if (params?.kind) apiParams.kind = params.kind
+  if (params?.origin) apiParams.origin = params.origin
+  if (params?.status) apiParams.status = Number(params.status)
+  if (params?.order) apiParams.order = params.order
+
+  // 时间范围（毫秒转秒）
+  if (params?.dateRange && params.dateRange.length === 2) {
+    apiParams.start_time = String(Math.floor(params.dateRange[0] / 1000))
+    apiParams.end_time = String(Math.floor(params.dateRange[1] / 1000))
+  }
+
+  return apiParams
+}
+
 // 表格列
 const columns: TableColumn[] = [
   { field: 'origin', label: '供给源', minWidth: 180, formatter: (row) => row.origin || '-' },
@@ -56,12 +95,12 @@ const columns: TableColumn[] = [
     slots: {
       default: (data: any) => {
         const row = data.row || data
-        const statusMap: Record<number, { text: string; type: string }> = {
-          1: { text: '成功', type: 'success' },
-          2: { text: '失败', type: 'danger' }
+        const statusMap: Record<number, { type: string }> = {
+          1: { type: 'success' },
+          2: { type: 'danger' }
         }
         const info = statusMap[row.status] || { text: '未知', type: 'info' }
-        return h(ElTag, { type: info.type as any, size: 'small' }, () => info.text)
+        return h(ElTag, { type: info.type as any, size: 'small' }, () => getStatusText(row.status))
       }
     }
   },
@@ -145,6 +184,20 @@ const searchSchema = ref([
     }
   },
   {
+    field: 'status',
+    component: 'Select' as const,
+    label: '状态',
+    componentProps: {
+      placeholder: '全部',
+      clearable: true,
+      options: [
+        { label: '全部', value: '' },
+        { label: '成功', value: 1 },
+        { label: '失败', value: 2 }
+      ]
+    }
+  },
+  {
     field: 'dateRange',
     component: 'DatePicker' as const,
     label: '创建时间',
@@ -161,34 +214,56 @@ const searchSchema = ref([
 // 获取列表
 const fetchChargeLogListApi = async (params: any) => {
   try {
-    const apiParams: any = {
-      current_page: params.current_page || 1,
-      page_size: params.page_size || 10
-    }
-
-    if (params?.keyword) apiParams.keyword = params.keyword
-    if (params?.kind) apiParams.kind = params.kind
-    if (params?.origin) apiParams.origin = params.origin
-    if (params?.order) apiParams.order = params.order
-
-    // 时间范围（毫秒转秒）
-    if (params?.dateRange && params.dateRange.length === 2) {
-      apiParams.start_time = String(Math.floor(params.dateRange[0] / 1000))
-      apiParams.end_time = String(Math.floor(params.dateRange[1] / 1000))
-    }
-
-    const res = await getChargeLogList(apiParams)
+    const res = await getChargeLogList(buildChargeLogParams(params))
 
     if (res?.code === '000000' && res.data) {
       const list = res.data.list || []
       const total = res.data.pager?.total || 0
-      handleListMessage(list, !!(params?.keyword || params?.kind), '资源补充订单')
+      handleListMessage(
+        list,
+        !!(params?.keyword || params?.kind || params?.origin || params?.status),
+        '资源补充订单'
+      )
       return { list, total }
     }
     return { list: [], total: 0 }
   } catch (error) {
     handleErrorMessage(error, '获取资源补充订单列表失败')
     return { list: [], total: 0 }
+  }
+}
+
+const handleExport = async () => {
+  try {
+    const params = await searchTableRef.value?.searchMethods?.getFormData()
+    const res = await getChargeLogList(
+      buildChargeLogParams({
+        ...(params || {}),
+        page_size: -1
+      })
+    )
+
+    if (res?.code === '000000' && res.data?.list) {
+      const exportList = res.data.list.map((item: any) => ({
+        供给源: item.origin || '-',
+        供给对象: item.target || item.target_pool || '-',
+        财务地址: item.vault || item.finance_address || '-',
+        补充数量: item.amount ?? '-',
+        手续费: item.fee || '0',
+        状态: getStatusText(item.status),
+        代理哈希: item.delegated_txid || '-',
+        回收哈希: item.recycled_txid || '-',
+        描述: item.describe || '-',
+        创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-'
+      }))
+
+      simpleExportToExcel(exportList, '资源补充记录')
+      handleSuccessMessage('导出成功')
+    } else {
+      handleErrorMessage('导出失败：数据格式错误')
+    }
+  } catch (error) {
+    handleErrorMessage(error, '导出失败')
   }
 }
 </script>
