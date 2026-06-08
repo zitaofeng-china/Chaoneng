@@ -40,6 +40,8 @@ import type {
   V2PoolListParams
 } from '@/api/opertion/SystemConfig/ResourcePool/resource_pool_account_types'
 import {
+  getResourcePoolStatusClassName,
+  getResourcePoolStatusLabel,
   isThresholdPoolKind,
   RESOURCE_POOL_STATUS_MAP,
   RESOURCE_POOL_STATUS_OPTIONS,
@@ -110,11 +112,6 @@ const columns = ref<TableColumn[]>([
     width: '100px',
     slots: {
       default: ({ row }: { row: V2PoolItem }) => {
-        const statusColors: Record<number, string> = {
-          1: 'text-green-300 font-bold',
-          2: 'text-red-300 font-bold',
-          3: 'text-orange-300 font-bold'
-        }
         const disableOthers = row.status === 1
         return (
           <ElSelect
@@ -127,8 +124,8 @@ const columns = ref<TableColumn[]>([
             {{
               prefix: () => {
                 return (
-                  <span class={statusColors[row.status]}>
-                    {RESOURCE_POOL_STATUS_MAP[row.status]}
+                  <span class={getResourcePoolStatusClassName(row.status)}>
+                    {getResourcePoolStatusLabel(row.status)}
                   </span>
                 )
               },
@@ -140,7 +137,7 @@ const columns = ref<TableColumn[]>([
                     value={parseInt(value, 10)}
                     disabled={disableOthers && parseInt(value, 10) !== 1}
                   >
-                    <span class={statusColors[parseInt(value, 10)]}>{label}</span>
+                    <span class={getResourcePoolStatusClassName(parseInt(value, 10))}>{label}</span>
                   </ElOption>
                 ))
               }
@@ -250,7 +247,7 @@ const handleStatusChangeAttempt = async (row: V2PoolItem, newValue: number) => {
     return
   }
 
-  const actionText = RESOURCE_POOL_STATUS_MAP[intendedStatus]
+  const actionText = getResourcePoolStatusLabel(intendedStatus)
   let msg = `确认要将状态更改为 "${actionText}" 吗？`
   if (isThresholdPoolKind(row.kind)) {
     msg = `确认要将状态更改为 "${actionText}" ${intendedStatus === 1 ? '(设为主账户)' : intendedStatus === 3 ? '(设为备用账户)' : ''} 吗？`

@@ -16,18 +16,39 @@ export const RESOURCE_POOL_TYPE_OPTIONS = Object.entries(RESOURCE_POOL_TYPE_MAP)
   })
 )
 
-export const RESOURCE_POOL_STATUS_MAP: Record<number, string> = {
-  1: '启用',
-  2: '禁用',
-  3: '备用'
+interface ResourcePoolStatusMeta {
+  label: string
+  className: string
 }
 
-export const RESOURCE_POOL_STATUS_OPTIONS = Object.entries(RESOURCE_POOL_STATUS_MAP).map(
-  ([value, label]) => ({
-    label,
+export const RESOURCE_POOL_STATUS_META_MAP: Record<number, ResourcePoolStatusMeta> = {
+  1: { label: '启用', className: 'text-green-300 font-bold' },
+  2: { label: '禁用', className: 'text-red-300 font-bold' },
+  3: { label: '备用', className: 'text-orange-300 font-bold' }
+}
+
+export const RESOURCE_POOL_STATUS_MAP = Object.entries(RESOURCE_POOL_STATUS_META_MAP).reduce(
+  (map, [value, meta]) => {
+    map[Number(value)] = meta.label
+    return map
+  },
+  {} as Record<number, string>
+)
+
+export const RESOURCE_POOL_STATUS_OPTIONS = Object.entries(RESOURCE_POOL_STATUS_META_MAP).map(
+  ([value, meta]) => ({
+    label: meta.label,
     value: Number(value)
   })
 )
+
+export const getResourcePoolStatusLabel = (status: number) => {
+  return RESOURCE_POOL_STATUS_META_MAP[status]?.label || '未知状态'
+}
+
+export const getResourcePoolStatusClassName = (status: number) => {
+  return RESOURCE_POOL_STATUS_META_MAP[status]?.className || 'text-gray-400 font-bold'
+}
 
 const THRESHOLD_POOL_KINDS = [3, 4]
 const RECEIVE_POOL_KINDS = [6, 7]
