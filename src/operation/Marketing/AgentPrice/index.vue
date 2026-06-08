@@ -382,6 +382,7 @@ import {
 import { useRoute } from 'vue-router'
 import { getErrorMessage } from '@/utils/messageHelper'
 import { formatTableDateTime } from '@/utils/tableHelpers'
+import { AGENT_PRICE_LEVEL_LABELS } from '../constants'
 
 const route = useRoute()
 const loading = ref(false)
@@ -415,20 +416,7 @@ const hasEditPermission = computed(() => {
 })
 
 const getAgentLevelName = (id: number): string => {
-  const levelMap: Record<number, string> = {
-    1: '一级代理',
-    2: '二级代理',
-    3: '三级代理',
-    4: '四级代理',
-    5: '五级代理',
-    6: '六级代理',
-    7: '七级代理',
-    8: '八级代理',
-    9: '九级代理',
-    10: '十级代理',
-    11: '十一级代理'
-  }
-  return levelMap[id] || `${id}级代理`
+  return AGENT_PRICE_LEVEL_LABELS[id] || `${id}级代理`
 }
 
 const formDataMap = reactive<Record<number, PriceFormData>>({})
