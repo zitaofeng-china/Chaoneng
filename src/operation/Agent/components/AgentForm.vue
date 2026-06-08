@@ -13,16 +13,11 @@ import {
   type UpdateAgentPayload
 } from '@/api/opertion/Agent/AgentList'
 import EmailInput from './EmailInput.vue'
+import { AGENT_LEVEL_OPTIONS } from '../constants'
 
 const emits = defineEmits(['success', 'error'])
 
 // 常量定义
-const AGENT_LEVELS = [
-  { label: '一级代理', value: 1 },
-  { label: '二级代理', value: 2 },
-  { label: '三级代理', value: 3 }
-] as const
-
 const DEFAULT_PRICE_ID = 3
 const PASSWORD_MIN_LENGTH = 6
 const PASSWORD_MAX_LENGTH = 20
@@ -83,7 +78,7 @@ const agentFormSchema = computed<FormSchema[]>(() => {
       component: 'Select' as const,
       componentProps: {
         placeholder: '请选择代理等级',
-        options: AGENT_LEVELS
+        options: AGENT_LEVEL_OPTIONS
       },
       colProps: { span: 12 }
     })
