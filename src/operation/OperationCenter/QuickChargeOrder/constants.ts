@@ -1,10 +1,12 @@
-import type { StatusMeta, TableTagType } from '@/utils/tableHelpers'
+import { createStatusOptions, type StatusMeta, type TableTagType } from '@/utils/tableHelpers'
 
 export const QUICK_CHARGE_STATUS_MAP: Record<number, StatusMeta> = {
   1: { label: '进行中', type: 'primary' },
   2: { label: '已完成', type: 'success' },
   3: { label: '已取消', type: 'info' }
 }
+
+export const QUICK_CHARGE_STATUS_OPTIONS = createStatusOptions(QUICK_CHARGE_STATUS_MAP)
 
 export const QUICK_CHARGE_ORDER_TYPE_MAP: Record<number, string> = {
   4: '按时间',

@@ -38,7 +38,6 @@ import type { FormSchema } from '@/components/Form'
 import type { SearchTableExpose } from '@/components/SearchTable'
 import { handleListMessage } from '@/utils/messageHelper'
 import {
-  createStatusOptions,
   exportTableData,
   getStatusLabel,
   getStatusTagType,
@@ -46,14 +45,12 @@ import {
   withAllOption
 } from '@/utils/tableHelpers'
 import type { QuickChargeOrder, QuickChargeSearchParams } from './types'
-import { QUICK_CHARGE_STATUS_MAP } from './constants'
+import { QUICK_CHARGE_STATUS_MAP, QUICK_CHARGE_STATUS_OPTIONS } from './constants'
 
 type QuickChargeTableSlot = { row: QuickChargeOrder }
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const orderDetailRef = ref<InstanceType<typeof OrderDetail> | null>(null)
-
-const statusOptions = createStatusOptions(QUICK_CHARGE_STATUS_MAP)
 
 const typeOptions = withAllOption([
   { label: '能量出售', value: '能量出售' },
@@ -193,7 +190,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: statusOptions
+      options: QUICK_CHARGE_STATUS_OPTIONS
     }
   },
   {
