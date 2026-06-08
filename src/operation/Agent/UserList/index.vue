@@ -512,11 +512,11 @@ const handleMessageSent = () => {
 // 导出
 const handleExport = async () => {
   try {
-    await exportTableData<UserListItem>({
+    await exportTableData<UserListItem, UserSearchParams, UserListParams>({
       searchTableRef,
       filename: '机器人用户列表',
-      fetchData: (params) => v1GetUserList(params as UserListParams),
-      buildParams: (params) => buildUserListParams(params as UserSearchParams),
+      fetchData: v1GetUserList,
+      buildParams: buildUserListParams,
       mapItem: (item) => {
         const botInfo = botMap.value.get(item.bot_id)
         return {

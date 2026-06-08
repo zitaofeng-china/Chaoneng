@@ -320,7 +320,11 @@ const handleViewSettlement = (row: V2ResourceOrderItem) => {
 
 const handleExport = async () => {
   try {
-    await exportTableData<V2ResourceOrderItem>({
+    await exportTableData<
+      V2ResourceOrderItem,
+      ResourceOrderSearchParams,
+      V2ResourceOrderListParams
+    >({
       searchTableRef,
       filename: '资源订单列表',
       fetchData: v2GetResourceOrderList,

@@ -174,15 +174,32 @@ type TableDataResponse<T> = {
   list?: T[]
 } & Recordable
 
-interface ExportTableDataOptions<T> {
+type ExportParams<TSearchParams extends Recordable> = TSearchParams & {
+  page_size?: number
+}
+
+interface ExportTableDataBaseOptions<T, TSearchParams extends Recordable = Recordable> {
   searchTableRef?: unknown
-  fallbackParams?: Recordable
+  fallbackParams?: TSearchParams
   filename: string
-  fetchData: (params: Recordable) => Promise<unknown>
-  buildParams?: (params: Recordable) => Recordable
   getList?: (response: TableDataResponse<T>) => T[]
   mapItem: (item: T) => Recordable
   successMessage?: string
+}
+
+interface ExportTableDataWithBuildParamsOptions<
+  T,
+  TSearchParams extends Recordable = Recordable,
+  TApiParams extends Recordable = Recordable
+> extends ExportTableDataBaseOptions<T, TSearchParams> {
+  fetchData: (params: TApiParams) => Promise<unknown>
+  buildParams: (params: ExportParams<TSearchParams>) => TApiParams
+}
+
+interface ExportTableDataWithoutBuildParamsOptions<T, TSearchParams extends Recordable = Recordable>
+  extends ExportTableDataBaseOptions<T, TSearchParams> {
+  fetchData: (params: ExportParams<TSearchParams>) => Promise<unknown>
+  buildParams?: undefined
 }
 
 const getDefaultList = <T>(response: TableDataResponse<T>): T[] => {
@@ -207,21 +224,40 @@ const toTableResponse = <T>(response: unknown): TableDataResponse<T> => {
   return response as TableDataResponse<T>
 }
 
-export const exportTableData = async <T>({
-  searchTableRef,
-  fallbackParams = {},
-  filename,
-  fetchData,
-  buildParams,
-  getList,
-  mapItem,
-  successMessage = '导出成功'
-}: ExportTableDataOptions<T>) => {
+export function exportTableData<T, TSearchParams extends Recordable = Recordable>(
+  options: ExportTableDataWithoutBuildParamsOptions<T, TSearchParams>
+): Promise<void>
+
+export function exportTableData<
+  T,
+  TSearchParams extends Recordable = Recordable,
+  TApiParams extends Recordable = Recordable
+>(options: ExportTableDataWithBuildParamsOptions<T, TSearchParams, TApiParams>): Promise<void>
+
+export async function exportTableData<
+  T,
+  TSearchParams extends Recordable = Recordable,
+  TApiParams extends Recordable = Recordable
+>(
+  options:
+    | ExportTableDataWithoutBuildParamsOptions<T, TSearchParams>
+    | ExportTableDataWithBuildParamsOptions<T, TSearchParams, TApiParams>
+) {
+  const {
+    searchTableRef,
+    fallbackParams = {} as TSearchParams,
+    filename,
+    getList,
+    mapItem,
+    successMessage = '导出成功'
+  } = options
   const formData = await getSearchFormData(searchTableRef, fallbackParams)
-  const params = buildParams
-    ? buildParams({ ...formData, page_size: -1 })
-    : { ...formData, page_size: -1 }
-  const response = toTableResponse<T>(await fetchData(params))
+  const exportParams = { ...formData, page_size: -1 } as ExportParams<TSearchParams>
+  const response = toTableResponse<T>(
+    await (options.buildParams
+      ? options.fetchData(options.buildParams(exportParams))
+      : options.fetchData(exportParams))
+  )
   const list = getList ? getList(response) : getDefaultList<T>(response)
   if (!Array.isArray(list)) {
     throw new Error('导出失败：数据格式错误')

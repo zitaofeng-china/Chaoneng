@@ -109,12 +109,12 @@ const currentSearchParams = ref<ExchangeSearchParams>({})
 // 导出 - 直接使用后端字段名
 const handleExport = async () => {
   try {
-    await exportTableData<V2ExchangeItem>({
+    await exportTableData<V2ExchangeItem, ExchangeSearchParams, V2ExchangeListParams>({
       searchTableRef,
       fallbackParams: currentSearchParams.value,
       filename: '闪兑订单列表',
-      fetchData: (params) => v2GetExchangeList(params as V2ExchangeListParams),
-      buildParams: (params) => buildExchangeListParams(params as ExchangeSearchParams),
+      fetchData: v2GetExchangeList,
+      buildParams: buildExchangeListParams,
       getList: (response) =>
         [...(response.data?.list || [])].sort((a, b) => (b.paid_at || 0) - (a.paid_at || 0)),
       mapItem: (item) => {

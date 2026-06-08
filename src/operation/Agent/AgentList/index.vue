@@ -188,11 +188,11 @@ const EMAIL_SUFFIXES = [
 // 导出
 const handleExport = async () => {
   try {
-    await exportTableData<AgentItem>({
+    await exportTableData<AgentItem, AgentSearchParams, AgentQueryParams>({
       searchTableRef,
       filename: '代理列表',
-      fetchData: (params) => getAgentListApi(params as AgentQueryParams),
-      buildParams: (params) => buildAgentListParams(params as AgentSearchParams),
+      fetchData: getAgentListApi,
+      buildParams: buildAgentListParams,
       mapItem: (item) => ({
         联系方式: item.email || '-',
         代理名称: item.username || '-',

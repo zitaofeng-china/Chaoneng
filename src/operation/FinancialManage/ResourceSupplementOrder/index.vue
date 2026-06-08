@@ -269,10 +269,10 @@ const fetchChargeLogListApi = async (params: ChargeLogSearchParams = {}) => {
 
 const handleExport = async () => {
   try {
-    await exportTableData<ChargeLogItem>({
+    await exportTableData<ChargeLogItem, ChargeLogSearchParams, ChargeLogParams>({
       searchTableRef,
       filename: '资源补充记录',
-      fetchData: (params) => getChargeLogList(params as ChargeLogParams),
+      fetchData: getChargeLogList,
       buildParams: buildChargeLogParams,
       getList: (res: IResponse<ChargeLogResponse>) => res?.data?.list || [],
       mapItem: (item) => ({

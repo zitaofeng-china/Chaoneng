@@ -249,11 +249,11 @@ const handleDetail = (row: QuickChargeOrder) => {
 }
 
 const handleExport = async () => {
-  await exportTableData<QuickChargeOrder>({
+  await exportTableData<QuickChargeOrder, QuickChargeSearchParams>({
     searchTableRef,
     filename: '速充订单列表',
     fetchData: async (params) => ({
-      data: { list: filterSampleList(params as QuickChargeSearchParams) }
+      data: { list: filterSampleList(params) }
     }),
     getList: (res) => res.data.list,
     mapItem: (item) => ({

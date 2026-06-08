@@ -220,12 +220,12 @@ const fetchDataWrapper = async (
 
 const handleExport = async () => {
   try {
-    await exportTableData<EnergyOrder>({
+    await exportTableData<EnergyOrder, SearchFormParams, EnergyListParams>({
       searchTableRef,
       filename: '能量订单列表',
-      fetchData: (params) => v2GetEnergyList(params as EnergyListParams),
+      fetchData: v2GetEnergyList,
       buildParams: (params) => ({
-        ...buildEnergyListParams(params as SearchFormParams),
+        ...buildEnergyListParams(params),
         page_size: -1
       }),
       getList: (response) => sortOrdersByCreatedTime(response.data?.list || []),

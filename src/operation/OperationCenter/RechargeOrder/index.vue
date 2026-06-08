@@ -511,12 +511,12 @@ const handleViewDetail = async (row: V2DepositItem) => {
 
 const handleExport = async () => {
   try {
-    await exportTableData<V2DepositItem>({
+    await exportTableData<V2DepositItem, DepositSearchParams, V2DepositListParams>({
       searchTableRef,
       fallbackParams: currentSearchParams.value,
       filename: '充值订单列表',
-      fetchData: (params) => v2GetDepositList(params as V2DepositListParams),
-      buildParams: (params) => buildDepositListParams(params as DepositSearchParams),
+      fetchData: v2GetDepositList,
+      buildParams: buildDepositListParams,
       mapItem: (item) => {
         const baseData: DepositExportRow = {
           订单号: item.id || '-',

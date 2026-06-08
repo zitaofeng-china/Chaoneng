@@ -296,12 +296,12 @@ const handleUpdateStatus = (id: number | string, status: number, actionText: str
 
 const handleExport = async () => {
   try {
-    await exportTableData<AgentBotItem>({
+    await exportTableData<AgentBotItem, AgentBotSearchParams, AgentBotQueryParams>({
       searchTableRef,
       fallbackParams: initialSearchParams,
       filename: '机器人列表',
-      fetchData: (params) => getAgentBotListApi(params as AgentBotQueryParams),
-      buildParams: (params) => buildAgentBotParams(params as AgentBotSearchParams),
+      fetchData: getAgentBotListApi,
+      buildParams: buildAgentBotParams,
       mapItem: (item) => ({
         机器人ID: item.id,
         机器人用户名: item.user_name,

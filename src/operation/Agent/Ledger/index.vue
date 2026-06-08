@@ -254,12 +254,12 @@ const columns = ref<TableColumn[]>([
 
 const handleExport = async () => {
   try {
-    await exportTableData<AgentBillItem>({
+    await exportTableData<AgentBillItem, AgentLedgerSearchParams, AgentBillListParams>({
       searchTableRef,
       fallbackParams: currentSearchParams.value,
       filename: '代理账单',
-      fetchData: (params) => v1GetAgentBillList(params as AgentBillListParams),
-      buildParams: (params) => buildAgentBillParams(params as AgentLedgerSearchParams),
+      fetchData: v1GetAgentBillList,
+      buildParams: buildAgentBillParams,
       mapItem: (item) => ({
         关联订单ID: item.order_id || '-',
         代理邮箱: item.agent_email || item.agent_name || '-',
