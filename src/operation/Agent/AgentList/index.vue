@@ -115,9 +115,14 @@ import {
   formatTableDateTime,
   getStatusLabel,
   hasSearchValue,
-  withAllOption,
-  type StatusMeta
+  withAllOption
 } from '@/utils/tableHelpers'
+import {
+  AGENT_LEVEL_LABELS,
+  AGENT_LEVEL_OPTIONS,
+  AGENT_STATUS_MAP,
+  BATCH_AGENT_LEVEL_OPTIONS
+} from '../constants'
 
 // 状态管理
 const router = useRouter()
@@ -212,25 +217,6 @@ const handleExport = async () => {
     handleErrorMessage(error, '导出失败')
   }
 }
-
-// 常量配置
-const AGENT_STATUS_MAP: Record<number, StatusMeta> = {
-  1: { label: '启用' },
-  2: { label: '禁用' }
-}
-
-const AGENT_LEVEL_LABELS: Record<number, string> = {
-  1: '一级代理',
-  2: '二级代理',
-  3: '三级代理'
-}
-
-const AGENT_LEVEL_OPTIONS = Object.entries(AGENT_LEVEL_LABELS).map(([value, label]) => ({
-  label,
-  value: Number(value)
-}))
-
-const BATCH_AGENT_LEVEL_OPTIONS = [{ label: '选择等级', value: 0 }, ...AGENT_LEVEL_OPTIONS]
 
 const buildAgentListParams = (
   params: AgentSearchParams = {},

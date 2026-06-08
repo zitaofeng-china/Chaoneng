@@ -39,6 +39,7 @@ import {
   formatTableDateTime,
   hasSearchValue
 } from '@/utils/tableHelpers'
+import { AGENT_BILL_ORDER_TYPE_MAP, AGENT_BILL_ORDER_TYPE_OPTIONS } from '../constants'
 
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const router = useRouter()
@@ -47,19 +48,6 @@ const currentSearchParams = ref<AgentLedgerSearchParams>({})
 type AgentLedgerSearchParams = Omit<AgentBillListParams, 'kinds'> & {
   kind?: number | string
   dateRange?: [number, number]
-}
-
-const ORDER_TYPE_MAP: Record<number, string> = {
-  1: '代理充值',
-  3: '兑换',
-  4: '按时间',
-  5: '按笔数',
-  6: '福利能量',
-  7: '闪租',
-  8: '托管',
-  9: '批量能量',
-  10: '激活',
-  11: '机器人付费'
 }
 
 const buildAgentBillParams = (
@@ -131,10 +119,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '请选择交易类型',
       clearable: true,
-      options: Object.entries(ORDER_TYPE_MAP).map(([key, value]) => ({
-        label: value,
-        value: Number(key)
-      }))
+      options: AGENT_BILL_ORDER_TYPE_OPTIONS
     }
   },
   {
@@ -219,7 +204,7 @@ const columns = ref<TableColumn[]>([
     label: '交易类型',
     minWidth: 120,
     formatter: (row: AgentBillItem) => {
-      return ORDER_TYPE_MAP[row.kind] || row.describe || '-'
+      return AGENT_BILL_ORDER_TYPE_MAP[row.kind] || row.describe || '-'
     }
   },
   {
@@ -265,7 +250,7 @@ const handleExport = async () => {
         代理邮箱: item.agent_email || item.agent_name || '-',
         代理名称: item.agent_name || '-',
         机器人名称: item.bot_name || '-',
-        交易类型: ORDER_TYPE_MAP[item.kind] || item.describe || '-',
+        交易类型: AGENT_BILL_ORDER_TYPE_MAP[item.kind] || item.describe || '-',
         金额变动: formatAmountChange(item),
         交易后TRX余额: item.balance || '-',
         扣款状态: '已完成',

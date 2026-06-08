@@ -46,9 +46,9 @@ import {
   formatTableDateTime,
   getStatusLabel,
   getStatusTagType,
-  hasSearchValue,
-  type StatusMeta
+  hasSearchValue
 } from '@/utils/tableHelpers'
+import { BOT_STATUS_MAP } from '../constants'
 
 const route = useRoute()
 const router = useRouter()
@@ -56,11 +56,6 @@ const searchTableRef = ref<SearchTableExpose | null>(null)
 
 type AgentBotSearchParams = Omit<AgentBotQueryParams, 'status'> & {
   status?: number | ''
-}
-
-const BOT_STATUS_MAP: Record<number, StatusMeta> = {
-  1: { label: '启用', type: 'success' },
-  2: { label: '禁用', type: 'danger' }
 }
 
 const initialSearchParams: AgentBotSearchParams = (() => {
