@@ -54,29 +54,32 @@ export function transformOrderToExportData(
   order: EnergyOrder,
   selectedSource: number | string
 ): ExportDataItem {
-  // 基础字段（始终导出）
-  const baseData: Partial<ExportDataItem> = {
-    订单号: order.id || '-',
-    代理名称: order.agent_name || '-',
-    机器人昵称: order.bot_name || '-'
-  }
-
   // 根据来源判断导出哪些字段
   // 如果没有筛选来源，或者来源为机器人(1)，导出TG相关字段
-  if (!selectedSource || selectedSource === 1 || selectedSource === '1') {
-    baseData['TG用户名'] = order.tg_user_name || '-'
-    baseData['TG用户昵称'] = order.tg_first_name || '-'
-  }
+  const tgData =
+    !selectedSource || selectedSource === 1 || selectedSource === '1'
+      ? {
+          TG用户名: order.tg_user_name || '-',
+          TG用户昵称: order.tg_first_name || '-'
+        }
+      : {}
 
   // 如果没有筛选来源，或者来源为H5(2)，导出H5相关字段
-  if (!selectedSource || selectedSource === 2 || selectedSource === '2') {
-    baseData['用户账号'] = order.username || '-'
-    baseData['用户邮箱'] = order.email || '-'
-  }
+  const h5Data =
+    !selectedSource || selectedSource === 2 || selectedSource === '2'
+      ? {
+          用户账号: order.username || '-',
+          用户邮箱: order.email || '-'
+        }
+      : {}
 
   // 其他通用字段
   return {
-    ...baseData,
+    订单号: order.id || '-',
+    代理名称: order.agent_name || '-',
+    机器人昵称: order.bot_name || '-',
+    ...tgData,
+    ...h5Data,
     来源: getSourceText(order.origin, order.tg_user_name, order.username),
     订单类型: getEnergyOrderKindText(order.kind),
     交易金额: order.amount || '-',
@@ -90,7 +93,7 @@ export function transformOrderToExportData(
     备注: order.describe || '-',
     创建时间: formatTableDateTime(order.created_at),
     回收时间: formatTableDateTime(order.recycled_at)
-  } as ExportDataItem
+  }
 }
 
 const getTimeValue = (value?: string | number | null) => {
