@@ -46,7 +46,7 @@ import {
   type MessageChatItem
 } from '@/api/opertion/common/message'
 import GroupMessageDialog from './components/GroupMessageDialog.vue'
-import { getChatTypeText } from '@/operation/utils/chat'
+import { CHAT_TYPE_OPTIONS, getChatTypeText } from '@/operation/utils/chat'
 
 type ChatRow = Omit<MessageChatItem, 'broadcast'> & {
   broadcast: number
@@ -113,11 +113,7 @@ const searchSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请选择类型',
       clearable: true,
-      options: withAllOption([
-        { label: '群组', value: 'group' },
-        { label: '超级群组', value: 'supergroup' },
-        { label: '频道', value: 'channel' }
-      ])
+      options: withAllOption(CHAT_TYPE_OPTIONS)
     }
   },
   {
