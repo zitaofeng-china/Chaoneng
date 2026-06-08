@@ -53,7 +53,7 @@
               @change="handleAddressKindChange"
             >
               <ElOption
-                v-for="item in addressKindOptions"
+                v-for="item in PAYMENT_ADDRESS_KIND_OPTIONS"
                 :key="item.value"
                 :label="item.label"
                 :value="item.value"
@@ -166,6 +166,13 @@ import {
   type MessageBotItem
 } from '@/api/opertion/common/message'
 import { formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
+import {
+  ALLOWED_PAYMENT_ADDRESS_KINDS,
+  PAYMENT_ADDRESS_KIND_MAP,
+  PAYMENT_ADDRESS_KIND_OPTIONS,
+  PAYMENT_AGENT_BALANCE_ADDRESS_KIND,
+  PAYMENT_MULTI_ADDRESS_KINDS
+} from '../constants'
 
 // 表格和表单引用
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null) // SearchTable 引用
@@ -204,32 +211,14 @@ const addressForm = reactive({
 // 使用表单Hook - 导入表单
 const { formRegister: importFormRegister, formMethods: importFormMethods } = useForm()
 
-const addressKindMap: Record<number, { label: string; className: string }> = {
-  1: { label: '【代理余额充值】收款地址', className: 'kind-agent' },
-  2: { label: '【用户余额充值】收款地址', className: 'kind-user' },
-  3: { label: '【闪兑T / U】收款地址', className: 'kind-exchange' },
-  4: { label: '【能量闪租】收款地址', className: 'kind-flash' },
-  5: { label: '【按笔数购买】收款地址', className: 'kind-count' },
-  6: { label: '【福利能量】收款地址', className: 'kind-welfare' }
-}
-
-const addressKindOptions = Object.entries(addressKindMap).map(([value, item]) => ({
-  label: item.label,
-  value: Number(value)
-}))
-
-const allowedAddressKinds = new Set(addressKindOptions.map((item) => item.value))
-const AGENT_BALANCE_ADDRESS_KIND = 1
-const MULTI_ADDRESS_KINDS = new Set([AGENT_BALANCE_ADDRESS_KIND, 6])
-
 const isAddressKindDisabled = computed(() => addressDialogMode.value !== 'add')
 
 const showAgentField = computed(() => {
   const kind = Number(addressForm.kind)
   if (addressDialogMode.value === 'edit') {
-    return kind === AGENT_BALANCE_ADDRESS_KIND
+    return kind === PAYMENT_AGENT_BALANCE_ADDRESS_KIND
   }
-  return !MULTI_ADDRESS_KINDS.has(kind)
+  return !PAYMENT_MULTI_ADDRESS_KINDS.has(kind)
 })
 
 const showBotField = computed(() => {
@@ -237,10 +226,10 @@ const showBotField = computed(() => {
   if (addressDialogMode.value === 'edit') {
     return false
   }
-  return !MULTI_ADDRESS_KINDS.has(kind)
+  return !PAYMENT_MULTI_ADDRESS_KINDS.has(kind)
 })
 
-const isMultiAddressKind = computed(() => MULTI_ADDRESS_KINDS.has(Number(addressForm.kind)))
+const isMultiAddressKind = computed(() => PAYMENT_MULTI_ADDRESS_KINDS.has(Number(addressForm.kind)))
 
 const isAddressTextarea = computed(
   () => addressDialogMode.value === 'add' && isMultiAddressKind.value
@@ -249,7 +238,10 @@ const isAddressTextarea = computed(
 const isAgentRequired = computed(
   () =>
     showAgentField.value &&
-    !(addressDialogMode.value === 'edit' && Number(addressForm.kind) === AGENT_BALANCE_ADDRESS_KIND)
+    !(
+      addressDialogMode.value === 'edit' &&
+      Number(addressForm.kind) === PAYMENT_AGENT_BALANCE_ADDRESS_KIND
+    )
 )
 
 const isBotRequired = computed(() => showBotField.value)
@@ -294,7 +286,7 @@ const addressFormRules: FormRules = {
 const getAddressKindInfo = (kind: number | string) => {
   const kindValue = Number(kind)
   return (
-    addressKindMap[kindValue] || {
+    PAYMENT_ADDRESS_KIND_MAP[kindValue] || {
       label: kind ? `未知类型(${kind})` : '-',
       className: 'kind-default'
     }
@@ -404,7 +396,7 @@ const searchSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: addressKindOptions
+      options: PAYMENT_ADDRESS_KIND_OPTIONS
     }
   }
 ])
@@ -424,7 +416,9 @@ const fetchData = async (params: AddressSearchParams = {}) => {
 
     const res = await v2GetAddressList(processedParams)
     const data = res.data || {}
-    const list = (data.list || []).filter((item) => allowedAddressKinds.has(Number(item.kind)))
+    const list = (data.list || []).filter((item) =>
+      ALLOWED_PAYMENT_ADDRESS_KINDS.has(Number(item.kind))
+    )
 
     return {
       list,
@@ -494,8 +488,8 @@ const handleAdd = () => {
 const handleEdit = (row: V2AddressItem) => {
   addressDialogMode.value = 'edit'
   currentAddress.value = row
-  const kind = Number(row.kind) || AGENT_BALANCE_ADDRESS_KIND
-  if (kind === AGENT_BALANCE_ADDRESS_KIND) {
+  const kind = Number(row.kind) || PAYMENT_AGENT_BALANCE_ADDRESS_KIND
+  if (kind === PAYMENT_AGENT_BALANCE_ADDRESS_KIND) {
     getAgentList(false)
   }
   getBotList()
