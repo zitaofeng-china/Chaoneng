@@ -44,5 +44,12 @@ export const v2RetryExchangeOrder = (id: string) => {
   })
 }
 
+export const resendTrxApi = (data: ResendTrxParams) => {
+  return request.post({
+    url: `/v1/order/${data.id}/retry`,
+    data
+  })
+}
+
 // 导出所有类型
 export * from './types'

@@ -4,13 +4,13 @@
  * 用户可切换页面，计算完成后全局通知。
  */
 import { ElNotification } from 'element-plus'
-import { v2GetStats } from '@/api/statistics'
-import type { V2StatsParams } from '@/api/statistics/types'
+import { v2GetStats } from '@/api/opertion/DataStatistics/Analysis'
+import type { V2StatsData, V2StatsParams } from '@/api/opertion/DataStatistics/Analysis/types'
 
-type StatsCallback = (data: any) => void
+type StatsCallback = (data: V2StatsData) => void
 
 let pollingTimer: ReturnType<typeof setInterval> | null = null
-let notifyInstance: any = null
+let notifyInstance: ReturnType<typeof ElNotification> | null = null
 let currentCallback: StatsCallback | null = null
 let currentParams: V2StatsParams = {}
 
@@ -39,15 +39,12 @@ export const startStatsPolling = (params: V2StatsParams, onComplete?: StatsCallb
     try {
       const res = await v2GetStats(currentParams)
       if (res.code === '000000' && res.data) {
-        const data = res.data as any
+        const data = res.data
         if (data.updated_at) {
-          // 计算完成
           stopStatsPolling()
-          // 回调更新数据（如果页面还在）
           if (currentCallback) {
             currentCallback(data)
           }
-          // 全局成功通知
           ElNotification({
             title: '计算完成',
             message: '统计数据已更新，请查看数据统计页',

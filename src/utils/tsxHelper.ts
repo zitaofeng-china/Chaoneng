@@ -7,7 +7,6 @@ export const getSlot = (slots: Slots, slot = 'default', data?: Recordable) => {
     return null
   }
   if (!isFunction(slots[slot])) {
-    console.error(`${slot} is not a function!`)
     return null
   }
   const slotFn = slots[slot]

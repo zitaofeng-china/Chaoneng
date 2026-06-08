@@ -17,9 +17,6 @@ export const useSearch = () => {
   const getSearch = async () => {
     await nextTick()
     const search = unref(searchRef)
-    if (!search) {
-      console.error('The Search is not registered. Please use the register method to register')
-    }
     return search
   }
 

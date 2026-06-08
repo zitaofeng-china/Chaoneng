@@ -35,8 +35,13 @@ import { Icon } from '@/components/Icon'
 import OrderDetail from './components/OrderDetail.vue'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
-import { simpleExportToExcel } from '@/utils/excel'
-import { handleListMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { handleListMessage } from '@/utils/messageHelper'
+import {
+  createStatusOptions,
+  exportTableData,
+  getStatusLabel,
+  getStatusTagType as getCommonStatusTagType
+} from '@/utils/tableHelpers'
 
 interface QuickChargeOrder {
   id: string
@@ -58,12 +63,13 @@ interface QuickChargeOrder {
 const searchTableRef = ref()
 const orderDetailRef = ref()
 
-const statusOptions = [
-  { label: '全部', value: '' },
-  { label: '已完成', value: 2 },
-  { label: '已取消', value: 3 },
-  { label: '进行中', value: 1 }
-]
+const QUICK_CHARGE_STATUS_MAP = {
+  1: { label: '进行中', type: 'primary' },
+  2: { label: '已完成', type: 'success' },
+  3: { label: '已取消', type: 'info' }
+} as const
+
+const statusOptions = createStatusOptions(QUICK_CHARGE_STATUS_MAP)
 
 const typeOptions = [
   { label: '全部', value: '' },
@@ -113,21 +119,11 @@ const demoList: QuickChargeOrder[] = [
 ]
 
 const getStatusText = (status: number) => {
-  const map: Record<number, string> = {
-    1: '进行中',
-    2: '已完成',
-    3: '已取消'
-  }
-  return map[status] || '-'
+  return getStatusLabel(QUICK_CHARGE_STATUS_MAP, status)
 }
 
 const getStatusTagType = (status: number) => {
-  const map: Record<number, 'success' | 'warning' | 'info' | 'primary' | 'danger'> = {
-    1: 'primary',
-    2: 'success',
-    3: 'info'
-  }
-  return map[status] || 'info'
+  return getCommonStatusTagType(QUICK_CHARGE_STATUS_MAP, status)
 }
 
 const columns: TableColumn[] = [
@@ -274,25 +270,27 @@ const handleDetail = (row: QuickChargeOrder) => {
 }
 
 const handleExport = async () => {
-  const params = await searchTableRef.value?.searchMethods?.getFormData()
-  const list = filterDemoList(params || {}).map((item) => ({
-    订单号: item.id,
-    机器人用户名: item.bot_user_name,
-    代理: item.agent_name,
-    用户发送地址: item.send_address,
-    接收地址: item.receive_address,
-    类型: item.order_type_label,
-    数量: item.amount,
-    '单价（sun/天）': item.unit_price,
-    开始时间: item.start_time,
-    结束时间: item.end_time,
-    总时长: item.duration,
-    订单状态: getStatusText(item.status),
-    备注: item.remark
-  }))
-
-  simpleExportToExcel(list, '速充订单列表')
-  handleSuccessMessage('导出成功')
+  await exportTableData<QuickChargeOrder>({
+    searchTableRef,
+    filename: '速充订单列表',
+    fetchData: async (params) => ({ data: { list: filterDemoList(params) } }),
+    getList: (res) => res.data.list,
+    mapItem: (item) => ({
+      订单号: item.id,
+      机器人用户名: item.bot_user_name,
+      代理: item.agent_name,
+      用户发送地址: item.send_address,
+      接收地址: item.receive_address,
+      类型: item.order_type_label,
+      数量: item.amount,
+      '单价（sun/天）': item.unit_price,
+      开始时间: item.start_time,
+      结束时间: item.end_time,
+      总时长: item.duration,
+      订单状态: getStatusText(item.status),
+      备注: item.remark
+    })
+  })
 }
 </script>
 

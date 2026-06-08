@@ -5,6 +5,30 @@ import { ElMessage } from 'element-plus'
  * 用于在数据获取、操作等场景中提供一致的用户反馈
  */
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+/**
+ * 提取错误消息
+ * @param error 错误对象或错误消息
+ * @param fallback 默认错误消息
+ */
+export const getErrorMessage = (error: unknown, fallback: string = '操作失败') => {
+  if (typeof error === 'string' && error) return error
+  if (!isRecord(error)) return fallback
+
+  const response = isRecord(error.response) ? error.response : undefined
+  const data = response && isRecord(response.data) ? response.data : undefined
+  const responseMessage = data?.msg || data?.message
+
+  if (typeof responseMessage === 'string' && responseMessage) return responseMessage
+  if (typeof error.msg === 'string' && error.msg) return error.msg
+  if (typeof error.message === 'string' && error.message) return error.message
+
+  return fallback
+}
+
 /**
  * 处理数据列表获取的提示
  * @param list 数据列表
@@ -12,7 +36,7 @@ import { ElMessage } from 'element-plus'
  * @param dataName 数据名称（如：机器人、订单、用户等）
  */
 export const handleListMessage = (
-  list: any[],
+  list: unknown[],
   hasSearchCondition: boolean = false,
   dataName: string = '数据'
 ) => {
@@ -38,9 +62,7 @@ export const handleSuccessMessage = (message: string = '操作成功') => {
  * @param error 错误对象或错误消息
  * @param defaultMessage 默认错误消息
  */
-export const handleErrorMessage = (error: any, defaultMessage: string = '操作失败') => {
-  console.error(defaultMessage, error)
-
+export const handleErrorMessage = (error: unknown, defaultMessage: string = '操作失败') => {
   // 如果error是字符串，直接使用
   if (typeof error === 'string') {
     ElMessage.error(error)
@@ -48,7 +70,7 @@ export const handleErrorMessage = (error: any, defaultMessage: string = '操作�
   }
 
   // 如果error有msg或message属性，且不是网络错误
-  const errorMsg = error?.msg || error?.message
+  const errorMsg = getErrorMessage(error, '')
   if (errorMsg && !errorMsg.includes('网络错误')) {
     ElMessage.error(`${defaultMessage}：${errorMsg}`)
     return

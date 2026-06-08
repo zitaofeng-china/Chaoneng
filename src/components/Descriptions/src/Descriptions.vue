@@ -39,7 +39,6 @@ export default defineComponent({
     }
   },
   setup(props, { attrs, slots }) {
-    console.log('props', props)
     const appStore = useAppStore()
     const mobile = computed(() => appStore.getMobile)
 

@@ -28,6 +28,7 @@ export interface SearchTableExpose {
   reset: () => Promise<Recordable>
   search: () => Promise<Recordable>
   delete: (row: Recordable) => Promise<boolean>
+  getTableData: () => Recordable[]
   currentRow: Ref<Recordable | null>
   tableMethods: any
   searchMethods: any

@@ -1,0 +1,232 @@
+import { simpleExportToExcel } from '@/utils/excel'
+import { handleSuccessMessage } from '@/utils/messageHelper'
+import { formatToDateTime } from '@/utils/dateUtil'
+
+export type TableTagType = 'success' | 'warning' | 'info' | 'primary' | 'danger'
+
+export interface StatusMeta {
+  label: string
+  type?: TableTagType
+}
+
+type DateRangeValue = [number | string | Date, number | string | Date]
+
+interface SearchMethodsLike {
+  getFormData?: () => Promise<Recordable | undefined>
+}
+
+interface SearchTableLike {
+  searchMethods?: SearchMethodsLike
+}
+
+interface RefLike<T> {
+  value?: T
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+const isSearchTableLike = (value: unknown): value is SearchTableLike => {
+  return isRecord(value) && isRecord(value.searchMethods)
+}
+
+const unwrapRef = <T>(value: T | RefLike<T>): T | undefined => {
+  if (isRecord(value) && 'value' in value) {
+    return value.value as T | undefined
+  }
+  return value as T
+}
+
+export const hasSearchValue = (value: unknown) =>
+  value !== undefined && value !== null && value !== ''
+
+type DateTimeValue = number | string | Date | null | undefined
+
+const normalizeDateTimeValue = (value: DateTimeValue) => {
+  if (value === undefined || value === null || value === '') return undefined
+  if (value instanceof Date) return value
+
+  if (typeof value === 'number') {
+    return value
+  }
+
+  const trimmedValue = value.trim()
+  if (!trimmedValue) return undefined
+
+  if (/^\d+$/.test(trimmedValue)) {
+    return Number(trimmedValue)
+  }
+
+  const parsedTimestamp = new Date(trimmedValue).getTime()
+  return Number.isNaN(parsedTimestamp) ? undefined : parsedTimestamp
+}
+
+export const formatTableDateTime = (value: DateTimeValue, fallback = '-') => {
+  const normalizedValue = normalizeDateTimeValue(value)
+  return normalizedValue === undefined ? fallback : formatToDateTime(normalizedValue)
+}
+
+const parseDateOnlyToSecond = (value: string, boundary: 'start' | 'end') => {
+  const [year, month, day] = value.split('-').map(Number)
+  const date =
+    boundary === 'start'
+      ? new Date(year, month - 1, day, 0, 0, 0)
+      : new Date(year, month - 1, day, 23, 59, 59)
+  return Math.floor(date.getTime() / 1000)
+}
+
+const toSecondTimestamp = (value: number | string | Date, boundary: 'start' | 'end') => {
+  if (value instanceof Date) {
+    return Math.floor(value.getTime() / 1000)
+  }
+
+  if (typeof value === 'number') {
+    return String(Math.trunc(value)).length <= 10 ? Math.trunc(value) : Math.floor(value / 1000)
+  }
+
+  const trimmedValue = value.trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmedValue)) {
+    return parseDateOnlyToSecond(trimmedValue, boundary)
+  }
+
+  if (/^\d+$/.test(trimmedValue)) {
+    const numericValue = Number(trimmedValue)
+    return trimmedValue.length <= 10 ? numericValue : Math.floor(numericValue / 1000)
+  }
+
+  const parsedTimestamp = new Date(trimmedValue).getTime()
+  return Number.isNaN(parsedTimestamp) ? undefined : Math.floor(parsedTimestamp / 1000)
+}
+
+export const dateRangeToSeconds = (dateRange?: DateRangeValue) => {
+  if (!dateRange || dateRange.length !== 2) return {}
+  const startTime = toSecondTimestamp(dateRange[0], 'start')
+  const endTime = toSecondTimestamp(dateRange[1], 'end')
+  if (startTime === undefined || endTime === undefined) return {}
+
+  return {
+    start_time: String(startTime),
+    end_time: String(endTime)
+  }
+}
+
+export const getStatusLabel = (
+  statusMap: Record<number, StatusMeta>,
+  status: number | string | undefined,
+  fallback = '-'
+) => {
+  if (status === undefined || status === null || status === '') return fallback
+  return statusMap[Number(status)]?.label || fallback
+}
+
+export const getStatusTagType = (
+  statusMap: Record<number, StatusMeta>,
+  status: number | string | undefined,
+  fallback: TableTagType = 'info'
+) => {
+  if (status === undefined || status === null || status === '') return fallback
+  return statusMap[Number(status)]?.type || fallback
+}
+
+export const createStatusOptions = (
+  statusMap: Record<number, StatusMeta>,
+  allValue: string | number | undefined = ''
+) => [
+  { label: '全部', value: allValue },
+  ...Object.entries(statusMap).map(([value, meta]) => ({
+    label: meta.label,
+    value: Number(value)
+  }))
+]
+
+export const buildBackendOrder = (order?: string): string | undefined => {
+  if (!order) return undefined
+
+  const [field, direction] = order.split(' ')
+  if (!field || !direction) return undefined
+
+  return `${field} ${direction}`
+}
+
+export const getSearchFormData = async <T extends Recordable = Recordable>(
+  searchTableRef?: unknown,
+  fallbackParams: T = {} as T
+): Promise<T> => {
+  try {
+    const target = unwrapRef(searchTableRef)
+    if (!isSearchTableLike(target)) return fallbackParams
+
+    const formData = await target.searchMethods?.getFormData?.()
+    return (formData || fallbackParams) as T
+  } catch {
+    return fallbackParams
+  }
+}
+
+type TableDataResponse<T> = {
+  code: string | number
+  msg?: string
+  message?: string
+  data: {
+    list: T[]
+  } & Recordable
+  list?: T[]
+} & Recordable
+
+interface ExportTableDataOptions<T> {
+  searchTableRef?: unknown
+  fallbackParams?: Recordable
+  filename: string
+  fetchData: (params: Recordable) => Promise<unknown>
+  buildParams?: (params: Recordable) => Recordable
+  getList?: (response: TableDataResponse<T>) => T[]
+  mapItem: (item: T) => Recordable
+  successMessage?: string
+}
+
+const getDefaultList = <T>(response: TableDataResponse<T>): T[] => {
+  return response.data?.list || response.list || []
+}
+
+const toTableResponse = <T>(response: unknown): TableDataResponse<T> => {
+  if (!isRecord(response)) {
+    throw new Error('导出失败：数据格式错误')
+  }
+
+  if (response.code !== undefined && String(response.code) !== '000000') {
+    const message =
+      typeof response.msg === 'string'
+        ? response.msg
+        : typeof response.message === 'string'
+          ? response.message
+          : '导出失败'
+    throw new Error(message)
+  }
+
+  return response as TableDataResponse<T>
+}
+
+export const exportTableData = async <T>({
+  searchTableRef,
+  fallbackParams = {},
+  filename,
+  fetchData,
+  buildParams,
+  getList,
+  mapItem,
+  successMessage = '导出成功'
+}: ExportTableDataOptions<T>) => {
+  const formData = await getSearchFormData(searchTableRef, fallbackParams)
+  const params = buildParams
+    ? buildParams({ ...formData, page_size: -1 })
+    : { ...formData, page_size: -1 }
+  const response = toTableResponse<T>(await fetchData(params))
+  const list = getList ? getList(response) : getDefaultList<T>(response)
+  if (!Array.isArray(list)) {
+    throw new Error('导出失败：数据格式错误')
+  }
+
+  simpleExportToExcel(list.map(mapItem), filename)
+  handleSuccessMessage(successMessage)
+}

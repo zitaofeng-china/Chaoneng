@@ -1,9 +1,5 @@
 import { Layout } from '@/utils/routerHelper'
-// import { useI18n } from '@/hooks/web/useI18n' // Assuming t() is not directly used here, otherwise uncomment
 
-// Rely on global AppRouteRecordRaw type
-
-// const { t } = useI18n() // Assuming t() is not directly used here, otherwise uncomment
 let operationRoutes: AppRouteRecordRaw[] = []
 if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
   operationRoutes = [
@@ -19,7 +15,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
       children: [
         {
           path: 'index',
-          component: () => import('@/operationView/DataStatistics/AnalysisV2.vue'),
+          component: () => import('@/operation/DataStatistics/Analysis/index.vue'),
           name: 'Analysis',
           meta: {
             title: '数据统计',
@@ -40,7 +36,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
       children: [
         {
           path: 'index',
-          component: () => import('@/operationView/ExchangeRate/index.vue'),
+          component: () => import('@/operation/ExchangeRate/ExchangeRateIndex/index.vue'),
           name: 'ExchangeRateIndex',
           meta: {
             title: '实时汇率监听',
@@ -61,7 +57,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
       children: [
         {
           path: 'recharge_order',
-          component: () => import('@/operationView/OperationCenter/RechargeOrder/index.vue'),
+          component: () => import('@/operation/OperationCenter/RechargeOrder/index.vue'),
           name: 'RechargeOrder',
           meta: {
             title: '充值订单'
@@ -69,7 +65,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'energy_transaction',
-          component: () => import('@/operationView/OperationCenter/EnergyTransaction/index.vue'),
+          component: () => import('@/operation/OperationCenter/EnergyTransaction/index.vue'),
           name: 'EnergyTransactionList',
           meta: {
             title: '能量订单'
@@ -77,7 +73,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'flash_exchange',
-          component: () => import('@/operationView/OperationCenter/ExchangeTransaction/index.vue'),
+          component: () => import('@/operation/OperationCenter/ExchangeTransaction/index.vue'),
           name: 'FlashExchange',
           meta: {
             title: '闪兑订单'
@@ -85,7 +81,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'hosted_list',
-          component: () => import('@/operationView/OperationCenter/HostedList/index.vue'),
+          component: () => import('@/operation/OperationCenter/HostedList/index.vue'),
           name: 'CustodyDetails',
           meta: {
             title: '托管列表'
@@ -93,7 +89,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'quick_charge_order',
-          component: () => import('@/operationView/OperationCenter/QuickChargeOrder/index.vue'),
+          component: () => import('@/operation/OperationCenter/QuickChargeOrder/index.vue'),
           name: 'QuickChargeOrder',
           meta: {
             title: '速充订单'
@@ -113,7 +109,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
       children: [
         {
           path: 'agent_price',
-          component: () => import('@/operationView/Marketing/AgentPrice.vue'),
+          component: () => import('@/operation/Marketing/AgentPrice/index.vue'),
           name: 'AgentPrice',
           meta: {
             title: '代理价格配置',
@@ -122,7 +118,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'payment',
-          component: () => import('@/operationView/Marketing/TrxAddress.vue'),
+          component: () => import('@/operation/Marketing/Payment/index.vue'),
           name: 'Payment',
           meta: {
             title: '收款配置',
@@ -131,7 +127,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'welfare_config',
-          component: () => import('@/operationView/Marketing/WelfareConfig.vue'),
+          component: () => import('@/operation/Marketing/WelfareConfig/index.vue'),
           name: 'WelfareConfig',
           meta: {
             title: '福利配置',
@@ -140,7 +136,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'trx_address_book',
-          component: () => import('@/operationView/Marketing/TrxAddressBook.vue'),
+          component: () => import('@/operation/Marketing/TrxAddressBook/index.vue'),
           name: 'TrxAddressBook',
           meta: {
             hidden: true,
@@ -150,7 +146,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'menu_list',
-          component: () => import('@/operationView/Marketing/MenuList/index.vue'),
+          component: () => import('@/operation/Marketing/MenuList/index.vue'),
           name: 'MarketingMenuList',
           meta: {
             title: '菜单列表',
@@ -159,7 +155,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'group_list',
-          component: () => import('@/operationView/Marketing/GroupList/index.vue'),
+          component: () => import('@/operation/Marketing/GroupList/index.vue'),
           name: 'MarketingGroupList',
           meta: {
             title: '聊天列表'
@@ -180,7 +176,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
       children: [
         {
           path: 'financial_price',
-          component: () => import('@/operationView/SystemConfig/FinancialPrice.vue'),
+          component: () => import('@/operation/FinancialManage/FinancialPrice/index.vue'),
           name: 'FinancialPrice',
           meta: {
             title: '理财价格配置',
@@ -189,7 +185,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'resource_order',
-          component: () => import('@/operationView/OperationCenter/ResourceOrder/index.vue'),
+          component: () => import('@/operation/FinancialManage/ResourceOrder/index.vue'),
           name: 'ResourceOrder',
           meta: {
             title: '理财订单列表'
@@ -197,7 +193,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'resource_supplement_config',
-          component: () => import('@/operationView/SystemConfig/ResourceSupplementConfig.vue'),
+          component: () => import('@/operation/FinancialManage/ResourceSupplementConfig/index.vue'),
           name: 'ResourceSupplementConfig',
           meta: {
             title: '资源补充配置',
@@ -206,8 +202,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'resource_supplement_order',
-          component: () =>
-            import('@/operationView/OperationCenter/ResourceSupplementOrder/index.vue'),
+          component: () => import('@/operation/FinancialManage/ResourceSupplementOrder/index.vue'),
           name: 'ResourceSupplementOrder',
           meta: {
             title: '资源补充记录'
@@ -227,7 +222,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
       children: [
         {
           path: 'agent_list',
-          component: () => import('@/operationView/Agent/AgentList.vue'),
+          component: () => import('@/operation/Agent/AgentList/index.vue'),
           name: 'AgentList',
           meta: {
             title: '代理信息',
@@ -236,7 +231,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'ledger',
-          component: () => import('@/operationView/Agent/Ledger.vue'),
+          component: () => import('@/operation/Agent/Ledger/index.vue'),
           name: 'AgentLedger',
           meta: {
             title: '代理账本'
@@ -244,7 +239,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'bot_list',
-          component: () => import('@/operationView/Agent/BotList.vue'),
+          component: () => import('@/operation/Agent/BotList/index.vue'),
           name: 'AgentBotList',
           meta: {
             title: '机器人列表',
@@ -253,7 +248,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'user_list',
-          component: () => import('@/operationView/Agent/UserList.vue'),
+          component: () => import('@/operation/Agent/UserList/index.vue'),
           name: 'UserList',
           meta: {
             title: '用户列表'
@@ -261,7 +256,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'message_list',
-          component: () => import('@/operationView/Agent/MessageList/index.vue'),
+          component: () => import('@/operation/Agent/MessageList/index.vue'),
           name: 'AgentMessageList',
           meta: {
             title: '消息列表',
@@ -270,7 +265,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'invite_list',
-          component: () => import('@/operationView/Agent/InviteList.vue'),
+          component: () => import('@/operation/Agent/InviteList/index.vue'),
           name: 'InviteList',
           meta: {
             title: '邀请列表'
@@ -292,7 +287,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
       children: [
         {
           path: 'user',
-          component: () => import('@/operationView/Authorization/User/User.vue'),
+          component: () => import('@/operation/Authorization/User/User.vue'),
           name: 'User',
           meta: {
             title: '用户管理',
@@ -301,7 +296,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'role',
-          component: () => import('@/operationView/Authorization/Role/Role.vue'),
+          component: () => import('@/operation/Authorization/Role/Role.vue'),
           name: 'Role',
           meta: {
             title: '角色管理',
@@ -323,7 +318,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         {
           path: 'index',
           name: 'CustomerServicePage',
-          component: () => import('@/operationView/CustomerService/index.vue'),
+          component: () => import('@/operation/CustomerService/CustomerServicePage/index.vue'),
           meta: {
             title: '客服管理',
             icon: 'ant-design:customer-service-outlined'
@@ -343,7 +338,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
       children: [
         {
           path: 'resource_pool',
-          component: () => import('@/operationView/SystemConfig/ResourcePool.vue'),
+          component: () => import('@/operation/SystemConfig/ResourcePool/index.vue'),
           name: 'ResourcePool',
           meta: {
             title: '资源池账户',
@@ -352,7 +347,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'announcement',
-          component: () => import('@/operationView/SystemConfig/Announcement.vue'),
+          component: () => import('@/operation/SystemConfig/Announcement/index.vue'),
           name: 'Announcement',
           meta: {
             title: '系统公告'

@@ -1,0 +1,235 @@
+<template>
+  <Dialog v-model="visible" title="订单详情">
+    <ElTabs v-model="activeTab" class="order-detail-tabs">
+      <!-- 基本信息标签页 - 始终显示 -->
+      <ElTabPane label="基本信息" name="basic">
+        <div v-if="currentOrder" class="order-detail">
+          <Descriptions :schema="commonDetailSchema" :data="currentOrder" :column="2" border />
+        </div>
+        <div v-else-if="!currentOrder" class="p-4 text-center text-gray-500">
+          无法加载订单详情。
+        </div>
+      </ElTabPane>
+
+      <!-- 资源详情标签页 - 只有当 resources 数组存在且有数据时才显示 -->
+      <ElTabPane
+        label="资源详情"
+        name="resources"
+        v-if="currentOrder && currentOrder.resources && currentOrder.resources.length > 0"
+      >
+        <ResourceDetails :order-data="currentOrder" />
+      </ElTabPane>
+
+      <!-- 激活详情标签页 - 只有当 activations 数组存在且有数据时才显示 -->
+      <ElTabPane
+        label="激活详情"
+        name="activations"
+        v-if="currentOrder && currentOrder.activations && currentOrder.activations.length > 0"
+      >
+        <ActivationDetails :order-data="currentOrder" />
+      </ElTabPane>
+    </ElTabs>
+    <template #footer>
+      <div class="flex justify-end">
+        <ElButton @click="visible = false">关闭</ElButton>
+      </div>
+    </template>
+  </Dialog>
+</template>
+
+<script setup lang="tsx">
+import { ref, computed, defineAsyncComponent, h } from 'vue'
+import { ElButton, ElTag, ElMessage, ElTabs, ElTabPane } from 'element-plus'
+import { Dialog } from '@/components/Dialog'
+import { formatToWan } from '@/utils'
+import { getEnergyOrderKindTagType, getEnergyOrderKindText } from '@/utils/energyOrder'
+import { getStatusText, getStatusType } from '@/utils/orderStatus'
+import { v2GetOrderDetail } from '@/api/opertion/OperationCenter/EnergyTransaction'
+import type { V2OrderDetailResponse } from '@/api/opertion/OperationCenter/EnergyTransaction/types'
+import Descriptions from '@/components/Descriptions/src/Descriptions.vue'
+import type { DescriptionsSchema } from '@/components/Descriptions'
+import { formatTableDateTime } from '@/utils/tableHelpers'
+import { handleErrorMessage } from '@/utils/messageHelper'
+
+const ResourceDetails = defineAsyncComponent(() => import('./details/ResourceDetails.vue'))
+const ActivationDetails = defineAsyncComponent(() => import('./details/ActivationDetails.vue'))
+
+const visible = ref(false)
+const currentOrder = ref<V2OrderDetailResponse | null>(null)
+const activeTab = ref('basic')
+
+const renderText = (value: string | number | null | undefined, fallback = '-') => {
+  return h('span', value === undefined || value === null || value === '' ? fallback : String(value))
+}
+
+const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
+  { label: '订单号', field: 'id' },
+  {
+    label: '用户名',
+    field: 'tg_first_name',
+    slots: {
+      default: (data: V2OrderDetailResponse) =>
+        renderText(data?.tg_first_name || data?.tg_user_name)
+    }
+  },
+  { label: '机器人ID', field: 'bot_id' },
+  {
+    label: '机器人用户名',
+    field: 'bot_user_name',
+    slots: {
+      default: (data: V2OrderDetailResponse) =>
+        renderText(data?.bot_user_name || data?.bot_first_name)
+    }
+  },
+  { label: '代理名称', field: 'agent_name' },
+  {
+    label: '订单类型',
+    field: 'kind',
+    slots: {
+      default: (data: V2OrderDetailResponse) => {
+        const value = Number(data?.kind)
+        return h(ElTag, { type: getEnergyOrderKindTagType(value) }, () =>
+          getEnergyOrderKindText(value)
+        )
+      }
+    }
+  },
+  {
+    label: '支付金额',
+    field: 'amount',
+    slots: {
+      default: (data: V2OrderDetailResponse) => {
+        return renderText(
+          data?.amount !== undefined ? `${data.amount} ${data.coin || ''}` : '',
+          '暂无'
+        )
+      }
+    }
+  },
+  {
+    label: (() => {
+      const kind = Number(currentOrder.value?.kind)
+      return kind === 7 || kind === 9 ? '带宽数' : '能量数'
+    })(),
+    field: 'resources',
+    slots: {
+      default: (data: V2OrderDetailResponse) => {
+        const value = data?.resources?.[0]?.amount ?? data?.summary?.energy_count
+        if (value === null || value === undefined) return renderText('0')
+        return renderText(Number(value) >= 10000 ? formatToWan(value) : value)
+      }
+    }
+  },
+  {
+    label: '收款地址',
+    field: 'receive_address',
+    slots: {
+      default: (data: V2OrderDetailResponse) => renderText(data?.receive_address, '余额支付')
+    }
+  },
+  {
+    label: '订单状态',
+    field: 'status',
+    slots: {
+      default: (data: V2OrderDetailResponse) => {
+        const value = Number(data?.status)
+        return h(ElTag, { type: getStatusType(value) }, () => getStatusText(value))
+      }
+    }
+  },
+  {
+    label: '有效时长',
+    field: 'resources',
+    slots: { default: (data: V2OrderDetailResponse) => renderText(getEnergyRentText(data)) }
+  },
+  {
+    label: '回收时间',
+    field: 'resources',
+    slots: {
+      default: (data: V2OrderDetailResponse) =>
+        renderText(formatTableDateTime(data?.resources?.[0]?.recycled_at))
+    }
+  },
+  {
+    label: '创建时间',
+    field: 'created_at',
+    slots: {
+      default: (data: V2OrderDetailResponse) => renderText(formatTableDateTime(data?.created_at))
+    }
+  },
+  {
+    label: '完成时间',
+    field: 'updated_at',
+    slots: {
+      default: (data: V2OrderDetailResponse) => renderText(formatTableDateTime(data?.updated_at))
+    }
+  },
+  {
+    label: '支付时间',
+    field: 'paid_at',
+    slots: {
+      default: (data: V2OrderDetailResponse) => renderText(formatTableDateTime(data?.paid_at))
+    }
+  }
+])
+
+const getEnergyRentText = (data?: V2OrderDetailResponse | null) => {
+  if (!data) return '-'
+  if (data.kind === 5 || data.kind === 8) return '长期有效'
+
+  const firstResource = data.resources?.[0]
+  if (!firstResource?.expirated_at || !firstResource?.delegated_at) return '-'
+
+  const expTime = new Date(firstResource.expirated_at).getTime()
+  const delTime = new Date(firstResource.delegated_at).getTime()
+  if (Number.isNaN(expTime) || Number.isNaN(delTime) || expTime <= delTime) return '-'
+
+  const diffMs = expTime - delTime
+  const diffMinutes = Math.floor(diffMs / (1000 * 60))
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays > 0) return `${diffDays}天`
+  if (diffHours > 0) return `${diffHours}小时`
+  if (diffMinutes > 0) return `${diffMinutes}分钟`
+  return '-'
+}
+
+const open = async (row: { id: string | number }) => {
+  if (!row || !row.id) {
+    ElMessage.error('无效的订单信息')
+    return
+  }
+  visible.value = true
+  activeTab.value = 'basic'
+  currentOrder.value = null
+
+  try {
+    const response = await v2GetOrderDetail(String(row.id))
+
+    if (response && response.data) {
+      currentOrder.value = response.data
+    } else {
+      ElMessage.warning('未获取到订单详情数据或数据格式错误')
+      currentOrder.value = null
+    }
+  } catch (error) {
+    handleErrorMessage(error, '获取订单详情失败')
+    currentOrder.value = null
+  }
+}
+
+defineExpose({
+  open
+})
+</script>
+
+<style scoped>
+.order-detail {
+  width: 100%;
+}
+
+.order-detail-tabs .el-tabs__content {
+  min-height: 150px;
+}
+</style>

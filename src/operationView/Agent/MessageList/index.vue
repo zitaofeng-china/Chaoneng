@@ -372,6 +372,7 @@ const handleResend = async (row: any) => {
       ),
       period: 0,
       send_at: Math.floor(Date.now() / 1000),
+      chat_ids: row.chat_ids || [],
       tg_user_ids: row.tg_user_ids || []
     })
 

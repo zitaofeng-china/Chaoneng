@@ -1,3 +1,5 @@
+import { ElMessage } from 'element-plus'
+
 /**
  * 根据后端返回的二进制数据触发浏览器下载
  * @param data Blob 数据或包含 Blob 的响应对象
@@ -7,7 +9,7 @@
 export function downloadByData(data: any, filename: string, mimeType?: string) {
   // 确保 data 存在
   if (!data) {
-    console.error('Download data is empty.')
+    ElMessage.warning('下载数据为空')
     return
   }
 
@@ -65,9 +67,7 @@ export function downloadByBase64(base64Data: string, filename: string) {
 
     // 调用现有的下载函数
     downloadByData(blob, filename)
-  } catch (error) {
-    console.error('Error decoding or downloading base64 data:', error)
-    // 在这里可以添加用户提示，例如使用 ElMessage
-    // ElMessage.error('下载失败，Base64 数据无效');
+  } catch {
+    ElMessage.error('下载失败，文件数据无效')
   }
 }

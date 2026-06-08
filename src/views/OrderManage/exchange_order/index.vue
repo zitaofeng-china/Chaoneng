@@ -72,6 +72,7 @@ import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import { Descriptions } from '@/components/Descriptions'
 import type { TableColumn } from '@/components/Table'
+import type { FormSchema } from '@/components/Form'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { v1GetExchangeOrderList, v1GetExchangeOrderDetail } from '@/api/exchange_order'
 import { Icon } from '@/components/Icon'
@@ -417,10 +418,10 @@ const actionColumn: TableColumn = {
 }
 
 // 搜索表单配置
-const searchSchema = [
+const searchSchema: FormSchema[] = [
   {
     field: 'keyword',
-    component: 'Input',
+    component: 'Input' as const,
     label: {
       tips: '订单号/机器人用户名/客户地址/闪兑地址',
       text: '关键词'
@@ -432,7 +433,7 @@ const searchSchema = [
   },
   {
     field: 'in_coin',
-    component: 'Select',
+    component: 'Select' as const,
     label: '交易类型:',
     componentProps: {
       placeholder: '全部',
@@ -462,7 +463,7 @@ const searchSchema = [
   },
   {
     field: 'dateRange',
-    component: 'DatePicker',
+    component: 'DatePicker' as const,
     label: '创建时间',
     componentProps: {
       type: 'datetimerange',

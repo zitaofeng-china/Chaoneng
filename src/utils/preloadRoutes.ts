@@ -1,6 +1,6 @@
 /**
  * 路由预加载工具
- * 用于在代理端登录时预加载路由资源，提升登录后的页面加载速度
+ * 用于在运营端登录时预加载高频路由资源，提升登录后的页面加载速度
  */
 
 class RoutePreloader {
@@ -9,25 +9,21 @@ class RoutePreloader {
   private preloadedChunks = new Set<string>()
 
   /**
-   * 开始预加载代理端路由
+   * 开始预加载运营端路由
    */
   startPreload() {
-    // 只在代理端执行预加载
+    // 只在运营端执行预加载
     const systemType = import.meta.env.VITE_SYSTEM_TYPE
     if (systemType === 'Management') {
-      console.log('[预加载] 运营端不执行预加载')
       return
     }
 
     if (this.isPreloading) {
-      console.log('[预加载] 已在预加载中，跳过')
       return
     }
 
     this.isPreloading = true
     this.abortController = new AbortController()
-
-    console.log('[预加载] 开始预加载代理端路由资源')
 
     // 预加载核心路由组件
     this.preloadCoreRoutes()
@@ -38,7 +34,6 @@ class RoutePreloader {
    */
   pausePreload() {
     if (this.abortController) {
-      console.log('[预加载] 暂停预加载')
       this.abortController.abort()
       this.abortController = null
     }
@@ -50,7 +45,6 @@ class RoutePreloader {
    */
   resumePreload() {
     if (!this.isPreloading) {
-      console.log('[预加载] 恢复预加载')
       this.startPreload()
     }
   }
@@ -59,26 +53,23 @@ class RoutePreloader {
    * 预加载核心路由
    */
   private async preloadCoreRoutes() {
-    // 代理端核心路由列表（按优先级排序）
+    // 运营端核心路由列表（按优先级排序）
     const coreRoutes = [
-      // 1. 首页/工作台
-      () => import('@/views/Dashboard/Workplace.vue'),
+      // 1. 默认入口和数据看板
+      () => import('@/operation/ExchangeRate/ExchangeRateIndex/index.vue'),
+      () => import('@/operation/DataStatistics/Analysis/index.vue'),
 
       // 2. 订单管理（高频访问）
-      () => import('@/views/OrderManage/recharge_order/index.vue'),
-      () => import('@/views/OrderManage/energy_order/index.vue'),
-      () => import('@/views/OrderManage/exchange_order/index.vue'),
+      () => import('@/operation/OperationCenter/RechargeOrder/index.vue'),
+      () => import('@/operation/OperationCenter/EnergyTransaction/index.vue'),
+      () => import('@/operation/OperationCenter/ExchangeTransaction/index.vue'),
+      () => import('@/operation/OperationCenter/HostedList/index.vue'),
+      () => import('@/operation/OperationCenter/QuickChargeOrder/index.vue'),
 
-      // 3. 机器人管理
-      () => import('@/views/Bot_manage/bot_list/index.vue'),
-
-      // 4. 用户管理
-      () => import('@/views/UserGroup/user_list/index.vue'),
-
-      // 5. 其他常用页面
-      () => import('@/views/HostedList/index.vue'),
-      () => import('@/views/AccountManage/account_list/index.vue'),
-      () => import('@/views/DataStatistics/bot_summary/index.vue')
+      // 3. 代理和用户管理
+      () => import('@/operation/Agent/AgentList/index.vue'),
+      () => import('@/operation/Agent/BotList/index.vue'),
+      () => import('@/operation/Agent/UserList/index.vue')
     ]
 
     // 使用 requestIdleCallback 在浏览器空闲时预加载
@@ -92,7 +83,6 @@ class RoutePreloader {
     for (const route of routes) {
       // 检查是否被中止
       if (this.abortController?.signal.aborted) {
-        console.log('[预加载] 预加载已中止')
         break
       }
 
@@ -101,16 +91,11 @@ class RoutePreloader {
 
       try {
         await route()
-        console.log('[预加载] 成功预加载一个路由组件')
-      } catch (error: any) {
+      } catch {
         // 忽略预加载错误，不影响正常流程
-        if (error?.name !== 'AbortError') {
-          console.warn('[预加载] 预加载失败:', error)
-        }
       }
     }
 
-    console.log('[预加载] 所有核心路由预加载完成')
     this.isPreloading = false
   }
 

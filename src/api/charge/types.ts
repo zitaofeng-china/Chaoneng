@@ -74,6 +74,7 @@ export interface ChargeLogItem {
   origin: string // 供给源
   finance_address: string // 财务地址
   target_pool: string // 供给对象/池子
+  minimum?: number // 补充阈值
   amount: number // 补充数量
   status: number // 状态
   txid?: string // 交易hash

@@ -186,7 +186,6 @@ const {
   defaultParams: props.defaultParams,
   actionColumn: props.actionColumn
 })
-console.log('tableState', tableState)
 
 // 如果 pagination 传入了 pageSize，覆盖默认值
 if (props.pagination?.pageSize) {
@@ -217,6 +216,8 @@ const handleReset = async () => {
   emit('update:searchParams', params)
 }
 
+const getTableData = () => dataList.value
+
 // 删除
 const doDelete = async (row: Recordable) => {
   const result = await handleDelete(row)
@@ -242,7 +243,6 @@ const slotKeys = computed(() => {
 watch(
   () => props.columns,
   (newColumns) => {
-    console.log('[SearchTable] columns 变化，更新表格列:', newColumns.length)
     if (tableMethods) {
       tableMethods.setProps({ columns: newColumns })
     }
@@ -272,6 +272,7 @@ onMounted(() => {
     search: handleSearch,
     reset: handleReset,
     delete: doDelete,
+    getTableData,
     currentRow,
     tableMethods,
     searchMethods,
@@ -287,6 +288,7 @@ defineExpose({
   search: handleSearch,
   delete: doDelete,
   currentRow,
+  getTableData,
   getElTableExpose: tableMethods.getElTableExpose,
   tableMethods,
   searchMethods,

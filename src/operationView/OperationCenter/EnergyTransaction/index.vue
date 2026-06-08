@@ -48,6 +48,7 @@ import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import { ORDER_STATUS_OPTIONS } from '@/utils/orderStatus'
 import { SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'
+import { buildBackendOrder } from '@/utils/tableHelpers'
 import { ENERGY_ORDER_KIND_OPTIONS } from '@/utils/energyOrder'
 import { getFilteredColumns } from './columns'
 import {
@@ -191,19 +192,8 @@ const fetchDataWrapper = async (
       ...transformSearchParamsToApiParams(params)
     }
 
-    if (params.order) {
-      const fieldMapping: Record<string, string> = {
-        created_at: 'created_at',
-        recycled_at: 'recycled_at'
-      }
-
-      const orderParts = params.order.split(' ')
-      if (orderParts.length === 2) {
-        const [field, direction] = orderParts
-        const mappedField = fieldMapping[field] || field
-        apiParams.order = `${mappedField} ${direction}`
-      }
-    }
+    const order = buildBackendOrder(params.order)
+    if (order) apiParams.order = order
 
     const response = await v2GetEnergyList(apiParams)
 

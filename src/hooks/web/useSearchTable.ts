@@ -7,20 +7,20 @@ import { TableColumn } from '@/components/Table'
 import { ElMessage } from 'element-plus'
 import { ref as vueRef } from 'vue'
 import { useUserStore } from '@/store/modules/user'
-import { isManagementSystem, isOperationSystem } from '@/utils/system'
+import { isOperationSystem } from '@/utils/system'
 
 export interface SearchTableState {
   loading: boolean
   dataList: any[]
   pageSize: number
   currentPage: number
-  totalCount: number
+  total: number
 }
 
 interface UseSearchTableConfig {
   searchSchema?: FormSchema[] // 查询表单配置
   tableColumns: TableColumn[] // 表格列配置
-  fetchDataApi: (params?: any) => Promise<{ list: any[]; total?: number; totalCount?: number }>
+  fetchDataApi: (params?: any) => Promise<{ list: any[]; total?: number }>
   fetchDelApi?: () => Promise<boolean>
   immediate?: boolean
   defaultParams?: Recordable // 默认参数
@@ -56,7 +56,6 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
 
     const currentRouteName = route.name
     if (!currentRouteName) {
-      console.warn('[useSearchTable] Route name is missing, cannot check add permission.')
       return false
     }
     const requiredPermission = `${String(currentRouteName)}.add`
@@ -93,8 +92,8 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
         const apiParams = buildApiParams()
         const result = await config.fetchDataApi(apiParams)
         return adaptResponseData(result)
-      } catch (error) {
-        console.error('Data fetch failed:', error)
+      } catch {
+        ElMessage.error('数据加载失败')
         return { list: [], total: 0 }
       }
     },
@@ -128,7 +127,7 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
 
   const adaptResponseData = (result: any): { list: any[]; total: number } => {
     const list = result.list || []
-    const total = result.totalCount || result.total || 0
+    const total = result.total || 0
     return { list, total }
   }
 
@@ -180,9 +179,8 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
         await tableMethods.getList()
       }
       return form
-    } catch (error) {
-      console.error('Search failed:', error)
-      ElMessage.error('Search failed, please try again')
+    } catch {
+      ElMessage.error('搜索失败，请稍后重试')
       return unref(searchParams)
     }
   }
@@ -197,9 +195,8 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
         await tableMethods.getList()
       }
       return unref(searchParams)
-    } catch (error) {
-      console.error('Reset failed:', error)
-      ElMessage.error('Reset failed, please try again')
+    } catch {
+      ElMessage.error('重置失败，请稍后重试')
       return unref(searchParams)
     }
   }
@@ -231,8 +228,8 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
           loadData()
         }, 0)
       }
-    } catch (error) {
-      console.error('SearchTable initialization failed:', error)
+    } catch {
+      ElMessage.error('表格初始化失败')
     }
   }
 
@@ -246,7 +243,6 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
 
   const setSearchParams = (params: Recordable) => {
     searchParams.value = { ...unref(searchParams), ...params }
-    console.log('searchParams.value', searchParams.value)
     searchMethods.setValues(searchParams.value)
     return unref(searchParams)
   }

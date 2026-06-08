@@ -18,9 +18,6 @@ export const useForm = () => {
     refInstance: typeof Form & FormExpose,
     elRefInstance: ComponentRef<typeof ElForm>
   ) => {
-    if (formRef.value || elFormRef.value) {
-      console.warn('Form seems to be registered already. Overwriting existing refs.')
-    }
     formRef.value = refInstance
     elFormRef.value = elRefInstance
     _resolveFormReady(true)
@@ -31,7 +28,6 @@ export const useForm = () => {
     await nextTick()
     const form = unref(formRef)
     if (!form) {
-      console.error('Failed to get Form instance after registration promise resolved.')
       throw new Error('Form instance is not available even after registration.')
     }
     return form
@@ -42,7 +38,6 @@ export const useForm = () => {
     await nextTick()
     const elForm = unref(elFormRef)
     if (!elForm) {
-      console.error('Failed to get ElForm instance after registration promise resolved.')
       throw new Error('ElForm instance is not available even after registration.')
     }
     return elForm
@@ -81,7 +76,6 @@ export const useForm = () => {
       const form = await getFormInstance()
       const model = form?.formModel
       if (!model) {
-        console.warn('Form model is not available when calling getFormData.')
         return {} as T
       }
 

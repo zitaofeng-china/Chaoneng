@@ -33,11 +33,21 @@ import { Icon } from '@/components/Icon'
 import type { TableColumn } from '@/components/Table'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { getChargeLogList } from '@/api/charge'
-import { simpleExportToExcel } from '@/utils/excel'
-import { handleErrorMessage, handleListMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
+import {
+  createStatusOptions,
+  exportTableData,
+  getStatusLabel,
+  getStatusTagType
+} from '@/utils/tableHelpers'
 
 const searchTableRef = ref()
 const tronscanUrl = import.meta.env.VITE_TRONSCAN_URL || 'https://tronscan.org'
+
+const CHARGE_LOG_STATUS_MAP = {
+  1: { label: '成功', type: 'success' },
+  2: { label: '失败', type: 'danger' }
+} as const
 
 const renderTxidLink = (txid?: string) => {
   if (!txid) return h('span', '-')
@@ -53,11 +63,7 @@ const renderTxidLink = (txid?: string) => {
 }
 
 const getStatusText = (status?: number) => {
-  const statusMap: Record<number, string> = {
-    1: '成功',
-    2: '失败'
-  }
-  return status ? statusMap[status] || '未知' : '未知'
+  return getStatusLabel(CHARGE_LOG_STATUS_MAP, status, '未知')
 }
 
 const buildChargeLogParams = (params: any = {}) => {
@@ -84,8 +90,24 @@ const buildChargeLogParams = (params: any = {}) => {
 // 表格列
 const columns: TableColumn[] = [
   { field: 'origin', label: '供给源', minWidth: 180, formatter: (row) => row.origin || '-' },
-  { field: 'target', label: '供给对象', minWidth: 200, formatter: (row) => row.target || '-' },
-  { field: 'vault', label: '财务地址', minWidth: 200, formatter: (row) => row.vault || '-' },
+  {
+    field: 'target_pool',
+    label: '供给对象',
+    minWidth: 200,
+    formatter: (row) => row.target_pool || '-'
+  },
+  {
+    field: 'finance_address',
+    label: '财务地址',
+    minWidth: 200,
+    formatter: (row) => row.finance_address || '-'
+  },
+  {
+    field: 'minimum',
+    label: '阈值',
+    width: 120,
+    formatter: (row) => row.minimum ?? '-'
+  },
   { field: 'amount', label: '补充数量', width: 120, formatter: (row) => row.amount ?? '-' },
   { field: 'fee', label: '手续费', width: 100, formatter: (row) => row.fee || '0' },
   {
@@ -95,12 +117,11 @@ const columns: TableColumn[] = [
     slots: {
       default: (data: any) => {
         const row = data.row || data
-        const statusMap: Record<number, { type: string }> = {
-          1: { type: 'success' },
-          2: { type: 'danger' }
-        }
-        const info = statusMap[row.status] || { text: '未知', type: 'info' }
-        return h(ElTag, { type: info.type as any, size: 'small' }, () => getStatusText(row.status))
+        return h(
+          ElTag,
+          { type: getStatusTagType(CHARGE_LOG_STATUS_MAP, row.status), size: 'small' },
+          () => getStatusText(row.status)
+        )
       }
     }
   },
@@ -190,11 +211,7 @@ const searchSchema = ref([
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: [
-        { label: '全部', value: '' },
-        { label: '成功', value: 1 },
-        { label: '失败', value: 2 }
-      ]
+      options: createStatusOptions(CHARGE_LOG_STATUS_MAP)
     }
   },
   {
@@ -235,19 +252,17 @@ const fetchChargeLogListApi = async (params: any) => {
 
 const handleExport = async () => {
   try {
-    const params = await searchTableRef.value?.searchMethods?.getFormData()
-    const res = await getChargeLogList(
-      buildChargeLogParams({
-        ...(params || {}),
-        page_size: -1
-      })
-    )
-
-    if (res?.code === '000000' && res.data?.list) {
-      const exportList = res.data.list.map((item: any) => ({
+    await exportTableData<any>({
+      searchTableRef,
+      filename: '资源补充记录',
+      fetchData: (params) => getChargeLogList(params),
+      buildParams: buildChargeLogParams,
+      getList: (res) => res?.data?.list || [],
+      mapItem: (item) => ({
         供给源: item.origin || '-',
-        供给对象: item.target || item.target_pool || '-',
-        财务地址: item.vault || item.finance_address || '-',
+        供给对象: item.target_pool || '-',
+        财务地址: item.finance_address || '-',
+        阈值: item.minimum ?? '-',
         补充数量: item.amount ?? '-',
         手续费: item.fee || '0',
         状态: getStatusText(item.status),
@@ -255,13 +270,8 @@ const handleExport = async () => {
         回收哈希: item.recycled_txid || '-',
         描述: item.describe || '-',
         创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-'
-      }))
-
-      simpleExportToExcel(exportList, '资源补充记录')
-      handleSuccessMessage('导出成功')
-    } else {
-      handleErrorMessage('导出失败：数据格式错误')
-    }
+      })
+    })
   } catch (error) {
     handleErrorMessage(error, '导出失败')
   }

@@ -126,17 +126,17 @@
       <div class="charts-section">
         <!-- 折合总资产变化趋势 -->
         <el-card shadow="hover" class="chart-card">
-          <Echart :options="totalAssetChartOptions" :height="300" />
+          <Echart :options="totalAssetOptions" :height="300" />
         </el-card>
 
         <!-- USDT / TRX 余额走势 -->
         <el-card shadow="hover" class="chart-card">
-          <Echart :options="balanceTrendChartOptions" :height="300" />
+          <Echart :options="balanceTrendOptions" :height="300" />
         </el-card>
 
         <!-- 每日资金池净变化 -->
         <el-card shadow="hover" class="chart-card">
-          <Echart :options="dailyChangeChartOptions" :height="300" />
+          <Echart :options="dailyChangeOptions" :height="300" />
         </el-card>
       </div>
       <!-- 机器人设置弹窗 -->
@@ -190,7 +190,13 @@ import {
 import { ContentWrap } from '@/components/ContentWrap'
 import { Echart } from '@/components/Echart'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import { createAssetAccount, getAssetReport, updateAssetNotify, getAssetNotify, batchCreateAssetAccount } from '@/api/asset'
+import {
+  createAssetAccount,
+  getAssetReport,
+  updateAssetNotify,
+  getAssetNotify,
+  batchCreateAssetAccount
+} from '@/api/asset'
 import { simpleExportToExcel } from '@/utils/excel'
 import type { AssetBalanceData, AccountBalanceSnapshot } from '@/api/asset/types'
 import type { EChartsOption } from 'echarts'
@@ -205,7 +211,7 @@ const DEFAULT_STATS = {
 
 // 状态
 const dateRange = ref('7')
-const customStartDate = ref<Date | null>(null)
+const customStartDate = ref<Date>()
 const addressInput = ref('')
 
 // 禁用今天之后的日期
@@ -265,7 +271,7 @@ const isSameNumber = (a: number, b: number, epsilon = 0.000001) => {
 }
 
 // 图表配置 - 折合总资产变化趋势
-const totalAssetChartOptions = reactive<EChartsOption>({
+const totalAssetChartOptions = ref<EChartsOption>({
   title: { text: '折合总资产变化趋势（U）', left: 'left' },
   tooltip: { trigger: 'axis' },
   xAxis: { type: 'category', data: [] },
@@ -284,7 +290,7 @@ const totalAssetChartOptions = reactive<EChartsOption>({
 })
 
 // 图表配置 - USDT/TRX余额走势
-const balanceTrendChartOptions = reactive<EChartsOption>({
+const balanceTrendChartOptions = ref<EChartsOption>({
   title: { text: 'USDT / TRX 余额走势', left: 'left' },
   tooltip: { trigger: 'axis' },
   legend: { data: ['USDT', 'TRX'], top: 10, right: 20 },
@@ -312,7 +318,7 @@ const balanceTrendChartOptions = reactive<EChartsOption>({
 })
 
 // 图表配置 - 每日资金池净变化
-const dailyChangeChartOptions = reactive<EChartsOption>({
+const dailyChangeChartOptions = ref<EChartsOption>({
   title: { text: '每日资金池净变化（U）', left: 'left' },
   tooltip: { trigger: 'axis' },
   xAxis: { type: 'category', data: [] },
@@ -326,11 +332,21 @@ const dailyChangeChartOptions = reactive<EChartsOption>({
   grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true }
 })
 
+const totalAssetOptions = computed<EChartsOption>(
+  () => totalAssetChartOptions.value as EChartsOption
+)
+const balanceTrendOptions = computed<EChartsOption>(
+  () => balanceTrendChartOptions.value as EChartsOption
+)
+const dailyChangeOptions = computed<EChartsOption>(
+  () => dailyChangeChartOptions.value as EChartsOption
+)
+
 // 获取时间范围参数
 const getTimeParams = () => {
   const now = new Date()
   let startTime: string
-  let endTime: string = formatDateStr(now)
+  const endTime: string = formatDateStr(now)
 
   if (dateRange.value === 'custom' && customStartDate.value) {
     startTime = formatDateStr(customStartDate.value)
@@ -462,8 +478,7 @@ const loadData = async () => {
         const selectedDays =
           dateRange.value === 'custom' && customStartDate.value
             ? Math.ceil(
-                (new Date().getTime() - customStartDate.value.getTime()) /
-                  (1000 * 60 * 60 * 24)
+                (new Date().getTime() - customStartDate.value.getTime()) / (1000 * 60 * 60 * 24)
               ) + 1
             : parseInt(dateRange.value) || 7
         const totalSum = historyAssetArr.reduce((sum, val) => sum + val, 0)
@@ -474,11 +489,11 @@ const loadData = async () => {
       dailyReport.value = tableData.reverse() // 最新日期在前
 
       // 更新图表
-      ;(totalAssetChartOptions.xAxis as any).data = dateLabels
-      ;(totalAssetChartOptions.series as any[])[0].data = totalAssetArr
-      ;(balanceTrendChartOptions.xAxis as any).data = dateLabels
-      ;(balanceTrendChartOptions.series as any[])[0].data = totalUsdtArr
-      ;(balanceTrendChartOptions.series as any[])[1].data = totalTrxArr
+      ;(totalAssetChartOptions.value.xAxis as any).data = dateLabels
+      ;(totalAssetChartOptions.value.series as any[])[0].data = totalAssetArr
+      ;(balanceTrendChartOptions.value.xAxis as any).data = dateLabels
+      ;(balanceTrendChartOptions.value.series as any[])[0].data = totalUsdtArr
+      ;(balanceTrendChartOptions.value.series as any[])[1].data = totalTrxArr
 
       // 每日净变化
       const dailyChanges = totalAssetArr.map((val, i) => {
@@ -489,8 +504,8 @@ const loadData = async () => {
           itemStyle: { color: change >= 0 ? '#67C23A' : '#F56C6C' }
         }
       })
-      ;(dailyChangeChartOptions.xAxis as any).data = dateLabels
-      ;(dailyChangeChartOptions.series as any[])[0].data = dailyChanges
+      ;(dailyChangeChartOptions.value.xAxis as any).data = dateLabels
+      ;(dailyChangeChartOptions.value.series as any[])[0].data = dailyChanges
     }
   } catch (error) {
     handleErrorMessage(error, '获取数据失败')
@@ -661,8 +676,7 @@ const handleExport = async () => {
         let prevAsset = 0
         history[prevDate].forEach((item: AccountBalanceSnapshot) => {
           prevAsset +=
-            (parseFloat(item.balance_usdt) || 0) +
-            (parseFloat(item.balance_trx) || 0) * price
+            (parseFloat(item.balance_usdt) || 0) + (parseFloat(item.balance_trx) || 0) * price
         })
         const currentAsset = dayUsdt + dayTrx * price
         row['资金池变化'] = (currentAsset - prevAsset).toFixed(2)
@@ -676,7 +690,7 @@ const handleExport = async () => {
     // 生成文件名（根据用户选择的时间范围）
     const now = new Date()
     let startDateStr: string
-    let endDateStr: string = formatLocalDate(now)
+    const endDateStr: string = formatLocalDate(now)
     if (dateRange.value === 'custom' && customStartDate.value) {
       startDateStr = formatLocalDate(customStartDate.value)
     } else {
@@ -736,7 +750,7 @@ const handleSaveBotSetting = async () => {
 // 时间范围变更
 const handleDateRangeChange = (val: string) => {
   if (val !== 'custom') {
-    customStartDate.value = null
+    customStartDate.value = undefined
     loadData()
   }
 }

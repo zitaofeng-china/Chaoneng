@@ -17,8 +17,3 @@ export function isOperationSystem(): boolean {
   // 假设非 Management 即为 Operations
   return systemTypeFromEnv !== 'Management'
 }
-
-// 可选: 在模块加载时打印一次，方便调试
-console.log(
-  `[utils/system] VITE_SYSTEM_TYPE: ${systemTypeFromEnv}, isManagement: ${isManagementSystem()}`
-)

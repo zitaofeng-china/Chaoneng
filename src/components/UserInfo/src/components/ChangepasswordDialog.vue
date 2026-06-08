@@ -5,7 +5,7 @@ import Form from '@/components/Form/src/Form.vue'
 import { FormSchema } from '@/components/Form'
 import { changeManagePasswordApiV2 } from '@/api/login'
 import { useForm } from '@/hooks/web/useForm'
-import { ElMessage, ElButton } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/modules/user'
 
 const userStore = useUserStore()
@@ -104,7 +104,7 @@ const submit = async () => {
           password: formData.password,
           new_password: formData.new_password
         })
-        if (res && res.code == '000000') {
+        if (res && res.code === '000000') {
           ElMessage.success('密码修改成功，请重新登录')
           emit('success')
           dialogVisible.value = false
@@ -114,7 +114,6 @@ const submit = async () => {
           ElMessage.error('密码修改失败')
         }
       } catch (e: any) {
-        console.error('修改密码失败:', e)
         // 显示后端返回的错误信息
         const errorMsg = e.response?.data?.msg || e.message || '请求失败，请稍后再试'
         ElMessage.error(errorMsg)

@@ -237,6 +237,20 @@ import {
 import ViewToggle from './components/ViewToggle.vue'
 import DataList from './components/DataList.vue'
 
+interface ChartDataItem {
+  name: string
+  value: number
+  unit?: string
+  count?: number
+}
+
+interface DetailRow {
+  label: string
+  value: number
+  unit?: string
+  count?: number
+}
+
 // ============== 图表/列表视图切换状态 ==============
 const viewModes = reactive<Record<'income' | 'expense' | 'profit' | 'resource', 'chart' | 'list'>>({
   income: 'chart',
@@ -257,7 +271,7 @@ const COLOR = {
 
 // ============== 时间范围 ==============
 const currentRange = ref('today')
-const customRange = ref<[string, string] | null>(null)
+const customRange = ref<[string, string]>()
 
 const timeRangeOptions = [
   { label: '今日', value: 'today' },
@@ -459,7 +473,7 @@ const incomeRows = computed(() => [
   { label: '机器人费用', value: statsData.botFeeIncome }
 ])
 
-const expenseRows = computed(() => [
+const expenseRows = computed<DetailRow[]>(() => [
   { label: '闪兑支出(TRX)', value: statsData.exchangeExpense },
   { label: '闪兑支出(USDT)', value: statsData.exchangeUsdtOut },
   { label: '能量支出', value: statsData.energyExpense },
@@ -529,7 +543,7 @@ const buildDonut = (title: string, data: { name: string; value: number }[]): ECh
             type: 'text',
             left: '30%',
             top: '43%',
-            style: { text: '合计', fill: '#909399', fontSize: 12, textAlign: 'center' }
+            style: { text: '合计', fill: '#909399', fontSize: 12 }
           },
           {
             type: 'text',
@@ -539,8 +553,7 @@ const buildDonut = (title: string, data: { name: string; value: number }[]): ECh
               text: `${formatNumber(total)}`,
               fill: '#303133',
               fontSize: 15,
-              fontWeight: 'bold',
-              textAlign: 'center'
+              fontWeight: 'bold'
             }
           }
         ]
@@ -564,7 +577,7 @@ const incomeTotal = computed(() => incomeData.value.reduce((s, d) => s + d.value
 const incomeChartOption = computed(() => buildDonut('收入构成', incomeData.value))
 
 // 支出构成（>5 项，用柱状图避免饼图过碎）
-const expenseData = computed(() => [
+const expenseData = computed<ChartDataItem[]>(() => [
   {
     name: '闪兑支出(TRX)',
     value: toNum(statsData.exchangeExpense),
@@ -664,7 +677,7 @@ const profitTotal = computed(() => profitData.value.reduce((s, d) => s + d.value
 const profitChartOption = computed(() => buildDonut('利润构成', profitData.value))
 
 // 资源消耗/收购（柱状图）
-const resourceChartData = computed(() => {
+const resourceChartData = computed<ChartDataItem[]>(() => {
   return [
     { name: '能量消耗笔数', value: toNum(statsData.energyCount), unit: '笔' },
     { name: '能量消耗总量', value: toNum(statsData.energySum), unit: '' },
@@ -738,7 +751,7 @@ const resourceChartOption = computed<EChartsOption>(() => {
 // ============== 数据加载 ==============
 const handleTimeRange = (range: string) => {
   currentRange.value = range
-  customRange.value = null
+  customRange.value = undefined
   loadData()
 }
 

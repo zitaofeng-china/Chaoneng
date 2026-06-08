@@ -1,0 +1,821 @@
+<template>
+  <div class="app-container">
+    <div v-loading="loading" class="price-cards-container">
+      <!-- 动态渲染代理卡片 -->
+      <el-card v-for="agent in priceList" :key="agent.id" shadow="never" class="agent-card">
+        <template #header>
+          <div class="card-header">
+            <div class="header-left">
+              <span class="agent-level">{{ getAgentLevelName(agent.id) }}</span>
+              <el-text type="info" size="small" class="update-time">
+                最后更新：{{ formatTime(agent.id) }}
+              </el-text>
+            </div>
+            <div class="header-actions">
+              <template v-if="!editModeMap[agent.id]">
+                <el-button size="default" @click="handleRefresh"> 刷新 </el-button>
+                <el-button
+                  v-if="hasEditPermission"
+                  type="primary"
+                  size="default"
+                  @click="handleEdit(agent.id)"
+                >
+                  修改
+                </el-button>
+              </template>
+              <template v-else>
+                <el-button size="default" @click="handleCancel(agent.id)"> 取消 </el-button>
+                <el-button
+                  type="primary"
+                  size="default"
+                  :disabled="!hasChanges(agent.id)"
+                  @click="handleSave(agent.id)"
+                >
+                  保存
+                </el-button>
+              </template>
+            </div>
+          </div>
+        </template>
+
+        <div class="price-items-grid">
+          <!-- 第一行：托管 - 按时间 - 速充 - 闪兑 -->
+          <div class="row-first">
+            <!-- 托管 -->
+            <div class="price-item-card">
+              <div class="item-title">托管</div>
+              <div class="item-content">
+                <div class="time-row">
+                  <div class="value-wrapper">
+                    <span class="time-label">65k</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="formDataMap[agent.id].hosting_65k"
+                      :precision="2"
+                      :step="0.1"
+                      :min="0"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ formDataMap[agent.id].hosting_65k }}</span>
+                    <span class="unit">TRX</span>
+                  </div>
+                </div>
+                <div class="time-row">
+                  <div class="value-wrapper">
+                    <span class="time-label">131k</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="formDataMap[agent.id].hosting_131k"
+                      :precision="2"
+                      :step="0.1"
+                      :min="0"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ formDataMap[agent.id].hosting_131k }}</span>
+                    <span class="unit">TRX</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 按时间 -->
+            <div class="price-item-card time-card">
+              <div class="item-title">按时间</div>
+              <div class="item-content time-grid">
+                <div class="time-row">
+                  <div class="value-wrapper">
+                    <span class="time-label">1小时</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="formDataMap[agent.id].time_1h"
+                      :precision="2"
+                      :step="0.1"
+                      :min="0"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ formDataMap[agent.id].time_1h }}</span>
+                    <span class="unit">TRX</span>
+                  </div>
+                </div>
+                <div class="time-row">
+                  <div class="value-wrapper">
+                    <span class="time-label">1天</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="formDataMap[agent.id].time_1d"
+                      :precision="2"
+                      :step="0.1"
+                      :min="0"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ formDataMap[agent.id].time_1d }}</span>
+                    <span class="unit">TRX</span>
+                  </div>
+                </div>
+                <div class="time-row">
+                  <div class="value-wrapper">
+                    <span class="time-label">3天</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="formDataMap[agent.id].time_3d"
+                      :precision="2"
+                      :step="0.1"
+                      :min="0"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ formDataMap[agent.id].time_3d }}</span>
+                    <span class="unit">TRX</span>
+                  </div>
+                </div>
+                <div class="time-row">
+                  <div class="value-wrapper">
+                    <span class="time-label">7天</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="formDataMap[agent.id].time_7d"
+                      :precision="2"
+                      :step="0.1"
+                      :min="0"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ formDataMap[agent.id].time_7d }}</span>
+                    <span class="unit">TRX</span>
+                  </div>
+                </div>
+                <div class="time-row">
+                  <div class="value-wrapper">
+                    <span class="time-label">15天</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="formDataMap[agent.id].time_15d"
+                      :precision="2"
+                      :step="0.1"
+                      :min="0"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ formDataMap[agent.id].time_15d }}</span>
+                    <span class="unit">TRX</span>
+                  </div>
+                </div>
+                <div class="time-row">
+                  <div class="value-wrapper">
+                    <span class="time-label">30天</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="formDataMap[agent.id].time_30d"
+                      :precision="2"
+                      :step="0.1"
+                      :min="0"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ formDataMap[agent.id].time_30d }}</span>
+                    <span class="unit">TRX</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 速充 -->
+            <div class="price-item-card quick-charge-card">
+              <div class="item-title">速充</div>
+              <div class="item-content single-input">
+                <div class="value-wrapper">
+                  <el-input-number
+                    v-if="editModeMap[agent.id]"
+                    v-model="formDataMap[agent.id].energy_price1"
+                    :precision="2"
+                    :step="0.1"
+                    :min="0"
+                    size="small"
+                    controls-position="right"
+                  />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].energy_price1 }}</span>
+                  <span class="unit">TRX</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 闪兑 -->
+            <div class="price-item-card">
+              <div class="item-title">闪兑</div>
+              <div class="item-content">
+                <div class="time-row">
+                  <div class="value-wrapper">
+                    <span class="time-label">TRX→USDT</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="getTrx2UsdtDisplay(agent.id).value"
+                      :precision="2"
+                      :step="1"
+                      :min="0"
+                      :max="100"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ getTrx2UsdtDisplay(agent.id).value }}</span>
+                    <span class="unit">%</span>
+                  </div>
+                </div>
+                <div class="time-row">
+                  <div class="value-wrapper">
+                    <span class="time-label">USDT→TRX</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="getUsdt2TrxDisplay(agent.id).value"
+                      :precision="2"
+                      :step="1"
+                      :min="0"
+                      :max="100"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ getUsdt2TrxDisplay(agent.id).value }}</span>
+                    <span class="unit">%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 第二行：闪租 - 按笔数 - 首次激活 - 带宽 - 批量下单 - 机器人价格 -->
+          <div class="row-second">
+            <!-- 闪租 -->
+            <div class="price-item-card">
+              <div class="item-title">闪租</div>
+              <div class="item-content single-input">
+                <div class="value-wrapper">
+                  <el-input-number
+                    v-if="editModeMap[agent.id]"
+                    v-model="formDataMap[agent.id].flash"
+                    :precision="2"
+                    :step="0.1"
+                    :min="0"
+                    size="small"
+                    controls-position="right"
+                  />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].flash }}</span>
+                  <span class="unit">TRX</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 按笔数 -->
+            <div class="price-item-card">
+              <div class="item-title">按笔数</div>
+              <div class="item-content single-input">
+                <div class="value-wrapper">
+                  <el-input-number
+                    v-if="editModeMap[agent.id]"
+                    v-model="formDataMap[agent.id].stroke"
+                    :precision="2"
+                    :step="0.1"
+                    :min="0"
+                    size="small"
+                    controls-position="right"
+                  />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].stroke }}</span>
+                  <span class="unit">TRX</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 首次激活 -->
+            <div class="price-item-card">
+              <div class="item-title">首次激活</div>
+              <div class="item-content single-input">
+                <div class="value-wrapper">
+                  <el-input-number
+                    v-if="editModeMap[agent.id]"
+                    v-model="formDataMap[agent.id].active"
+                    :precision="2"
+                    :step="0.1"
+                    :min="0"
+                    size="small"
+                    controls-position="right"
+                  />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].active }}</span>
+                  <span class="unit">TRX</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 带宽 -->
+            <div class="price-item-card">
+              <div class="item-title">带宽</div>
+              <div class="item-content single-input">
+                <div class="value-wrapper">
+                  <el-input-number
+                    v-if="editModeMap[agent.id]"
+                    v-model="formDataMap[agent.id].bandwidth"
+                    :precision="2"
+                    :step="0.1"
+                    :min="0"
+                    size="small"
+                    controls-position="right"
+                  />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].bandwidth }}</span>
+                  <span class="unit">TRX</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 批量下单 -->
+            <div class="price-item-card">
+              <div class="item-title">批量下单</div>
+              <div class="item-content single-input">
+                <el-input-number
+                  v-if="editModeMap[agent.id]"
+                  v-model="formDataMap[agent.id].batch_flash"
+                  :precision="2"
+                  :step="0.1"
+                  :min="0"
+                  size="small"
+                  controls-position="right"
+                />
+                <span v-else class="value-text">{{ formDataMap[agent.id].batch_flash }}</span>
+                <span class="unit">TRX</span>
+              </div>
+            </div>
+
+            <!-- 机器人价格 -->
+            <div class="price-item-card">
+              <div class="item-title">机器人价格</div>
+              <div class="item-content single-input">
+                <div class="value-wrapper">
+                  <el-input-number
+                    v-if="editModeMap[agent.id]"
+                    v-model="formDataMap[agent.id].bot_fee"
+                    :precision="2"
+                    :step="0.1"
+                    :min="0"
+                    size="small"
+                    controls-position="right"
+                  />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].bot_fee }}</span>
+                  <span class="unit">TRX</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </el-card>
+    </div>
+  </div>
+</template>
+
+<script setup lang="tsx">
+import { ref, reactive, computed, onMounted, onActivated } from 'vue'
+import { ElMessage } from 'element-plus'
+import { v1GetPriceList, v1UpdatePrice } from '@/api/opertion/Marketing/AgentPrice'
+import type { V1PriceListResponse } from '@/api/opertion/Marketing/AgentPrice/agent_price_types'
+import { useRoute } from 'vue-router'
+import { getErrorMessage } from '@/utils/messageHelper'
+import { formatTableDateTime } from '@/utils/tableHelpers'
+
+const route = useRoute()
+const loading = ref(false)
+const priceList = ref<V1PriceListResponse[]>([])
+const editModeMap = reactive<Record<number, boolean>>({})
+
+interface PriceFormData {
+  active: number
+  time_1h: number
+  time_1d: number
+  time_3d: number
+  time_7d: number
+  time_15d: number
+  time_30d: number
+  stroke: number
+  flash: number
+  hosting_65k: number
+  hosting_131k: number
+  trx_2_usdt: number
+  usdt_2_trx: number
+  bot_fee: number
+  batch_flash: number
+  bandwidth: number
+  energy_price1: number
+  weal: number
+}
+
+const hasEditPermission = computed(() => {
+  const buttonList = (route.meta.buttonList || []) as string[]
+  return buttonList.includes('edit')
+})
+
+const getAgentLevelName = (id: number): string => {
+  const levelMap: Record<number, string> = {
+    1: '一级代理',
+    2: '二级代理',
+    3: '三级代理',
+    4: '四级代理',
+    5: '五级代理',
+    6: '六级代理',
+    7: '七级代理',
+    8: '八级代理',
+    9: '九级代理',
+    10: '十级代理',
+    11: '十一级代理'
+  }
+  return levelMap[id] || `${id}级代理`
+}
+
+const formDataMap = reactive<Record<number, PriceFormData>>({})
+
+const toNumber = (value: string | number | undefined | null) => Number(value || 0)
+
+const createPriceFormData = (item: V1PriceListResponse): PriceFormData => ({
+  active: toNumber(item.active),
+  time_1h: toNumber(item.time_1h),
+  time_1d: toNumber(item.time_1d),
+  time_3d: toNumber(item.time_3d),
+  time_7d: toNumber(item.time_7d),
+  time_15d: toNumber(item.time_15d),
+  time_30d: toNumber(item.time_30d),
+  stroke: toNumber(item.stroke),
+  flash: toNumber(item.flash),
+  hosting_65k: toNumber(item.hosting_65k),
+  hosting_131k: toNumber(item.hosting_131k),
+  trx_2_usdt: toNumber(item.trx_2_usdt),
+  usdt_2_trx: toNumber(item.usdt_2_trx),
+  bot_fee: toNumber(item.bot_fee),
+  batch_flash: toNumber(item.batch_flash),
+  bandwidth: toNumber(item.bandwidth),
+  energy_price1: toNumber(item.energy_price1),
+  weal: toNumber(item.weal)
+})
+
+const getTrx2UsdtDisplay = (agentId: number) => {
+  return computed({
+    get: () => {
+      const formData = formDataMap[agentId]
+      if (!formData) return 0
+      return Number((formData.trx_2_usdt * 100).toFixed(2))
+    },
+    set: (val) => {
+      if (formDataMap[agentId]) {
+        formDataMap[agentId].trx_2_usdt = Number((val / 100).toFixed(4))
+      }
+    }
+  })
+}
+
+const getUsdt2TrxDisplay = (agentId: number) => {
+  return computed({
+    get: () => {
+      const formData = formDataMap[agentId]
+      if (!formData) return 0
+      return Number((formData.usdt_2_trx * 100).toFixed(2))
+    },
+    set: (val) => {
+      if (formDataMap[agentId]) {
+        formDataMap[agentId].usdt_2_trx = Number((val / 100).toFixed(4))
+      }
+    }
+  })
+}
+
+const hasChanges = (agentId: number) => {
+  const original = priceList.value.find((item) => item.id === agentId)
+  const formData = formDataMap[agentId]
+
+  if (!original || !formData) return false
+
+  return (
+    Number(formData.active) !== Number(original.active) ||
+    Number(formData.time_1h) !== Number(original.time_1h) ||
+    Number(formData.time_1d) !== Number(original.time_1d) ||
+    Number(formData.time_3d) !== Number(original.time_3d) ||
+    Number(formData.time_7d) !== Number(original.time_7d) ||
+    Number(formData.time_15d) !== Number(original.time_15d) ||
+    Number(formData.time_30d) !== Number(original.time_30d) ||
+    Number(formData.stroke) !== Number(original.stroke) ||
+    Number(formData.flash) !== Number(original.flash) ||
+    Number(formData.hosting_65k) !== Number(original.hosting_65k) ||
+    Number(formData.hosting_131k) !== Number(original.hosting_131k) ||
+    Number(formData.trx_2_usdt) !== Number(original.trx_2_usdt) ||
+    Number(formData.usdt_2_trx) !== Number(original.usdt_2_trx) ||
+    Number(formData.bot_fee) !== Number(original.bot_fee) ||
+    Number(formData.batch_flash) !== Number(original.batch_flash || 0) ||
+    Number(formData.bandwidth) !== Number(original.bandwidth || 0) ||
+    Number(formData.energy_price1) !== Number(original.energy_price1 || 0) ||
+    Number(formData.weal) !== Number(original.weal || 0)
+  )
+}
+
+const handleEdit = (agentId: number) => {
+  editModeMap[agentId] = true
+}
+
+const handleRefresh = async () => {
+  await loadPriceData()
+  ElMessage.success('刷新成功')
+}
+
+const handleCancel = (agentId: number) => {
+  const original = priceList.value.find((item) => item.id === agentId)
+  if (original) {
+    formDataMap[agentId] = createPriceFormData(original)
+  }
+  editModeMap[agentId] = false
+}
+
+const formatTime = (agentId: number) => {
+  const agent = priceList.value.find((item) => item.id === agentId)
+  return formatTableDateTime(agent?.updated_at)
+}
+
+const loadPriceData = async () => {
+  loading.value = true
+  try {
+    const res = await v1GetPriceList({
+      current_page: 1,
+      order: 'created_at ASC',
+      page_size: 3
+    })
+
+    priceList.value = res.data.list || []
+
+    priceList.value.forEach((item) => {
+      editModeMap[item.id] = false
+      formDataMap[item.id] = createPriceFormData(item)
+    })
+  } catch (error: unknown) {
+    ElMessage.error(getErrorMessage(error, '加载价格数据失败'))
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleSave = async (agentId: number) => {
+  const formData = formDataMap[agentId]
+  if (!formData) {
+    ElMessage.warning('没有可保存的数据')
+    return
+  }
+
+  // 验证：托管的65k价格不能高于131k价格
+  if (Number(formData.hosting_65k) > Number(formData.hosting_131k)) {
+    ElMessage.error('托管的65k价格不能高于131k价格')
+    return
+  }
+
+  loading.value = true
+  try {
+    await v1UpdatePrice({
+      id: agentId,
+      active: formData.active,
+      time_1h: formData.time_1h,
+      time_1d: formData.time_1d,
+      time_3d: formData.time_3d,
+      time_7d: formData.time_7d,
+      time_15d: formData.time_15d,
+      time_30d: formData.time_30d,
+      stroke: formData.stroke,
+      flash: formData.flash,
+      hosting_65k: formData.hosting_65k,
+      hosting_131k: formData.hosting_131k,
+      trx_2_usdt: formData.trx_2_usdt,
+      usdt_2_trx: formData.usdt_2_trx,
+      bot_fee: formData.bot_fee,
+      batch_flash: formData.batch_flash,
+      bandwidth: formData.bandwidth,
+      energy_price1: formData.energy_price1,
+      weal: formData.weal
+    })
+
+    ElMessage.success('保存成功')
+    editModeMap[agentId] = false
+    await loadPriceData()
+  } catch (error: unknown) {
+    ElMessage.error(getErrorMessage(error, '保存失败'))
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadPriceData()
+})
+
+onActivated(() => {
+  loadPriceData()
+})
+</script>
+
+<style scoped>
+@media (width <= 1280px) {
+  .row-first > .price-item-card:nth-child(1),
+  .row-first > .price-item-card:nth-child(3),
+  .row-first > .price-item-card:nth-child(4) {
+    grid-column: span 3;
+  }
+
+  .row-first > .price-item-card:nth-child(2) {
+    grid-column: span 6;
+  }
+
+  .row-second {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.price-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.agent-card {
+  width: 100%;
+}
+
+.agent-card :deep(.el-card__body) {
+  padding: 10px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.agent-level {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.update-time {
+  font-size: 13px;
+}
+
+.value-text {
+  display: inline-block;
+  max-width: 110px;
+  min-width: 42px;
+  padding: 0 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.price-items-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(60px, 1fr));
+  gap: 10px;
+  contain: layout;
+}
+
+.row-first {
+  display: contents;
+}
+
+.row-first > .price-item-card:nth-child(1) {
+  grid-column: span 2;
+  min-width: 0;
+}
+
+.row-first > .price-item-card:nth-child(2) {
+  grid-column: span 6;
+  min-width: 0;
+}
+
+.row-first > .price-item-card:nth-child(3) {
+  grid-column: span 2;
+  min-width: 0;
+}
+
+.row-first > .price-item-card:nth-child(4) {
+  grid-column: span 2;
+  min-width: 0;
+}
+
+.row-second {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-column: 1 / -1;
+  gap: 12px;
+}
+
+.row-second > .price-item-card {
+  min-width: 0;
+}
+
+.price-item-card {
+  display: flex;
+  min-height: 78px;
+  padding: 10px 12px;
+  background: var(--el-fill-color-blank);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  flex-direction: column;
+  contain: layout style;
+}
+
+.item-title {
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+}
+
+.item-content.time-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px 14px;
+}
+
+.item-content.single-input {
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.value-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.time-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.time-label {
+  min-width: 35px;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  text-align: center;
+}
+
+.unit {
+  margin-left: 4px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+:deep(.el-input-number) {
+  width: auto;
+  max-width: 140px;
+  flex: 1;
+}
+
+:deep(.el-input-number--small) {
+  width: auto;
+  max-width: 120px;
+  flex: 1;
+}
+
+:deep(.el-input-number--small .el-input__inner) {
+  text-align: center;
+}
+
+/* 优化性能 */
+* {
+  box-sizing: border-box;
+}
+
+.agent-card {
+  contain: layout style;
+}
+</style>

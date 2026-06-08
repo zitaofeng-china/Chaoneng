@@ -29,6 +29,18 @@ export const ENERGY_ORDER_KIND_TEXT: Record<number, string> = {
   [EnergyOrderKind.BATCH_ACTIVE]: '激活'
 }
 
+type EnergyOrderKindTagType = 'success' | 'warning' | 'info' | 'primary' | 'danger'
+
+export const ENERGY_ORDER_KIND_TAG_TYPE: Record<number, EnergyOrderKindTagType> = {
+  [EnergyOrderKind.TIME_ENERGY]: 'success',
+  [EnergyOrderKind.COUNT_ENERGY]: 'primary',
+  [EnergyOrderKind.WELFARE_ENERGY]: 'primary',
+  [EnergyOrderKind.QUICK_ENERGY]: 'success',
+  [EnergyOrderKind.AUTO_HOSTING]: 'warning',
+  [EnergyOrderKind.BATCH_ENERGY]: 'danger',
+  [EnergyOrderKind.BATCH_ACTIVE]: 'info'
+}
+
 /**
  * 获取能量订单类型文本
  * @param kind 订单类型
@@ -37,6 +49,11 @@ export const ENERGY_ORDER_KIND_TEXT: Record<number, string> = {
 export function getEnergyOrderKindText(kind: number | undefined): string {
   if (kind === undefined || kind === null) return '-'
   return ENERGY_ORDER_KIND_TEXT[kind] || '未知类型'
+}
+
+export function getEnergyOrderKindTagType(kind: number | undefined): EnergyOrderKindTagType {
+  if (kind === undefined || kind === null) return 'info'
+  return ENERGY_ORDER_KIND_TAG_TYPE[kind] || 'info'
 }
 
 /**
@@ -61,7 +78,8 @@ export const ENERGY_ORDER_KIND_OPTIONS = [
 export function isoToTimestamp(isoTime: string | null | undefined): number {
   if (!isoTime) return 0
   try {
-    return Math.floor(new Date(isoTime).getTime() / 1000)
+    const timestamp = new Date(isoTime).getTime()
+    return Number.isNaN(timestamp) ? 0 : Math.floor(timestamp / 1000)
   } catch {
     return 0
   }

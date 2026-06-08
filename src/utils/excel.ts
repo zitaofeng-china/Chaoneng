@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx'
+import { ElMessage } from 'element-plus'
 
 /**
  * 列宽配置接口
@@ -56,7 +57,7 @@ export function exportToExcel(options: ExportExcelOptions): void {
   const { data, filename, sheetName = 'Sheet1', columnWidths, autoWidth = true } = options
 
   if (!data || data.length === 0) {
-    console.warn('导出数据为空')
+    ElMessage.warning('导出数据为空')
     return
   }
 

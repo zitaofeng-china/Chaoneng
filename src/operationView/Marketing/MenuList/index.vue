@@ -104,7 +104,6 @@ const formSchema = reactive<FormSchema[]>([
     field: 'menu_name',
     component: 'Input' as const,
     label: '菜单名称',
-    minWidth: 130,
     componentProps: {
       placeholder: '请输入菜单名称'
     },

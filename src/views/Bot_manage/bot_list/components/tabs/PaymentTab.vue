@@ -194,7 +194,7 @@ const columns = ref<TableColumn[]>([
 const fetchWealAddresses = async (params: any) => {
   try {
     if (!currentBotId.value) {
-      return { list: [], totalCount: 0 }
+      return { list: [], total: 0 }
     }
 
     const res = await v1GetAddressList({
@@ -207,11 +207,11 @@ const fetchWealAddresses = async (params: any) => {
     const data = res.data || {}
     return {
       list: data.list || [],
-      totalCount: data.pager?.total || 0
+      total: data.pager?.total || 0
     }
   } catch (error) {
     console.error('获取福利地址列表失败:', error)
-    return { list: [], totalCount: 0 }
+    return { list: [], total: 0 }
   }
 }
 

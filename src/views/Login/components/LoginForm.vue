@@ -167,11 +167,10 @@ const fetchCaptcha = async () => {
   }
 }
 
-// 🚀 监听表单输入，开始预加载（需要在 schema 之前声明）
+// 监听表单输入，开始预加载（需要在 schema 之前声明）
 const hasStartedPreload = ref(false)
 const startPreloadOnInput = () => {
   if (!isManagement && !hasStartedPreload.value) {
-    console.log('[预加载] 检测到用户输入，开始预加载代理端路由')
     routePreloader.startPreload()
     hasStartedPreload.value = true
   }
@@ -474,9 +473,7 @@ const signIn = async () => {
         }
 
         if (res && res.code === '000000') {
-          // ✅ 登录成功，恢复预加载（如果之前暂停了）
           if (!isManagement && hasStartedPreload.value) {
-            console.log('[登录] 登录成功，确保预加载继续')
             routePreloader.resumePreload()
           }
 
@@ -564,9 +561,7 @@ const signIn = async () => {
 
           ElMessage.success('登录成功')
         } else {
-          // ❌ 登录失败，暂停预加载
           if (!isManagement && hasStartedPreload.value) {
-            console.log('[登录] 登录失败，暂停预加载')
             routePreloader.pausePreload()
           }
 
@@ -576,9 +571,7 @@ const signIn = async () => {
           fetchCaptcha() // 只要失败就刷新验证码
         }
       } catch (error: any) {
-        // ❌ 登录异常，暂停预加载
         if (!isManagement && hasStartedPreload.value) {
-          console.log('[登录] 登录异常，暂停预加载')
           routePreloader.pausePreload()
         }
 

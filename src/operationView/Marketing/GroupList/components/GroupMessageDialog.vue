@@ -257,9 +257,10 @@ const getChatTypeLabel = (type?: string) => {
 
 // 当前机器人名称
 const currentBotName = computed(() => {
-  if (!props.currentGroup) return ''
-  const bot = props.botList.find((b) => Number(b.value) === Number(props.currentGroup.bot_id))
-  return bot?.label || props.currentGroup.bot_user_name || `机器人 ID: ${props.currentGroup.bot_id}`
+  const currentGroup = props.currentGroup
+  if (!currentGroup) return ''
+  const bot = props.botList.find((b) => Number(b.value) === Number(currentGroup.bot_id))
+  return bot?.label || currentGroup.bot_user_name || `机器人 ID: ${currentGroup.bot_id}`
 })
 
 // 表单数据

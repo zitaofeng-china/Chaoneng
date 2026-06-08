@@ -443,6 +443,7 @@ const handleConfirmResend = async () => {
       ),
       period: 0, // 重发时周期改为0（只发一次）
       send_at: Math.floor(Date.now() / 1000), // 发送时间改为当前时间
+      chat_ids: row.chat_ids || [],
       tg_user_ids: row.tg_user_ids || []
     })
 

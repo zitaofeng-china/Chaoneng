@@ -68,9 +68,6 @@ export const useTable = (config: UseTableConfig) => {
   const getTable = async () => {
     await nextTick()
     const table = unref(tableRef)
-    if (!table) {
-      console.error('The table is not registered. Please use the register method to register')
-    }
     return table
   }
 
@@ -86,8 +83,8 @@ export const useTable = (config: UseTableConfig) => {
           dataList.value = res.list
           total.value = res.total || 0
         }
-      } catch (err) {
-        console.log('fetchDataApi error')
+      } catch {
+        ElMessage.error('数据加载失败')
       } finally {
         loading.value = false
       }
@@ -143,19 +140,11 @@ export const useTable = (config: UseTableConfig) => {
       methods.getList()
     },
 
-    // sortableChange: (e: any) => {
-    //   console.log('sortableChange', e)
-    //   const { oldIndex, newIndex } = e
-    //   dataList.value.splice(newIndex, 0, dataList.value.splice(oldIndex, 1)[0])
-    //   // to do something
-    // }
     // 删除数据
     delList: async (idsLength: number) => {
       const { fetchDelApi } = config
-      console.log('fetchDelApi', fetchDelApi)
       if (!fetchDelApi) {
-        console.warn('fetchDelApi is undefined')
-        return
+        return false
       }
       ElMessageBox.confirm('是否删除所选中数据？', '提示', {
         confirmButtonText: '确定',

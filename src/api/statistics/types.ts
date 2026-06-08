@@ -43,13 +43,43 @@ export interface V2StatsIncome {
   activation: string
 }
 
+export interface V2StatsDailyEnergyIn {
+  date: string
+  energy_in: string | number
+}
+
+export interface V2StatsDailyActiveAgent {
+  date: string
+  active_agent: number
+}
+
 export interface V2StatsData {
-  updated_at: number
-  price_trx: string
-  revenue: V2StatsRevenue
-  expense: V2StatsExpense
-  resource: V2StatsResource
-  income: V2StatsIncome
+  updated_at?: number
+  price_trx?: string
+  revenue?: V2StatsRevenue
+  expense?: V2StatsExpense
+  resource?: V2StatsResource
+  income?: V2StatsIncome
+  today_energy_in?: string | number
+  total_energy_in?: string | number
+  today_exchange_in?: string | number
+  total_exchange_in?: string | number
+  today_exchange_out?: string | number
+  total_exchange_out?: string | number
+  today_profit?: string | number
+  total_profit?: string | number
+  today_agent_add?: number
+  total_agent_add?: number
+  today_bot_in?: string | number
+  total_bot_in?: string | number
+  today_bot_add?: number
+  total_bot_add?: number
+  today_active_in?: string | number
+  total_active_in?: string | number
+  today_bandwidth_out?: string | number
+  total_bandwidth_out?: string | number
+  daily_energy_in?: V2StatsDailyEnergyIn[]
+  daily_active_agent?: V2StatsDailyActiveAgent[]
 }
 
 export interface V2StatsResponse {
