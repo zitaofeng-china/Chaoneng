@@ -18,6 +18,7 @@ import { Table, type TableColumn } from '@/components/Table'
 import { useTable } from '@/hooks/web/useTable'
 import { ElTag, ElMessageBox, ElMessage } from 'element-plus'
 import Write from './components/Write.vue'
+import type { ManageUserFormData } from './components/Write.vue'
 import { BaseButton } from '@/components/Button'
 import { UnixTime } from '@/components/UnixTime'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
@@ -26,8 +27,10 @@ const { t } = useI18n()
 
 type UserActionType = 'add' | 'edit'
 type ManageUserTableSlot = { row: ManageUserItem }
-type ManageUserFormData = Pick<ManageUserItem, 'id' | 'username' | 'role_id' | 'status'> & {
-  password?: string
+interface ManageUserWriteExpose {
+  open: () => void
+  close: () => void
+  submit: () => Promise<ManageUserFormData | null>
 }
 
 const roleList = ref<RoleItem[]>([])
@@ -122,7 +125,7 @@ const { dataList, loading, total, currentPage, pageSize } = tableState
 const dialogTitle = ref('')
 const currentRow = ref<ManageUserItem | undefined>()
 const actionType = ref<UserActionType>('add')
-const writeRef = ref<InstanceType<typeof Write> | null>(null)
+const writeRef = ref<ManageUserWriteExpose | null>(null)
 
 const AddAction = () => {
   dialogTitle.value = t('exampleDemo.add')
@@ -170,7 +173,7 @@ const saveLoading = ref(false)
 
 const save = async () => {
   const write = writeRef.value
-  const formData = (await write?.submit()) as ManageUserFormData | null | undefined
+  const formData = await write?.submit()
   if (formData) {
     saveLoading.value = true
     try {
