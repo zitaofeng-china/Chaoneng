@@ -6,6 +6,8 @@ import type {
   V2UpdatePoolParams
 } from './resource_pool_account_types'
 
+export * from './resource_pool_account_types'
+
 // ========== 新接口 v2 ==========
 
 const BASE_URL = '/v2/pools'

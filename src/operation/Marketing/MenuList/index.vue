@@ -62,14 +62,12 @@ import {
   getBotMenuList,
   addBotMenu,
   deleteBotMenu,
-  batchUpdateBotMenu
+  batchUpdateBotMenu,
+  type GetBotMenuListParams,
+  type AddBotMenuParams,
+  type BatchUpdateBotMenuParams,
+  type BotMenuItem
 } from '@/api/opertion/common/menuList'
-import type {
-  GetBotMenuListParams,
-  AddBotMenuParams,
-  BatchUpdateBotMenuParams,
-  BotMenuItem
-} from '@/api/opertion/common/menuList/types'
 import {
   handleListMessage,
   handleErrorMessage,

@@ -10,6 +10,8 @@ import type {
   AssetNotifyData
 } from './types'
 
+export * from './types'
+
 const BASE_URL = '/v1/asset'
 
 /**

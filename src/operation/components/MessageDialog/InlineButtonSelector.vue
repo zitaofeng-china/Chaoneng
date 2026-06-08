@@ -25,7 +25,7 @@
 import { type PropType } from 'vue'
 import { ElFormItem, ElCheckboxGroup, ElCheckbox } from 'element-plus'
 import { BaseButton } from '@/components/Button'
-import type { InnerButtonItem } from '@/api/opertion/common/menuList/types'
+import type { InnerButtonItem } from '@/api/opertion/common/menuList'
 
 defineProps({
   modelValue: {

@@ -123,11 +123,11 @@ import {
 import { Dialog } from '@/components/Dialog'
 import { handleErrorMessage } from '@/utils/messageHelper'
 import { formatTableDateTime } from '@/utils/tableHelpers'
-import { v2GetSettlementRecordList } from '@/api/opertion/FinancialManage/ResourceOrder'
-import type {
-  V2ResourceOrderItem,
-  V2SettlementRecordItem
-} from '@/api/opertion/FinancialManage/ResourceOrder/types'
+import {
+  v2GetSettlementRecordList,
+  type V2ResourceOrderItem,
+  type V2SettlementRecordItem
+} from '@/api/opertion/FinancialManage/ResourceOrder'
 
 const tronscanUrl = import.meta.env.VITE_TRONSCAN_URL || 'https://tronscan.org'
 

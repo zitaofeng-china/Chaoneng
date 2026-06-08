@@ -5,6 +5,8 @@ import type {
   V2DepositDetail
 } from './recharge_order_types'
 
+export * from './recharge_order_types'
+
 // ========== 订单接口 ==========
 
 const BASE_URL = '/v1/order/'

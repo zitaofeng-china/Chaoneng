@@ -34,11 +34,12 @@ import { FormSchema } from '@/components/Form'
 import ResourcePoolAccountForm from '../components/ResourcePoolAccountForm.vue'
 import { SearchTable } from '@/components/SearchTable'
 import type { TableColumn } from '@/components/Table'
-import { v2GetPoolList, v2UpdatePool } from '@/api/opertion/SystemConfig/ResourcePool'
-import type {
-  V2PoolItem,
-  V2PoolListParams
-} from '@/api/opertion/SystemConfig/ResourcePool/resource_pool_account_types'
+import {
+  v2GetPoolList,
+  v2UpdatePool,
+  type V2PoolItem,
+  type V2PoolListParams
+} from '@/api/opertion/SystemConfig/ResourcePool'
 import {
   getResourcePoolStatusClassName,
   getResourcePoolStatusLabel,

@@ -227,8 +227,11 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { Echart } from '@/components/Echart'
 import { Icon } from '@/components/Icon'
 import { handleErrorMessage } from '@/utils/messageHelper'
-import { v2GetStats } from '@/api/opertion/DataStatistics/Analysis'
-import type { V2StatsData, V2StatsParams } from '@/api/opertion/DataStatistics/Analysis/types'
+import {
+  v2GetStats,
+  type V2StatsData,
+  type V2StatsParams
+} from '@/api/opertion/DataStatistics/Analysis'
 import {
   startStatsPolling,
   setStatsPollingCallback,

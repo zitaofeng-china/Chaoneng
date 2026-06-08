@@ -36,11 +36,11 @@ import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
-import { v2GetResourceOrderList } from '@/api/opertion/FinancialManage/ResourceOrder'
-import type {
-  V2ResourceOrderItem,
-  V2ResourceOrderListParams
-} from '@/api/opertion/FinancialManage/ResourceOrder/types'
+import {
+  v2GetResourceOrderList,
+  type V2ResourceOrderItem,
+  type V2ResourceOrderListParams
+} from '@/api/opertion/FinancialManage/ResourceOrder'
 import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 import { getEnergyOrderKindText } from '@/utils/energyOrder'

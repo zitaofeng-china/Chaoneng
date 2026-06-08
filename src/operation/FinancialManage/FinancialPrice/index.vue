@@ -109,12 +109,10 @@ import {
 import { useRoute } from 'vue-router'
 import {
   getFundPriceConfig,
-  updateFundPriceConfig
+  updateFundPriceConfig,
+  type FundPriceConfig,
+  type UpdateFundPriceConfigParams
 } from '@/api/opertion/FinancialManage/FinancialPrice'
-import type {
-  FundPriceConfig,
-  UpdateFundPriceConfigParams
-} from '@/api/opertion/FinancialManage/FinancialPrice/types'
 import { getErrorMessage } from '@/utils/messageHelper'
 
 type FormField =

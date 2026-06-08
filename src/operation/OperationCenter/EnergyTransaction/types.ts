@@ -1,7 +1,7 @@
 import type {
   V2EnergyItem,
   V2EnergyListParams
-} from '@/api/opertion/OperationCenter/EnergyTransaction/types'
+} from '@/api/opertion/OperationCenter/EnergyTransaction'
 
 export type EnergyOrder = V2EnergyItem
 export type EnergyListParams = V2EnergyListParams

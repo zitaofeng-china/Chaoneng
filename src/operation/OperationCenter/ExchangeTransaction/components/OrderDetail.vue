@@ -53,8 +53,10 @@ import { ElButton, ElMessage, ElTag, ElLink, ElTabs, ElTabPane, ElEmpty } from '
 import { Dialog } from '@/components/Dialog'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
-import { v2GetExchangeDetail } from '@/api/opertion/OperationCenter/ExchangeTransaction'
-import type { V2ExchangeDetail } from '@/api/opertion/OperationCenter/ExchangeTransaction/types'
+import {
+  v2GetExchangeDetail,
+  type V2ExchangeDetail
+} from '@/api/opertion/OperationCenter/ExchangeTransaction'
 import Icon from '@/components/Icon/src/Icon.vue'
 import { handleErrorMessage } from '@/utils/messageHelper'
 import { formatTableDateTime, getStatusLabel, getStatusTagType } from '@/utils/tableHelpers'

@@ -106,13 +106,11 @@ import { formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
 import {
   getChargeList,
   createChargeTask,
-  updateChargeTask
+  updateChargeTask,
+  type ChargeItem,
+  type ChargeListParams,
+  type ChargeTaskParams
 } from '@/api/opertion/FinancialManage/common/charge'
-import type {
-  ChargeItem,
-  ChargeListParams,
-  ChargeTaskParams
-} from '@/api/opertion/FinancialManage/common/charge/types'
 import { RESOURCE_SUPPLEMENT_SOURCE_OPTIONS, withAllOption } from '../constants'
 
 type ChargeTableSlot = { row: ChargeItem }

@@ -42,12 +42,10 @@ import { FormSchema } from '@/components/Form'
 import OrderDetail from './components/OrderDetail.vue'
 import {
   v2GetExchangeList,
-  v2RetryExchangeOrder
+  v2RetryExchangeOrder,
+  type V2ExchangeItem,
+  type V2ExchangeListParams
 } from '@/api/opertion/OperationCenter/ExchangeTransaction'
-import type {
-  V2ExchangeItem,
-  V2ExchangeListParams
-} from '@/api/opertion/OperationCenter/ExchangeTransaction/types'
 import { BaseButton } from '@/components/Button'
 import { ContentWrap } from '@/components/ContentWrap'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'

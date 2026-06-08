@@ -1,4 +1,4 @@
-import type { TrxVolumeItem } from '@/api/opertion/ExchangeRate/ExchangeRateIndex/types'
+import type { TrxVolumeItem } from '@/api/opertion/ExchangeRate/ExchangeRateIndex'
 
 export interface TrxVolumeData {
   volume: number | string

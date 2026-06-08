@@ -374,8 +374,11 @@
 <script setup lang="tsx">
 import { ref, reactive, computed, onMounted, onActivated } from 'vue'
 import { ElMessage } from 'element-plus'
-import { v1GetPriceList, v1UpdatePrice } from '@/api/opertion/Marketing/AgentPrice'
-import type { V1PriceListResponse } from '@/api/opertion/Marketing/AgentPrice/agent_price_types'
+import {
+  v1GetPriceList,
+  v1UpdatePrice,
+  type V1PriceListResponse
+} from '@/api/opertion/Marketing/AgentPrice'
 import { useRoute } from 'vue-router'
 import { getErrorMessage } from '@/utils/messageHelper'
 import { formatTableDateTime } from '@/utils/tableHelpers'

@@ -1,6 +1,8 @@
 import request from '@/axios'
 import type { V2StatsData, V2StatsParams } from './types'
 
+export * from './types'
+
 // ========== 新接口 v2 ==========
 
 /**

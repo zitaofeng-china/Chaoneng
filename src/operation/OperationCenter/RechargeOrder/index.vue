@@ -53,13 +53,14 @@ import { Icon } from '@/components/Icon'
 import { Descriptions } from '@/components/Descriptions'
 import type { TableColumn } from '@/components/Table'
 import type { DescriptionsSchema } from '@/components/Descriptions'
-import { v2GetDepositList, v2GetDepositDetail } from '@/api/opertion/OperationCenter/RechargeOrder'
-import type {
-  V2DepositDetail,
-  V2DepositItem,
-  V2DepositListParams,
-  V2PayTransaction
-} from '@/api/opertion/OperationCenter/RechargeOrder/recharge_order_types'
+import {
+  v2GetDepositList,
+  v2GetDepositDetail,
+  type V2DepositDetail,
+  type V2DepositItem,
+  type V2DepositListParams,
+  type V2PayTransaction
+} from '@/api/opertion/OperationCenter/RechargeOrder'
 import { ElLink } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
 import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'

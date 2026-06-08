@@ -5,6 +5,8 @@ import type {
   V1UpdatePriceParams
 } from './agent_price_types'
 
+export * from './agent_price_types'
+
 // ========== 代理价格配置接口 ==========
 
 // GET /v1/price

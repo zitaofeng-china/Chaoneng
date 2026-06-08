@@ -162,14 +162,12 @@ import {
   v1CreateInnerButton,
   v1UpdateInnerButton,
   v1DeleteInnerButton,
-  getCallBackListApi
+  getCallBackListApi,
+  type CreateInnerButtonParams,
+  type InnerCallbackItem,
+  type InnerButtonItem,
+  type UpdateInnerButtonParams
 } from '@/api/opertion/common/menuList'
-import type {
-  CreateInnerButtonParams,
-  InnerCallbackItem,
-  InnerButtonItem,
-  UpdateInnerButtonParams
-} from '@/api/opertion/common/menuList/types'
 import { getErrorMessage } from '@/utils/messageHelper'
 import { formatTableDateTime } from '@/utils/tableHelpers'
 

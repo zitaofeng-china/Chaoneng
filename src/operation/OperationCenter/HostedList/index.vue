@@ -27,12 +27,10 @@ import type { FormSchema } from '@/components/Form'
 import {
   v2GetHostingList,
   v2RemoveHosting,
-  v2RecycleOrder
+  v2RecycleOrder,
+  type HostingItemV2,
+  type HostingListParamsV2
 } from '@/api/opertion/OperationCenter/HostedList'
-import type {
-  HostingItemV2,
-  HostingListParamsV2
-} from '@/api/opertion/OperationCenter/HostedList/types'
 import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import { getSourceText, SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'

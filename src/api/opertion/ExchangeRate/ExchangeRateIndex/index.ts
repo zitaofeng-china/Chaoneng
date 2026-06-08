@@ -1,6 +1,8 @@
 import axios from 'axios'
 import type { TrxTokenPriceResponse, TrxVolumeParams, TrxVolumeResponse } from './types'
 
+export * from './types'
+
 const TRONSCAN_API_BASE = 'https://apilist.tronscanapi.com/api'
 
 export const getTrxVolumeApi = async (params: TrxVolumeParams) => {

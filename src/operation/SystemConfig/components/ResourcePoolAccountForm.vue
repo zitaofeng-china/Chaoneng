@@ -17,17 +17,18 @@ import { ElButton } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
-import { v2CreatePool, v2UpdatePool } from '@/api/opertion/SystemConfig/ResourcePool'
+import {
+  v2CreatePool,
+  v2UpdatePool,
+  type V2PoolItem,
+  type V2CreatePoolParams,
+  type V2UpdatePoolParams
+} from '@/api/opertion/SystemConfig/ResourcePool'
 import {
   isReceivePoolKind,
   isThresholdPoolKind,
   RESOURCE_POOL_TYPE_OPTIONS
 } from '../ResourcePool/constants'
-import type {
-  V2PoolItem,
-  V2CreatePoolParams,
-  V2UpdatePoolParams
-} from '@/api/opertion/SystemConfig/ResourcePool/resource_pool_account_types'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 interface ResourcePoolFormData {

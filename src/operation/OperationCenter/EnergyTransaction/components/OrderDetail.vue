@@ -44,8 +44,10 @@ import { Dialog } from '@/components/Dialog'
 import { formatToWan } from '@/utils'
 import { getEnergyOrderKindTagType, getEnergyOrderKindText } from '@/utils/energyOrder'
 import { getStatusText, getStatusType } from '@/utils/orderStatus'
-import { v2GetOrderDetail } from '@/api/opertion/OperationCenter/EnergyTransaction'
-import type { V2OrderDetailResponse } from '@/api/opertion/OperationCenter/EnergyTransaction/types'
+import {
+  v2GetOrderDetail,
+  type V2OrderDetailResponse
+} from '@/api/opertion/OperationCenter/EnergyTransaction'
 import Descriptions from '@/components/Descriptions/src/Descriptions.vue'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { formatTableDateTime } from '@/utils/tableHelpers'

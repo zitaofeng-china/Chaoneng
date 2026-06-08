@@ -4,6 +4,8 @@
 import request from '@/axios'
 import type { FundPriceConfig, UpdateFundPriceConfigParams } from './types'
 
+export * from './types'
+
 const BASE_URL = '/v1/fund'
 
 export const getFundPriceConfig = (): Promise<IResponse<FundPriceConfig>> => {

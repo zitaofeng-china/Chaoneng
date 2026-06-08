@@ -154,12 +154,10 @@ import {
   v2UpdateAddress,
   v2DeleteAddress,
   v2ExportAddressModule,
-  v2BatchImportAddress
+  v2BatchImportAddress,
+  type V2AddressItem,
+  type V2AddressListParams
 } from '@/api/opertion/Marketing/Payment'
-import type {
-  V2AddressItem,
-  V2AddressListParams
-} from '@/api/opertion/Marketing/Payment/trx_address_types'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import {
   v1GetMessageAgentList,

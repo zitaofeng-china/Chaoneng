@@ -9,7 +9,7 @@ import { formatTableDateTime } from '@/utils/tableHelpers'
 import type {
   V2OrderActivation,
   V2OrderDetailResponse
-} from '@/api/opertion/OperationCenter/EnergyTransaction/types'
+} from '@/api/opertion/OperationCenter/EnergyTransaction'
 
 const props = withDefaults(defineProps<{ orderData: V2OrderDetailResponse | null }>(), {
   orderData: null

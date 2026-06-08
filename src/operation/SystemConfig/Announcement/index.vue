@@ -196,13 +196,11 @@ import {
   getAssetReport,
   updateAssetNotify,
   getAssetNotify,
-  batchCreateAssetAccount
+  batchCreateAssetAccount,
+  type AssetBalanceData,
+  type AccountBalanceSnapshot
 } from '@/api/opertion/SystemConfig/Announcement'
 import { simpleExportToExcel } from '@/utils/excel'
-import type {
-  AssetBalanceData,
-  AccountBalanceSnapshot
-} from '@/api/opertion/SystemConfig/Announcement/types'
 import type { EChartsOption } from 'echarts'
 
 const DEFAULT_STATS = {

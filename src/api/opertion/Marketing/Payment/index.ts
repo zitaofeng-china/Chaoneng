@@ -7,6 +7,8 @@ import type {
   V2DeleteAddressParams
 } from './trx_address_types'
 
+export * from './trx_address_types'
+
 const ADDRESS_V1_BASE_URL = '/v1/address'
 const ADDRESS_V2_BASE_URL = '/v2/address'
 

@@ -2,8 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
-import { getBotMenuList } from '@/api/opertion/common/menuList'
-import type { BotMenuItem } from '@/api/opertion/common/menuList/types'
+import { getBotMenuList, type BotMenuItem } from '@/api/opertion/common/menuList'
 import { getErrorMessage } from '@/utils/messageHelper'
 
 const props = defineProps<{
