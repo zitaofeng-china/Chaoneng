@@ -66,7 +66,12 @@ import { useRouter, useRoute } from 'vue-router'
 import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
 import { getStatusText, getStatusType, ORDER_STATUS_OPTIONS } from '@/utils/orderStatus'
 import { getSourceText, SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'
-import { exportTableData, formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
+import {
+  exportTableData,
+  formatTableDateTime,
+  hasSearchValue,
+  withAllOption
+} from '@/utils/tableHelpers'
 
 const router = useRouter()
 const route = useRoute()
@@ -425,11 +430,10 @@ const searchSchema = [
     component: 'Select' as const,
     label: '订单类型',
     componentProps: {
-      options: [
-        { label: '全部', value: '' },
+      options: withAllOption([
         { label: '充值TRX', value: 'TRX' },
         { label: '充值USDT', value: 'USDT' }
-      ],
+      ]),
       placeholder: '请选择订单类型'
     }
   },

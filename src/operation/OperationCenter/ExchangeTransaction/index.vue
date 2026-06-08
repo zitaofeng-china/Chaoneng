@@ -50,12 +50,14 @@ import { BaseButton } from '@/components/Button'
 import { ContentWrap } from '@/components/ContentWrap'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import {
+  createStatusOptions,
   dateRangeToSeconds,
   exportTableData,
   formatTableDateTime,
   getStatusLabel,
   getStatusTagType,
-  hasSearchValue
+  hasSearchValue,
+  withAllOption
 } from '@/utils/tableHelpers'
 import { ExchangeOrderType, getExchangeOrderType } from '@/utils/exchangeOrder'
 import { EXCHANGE_STATUS_MAP } from './constants'
@@ -267,11 +269,10 @@ const searchSchema = reactive<FormSchema[]>([
     label: '交易类型:',
     componentProps: {
       placeholder: '全部',
-      options: [
-        { label: '全部', value: '' },
+      options: withAllOption([
         { label: 'USDT → TRX', value: 'USDT' },
         { label: 'TRX → USDT', value: 'TRX' }
-      ],
+      ]),
       clearable: true
     }
   },
@@ -281,14 +282,7 @@ const searchSchema = reactive<FormSchema[]>([
     label: '订单状态:',
     componentProps: {
       placeholder: '全部',
-      options: [
-        { label: '全部', value: '' },
-        { label: '已支付', value: 2 },
-        { label: '已完成', value: 5 },
-        { label: '已失败', value: 6 },
-        { label: '已取消', value: 8 },
-        { label: '已中止', value: 9 }
-      ],
+      options: createStatusOptions(EXCHANGE_STATUS_MAP, ''),
       clearable: true
     }
   },

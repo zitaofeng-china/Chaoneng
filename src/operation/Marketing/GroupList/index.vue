@@ -30,7 +30,12 @@ import type { SearchTableExpose } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
-import { dateRangeToSeconds, formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
+import {
+  dateRangeToSeconds,
+  formatTableDateTime,
+  hasSearchValue,
+  withAllOption
+} from '@/utils/tableHelpers'
 import { getErrorMessage } from '@/utils/messageHelper'
 import {
   v1GetMessageBotList,
@@ -108,12 +113,11 @@ const searchSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请选择类型',
       clearable: true,
-      options: [
-        { label: '全部', value: '' },
+      options: withAllOption([
         { label: '群组', value: 'group' },
         { label: '超级群组', value: 'supergroup' },
         { label: '频道', value: 'channel' }
-      ]
+      ])
     }
   },
   {

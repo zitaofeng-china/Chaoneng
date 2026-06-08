@@ -179,11 +179,10 @@ const searchSchema = computed<FormSchema[]>(() => [
     componentProps: {
       placeholder: '请选择状态',
       clearable: true,
-      options: [
-        { label: '全部', value: '' },
+      options: withAllOption([
         { label: '已发放', value: 1 },
         { label: '未发放', value: 2 }
-      ]
+      ])
     }
   }
 ])

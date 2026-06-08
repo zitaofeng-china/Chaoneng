@@ -30,7 +30,7 @@ import type { FormSchema } from '@/components/Form'
 import { v1GetUserBillList } from '@/api/opertion/common/tgUser'
 import type { UserBillItemV1, UserBillListParamsV1 } from '@/api/opertion/common/tgUser'
 import { handleErrorMessage } from '@/utils/messageHelper'
-import { formatTableDateTime } from '@/utils/tableHelpers'
+import { formatTableDateTime, withAllOption } from '@/utils/tableHelpers'
 
 interface BalanceRecordSearchParams {
   coin?: string
@@ -65,11 +65,10 @@ const searchSchema = reactive<FormSchema[]>([
     label: '余额类型',
     component: 'Select',
     componentProps: {
-      options: [
-        { label: '全部', value: '' },
+      options: withAllOption([
         { label: 'TRX', value: 'TRX' },
         { label: 'USDT', value: 'USDT' }
-      ],
+      ]),
       placeholder: '请选择余额类型'
     }
   }

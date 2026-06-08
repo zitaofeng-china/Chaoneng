@@ -219,7 +219,7 @@ import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
 import AdvancedSettingsDialog from './components/AdvancedSettingsDialog.vue'
 import VideoPreviewDialog from '@/operation/components/MessageDialog/components/VideoPreviewDialog.vue'
 import { getErrorMessage, handleErrorMessage } from '@/utils/messageHelper'
-import { formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
+import { formatTableDateTime, hasSearchValue, withAllOption } from '@/utils/tableHelpers'
 
 interface BotOption {
   label: string
@@ -258,7 +258,7 @@ const formatSentTime = (sentAt: string | number): string => {
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 
-const botOptions = ref<BotOption[]>([{ label: '全部', value: 0 }])
+const botOptions = ref<BotOption[]>(withAllOption([], 0))
 
 // 消息发送相关
 const messageDialogVisible = ref(false)
@@ -286,13 +286,13 @@ const initBotList = async () => {
     const res = await v1GetMessageBotList()
 
     if (res.code === '000000' && res.data && Array.isArray(res.data)) {
-      const newOptions = [
-        { label: '全部', value: 0 },
-        ...res.data.map((bot: MessageBotItem) => ({
+      const newOptions = withAllOption(
+        res.data.map((bot: MessageBotItem) => ({
           label: bot.user_name,
           value: bot.id
-        }))
-      ]
+        })),
+        0
+      )
       botOptions.value = newOptions
 
       updateBotOptions(newOptions)
@@ -445,11 +445,13 @@ const searchSchema = ref<FormSchema[]>([
     label: '信息类别',
     colProps: { span: 6 },
     componentProps: {
-      options: [
-        { label: '全部', value: 0 },
-        { label: '只发一次', value: 1 },
-        { label: '周期发送', value: 2 }
-      ],
+      options: withAllOption(
+        [
+          { label: '只发一次', value: 1 },
+          { label: '周期发送', value: 2 }
+        ],
+        0
+      ),
       placeholder: '请选择信息类别',
       clearable: true
     }

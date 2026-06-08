@@ -51,6 +51,7 @@ import {
   getStatusLabel,
   getStatusTagType,
   hasSearchValue,
+  withAllOption,
   type StatusMeta
 } from '@/utils/tableHelpers'
 import SettlementRecordDialog from './components/SettlementRecordDialog.vue'
@@ -217,11 +218,10 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: [
-        { label: '全部', value: '' },
+      options: withAllOption([
         { label: '能量接收池子', value: 6 },
         { label: '带宽接收池子', value: 7 }
-      ]
+      ])
     }
   },
   {
@@ -293,13 +293,12 @@ const loadBotList = async () => {
   try {
     const res = await v1GetMessageBotList()
     if (res.code === '000000' && res.data) {
-      const botOptions: BotOption[] = [
-        { label: '全部', value: '' },
-        ...res.data.map((bot: MessageBotItem) => ({
+      const botOptions: BotOption[] = withAllOption(
+        res.data.map((bot: MessageBotItem) => ({
           label: bot.user_name || `机器人${bot.id}`,
           value: bot.id
         }))
-      ]
+      )
       const botField = searchSchema.value.find((item) => item.field === 'bot_id')
       if (botField?.componentProps) {
         botField.componentProps.options = botOptions

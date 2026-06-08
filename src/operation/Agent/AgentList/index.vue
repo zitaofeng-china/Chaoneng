@@ -115,6 +115,7 @@ import {
   formatTableDateTime,
   getStatusLabel,
   hasSearchValue,
+  withAllOption,
   type StatusMeta
 } from '@/utils/tableHelpers'
 
@@ -489,12 +490,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '请选择代理等级',
       clearable: true,
-      options: [
-        { label: '全部', value: '' },
-        { label: '一级代理', value: 1 },
-        { label: '二级代理', value: 2 },
-        { label: '三级代理', value: 3 }
-      ]
+      options: withAllOption(AGENT_LEVEL_OPTIONS)
     }
   },
   {
