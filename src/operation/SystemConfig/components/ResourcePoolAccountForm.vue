@@ -145,7 +145,7 @@ const handleConfigTypeChange = (value: number | string | undefined) => {
 
   nextTick(async () => {
     const { getFormData, setValues } = formMethods
-    const currentValues = await getFormData()
+    const currentValues = await getFormData<ResourcePoolFormValues>()
     const newSchemaFields = new Set(newSchema.map((item) => item.field))
     const valuesToClear: ResourcePoolFormValues = {}
 
@@ -206,7 +206,7 @@ const handleSubmit = async () => {
   const valid = await elForm?.validate().catch(() => false)
   if (!valid) return
 
-  const formData = (await getFormData()) as ResourcePoolFormValues
+  const formData = await getFormData<ResourcePoolFormValues>()
   const kind = Number(formData.kind)
   const address = String(formData.address || '').trim()
   const limit = Number(formData.limit) || 0

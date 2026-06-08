@@ -146,7 +146,7 @@ const handleRecharge = async () => {
     if (!valid) return
 
     submitting.value = true
-    const formData = (await formMethods.getFormData()) as RechargeFormData
+    const formData = await formMethods.getFormData<RechargeFormData>()
     const params: RechargeUserParamsV1 = {
       user_id: userAccount.value.id,
       amount: Number(formData.amount),
