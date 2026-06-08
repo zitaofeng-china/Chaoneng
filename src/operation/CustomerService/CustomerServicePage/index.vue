@@ -61,13 +61,8 @@ import {
 } from '@/api/opertion/CustomerService/CustomerServicePage'
 import { UnixTime } from '@/components/UnixTime'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import {
-  createStatusOptions,
-  getStatusLabel,
-  getStatusTagType,
-  hasSearchValue,
-  type StatusMeta
-} from '@/utils/tableHelpers'
+import { getStatusLabel, getStatusTagType, hasSearchValue } from '@/utils/tableHelpers'
+import { CUSTOMER_SERVICE_STATUS_MAP, CUSTOMER_SERVICE_STATUS_OPTIONS } from '../constants'
 
 // --- Refs and Reactive Variables ---
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -76,13 +71,6 @@ const dialogVisible = ref(false)
 const submitLoading = ref(false)
 const isEdit = ref(false)
 const currentEditData = ref<CustomerServiceItem | null>(null)
-
-const CUSTOMER_SERVICE_STATUS_MAP: Record<number, StatusMeta> = {
-  1: { label: '启用', type: 'success' },
-  2: { label: '禁用', type: 'danger' }
-}
-
-const customerServiceStatusOptions = createStatusOptions(CUSTOMER_SERVICE_STATUS_MAP, '')
 
 // 弹窗标题
 const dialogTitle = computed(() => (isEdit.value ? '编辑客服' : '新增客服'))
@@ -168,7 +156,7 @@ const searchSchema = reactive<FormSchema[]>([
     component: 'Select',
     componentProps: {
       placeholder: '请选择状态',
-      options: customerServiceStatusOptions
+      options: CUSTOMER_SERVICE_STATUS_OPTIONS
     }
   }
 ])
@@ -196,7 +184,7 @@ const customerServiceFormSchema = reactive<FormSchema[]>([
     value: 1,
     componentProps: {
       placeholder: '请选择状态',
-      options: customerServiceStatusOptions.filter((item) => item.value !== '')
+      options: CUSTOMER_SERVICE_STATUS_OPTIONS.filter((item) => item.value !== '')
     },
     formItemProps: {
       rules: [{ required: true, message: '请选择状态', trigger: 'change' }]
