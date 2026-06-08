@@ -27,13 +27,11 @@ export const RESOURCE_POOL_STATUS_META_MAP: Record<number, ResourcePoolStatusMet
   3: { label: '备用', className: 'text-orange-300 font-bold' }
 }
 
-export const RESOURCE_POOL_STATUS_MAP = Object.entries(RESOURCE_POOL_STATUS_META_MAP).reduce(
-  (map, [value, meta]) => {
-    map[Number(value)] = meta.label
-    return map
-  },
-  {} as Record<number, string>
-)
+export const RESOURCE_POOL_STATUS_MAP: Record<number, string> = {
+  1: RESOURCE_POOL_STATUS_META_MAP[1].label,
+  2: RESOURCE_POOL_STATUS_META_MAP[2].label,
+  3: RESOURCE_POOL_STATUS_META_MAP[3].label
+}
 
 export const RESOURCE_POOL_STATUS_OPTIONS = Object.entries(RESOURCE_POOL_STATUS_META_MAP).map(
   ([value, meta]) => ({
