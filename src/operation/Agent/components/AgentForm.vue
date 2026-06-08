@@ -26,7 +26,7 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 // 表单状态
 const dialogVisible = ref(false)
 const isEdit = ref(false)
-const originalData = ref<AgentFormData>({} as AgentFormData)
+const originalData = ref<Partial<AgentFormData>>({})
 const emailValue = ref('')
 
 interface AgentFormData {
@@ -201,7 +201,7 @@ const validateForm = (formInstance?: FormInstance): Promise<boolean> => {
 async function openDialog(mode: 'add' | 'edit' = 'add', data: Partial<AgentFormData> = {}) {
   isEdit.value = mode === 'edit'
   dialogVisible.value = true
-  originalData.value = data as AgentFormData
+  originalData.value = { ...data }
   emailValue.value = data.email || ''
 
   await nextTick()
