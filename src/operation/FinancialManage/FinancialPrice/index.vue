@@ -114,6 +114,7 @@ import {
   type UpdateFundPriceConfigParams
 } from '@/api/opertion/FinancialManage/FinancialPrice'
 import { getErrorMessage } from '@/utils/messageHelper'
+import { hasRouteButtonPermission } from '@/operation/utils/permission'
 
 type FormField =
   | 'energy_price1'
@@ -146,10 +147,7 @@ const formData = reactive<FormData>({
   bandwidth_minimum: ''
 })
 
-const hasEditPermission = computed(() => {
-  const buttonList = (route.meta.buttonList || []) as string[]
-  return buttonList.includes('edit')
-})
+const hasEditPermission = computed(() => hasRouteButtonPermission(route, 'edit'))
 
 const validatePositiveNumber = (
   _rule: unknown,

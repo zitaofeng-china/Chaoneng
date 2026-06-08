@@ -382,6 +382,7 @@ import {
 import { useRoute } from 'vue-router'
 import { getErrorMessage } from '@/utils/messageHelper'
 import { formatTableDateTime } from '@/utils/tableHelpers'
+import { hasRouteButtonPermission } from '@/operation/utils/permission'
 import { AGENT_PRICE_LEVEL_LABELS } from '../constants'
 
 const route = useRoute()
@@ -410,10 +411,7 @@ interface PriceFormData {
   weal: number
 }
 
-const hasEditPermission = computed(() => {
-  const buttonList = (route.meta.buttonList || []) as string[]
-  return buttonList.includes('edit')
-})
+const hasEditPermission = computed(() => hasRouteButtonPermission(route, 'edit'))
 
 const getAgentLevelName = (id: number): string => {
   return AGENT_PRICE_LEVEL_LABELS[id] || `${id}级代理`
