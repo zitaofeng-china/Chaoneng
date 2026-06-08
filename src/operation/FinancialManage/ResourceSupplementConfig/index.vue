@@ -31,7 +31,7 @@
           <ElFormItem label="供给源:" prop="origin">
             <ElSelect v-model="taskForm.origin" placeholder="请选择供给源">
               <ElOption
-                v-for="item in taskSourceOptions"
+                v-for="item in RESOURCE_SUPPLEMENT_SOURCE_OPTIONS"
                 :key="item.value"
                 :label="item.label"
                 :value="item.value"
@@ -113,6 +113,7 @@ import type {
   ChargeListParams,
   ChargeTaskParams
 } from '@/api/opertion/FinancialManage/common/charge/types'
+import { RESOURCE_SUPPLEMENT_SOURCE_OPTIONS, withAllOption } from '../constants'
 
 type ChargeTableSlot = { row: ChargeItem }
 type ChargeSearchParams = ChargeListParams & Recordable
@@ -129,13 +130,7 @@ const statusOptions = [
   { label: '关闭', value: 2 }
 ]
 
-const taskSourceOptions = [
-  { label: '能量收购池 能量', value: '能量收购池 能量' },
-  { label: '带宽收购池 带宽', value: '带宽收购池 带宽' },
-  { label: 'https://justlend.org 能量', value: 'https://justlend.org 能量' },
-  { label: 'https://feee.io 带宽', value: 'https://feee.io 带宽' },
-  { label: 'https://trxfee.io 带宽', value: 'https://trxfee.io 带宽' }
-]
+const taskSourceSearchOptions = withAllOption(RESOURCE_SUPPLEMENT_SOURCE_OPTIONS)
 
 const createDefaultTaskForm = (): ChargeTaskParams => ({
   origin: '',
@@ -239,14 +234,7 @@ const searchSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请选择供给源',
       clearable: true,
-      options: [
-        { label: '全部', value: '' },
-        { label: '能量收购池 能量', value: '能量收购池 能量' },
-        { label: '带宽收购池 带宽', value: '带宽收购池 带宽' },
-        { label: 'https://justlend.org 能量', value: 'https://justlend.org 能量' },
-        { label: 'https://feee.io 带宽', value: 'https://feee.io 带宽' },
-        { label: 'https://trxfee.io 带宽', value: 'https://trxfee.io 带宽' }
-      ]
+      options: taskSourceSearchOptions
     }
   },
   {

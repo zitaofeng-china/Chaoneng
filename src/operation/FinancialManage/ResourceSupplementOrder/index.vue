@@ -50,6 +50,11 @@ import {
   hasSearchValue,
   type StatusMeta
 } from '@/utils/tableHelpers'
+import {
+  RESOURCE_SUPPLEMENT_KIND_OPTIONS,
+  RESOURCE_SUPPLEMENT_SOURCE_OPTIONS,
+  withAllOption
+} from '../constants'
 
 type ChargeLogSearchParams = Omit<ChargeLogParams, 'status'> & {
   status?: number | string
@@ -63,6 +68,9 @@ const CHARGE_LOG_STATUS_MAP: Record<number, StatusMeta> = {
   1: { label: '成功', type: 'success' },
   2: { label: '失败', type: 'danger' }
 }
+
+const resourceSupplementKindSearchOptions = withAllOption(RESOURCE_SUPPLEMENT_KIND_OPTIONS)
+const resourceSupplementSourceSearchOptions = withAllOption(RESOURCE_SUPPLEMENT_SOURCE_OPTIONS)
 
 const renderTxidLink = (txid?: string) => {
   if (!txid) return h('span', '-')
@@ -198,11 +206,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: [
-        { label: '全部', value: '' },
-        { label: '能量', value: '能量' },
-        { label: '带宽', value: '带宽' }
-      ]
+      options: resourceSupplementKindSearchOptions
     }
   },
   {
@@ -212,14 +216,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: [
-        { label: '全部', value: '' },
-        { label: '能量收购池 能量', value: '能量收购池 能量' },
-        { label: '带宽收购池 带宽', value: '带宽收购池 带宽' },
-        { label: 'https://justlend.org 能量', value: 'https://justlend.org 能量' },
-        { label: 'https://feee.io 带宽', value: 'https://feee.io 带宽' },
-        { label: 'https://trxfee.io 带宽', value: 'https://trxfee.io 带宽' }
-      ]
+      options: resourceSupplementSourceSearchOptions
     }
   },
   {
