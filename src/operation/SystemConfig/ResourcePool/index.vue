@@ -51,7 +51,7 @@ import {
 } from './constants'
 import { isPermission } from '@/utils/is'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import { formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
+import { formatTableDateTime, hasSearchValue, withAllOption } from '@/utils/tableHelpers'
 const formRef = ref<InstanceType<typeof ResourcePoolAccountForm>>()
 const searchTableRef = ref<InstanceType<typeof SearchTable>>()
 
@@ -170,7 +170,7 @@ const searchSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请选择配置类型',
       clearable: true,
-      options: [{ label: '全部', value: '' }, ...RESOURCE_POOL_TYPE_OPTIONS]
+      options: withAllOption(RESOURCE_POOL_TYPE_OPTIONS)
     }
   },
   {
@@ -180,7 +180,7 @@ const searchSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请选择状态',
       clearable: true,
-      options: [{ label: '全部', value: '' }, ...RESOURCE_POOL_STATUS_OPTIONS]
+      options: withAllOption(RESOURCE_POOL_STATUS_OPTIONS)
     }
   }
 ])

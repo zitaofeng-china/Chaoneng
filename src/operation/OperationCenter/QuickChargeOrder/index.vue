@@ -42,7 +42,8 @@ import {
   exportTableData,
   getStatusLabel,
   getStatusTagType,
-  hasSearchValue
+  hasSearchValue,
+  withAllOption
 } from '@/utils/tableHelpers'
 import type { QuickChargeOrder, QuickChargeSearchParams } from './types'
 import { QUICK_CHARGE_STATUS_MAP } from './constants'
@@ -54,17 +55,15 @@ const orderDetailRef = ref<InstanceType<typeof OrderDetail> | null>(null)
 
 const statusOptions = createStatusOptions(QUICK_CHARGE_STATUS_MAP)
 
-const typeOptions = [
-  { label: '全部', value: '' },
+const typeOptions = withAllOption([
   { label: '能量出售', value: '能量出售' },
   { label: '带宽出售', value: '带宽出售' }
-]
+])
 
-const botOptions = [
-  { label: '全部', value: '' },
+const botOptions = withAllOption([
   { label: 'iosvBot', value: 'iosvBot' },
   { label: 'quickBot', value: 'quickBot' }
-]
+])
 
 const sampleList: QuickChargeOrder[] = [
   {

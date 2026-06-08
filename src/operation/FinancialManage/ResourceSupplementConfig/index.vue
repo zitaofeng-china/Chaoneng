@@ -122,11 +122,10 @@ const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit'>('add')
 const editingRowId = ref<number | null>(null)
 
-const statusOptions = [
-  { label: '全部', value: '' },
+const statusOptions = withAllOption([
   { label: '启动', value: 1 },
   { label: '关闭', value: 2 }
-]
+])
 
 const taskSourceSearchOptions = withAllOption(RESOURCE_SUPPLEMENT_SOURCE_OPTIONS)
 

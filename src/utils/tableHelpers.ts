@@ -129,11 +129,31 @@ export const getStatusTagType = (
   return statusMap[Number(status)]?.type || fallback
 }
 
+export type SelectOption<T extends string | number | undefined = string | number | undefined> = {
+  label: string
+  value: T
+}
+
+export const createAllOption = <T extends string | number | undefined = ''>(
+  value: T = '' as T
+): SelectOption<T> => ({
+  label: '全部',
+  value
+})
+
+export const withAllOption = <
+  T extends string | number | undefined,
+  TAllValue extends string | number | undefined = ''
+>(
+  options: SelectOption<T>[],
+  allValue: TAllValue = '' as TAllValue
+): SelectOption<T | TAllValue>[] => [createAllOption(allValue), ...options]
+
 export const createStatusOptions = (
   statusMap: Record<number, StatusMeta>,
   allValue: string | number | undefined = ''
 ) => [
-  { label: '全部', value: allValue },
+  createAllOption(allValue),
   ...Object.entries(statusMap).map(([value, meta]) => ({
     label: meta.label,
     value: Number(value)

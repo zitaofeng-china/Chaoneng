@@ -34,7 +34,7 @@ import {
 import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import { getSourceText, SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'
-import { formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
+import { formatTableDateTime, hasSearchValue, withAllOption } from '@/utils/tableHelpers'
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const currentRowForDelete = ref<HostingItemV2 | null>(null)
@@ -75,12 +75,12 @@ const fetchBotOptions = async () => {
         label: bot.user_name,
         value: bot.id
       }))
-      botOptions.value = [{ label: '全部', value: '' }, ...bots]
+      botOptions.value = withAllOption(bots)
       isBotOptionsLoaded.value = true
     }
   } catch (error) {
     handleErrorMessage(error, '获取机器人选项失败')
-    botOptions.value = [{ label: '全部', value: '' }]
+    botOptions.value = withAllOption<number | string>([])
     isBotOptionsLoaded.value = true
   }
 }

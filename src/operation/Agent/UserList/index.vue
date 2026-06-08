@@ -81,8 +81,10 @@ import {
   dateRangeToSeconds,
   exportTableData,
   formatTableDateTime,
-  hasSearchValue
+  hasSearchValue,
+  withAllOption
 } from '@/utils/tableHelpers'
+import { SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'
 import MessageDialog from '../components/MessageDialog.vue'
 import RechargeDialog from '../components/UserDialogs/RechargeDialog.vue'
 import BalanceRecordDialog from '../components/UserDialogs/BalanceRecordDialog.vue'
@@ -120,7 +122,7 @@ const changePasswordDialogVisible = ref(false)
 
 // 机器人列表
 const isBotListLoaded = ref(false)
-const botOptions = ref<BotOption[]>([{ label: '全部', value: '' }])
+const botOptions = ref<BotOption[]>(withAllOption<string>([]))
 const botMap = ref<Map<number, MessageBotItem>>(new Map())
 const searchTableRef = ref<SearchTableExpose | null>(null)
 
@@ -196,7 +198,7 @@ const fetchBotList = async () => {
       }
     })
 
-    botOptions.value = [{ label: '全部', value: '' }, ...bots]
+    botOptions.value = withAllOption(bots)
     isBotListLoaded.value = true
   } catch (error) {
     handleErrorMessage(error, '获取机器人列表失败')
@@ -406,11 +408,7 @@ const searchSchema = computed<FormSchema[]>(() => [
     component: 'Select' as const,
     label: '来源',
     componentProps: {
-      options: [
-        { label: '全部', value: '' },
-        { label: '机器人', value: 1 },
-        { label: 'H5', value: 2 }
-      ],
+      options: SOURCE_TYPE_OPTIONS,
       placeholder: '请选择来源',
       valueKey: 'value',
       labelKey: 'label'

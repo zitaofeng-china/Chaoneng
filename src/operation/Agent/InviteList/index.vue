@@ -36,14 +36,14 @@ import {
 } from '@/api/opertion/Agent/InviteList'
 import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
-import { formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
+import { formatTableDateTime, hasSearchValue, withAllOption } from '@/utils/tableHelpers'
 
 type InviteSearchParams = Omit<InviteListQueryParams, 'status'> & {
   status?: number | string
 }
 
 const isBotListLoaded = ref(false)
-const botOptions = ref<BotOption[]>([{ label: '全部', value: '' }])
+const botOptions = ref<BotOption[]>(withAllOption<string>([]))
 
 const buildInviteListParams = (params: InviteSearchParams = {}): InviteListQueryParams => {
   const apiParams: InviteListQueryParams = {
@@ -70,7 +70,7 @@ const fetchBotList = async () => {
       }
     })
 
-    botOptions.value = [{ label: '全部', value: '' }, ...bots]
+    botOptions.value = withAllOption(bots)
     isBotListLoaded.value = true
   } catch (error) {
     handleErrorMessage(error, '获取机器人列表失败')
