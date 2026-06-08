@@ -35,6 +35,7 @@ import {
 } from '@/api/opertion/Marketing/TrxAddressBook'
 import { ContentWrap } from '@/components/ContentWrap'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { getSearchFormData } from '@/utils/tableHelpers'
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 type TrxAddressBookSearchParams = TrxAddressBookQueryParams & Recordable
@@ -129,8 +130,8 @@ const columns = ref<TableColumn[]>([
 
 const handleExport = async () => {
   try {
-    const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
-    await exportTrxAddressBook(buildTrxAddressBookParams(params as TrxAddressBookSearchParams))
+    const params = await getSearchFormData<TrxAddressBookSearchParams>(searchTableRef)
+    await exportTrxAddressBook(buildTrxAddressBookParams(params))
   } catch (error) {
     handleErrorMessage(error, '导出失败')
   }
