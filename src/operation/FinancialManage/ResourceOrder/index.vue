@@ -51,10 +51,14 @@ import {
   getStatusLabel,
   getStatusTagType,
   hasSearchValue,
-  withAllOption,
-  type StatusMeta
+  withAllOption
 } from '@/utils/tableHelpers'
 import SettlementRecordDialog from './components/SettlementRecordDialog.vue'
+import {
+  RESOURCE_ORDER_KIND_MAP,
+  RESOURCE_ORDER_KIND_OPTIONS,
+  RESOURCE_ORDER_STATUS_MAP
+} from '../constants'
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const settlementRecordDialogRef = ref<InstanceType<typeof SettlementRecordDialog> | null>(null)
@@ -62,18 +66,6 @@ const settlementRecordDialogRef = ref<InstanceType<typeof SettlementRecordDialog
 type ResourceOrderTableSlot = { row: V2ResourceOrderItem }
 type ResourceOrderSearchParams = V2ResourceOrderListParams & Recordable
 type BotOption = { label: string; value: number | string }
-
-const ORDER_STATUS_MAP: Record<number, StatusMeta> = {
-  1: { label: '新订单', type: 'info' },
-  2: { label: '已支付', type: 'warning' },
-  5: { label: '已完成', type: 'success' },
-  8: { label: '已取消', type: 'danger' }
-}
-
-const RESOURCE_ORDER_KIND_MAP: Record<number, string> = {
-  6: '能量接收池子',
-  7: '带宽接收池子'
-}
 
 const getResourceOrderKindText = (kind: number) => {
   return RESOURCE_ORDER_KIND_MAP[kind] || getEnergyOrderKindText(kind) || String(kind || '-')
@@ -144,8 +136,8 @@ const columns: TableColumn[] = [
       default: ({ row }: ResourceOrderTableSlot) => {
         return h(
           ElTag,
-          { type: getStatusTagType(ORDER_STATUS_MAP, row.status), size: 'small' },
-          () => getStatusLabel(ORDER_STATUS_MAP, row.status)
+          { type: getStatusTagType(RESOURCE_ORDER_STATUS_MAP, row.status), size: 'small' },
+          () => getStatusLabel(RESOURCE_ORDER_STATUS_MAP, row.status)
         )
       }
     }
@@ -218,10 +210,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: withAllOption([
-        { label: '能量接收池子', value: 6 },
-        { label: '带宽接收池子', value: 7 }
-      ])
+      options: withAllOption(RESOURCE_ORDER_KIND_OPTIONS)
     }
   },
   {
@@ -231,7 +220,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: createStatusOptions(ORDER_STATUS_MAP, '')
+      options: createStatusOptions(RESOURCE_ORDER_STATUS_MAP, '')
     }
   },
   {
@@ -345,7 +334,7 @@ const handleExport = async () => {
         数量: item.amount ?? '-',
         余额: item.balance ? item.balance.toLocaleString() : '-',
         累计利润: item.profit_sum || '-',
-        订单状态: getStatusLabel(ORDER_STATUS_MAP, item.status),
+        订单状态: getStatusLabel(RESOURCE_ORDER_STATUS_MAP, item.status),
         备注: item.describe || '-',
         支付时间: formatTableDateTime(item.paid_at),
         结算时间: formatTableDateTime(item.settled_at),

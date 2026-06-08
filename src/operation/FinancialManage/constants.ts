@@ -1,3 +1,5 @@
+import type { StatusMeta } from '@/utils/tableHelpers'
+
 export { withAllOption } from '@/utils/tableHelpers'
 
 export const RESOURCE_SUPPLEMENT_KIND_OPTIONS = [
@@ -12,3 +14,27 @@ export const RESOURCE_SUPPLEMENT_SOURCE_OPTIONS = [
   { label: 'https://feee.io 带宽', value: 'https://feee.io 带宽' },
   { label: 'https://trxfee.io 带宽', value: 'https://trxfee.io 带宽' }
 ]
+
+export const RESOURCE_SUPPLEMENT_STATUS_MAP: Record<number, StatusMeta> = {
+  1: { label: '成功', type: 'success' },
+  2: { label: '失败', type: 'danger' }
+}
+
+export const RESOURCE_ORDER_STATUS_MAP: Record<number, StatusMeta> = {
+  1: { label: '新订单', type: 'info' },
+  2: { label: '已支付', type: 'warning' },
+  5: { label: '已完成', type: 'success' },
+  8: { label: '已取消', type: 'danger' }
+}
+
+export const RESOURCE_ORDER_KIND_MAP: Record<number, string> = {
+  6: '能量接收池子',
+  7: '带宽接收池子'
+}
+
+export const RESOURCE_ORDER_KIND_OPTIONS = Object.entries(RESOURCE_ORDER_KIND_MAP).map(
+  ([value, label]) => ({
+    label,
+    value: Number(value)
+  })
+)

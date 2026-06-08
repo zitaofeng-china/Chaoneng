@@ -47,12 +47,12 @@ import {
   formatTableDateTime,
   getStatusLabel,
   getStatusTagType,
-  hasSearchValue,
-  type StatusMeta
+  hasSearchValue
 } from '@/utils/tableHelpers'
 import {
   RESOURCE_SUPPLEMENT_KIND_OPTIONS,
   RESOURCE_SUPPLEMENT_SOURCE_OPTIONS,
+  RESOURCE_SUPPLEMENT_STATUS_MAP,
   withAllOption
 } from '../constants'
 
@@ -63,11 +63,6 @@ type ChargeLogSearchParams = Omit<ChargeLogParams, 'status'> & {
 
 const searchTableRef = ref<SearchTableExpose>()
 const tronscanUrl = import.meta.env.VITE_TRONSCAN_URL || 'https://tronscan.org'
-
-const CHARGE_LOG_STATUS_MAP: Record<number, StatusMeta> = {
-  1: { label: '成功', type: 'success' },
-  2: { label: '失败', type: 'danger' }
-}
 
 const resourceSupplementKindSearchOptions = withAllOption(RESOURCE_SUPPLEMENT_KIND_OPTIONS)
 const resourceSupplementSourceSearchOptions = withAllOption(RESOURCE_SUPPLEMENT_SOURCE_OPTIONS)
@@ -143,8 +138,8 @@ const columns: TableColumn[] = [
       default: ({ row }: { row: ChargeLogItem }) => {
         return h(
           ElTag,
-          { type: getStatusTagType(CHARGE_LOG_STATUS_MAP, row.status), size: 'small' },
-          () => getStatusLabel(CHARGE_LOG_STATUS_MAP, row.status, '未知')
+          { type: getStatusTagType(RESOURCE_SUPPLEMENT_STATUS_MAP, row.status), size: 'small' },
+          () => getStatusLabel(RESOURCE_SUPPLEMENT_STATUS_MAP, row.status, '未知')
         )
       }
     }
@@ -226,7 +221,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: createStatusOptions(CHARGE_LOG_STATUS_MAP)
+      options: createStatusOptions(RESOURCE_SUPPLEMENT_STATUS_MAP)
     }
   },
   {
@@ -282,7 +277,7 @@ const handleExport = async () => {
         阈值: item.minimum ?? '-',
         补充数量: item.amount ?? '-',
         手续费: item.fee || '0',
-        状态: getStatusLabel(CHARGE_LOG_STATUS_MAP, item.status, '未知'),
+        状态: getStatusLabel(RESOURCE_SUPPLEMENT_STATUS_MAP, item.status, '未知'),
         代理哈希: item.delegated_txid || '-',
         回收哈希: item.recycled_txid || '-',
         描述: item.describe || '-',
