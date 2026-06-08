@@ -47,7 +47,8 @@ import {
   formatTableDateTime,
   getStatusLabel,
   getStatusTagType,
-  hasSearchValue
+  hasSearchValue,
+  type StatusMeta
 } from '@/utils/tableHelpers'
 
 type ChargeLogSearchParams = Omit<ChargeLogParams, 'status'> & {
@@ -58,10 +59,10 @@ type ChargeLogSearchParams = Omit<ChargeLogParams, 'status'> & {
 const searchTableRef = ref<SearchTableExpose>()
 const tronscanUrl = import.meta.env.VITE_TRONSCAN_URL || 'https://tronscan.org'
 
-const CHARGE_LOG_STATUS_MAP = {
+const CHARGE_LOG_STATUS_MAP: Record<number, StatusMeta> = {
   1: { label: '成功', type: 'success' },
   2: { label: '失败', type: 'danger' }
-} as const
+}
 
 const renderTxidLink = (txid?: string) => {
   if (!txid) return h('span', '-')
@@ -74,10 +75,6 @@ const renderTxidLink = (txid?: string) => {
     },
     () => '查看'
   )
-}
-
-const getStatusText = (status?: number) => {
-  return getStatusLabel(CHARGE_LOG_STATUS_MAP, status, '未知')
 }
 
 const buildChargeLogParams = (params: ChargeLogSearchParams = {}): ChargeLogParams => {
@@ -139,7 +136,7 @@ const columns: TableColumn[] = [
         return h(
           ElTag,
           { type: getStatusTagType(CHARGE_LOG_STATUS_MAP, row.status), size: 'small' },
-          () => getStatusText(row.status)
+          () => getStatusLabel(CHARGE_LOG_STATUS_MAP, row.status, '未知')
         )
       }
     }
@@ -288,7 +285,7 @@ const handleExport = async () => {
         阈值: item.minimum ?? '-',
         补充数量: item.amount ?? '-',
         手续费: item.fee || '0',
-        状态: getStatusText(item.status),
+        状态: getStatusLabel(CHARGE_LOG_STATUS_MAP, item.status, '未知'),
         代理哈希: item.delegated_txid || '-',
         回收哈希: item.recycled_txid || '-',
         描述: item.describe || '-',

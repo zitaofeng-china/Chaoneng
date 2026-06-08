@@ -65,7 +65,8 @@ import {
   createStatusOptions,
   getStatusLabel,
   getStatusTagType,
-  hasSearchValue
+  hasSearchValue,
+  type StatusMeta
 } from '@/utils/tableHelpers'
 
 // --- Refs and Reactive Variables ---
@@ -76,12 +77,12 @@ const submitLoading = ref(false)
 const isEdit = ref(false)
 const currentEditData = ref<CustomerServiceItem | null>(null)
 
-const CUSTOMER_SERVICE_STATUS_MAP = {
+const CUSTOMER_SERVICE_STATUS_MAP: Record<number, StatusMeta> = {
   1: { label: '启用', type: 'success' },
   2: { label: '禁用', type: 'danger' }
-} as const
+}
 
-const customerServiceStatusOptions = createStatusOptions(CUSTOMER_SERVICE_STATUS_MAP)
+const customerServiceStatusOptions = createStatusOptions(CUSTOMER_SERVICE_STATUS_MAP, '')
 
 // 弹窗标题
 const dialogTitle = computed(() => (isEdit.value ? '编辑客服' : '新增客服'))

@@ -55,35 +55,31 @@ import {
   dateRangeToSeconds,
   exportTableData,
   formatTableDateTime,
+  getStatusLabel,
+  getStatusTagType,
   hasSearchValue
 } from '@/utils/tableHelpers'
+import { ExchangeOrderType, getExchangeOrderType } from '@/utils/exchangeOrder'
+import { EXCHANGE_STATUS_MAP } from './constants'
 
 type ExchangeSearchParams = V2ExchangeListParams & {
   dateRange?: [number, number]
 }
 
-type ExchangeStatusTagType = 'success' | 'warning' | 'info' | 'danger'
-
-const EXCHANGE_STATUS_MAP: Record<number, { label: string; type: ExchangeStatusTagType }> = {
-  1: { label: '待支付', type: 'info' },
-  2: { label: '已支付', type: 'warning' },
-  3: { label: '处理中', type: 'info' },
-  4: { label: '待确认', type: 'warning' },
-  5: { label: '已完成', type: 'success' },
-  6: { label: '已失败', type: 'danger' },
-  7: { label: '退款中', type: 'info' },
-  8: { label: '已取消', type: 'warning' },
-  9: { label: '已中止', type: 'danger' }
+const getDefaultOutCoin = (inCoin?: string) => {
+  const upperInCoin = inCoin?.toUpperCase()
+  if (upperInCoin === 'USDT') return 'TRX'
+  if (upperInCoin === 'TRX') return 'USDT'
+  return undefined
 }
 
-const getExchangeStatusInfo = (status?: number) =>
-  EXCHANGE_STATUS_MAP[Number(status)] || { label: '未知', type: 'info' as ExchangeStatusTagType }
+const getExchangeTypeInfo = (inCoin?: string, outCoin?: string) => {
+  const orderType = getExchangeOrderType(inCoin, outCoin || getDefaultOutCoin(inCoin))
 
-const getExchangeTypeInfo = (coin?: string) => {
-  if (coin === 'USDT') {
+  if (orderType === ExchangeOrderType.USDT_TO_TRX) {
     return { label: 'USDT → TRX', color: '#67C23A' }
   }
-  if (coin === 'TRX') {
+  if (orderType === ExchangeOrderType.TRX_TO_USDT) {
     return { label: 'TRX → USDT', color: '#409EFF' }
   }
   return { label: '未知', color: '#909399' }
@@ -124,8 +120,7 @@ const handleExport = async () => {
       getList: (response) =>
         [...(response.data?.list || [])].sort((a, b) => (b.paid_at || 0) - (a.paid_at || 0)),
       mapItem: (item) => {
-        const statusInfo = getExchangeStatusInfo(item.status)
-        const transactionType = getExchangeTypeInfo(item.coin).label
+        const transactionType = getExchangeTypeInfo(item.in_coin || item.coin, item.out_coin).label
         return {
           订单ID: item.id || '-',
           代理名称: item.agent_name || '-',
@@ -140,7 +135,7 @@ const handleExport = async () => {
           利润单位: 'TRX',
           代理扣款: item.agent_cost || '-',
           扣款单位: 'TRX',
-          交易状态: statusInfo.label,
+          交易状态: getStatusLabel(EXCHANGE_STATUS_MAP, item.status, '未知'),
           完成时间: formatTableDateTime(item.paid_at),
           描述: item.describe || '-'
         }
@@ -203,7 +198,7 @@ const columns = reactive<TableColumn[]>([
     minWidth: 140,
     slots: {
       default: ({ row }: { row: V2ExchangeItem }) => {
-        const typeInfo = getExchangeTypeInfo(row.coin)
+        const typeInfo = getExchangeTypeInfo(row.in_coin || row.coin, row.out_coin)
         return <span style={{ color: typeInfo.color, fontWeight: '500' }}>{typeInfo.label}</span>
       }
     }
@@ -231,8 +226,11 @@ const columns = reactive<TableColumn[]>([
     minWidth: 100,
     slots: {
       default: ({ row }: { row: V2ExchangeItem }) => {
-        const statusInfo = getExchangeStatusInfo(row.status)
-        return <ElTag type={statusInfo.type}>{statusInfo.label}</ElTag>
+        return (
+          <ElTag type={getStatusTagType(EXCHANGE_STATUS_MAP, row.status)}>
+            {getStatusLabel(EXCHANGE_STATUS_MAP, row.status, '未知')}
+          </ElTag>
+        )
       }
     }
   },

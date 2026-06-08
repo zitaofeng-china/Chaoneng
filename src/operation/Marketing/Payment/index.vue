@@ -221,15 +221,17 @@ const addressKindOptions = Object.entries(addressKindMap).map(([value, item]) =>
 }))
 
 const allowedAddressKinds = new Set(addressKindOptions.map((item) => item.value))
+const AGENT_BALANCE_ADDRESS_KIND = 1
+const MULTI_ADDRESS_KINDS = new Set([AGENT_BALANCE_ADDRESS_KIND, 6])
 
 const isAddressKindDisabled = computed(() => addressDialogMode.value !== 'add')
 
 const showAgentField = computed(() => {
   const kind = Number(addressForm.kind)
   if (addressDialogMode.value === 'edit') {
-    return kind === 1
+    return kind === AGENT_BALANCE_ADDRESS_KIND
   }
-  return ![1, 6].includes(kind)
+  return !MULTI_ADDRESS_KINDS.has(kind)
 })
 
 const showBotField = computed(() => {
@@ -237,10 +239,10 @@ const showBotField = computed(() => {
   if (addressDialogMode.value === 'edit') {
     return false
   }
-  return ![1, 6].includes(kind)
+  return !MULTI_ADDRESS_KINDS.has(kind)
 })
 
-const isMultiAddressKind = computed(() => [1, 6].includes(Number(addressForm.kind)))
+const isMultiAddressKind = computed(() => MULTI_ADDRESS_KINDS.has(Number(addressForm.kind)))
 
 const isAddressTextarea = computed(
   () => addressDialogMode.value === 'add' && isMultiAddressKind.value
@@ -248,7 +250,8 @@ const isAddressTextarea = computed(
 
 const isAgentRequired = computed(
   () =>
-    showAgentField.value && !(addressDialogMode.value === 'edit' && Number(addressForm.kind) === 1)
+    showAgentField.value &&
+    !(addressDialogMode.value === 'edit' && Number(addressForm.kind) === AGENT_BALANCE_ADDRESS_KIND)
 )
 
 const isBotRequired = computed(() => showBotField.value)
@@ -493,8 +496,8 @@ const handleAdd = () => {
 const handleEdit = (row: V2AddressItem) => {
   addressDialogMode.value = 'edit'
   currentAddress.value = row
-  const kind = Number(row.kind) || 1
-  if (kind === 1) {
+  const kind = Number(row.kind) || AGENT_BALANCE_ADDRESS_KIND
+  if (kind === AGENT_BALANCE_ADDRESS_KIND) {
     getAgentList(false)
   }
   getBotList()

@@ -109,10 +109,13 @@ import AgentForm from '../components/AgentForm.vue'
 import NotifyBotDialog from '../components/NotifyBotDialog.vue'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import {
+  createStatusOptions,
   dateRangeToSeconds,
   exportTableData,
   formatTableDateTime,
-  hasSearchValue
+  getStatusLabel,
+  hasSearchValue,
+  type StatusMeta
 } from '@/utils/tableHelpers'
 
 // 状态管理
@@ -200,7 +203,7 @@ const handleExport = async () => {
         TRX收入: item.trx_income ?? '0',
         USDT收入: item.usdt_income ?? '0',
         是否赠送带宽: item.gift_bandwidth ? '赠送' : '不赠送',
-        状态: getAgentStatusText(item.status),
+        状态: getStatusLabel(AGENT_STATUS_MAP, item.status, '未知'),
         创建时间: formatTableDateTime(item.created_at)
       })
     })
@@ -210,26 +213,10 @@ const handleExport = async () => {
 }
 
 // 常量配置
-const STATUS_OPTIONS = [
-  { label: '全部', value: '' },
-  { label: '启用', value: 1 },
-  { label: '禁用', value: 2 }
-] as const
-
-// 代理等级选项（用于批量修改表头下拉框）
-const BATCH_AGENT_LEVEL_OPTIONS = [
-  { label: '选择等级', value: 0 },
-  { label: '一级代理', value: 1 },
-  { label: '二级代理', value: 2 },
-  { label: '三级代理', value: 3 }
-]
-
-// 代理等级选项（用于表格单元格下拉框）
-const AGENT_LEVEL_OPTIONS = [
-  { label: '一级代理', value: 1 },
-  { label: '二级代理', value: 2 },
-  { label: '三级代理', value: 3 }
-]
+const AGENT_STATUS_MAP: Record<number, StatusMeta> = {
+  1: { label: '启用' },
+  2: { label: '禁用' }
+}
 
 const AGENT_LEVEL_LABELS: Record<number, string> = {
   1: '一级代理',
@@ -237,12 +224,12 @@ const AGENT_LEVEL_LABELS: Record<number, string> = {
   3: '三级代理'
 }
 
-const AGENT_STATUS_LABELS: Record<number, string> = {
-  1: '启用',
-  2: '禁用'
-}
+const AGENT_LEVEL_OPTIONS = Object.entries(AGENT_LEVEL_LABELS).map(([value, label]) => ({
+  label,
+  value: Number(value)
+}))
 
-const getAgentStatusText = (status?: number) => AGENT_STATUS_LABELS[Number(status)] || '未知'
+const BATCH_AGENT_LEVEL_OPTIONS = [{ label: '选择等级', value: 0 }, ...AGENT_LEVEL_OPTIONS]
 
 const buildAgentListParams = (
   params: AgentSearchParams = {},
@@ -492,7 +479,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '请选择状态',
       clearable: true,
-      options: STATUS_OPTIONS
+      options: createStatusOptions(AGENT_STATUS_MAP, '')
     }
   },
   {

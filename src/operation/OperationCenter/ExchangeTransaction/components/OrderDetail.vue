@@ -57,8 +57,9 @@ import { v2GetExchangeDetail } from '@/api/opertion/OperationCenter/ExchangeTran
 import type { V2ExchangeDetail } from '@/api/opertion/OperationCenter/ExchangeTransaction/types'
 import Icon from '@/components/Icon/src/Icon.vue'
 import { handleErrorMessage } from '@/utils/messageHelper'
-import { formatTableDateTime } from '@/utils/tableHelpers'
-import { getStatusText, getStatusType } from '@/utils/orderStatus'
+import { formatTableDateTime, getStatusLabel, getStatusTagType } from '@/utils/tableHelpers'
+import { ExchangeOrderType, getExchangeOrderType } from '@/utils/exchangeOrder'
+import { EXCHANGE_STATUS_MAP } from '../constants'
 
 const visible = ref(false)
 const loading = ref(false)
@@ -86,7 +87,10 @@ const renderText = (value: string | number | null | undefined, fallback = '-') =
 }
 
 const isUsdtToTrx = (data?: V2ExchangeDetail | null) => {
-  return data?.exchange?.in_coin === 'USDT' && data?.exchange?.out_coin === 'TRX'
+  return (
+    getExchangeOrderType(data?.exchange?.in_coin, data?.exchange?.out_coin) ===
+    ExchangeOrderType.USDT_TO_TRX
+  )
 }
 
 const getExchangeTypeText = (data?: V2ExchangeDetail | null) => {
@@ -168,7 +172,9 @@ const detailSchema = computed<DescriptionsSchema[]>(() => [
     span: 8,
     slots: {
       default: (data) =>
-        h(ElTag, { type: getStatusType(data.status) }, () => getStatusText(data.status))
+        h(ElTag, { type: getStatusTagType(EXCHANGE_STATUS_MAP, data.status) }, () =>
+          getStatusLabel(EXCHANGE_STATUS_MAP, data.status, '未知')
+        )
     }
   },
   {

@@ -13,6 +13,17 @@ const props = withDefaults(defineProps<{ orderData: QuickChargeOrderDetail | nul
 })
 
 type ResourceTableSlot = { row: QuickChargeResource }
+type ResourceTagType = 'success' | 'warning' | 'info' | 'danger' | 'primary'
+
+const RESOURCE_TYPE_TEXT_MAP: Record<number, string> = {
+  1: '能量',
+  0: '带宽'
+}
+
+const RESOURCE_TYPE_TAG_MAP: Record<number, ResourceTagType> = {
+  1: 'primary',
+  0: 'success'
+}
 
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -50,18 +61,9 @@ const resourceTableSchema = computed((): TableColumn[] => [
     width: 100,
     slots: {
       default: ({ row }: ResourceTableSlot) => {
-        const typeMap: Record<number, string> = {
-          1: '能量',
-          0: '带宽'
-        }
-        const typeColorMap: Record<number, 'success' | 'warning' | 'info' | 'danger' | 'primary'> =
-          {
-            1: 'primary',
-            0: 'success'
-          }
         const type = Number(row.code)
-        const text = typeMap[type] || '未知'
-        const tagType = typeColorMap[type] || 'info'
+        const text = RESOURCE_TYPE_TEXT_MAP[type] || '未知'
+        const tagType = RESOURCE_TYPE_TAG_MAP[type] || 'info'
         return h(ElTag, { type: tagType, size: 'small' }, () => text)
       }
     }

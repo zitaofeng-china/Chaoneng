@@ -41,7 +41,7 @@ import {
   createStatusOptions,
   exportTableData,
   getStatusLabel,
-  getStatusTagType as getCommonStatusTagType,
+  getStatusTagType,
   hasSearchValue
 } from '@/utils/tableHelpers'
 import type { QuickChargeOrder, QuickChargeSearchParams } from './types'
@@ -101,14 +101,6 @@ const sampleList: QuickChargeOrder[] = [
   }
 ]
 
-const getStatusText = (status: number) => {
-  return getStatusLabel(QUICK_CHARGE_STATUS_MAP, status)
-}
-
-const getStatusTagType = (status: number) => {
-  return getCommonStatusTagType(QUICK_CHARGE_STATUS_MAP, status)
-}
-
 const columns: TableColumn[] = [
   { field: 'id', label: '订单号', minWidth: 160 },
   {
@@ -149,8 +141,8 @@ const columns: TableColumn[] = [
     width: 110,
     slots: {
       default: ({ row }: QuickChargeTableSlot) => (
-        <ElTag type={getStatusTagType(row.status)} size="small">
-          {getStatusText(row.status)}
+        <ElTag type={getStatusTagType(QUICK_CHARGE_STATUS_MAP, row.status)} size="small">
+          {getStatusLabel(QUICK_CHARGE_STATUS_MAP, row.status)}
         </ElTag>
       )
     }
@@ -276,7 +268,7 @@ const handleExport = async () => {
       开始时间: item.start_time,
       结束时间: item.end_time,
       总时长: item.duration,
-      订单状态: getStatusText(item.status),
+      订单状态: getStatusLabel(QUICK_CHARGE_STATUS_MAP, item.status),
       备注: item.remark
     })
   })

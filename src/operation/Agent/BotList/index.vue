@@ -40,7 +40,15 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
 import { useRoute, useRouter } from 'vue-router'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import { exportTableData, formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
+import {
+  createStatusOptions,
+  exportTableData,
+  formatTableDateTime,
+  getStatusLabel,
+  getStatusTagType,
+  hasSearchValue,
+  type StatusMeta
+} from '@/utils/tableHelpers'
 
 const route = useRoute()
 const router = useRouter()
@@ -50,12 +58,10 @@ type AgentBotSearchParams = Omit<AgentBotQueryParams, 'status'> & {
   status?: number | ''
 }
 
-const BOT_STATUS_MAP: Record<number, { text: string; type: 'success' | 'danger' | 'info' }> = {
-  1: { text: '启用', type: 'success' },
-  2: { text: '禁用', type: 'danger' }
+const BOT_STATUS_MAP: Record<number, StatusMeta> = {
+  1: { label: '启用', type: 'success' },
+  2: { label: '禁用', type: 'danger' }
 }
-
-const getBotStatusText = (status?: number) => BOT_STATUS_MAP[Number(status)]?.text || '未知'
 
 const initialSearchParams: AgentBotSearchParams = (() => {
   if (route.query.keyword) {
@@ -145,11 +151,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '请选择状态',
       clearable: true,
-      options: [
-        { label: '全部', value: '' },
-        { label: '启用', value: 1 },
-        { label: '禁用', value: 2 }
-      ]
+      options: createStatusOptions(BOT_STATUS_MAP, '')
     }
   }
 ])
@@ -231,8 +233,11 @@ const columns = ref<TableColumn[]>([
     label: '机器人状态',
     minWidth: 100,
     formatter: (row: AgentBotItem) => {
-      const statusMeta = BOT_STATUS_MAP[row.status] || { text: '未知', type: 'info' as const }
-      return <ElTag type={statusMeta.type}>{statusMeta.text}</ElTag>
+      return (
+        <ElTag type={getStatusTagType(BOT_STATUS_MAP, row.status)}>
+          {getStatusLabel(BOT_STATUS_MAP, row.status, '未知')}
+        </ElTag>
+      )
     }
   },
   {
@@ -305,7 +310,7 @@ const handleExport = async () => {
         管理员TG号: item.tg_admin || '-',
         用户数量: item.user_count || 0,
         交易订单数: item.order_count || 0,
-        机器人状态: getBotStatusText(item.status),
+        机器人状态: getStatusLabel(BOT_STATUS_MAP, item.status, '未知'),
         创建时间: formatTableDateTime(item.created_at),
         最后活动时间: formatTableDateTime(item.updated_at)
       })
