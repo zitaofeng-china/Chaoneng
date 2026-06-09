@@ -25,7 +25,7 @@
 
 <script setup lang="tsx">
 import { ref, h } from 'vue'
-import { ElTag, ElLink } from 'element-plus'
+import { ElLink } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
@@ -47,8 +47,8 @@ import {
   exportTableData,
   formatTableDateTime,
   getStatusLabel,
-  getStatusTagType,
   hasSearchValue,
+  renderStatusTag,
   type DateRangeValue,
   type TableSlot
 } from '@/utils/tableHelpers'
@@ -135,13 +135,8 @@ const columns: TableColumn[] = [
     label: '状态',
     width: 100,
     slots: {
-      default: ({ row }: ChargeLogTableSlot) => {
-        return h(
-          ElTag,
-          { type: getStatusTagType(RESOURCE_SUPPLEMENT_STATUS_MAP, row.status), size: 'small' },
-          () => getStatusLabel(RESOURCE_SUPPLEMENT_STATUS_MAP, row.status, '未知')
-        )
-      }
+      default: ({ row }: ChargeLogTableSlot) =>
+        renderStatusTag(RESOURCE_SUPPLEMENT_STATUS_MAP, row.status, '未知')
     }
   },
   {

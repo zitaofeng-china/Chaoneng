@@ -28,7 +28,6 @@
 
 <script setup lang="tsx">
 import { ref, h, onMounted } from 'vue'
-import { ElTag } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import type { SearchTableExpose } from '@/components/SearchTable'
@@ -49,8 +48,8 @@ import {
   exportTableData,
   formatTableDateTime,
   getStatusLabel,
-  getStatusTagType,
   hasSearchValue,
+  renderStatusTag,
   withAllOption,
   type SelectOption,
   type TableSlot
@@ -136,13 +135,8 @@ const columns: TableColumn[] = [
     label: '订单状态',
     width: 100,
     slots: {
-      default: ({ row }: ResourceOrderTableSlot) => {
-        return h(
-          ElTag,
-          { type: getStatusTagType(RESOURCE_ORDER_STATUS_MAP, row.status), size: 'small' },
-          () => getStatusLabel(RESOURCE_ORDER_STATUS_MAP, row.status)
-        )
-      }
+      default: ({ row }: ResourceOrderTableSlot) =>
+        renderStatusTag(RESOURCE_ORDER_STATUS_MAP, row.status)
     }
   },
   {
