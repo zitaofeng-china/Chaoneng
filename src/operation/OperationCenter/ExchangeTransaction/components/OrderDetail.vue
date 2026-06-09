@@ -49,7 +49,7 @@
 
 <script setup lang="ts">
 import { ref, computed, h } from 'vue'
-import { ElButton, ElMessage, ElTag, ElLink, ElTabs, ElTabPane, ElEmpty } from 'element-plus'
+import { ElButton, ElMessage, ElTag, ElTabs, ElTabPane, ElEmpty } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
@@ -60,9 +60,9 @@ import {
 import Icon from '@/components/Icon/src/Icon.vue'
 import { handleErrorMessage } from '@/utils/messageHelper'
 import { formatTableDateTime, getStatusLabel, getStatusTagType } from '@/utils/tableHelpers'
-import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import { ExchangeOrderType, getExchangeOrderType } from '@/utils/exchangeOrder'
 import { renderNullableText } from '@/operation/OperationCenter/utils/displayText'
+import { renderTronscanTransactionLink } from '@/operation/OperationCenter/utils/transactionLink'
 import { EXCHANGE_STATUS_MAP } from '../constants'
 
 const visible = ref(false)
@@ -220,16 +220,7 @@ const transactionInSchema = computed<DescriptionsSchema[]>(() => [
     slots: {
       default: (row: V2ExchangeDetail) => {
         const txid = row?.pay_transaction?.id
-        if (!txid) return h('span', '-')
-        return h(
-          ElLink,
-          {
-            href: getTronscanTransactionUrl(txid),
-            type: 'primary',
-            target: '_blank'
-          },
-          () => txid
-        )
+        return renderTronscanTransactionLink(txid, String(txid ?? ''))
       }
     }
   },
@@ -273,16 +264,7 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
     slots: {
       default: (row: V2ExchangeDetail) => {
         const txid = row?.exchange?.out_txid || row?.deliver_transaction?.id
-        if (!txid) return h('span', '-')
-        return h(
-          ElLink,
-          {
-            href: getTronscanTransactionUrl(txid),
-            type: 'primary',
-            target: '_blank'
-          },
-          () => txid
-        )
+        return renderTronscanTransactionLink(txid, String(txid ?? ''))
       }
     }
   },
