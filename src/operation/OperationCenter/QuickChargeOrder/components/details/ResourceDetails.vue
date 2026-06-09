@@ -5,7 +5,8 @@ import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
-import { formatTableDateTime, type TableSlot, type TableTagType } from '@/utils/tableHelpers'
+import { getResourceTypeTagType, getResourceTypeText } from '@/utils/energyOrder'
+import { formatTableDateTime, type TableSlot } from '@/utils/tableHelpers'
 import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import type { QuickChargeOrderDetail, QuickChargeResource } from '../../types'
 
@@ -14,16 +15,6 @@ const props = withDefaults(defineProps<{ orderData: QuickChargeOrderDetail | nul
 })
 
 type ResourceTableSlot = TableSlot<QuickChargeResource>
-
-const RESOURCE_TYPE_TEXT_MAP: Record<number, string> = {
-  1: '能量',
-  0: '带宽'
-}
-
-const RESOURCE_TYPE_TAG_MAP: Record<number, TableTagType> = {
-  1: 'primary',
-  0: 'success'
-}
 
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -61,9 +52,8 @@ const resourceTableSchema = computed((): TableColumn[] => [
     width: 100,
     slots: {
       default: ({ row }: ResourceTableSlot) => {
-        const type = Number(row.code)
-        const text = RESOURCE_TYPE_TEXT_MAP[type] || '未知'
-        const tagType = RESOURCE_TYPE_TAG_MAP[type] || 'info'
+        const text = getResourceTypeText(row.code)
+        const tagType = getResourceTypeTagType(row.code)
         return h(ElTag, { type: tagType, size: 'small' }, () => text)
       }
     }

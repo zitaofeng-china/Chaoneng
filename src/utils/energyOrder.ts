@@ -41,6 +41,40 @@ export const ENERGY_ORDER_KIND_TAG_TYPE: Record<number, EnergyOrderKindTagType> 
   [EnergyOrderKind.BATCH_ACTIVE]: 'info'
 }
 
+const RESOURCE_TYPE_TEXT_MAP: Record<number, string> = {
+  1: '能量',
+  0: '带宽'
+}
+
+const RESOURCE_TYPE_TAG_MAP: Record<number, EnergyOrderKindTagType> = {
+  1: 'primary',
+  0: 'success'
+}
+
+const normalizeResourceType = (value?: number | string | null) => {
+  if (value === undefined || value === null || value === '') return undefined
+
+  const normalizedValue = Number(value)
+  return Number.isNaN(normalizedValue) ? undefined : normalizedValue
+}
+
+export const getResourceTypeText = (value?: number | string | null, fallback = '未知') => {
+  const normalizedValue = normalizeResourceType(value)
+  return normalizedValue === undefined
+    ? fallback
+    : RESOURCE_TYPE_TEXT_MAP[normalizedValue] || fallback
+}
+
+export const getResourceTypeTagType = (
+  value?: number | string | null,
+  fallback: EnergyOrderKindTagType = 'info'
+) => {
+  const normalizedValue = normalizeResourceType(value)
+  return normalizedValue === undefined
+    ? fallback
+    : RESOURCE_TYPE_TAG_MAP[normalizedValue] || fallback
+}
+
 /**
  * 获取能量订单类型文本
  * @param kind 订单类型
