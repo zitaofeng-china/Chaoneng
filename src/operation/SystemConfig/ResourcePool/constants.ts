@@ -1,3 +1,5 @@
+import { withAllOption } from '@/utils/tableHelpers'
+
 export const RESOURCE_POOL_TYPE_MAP: Record<number, string> = {
   1: 'TRX池子',
   2: 'USDT池子',
@@ -15,6 +17,8 @@ export const RESOURCE_POOL_TYPE_OPTIONS = Object.entries(RESOURCE_POOL_TYPE_MAP)
     value: Number(value)
   })
 )
+
+export const RESOURCE_POOL_TYPE_SEARCH_OPTIONS = withAllOption(RESOURCE_POOL_TYPE_OPTIONS)
 
 interface ResourcePoolStatusMeta {
   label: string
@@ -39,6 +43,8 @@ export const RESOURCE_POOL_STATUS_OPTIONS = Object.entries(RESOURCE_POOL_STATUS_
     value: Number(value)
   })
 )
+
+export const RESOURCE_POOL_STATUS_SEARCH_OPTIONS = withAllOption(RESOURCE_POOL_STATUS_OPTIONS)
 
 export const getResourcePoolStatusLabel = (status: number) => {
   return RESOURCE_POOL_STATUS_META_MAP[status]?.label || '未知状态'

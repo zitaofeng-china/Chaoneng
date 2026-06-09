@@ -35,8 +35,7 @@ import {
   createPageParams,
   dateRangeToSeconds,
   formatTableDateTime,
-  hasSearchValue,
-  withAllOption
+  hasSearchValue
 } from '@/utils/tableHelpers'
 import { getErrorMessage } from '@/utils/messageHelper'
 import {
@@ -48,7 +47,7 @@ import {
   type MessageChatItem
 } from '@/api/opertion/common/message'
 import GroupMessageDialog from './components/GroupMessageDialog.vue'
-import { CHAT_TYPE_OPTIONS, getChatTypeText } from '@/operation/utils/chat'
+import { CHAT_TYPE_SEARCH_OPTIONS, getChatTypeText } from '@/operation/utils/chat'
 
 type ChatRow = Omit<MessageChatItem, 'broadcast'> & {
   broadcast: number
@@ -115,7 +114,7 @@ const searchSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请选择类型',
       clearable: true,
-      options: withAllOption(CHAT_TYPE_OPTIONS)
+      options: CHAT_TYPE_SEARCH_OPTIONS
     }
   },
   {

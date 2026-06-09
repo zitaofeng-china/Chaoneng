@@ -1,4 +1,19 @@
-import { createStatusOptions, type StatusMeta, type TableTagType } from '@/utils/tableHelpers'
+import {
+  createStatusOptions,
+  withAllOption,
+  type StatusMeta,
+  type TableTagType
+} from '@/utils/tableHelpers'
+
+export const QUICK_CHARGE_RESOURCE_TYPE_OPTIONS = withAllOption([
+  { label: '能量出售', value: '能量出售' },
+  { label: '带宽出售', value: '带宽出售' }
+])
+
+export const QUICK_CHARGE_BOT_OPTIONS = withAllOption([
+  { label: 'iosvBot', value: 'iosvBot' },
+  { label: 'quickBot', value: 'quickBot' }
+])
 
 export const QUICK_CHARGE_STATUS_MAP: Record<number, StatusMeta> = {
   1: { label: '进行中', type: 'primary' },

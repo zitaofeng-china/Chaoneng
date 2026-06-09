@@ -1,4 +1,4 @@
-import { createStatusOptions, type StatusMeta } from '@/utils/tableHelpers'
+import { createStatusOptions, withAllOption, type StatusMeta } from '@/utils/tableHelpers'
 
 export const AGENT_STATUS_MAP: Record<number, StatusMeta> = {
   1: { label: '启用' },
@@ -49,3 +49,8 @@ export const INVITE_REWARD_STATUS_MAP: Record<number, StatusMeta> = {
 }
 
 export const INVITE_REWARD_STATUS_OPTIONS = createStatusOptions(INVITE_REWARD_STATUS_MAP)
+
+export const BALANCE_COIN_OPTIONS = withAllOption([
+  { label: 'TRX', value: 'TRX' },
+  { label: 'USDT', value: 'USDT' }
+])

@@ -41,26 +41,20 @@ import {
   exportTableData,
   getStatusLabel,
   getStatusTagType,
-  hasSearchValue,
-  withAllOption
+  hasSearchValue
 } from '@/utils/tableHelpers'
 import type { QuickChargeOrder, QuickChargeSearchParams } from './types'
-import { QUICK_CHARGE_STATUS_MAP, QUICK_CHARGE_STATUS_OPTIONS } from './constants'
+import {
+  QUICK_CHARGE_BOT_OPTIONS,
+  QUICK_CHARGE_RESOURCE_TYPE_OPTIONS,
+  QUICK_CHARGE_STATUS_MAP,
+  QUICK_CHARGE_STATUS_OPTIONS
+} from './constants'
 
 type QuickChargeTableSlot = { row: QuickChargeOrder }
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const orderDetailRef = ref<InstanceType<typeof OrderDetail> | null>(null)
-
-const typeOptions = withAllOption([
-  { label: '能量出售', value: '能量出售' },
-  { label: '带宽出售', value: '带宽出售' }
-])
-
-const botOptions = withAllOption([
-  { label: 'iosvBot', value: 'iosvBot' },
-  { label: 'quickBot', value: 'quickBot' }
-])
 
 const sampleList: QuickChargeOrder[] = [
   {
@@ -180,7 +174,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: typeOptions
+      options: QUICK_CHARGE_RESOURCE_TYPE_OPTIONS
     }
   },
   {
@@ -201,7 +195,7 @@ const searchSchema = ref<FormSchema[]>([
       placeholder: '全部',
       clearable: true,
       filterable: true,
-      options: botOptions
+      options: QUICK_CHARGE_BOT_OPTIONS
     }
   }
 ])

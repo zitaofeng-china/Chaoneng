@@ -45,18 +45,13 @@ import {
   getResourcePoolStatusLabel,
   isThresholdPoolKind,
   RESOURCE_POOL_STATUS_MAP,
-  RESOURCE_POOL_STATUS_OPTIONS,
+  RESOURCE_POOL_STATUS_SEARCH_OPTIONS,
   RESOURCE_POOL_TYPE_MAP,
-  RESOURCE_POOL_TYPE_OPTIONS
+  RESOURCE_POOL_TYPE_SEARCH_OPTIONS
 } from './constants'
 import { isPermission } from '@/utils/is'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import {
-  createPageParams,
-  formatTableDateTime,
-  hasSearchValue,
-  withAllOption
-} from '@/utils/tableHelpers'
+import { createPageParams, formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
 const formRef = ref<InstanceType<typeof ResourcePoolAccountForm>>()
 const searchTableRef = ref<InstanceType<typeof SearchTable>>()
 
@@ -175,7 +170,7 @@ const searchSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请选择配置类型',
       clearable: true,
-      options: withAllOption(RESOURCE_POOL_TYPE_OPTIONS)
+      options: RESOURCE_POOL_TYPE_SEARCH_OPTIONS
     }
   },
   {
@@ -185,7 +180,7 @@ const searchSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请选择状态',
       clearable: true,
-      options: withAllOption(RESOURCE_POOL_STATUS_OPTIONS)
+      options: RESOURCE_POOL_STATUS_SEARCH_OPTIONS
     }
   }
 ])
