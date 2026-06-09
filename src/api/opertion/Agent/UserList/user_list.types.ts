@@ -39,6 +39,7 @@ export interface UserListItem {
   tg_user_name: string // TG用户名
   tg_first_name: string // TG用户昵称
   agent_id: number // 代理ID
+  agent_name?: string // 代理名称
   trx_balance: string // TRX余额
   usdt_balance: string // USDT余额
   last_address: string // 最后使用地址

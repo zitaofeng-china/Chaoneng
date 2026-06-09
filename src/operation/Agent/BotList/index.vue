@@ -24,7 +24,7 @@
 
 <script setup lang="tsx">
 import { ref } from 'vue'
-import { ElTag, ElMessage, ElMessageBox, ElLink } from 'element-plus'
+import { ElMessage, ElMessageBox, ElLink } from 'element-plus'
 import { Icon } from '@/components/Icon'
 import { SearchTable } from '@/components/SearchTable'
 import type { SearchTableExpose } from '@/components/SearchTable'
@@ -45,8 +45,8 @@ import {
   exportTableData,
   formatTableDateTime,
   getStatusLabel,
-  getStatusTagType,
   hasSearchValue,
+  renderStatusTag,
   type TableSlot
 } from '@/utils/tableHelpers'
 import { BOT_STATUS_MAP, BOT_STATUS_OPTIONS } from '../constants'
@@ -228,13 +228,7 @@ const columns = ref<TableColumn[]>([
     field: 'status',
     label: '机器人状态',
     minWidth: 100,
-    formatter: (row: AgentBotItem) => {
-      return (
-        <ElTag type={getStatusTagType(BOT_STATUS_MAP, row.status)}>
-          {getStatusLabel(BOT_STATUS_MAP, row.status, '未知')}
-        </ElTag>
-      )
-    }
+    formatter: (row: AgentBotItem) => renderStatusTag(BOT_STATUS_MAP, row.status, '未知', 'default')
   },
   {
     field: 'created_at',

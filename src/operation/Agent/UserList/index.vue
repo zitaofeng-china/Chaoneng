@@ -150,7 +150,7 @@ const attachBotInfo = (item: UserListItem): UserListRow => {
   return {
     ...item,
     bot_user_name: botInfo?.user_name || '',
-    agent_name: botInfo?.agent_name || ''
+    agent_name: item.agent_name || ''
   }
 }
 
@@ -527,7 +527,7 @@ const handleExport = async () => {
           用户邮箱: item.email || '-',
           机器人ID: item.bot_id,
           机器人用户名: botInfo?.user_name || '-',
-          代理名称: botInfo?.agent_name || '-',
+          代理名称: item.agent_name || '-',
           来源: isBotOriginUser(item) ? '机器人' : 'H5',
           TRX余额: item.trx_balance || 0,
           余额单位: 'TRX',

@@ -46,7 +46,7 @@ import { Dialog } from '@/components/Dialog'
 import { Form } from '@/components/Form'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
-import { ElTag, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import { Icon } from '@/components/Icon'
 import { BaseButton } from '@/components/Button'
 import { useForm } from '@/hooks/web/useForm'
@@ -61,7 +61,7 @@ import {
 } from '@/api/opertion/CustomerService/CustomerServicePage'
 import { UnixTime } from '@/components/UnixTime'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import { getStatusLabel, getStatusTagType, hasSearchValue } from '@/utils/tableHelpers'
+import { hasSearchValue, renderStatusTag } from '@/utils/tableHelpers'
 import { CUSTOMER_SERVICE_STATUS_MAP, CUSTOMER_SERVICE_STATUS_OPTIONS } from '../constants'
 
 // --- Refs and Reactive Variables ---
@@ -103,11 +103,7 @@ const columns = ref<TableColumn[]>([
     field: 'status',
     label: '状态',
     width: '100px',
-    formatter: (row) => (
-      <ElTag type={getStatusTagType(CUSTOMER_SERVICE_STATUS_MAP, row.status)}>
-        {getStatusLabel(CUSTOMER_SERVICE_STATUS_MAP, row.status)}
-      </ElTag>
-    )
+    formatter: (row) => renderStatusTag(CUSTOMER_SERVICE_STATUS_MAP, row.status, '-', 'default')
   },
   {
     field: 'created_at',

@@ -23,7 +23,6 @@
 
 <script setup lang="tsx">
 import { ref, onMounted, computed } from 'vue'
-import { ElTag } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import type { TableColumn } from '@/components/Table'
@@ -40,8 +39,8 @@ import {
   createPageParams,
   formatTableDateTime,
   getStatusLabel,
-  getStatusTagType,
   hasSearchValue,
+  renderStatusTag,
   withAllOption,
   type TableSlot
 } from '@/utils/tableHelpers'
@@ -142,9 +141,7 @@ const columns = ref<TableColumn[]>([
         const statusLabel = getStatusLabel(INVITE_REWARD_STATUS_MAP, row.status)
         if (statusLabel === '-') return <span>-</span>
 
-        return (
-          <ElTag type={getStatusTagType(INVITE_REWARD_STATUS_MAP, row.status)}>{statusLabel}</ElTag>
-        )
+        return renderStatusTag(INVITE_REWARD_STATUS_MAP, row.status, '-', 'default')
       }
     }
   },
