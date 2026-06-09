@@ -89,6 +89,7 @@ import {
   type SelectOption,
   type TableSlot
 } from '@/utils/tableHelpers'
+import { getTelegramUserUrl } from '@/utils/telegram'
 import { SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'
 import MessageDialog from '../components/MessageDialog.vue'
 import RechargeDialog from '../components/UserDialogs/RechargeDialog.vue'
@@ -240,7 +241,7 @@ const columns = computed(() => {
         default: ({ row }: UserTableSlot) => {
           if (!row.tg_user_name) return <span>-</span>
           return (
-            <ElLink type="primary" href={`https://t.me/${row.tg_user_name}`} target="_blank">
+            <ElLink type="primary" href={getTelegramUserUrl(row.tg_user_name)} target="_blank">
               {row.tg_user_name}
             </ElLink>
           )

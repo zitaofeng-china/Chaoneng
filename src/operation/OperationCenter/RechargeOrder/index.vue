@@ -73,6 +73,7 @@ import {
   hasSearchValue,
   type TableSlot
 } from '@/utils/tableHelpers'
+import { getTelegramUserUrl } from '@/utils/telegram'
 import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import { RECHARGE_COIN_OPTIONS } from './constants'
 
@@ -245,7 +246,7 @@ const columns = computed(() => {
         default: ({ row }: DepositTableSlot) => {
           if (!row.tg_user_name) return <span>-</span>
           return (
-            <ElLink href={`https://t.me/${row.tg_user_name}`} type="primary" target="_blank">
+            <ElLink href={getTelegramUserUrl(row.tg_user_name)} type="primary" target="_blank">
               {row.tg_user_name}
             </ElLink>
           )

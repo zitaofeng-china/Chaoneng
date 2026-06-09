@@ -40,6 +40,7 @@ import {
   type SelectOption,
   type TableSlot
 } from '@/utils/tableHelpers'
+import { getTelegramUserUrl } from '@/utils/telegram'
 import { getErrorMessage } from '@/utils/messageHelper'
 import {
   v1GetMessageBotList,
@@ -184,7 +185,7 @@ const columns: TableColumn[] = [
         const username = row.bot_user_name
         if (!username) return <span>-</span>
         return (
-          <ElLink type="primary" onClick={() => window.open(`https://t.me/${username}`, '_blank')}>
+          <ElLink type="primary" href={getTelegramUserUrl(username)} target="_blank">
             {username}
           </ElLink>
         )

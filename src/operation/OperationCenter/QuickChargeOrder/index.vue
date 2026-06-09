@@ -45,6 +45,7 @@ import {
   hasSearchValue,
   type TableSlot
 } from '@/utils/tableHelpers'
+import { getTelegramUserUrl } from '@/utils/telegram'
 import type { QuickChargeOrder, QuickChargeSearchParams } from './types'
 import {
   QUICK_CHARGE_BOT_OPTIONS,
@@ -100,11 +101,14 @@ const columns: TableColumn[] = [
     label: '机器人用户名',
     minWidth: 130,
     slots: {
-      default: ({ row }: QuickChargeTableSlot) => (
-        <ElLink type="primary" onClick={() => window.open(`https://t.me/${row.bot_user_name}`)}>
-          {row.bot_user_name}
-        </ElLink>
-      )
+      default: ({ row }: QuickChargeTableSlot) => {
+        if (!row.bot_user_name) return <span>-</span>
+        return (
+          <ElLink type="primary" href={getTelegramUserUrl(row.bot_user_name)} target="_blank">
+            {row.bot_user_name}
+          </ElLink>
+        )
+      }
     }
   },
   { field: 'agent_name', label: '代理', minWidth: 120 },
