@@ -10,18 +10,13 @@ import type { RoleItem } from '@/api/opertion/Authorization/common/role'
 import { useI18n } from '@/hooks/web/useI18n'
 import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
-import { ElMessageBox, ElTag } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import { Table, TableColumn } from '@/components/Table'
 import Write from './components/Write.vue'
 import { useTable } from '@/hooks/web/useTable'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import { useUserStore } from '@/store/modules/user'
-import {
-  formatTableDateTime,
-  getStatusLabel,
-  getStatusTagType,
-  type TableSlot
-} from '@/utils/tableHelpers'
+import { formatTableDateTime, renderStatusTag, type TableSlot } from '@/utils/tableHelpers'
 import { AUTH_ENABLE_STATUS_MAP } from '../constants'
 
 const { t } = useI18n()
@@ -49,13 +44,8 @@ const columns: TableColumn[] = [
     field: 'status',
     label: t('menu.status'),
     slots: {
-      default: ({ row }: RoleTableSlot) => {
-        return (
-          <ElTag type={getStatusTagType(AUTH_ENABLE_STATUS_MAP, row.status)}>
-            {getStatusLabel(AUTH_ENABLE_STATUS_MAP, row.status)}
-          </ElTag>
-        )
-      }
+      default: ({ row }: RoleTableSlot) =>
+        renderStatusTag(AUTH_ENABLE_STATUS_MAP, row.status, '-', 'default')
     }
   },
   {

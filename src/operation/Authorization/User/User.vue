@@ -16,13 +16,13 @@ import { getRoleListApi } from '@/api/opertion/Authorization/common/role'
 import type { RoleItem } from '@/api/opertion/Authorization/common/role'
 import { Table, type TableColumn } from '@/components/Table'
 import { useTable } from '@/hooks/web/useTable'
-import { ElTag, ElMessageBox, ElMessage } from 'element-plus'
+import { ElMessageBox, ElMessage } from 'element-plus'
 import Write from './components/Write.vue'
 import type { ManageUserFormData } from './components/Write.vue'
 import { BaseButton } from '@/components/Button'
 import { UnixTime } from '@/components/UnixTime'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import { getStatusLabel, getStatusTagType, type TableSlot } from '@/utils/tableHelpers'
+import { renderStatusTag, type TableSlot } from '@/utils/tableHelpers'
 import { AUTH_ENABLE_STATUS_MAP } from '../constants'
 
 const { t } = useI18n()
@@ -67,9 +67,7 @@ const columns: TableColumn[] = [
     label: t('userDemo.status'),
     slots: {
       default: ({ row }: ManageUserTableSlot) =>
-        h(ElTag, { type: getStatusTagType(AUTH_ENABLE_STATUS_MAP, row.status) }, () =>
-          getStatusLabel(AUTH_ENABLE_STATUS_MAP, row.status)
-        )
+        renderStatusTag(AUTH_ENABLE_STATUS_MAP, row.status, '-', 'default')
     }
   },
   {
