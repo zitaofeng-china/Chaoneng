@@ -35,7 +35,7 @@ import {
 } from '@/api/opertion/Marketing/TrxAddressBook'
 import { ContentWrap } from '@/components/ContentWrap'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import { getSearchFormData } from '@/utils/tableHelpers'
+import { createPageParams, getSearchFormData } from '@/utils/tableHelpers'
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 type TrxAddressBookSearchParams = TrxAddressBookQueryParams & Recordable
@@ -44,8 +44,7 @@ const buildTrxAddressBookParams = (
   params: TrxAddressBookSearchParams = {}
 ): TrxAddressBookQueryParams => {
   const apiParams: TrxAddressBookQueryParams = {
-    current_page: Number(params.current_page) || 1,
-    page_size: Number(params.page_size) || 10
+    ...createPageParams(params)
   }
 
   if (params.query) {

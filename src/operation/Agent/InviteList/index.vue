@@ -36,7 +36,12 @@ import {
 } from '@/api/opertion/Agent/InviteList'
 import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
-import { formatTableDateTime, hasSearchValue, withAllOption } from '@/utils/tableHelpers'
+import {
+  createPageParams,
+  formatTableDateTime,
+  hasSearchValue,
+  withAllOption
+} from '@/utils/tableHelpers'
 
 type InviteSearchParams = Omit<InviteListQueryParams, 'status'> & {
   status?: number | string
@@ -47,8 +52,7 @@ const botOptions = ref<BotOption[]>(withAllOption<string>([]))
 
 const buildInviteListParams = (params: InviteSearchParams = {}): InviteListQueryParams => {
   const apiParams: InviteListQueryParams = {
-    current_page: Number(params.current_page) || 1,
-    page_size: Number(params.page_size) || 10
+    ...createPageParams(params)
   }
 
   if (params.keyword) apiParams.keyword = params.keyword

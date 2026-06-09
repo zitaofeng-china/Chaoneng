@@ -46,6 +46,7 @@ import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 import { getEnergyOrderKindText } from '@/utils/energyOrder'
 import {
   createStatusOptions,
+  createPageParams,
   exportTableData,
   formatTableDateTime,
   getStatusLabel,
@@ -240,8 +241,7 @@ const buildResourceOrderListParams = (
   params: ResourceOrderSearchParams = {}
 ): V2ResourceOrderListParams => {
   const apiParams: V2ResourceOrderListParams = {
-    current_page: Number(params.current_page) || 1,
-    page_size: Number(params.page_size) || 10
+    ...createPageParams(params)
   }
 
   if (hasSearchValue(params.keyword)) apiParams.keyword = String(params.keyword).trim()

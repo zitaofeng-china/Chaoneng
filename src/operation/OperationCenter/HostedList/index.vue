@@ -34,7 +34,12 @@ import {
 import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import { getSourceText, SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'
-import { formatTableDateTime, hasSearchValue, withAllOption } from '@/utils/tableHelpers'
+import {
+  createPageParams,
+  formatTableDateTime,
+  hasSearchValue,
+  withAllOption
+} from '@/utils/tableHelpers'
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const currentRowForDelete = ref<HostingItemV2 | null>(null)
@@ -53,8 +58,7 @@ type HostingSearchParams = Omit<HostingListParamsV2, 'bot_id' | 'origin'> & {
 
 const buildHostingListParams = (params: HostingSearchParams = {}): HostingListParamsV2 => {
   const queryParams: HostingListParamsV2 = {
-    current_page: Number(params.current_page) || 1,
-    page_size: Number(params.page_size) || 10
+    ...createPageParams(params)
   }
 
   if (params.bot_id !== undefined && params.bot_id !== '')

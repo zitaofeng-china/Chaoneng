@@ -102,7 +102,7 @@ import { Dialog } from '@/components/Dialog'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
-import { formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
+import { createPageParams, formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
 import {
   getChargeList,
   createChargeTask,
@@ -248,8 +248,7 @@ const searchSchema = reactive<FormSchema[]>([
 
 const buildChargeListParams = (params: ChargeSearchParams = {}): ChargeListParams => {
   const apiParams: ChargeListParams = {
-    current_page: Number(params.current_page) || 1,
-    page_size: Number(params.page_size) || 10
+    ...createPageParams(params)
   }
 
   if (hasSearchValue(params.keyword)) apiParams.keyword = String(params.keyword).trim()

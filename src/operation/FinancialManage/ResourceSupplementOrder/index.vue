@@ -43,6 +43,7 @@ import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 import {
   createStatusOptions,
   createDefaultDateTimeRange,
+  createPageParams,
   dateRangeToSeconds,
   exportTableData,
   formatTableDateTime,
@@ -83,8 +84,7 @@ const renderTxidLink = (txid?: string) => {
 
 const buildChargeLogParams = (params: ChargeLogSearchParams = {}): ChargeLogParams => {
   const apiParams: ChargeLogParams = {
-    current_page: params.current_page || 1,
-    page_size: params.page_size || 10
+    ...createPageParams(params)
   }
 
   if (params?.keyword) apiParams.keyword = params.keyword

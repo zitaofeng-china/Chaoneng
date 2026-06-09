@@ -32,6 +32,7 @@ import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import {
   createDefaultDateTimeRange,
+  createPageParams,
   dateRangeToSeconds,
   formatTableDateTime,
   hasSearchValue,
@@ -269,8 +270,7 @@ const actionColumn = {
 
 const buildChatListParams = (params: ChatSearchParams = {}): ChatListParams => {
   const apiParams: ChatListParams = {
-    current_page: Number(params.current_page) || 1,
-    page_size: Number(params.page_size) || 10
+    ...createPageParams(params)
   }
 
   if (hasSearchValue(params.keyword)) apiParams.keyword = String(params.keyword).trim()

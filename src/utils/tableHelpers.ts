@@ -12,6 +12,11 @@ export interface StatusMeta {
 type DateRangeValue = [number | string | Date, number | string | Date]
 type DateTimeRangeValue = [Date, Date]
 
+interface PageParamsLike {
+  current_page?: number | string
+  page_size?: number | string
+}
+
 interface SearchMethodsLike {
   getFormData?: () => Promise<Recordable | undefined>
 }
@@ -46,6 +51,15 @@ export const createDefaultDateTimeRange = (): DateTimeRangeValue => [
   new Date(2000, 1, 1, 0, 0, 0),
   new Date(2000, 1, 1, 23, 59, 59)
 ]
+
+export const createPageParams = (
+  params: PageParamsLike = {},
+  defaultPageSize = 10,
+  pageSize?: number
+) => ({
+  current_page: Number(params.current_page) || 1,
+  page_size: (pageSize ?? Number(params.page_size)) || defaultPageSize
+})
 
 type DateTimeValue = number | string | Date | null | undefined
 
