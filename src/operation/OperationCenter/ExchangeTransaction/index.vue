@@ -57,7 +57,8 @@ import {
   formatTableDateTime,
   getStatusLabel,
   getStatusTagType,
-  hasSearchValue
+  hasSearchValue,
+  type TableSlot
 } from '@/utils/tableHelpers'
 import { ExchangeOrderType, getExchangeOrderType } from '@/utils/exchangeOrder'
 import { EXCHANGE_COIN_OPTIONS, EXCHANGE_STATUS_MAP, EXCHANGE_STATUS_OPTIONS } from './constants'
@@ -65,6 +66,7 @@ import { EXCHANGE_COIN_OPTIONS, EXCHANGE_STATUS_MAP, EXCHANGE_STATUS_OPTIONS } f
 type ExchangeSearchParams = V2ExchangeListParams & {
   dateRange?: [number, number]
 }
+type ExchangeTableSlot = TableSlot<V2ExchangeItem>
 
 const getDefaultOutCoin = (inCoin?: string) => {
   const upperInCoin = inCoin?.toUpperCase()
@@ -196,7 +198,7 @@ const columns = reactive<TableColumn[]>([
     label: '交易类型',
     minWidth: 140,
     slots: {
-      default: ({ row }: { row: V2ExchangeItem }) => {
+      default: ({ row }: ExchangeTableSlot) => {
         const typeInfo = getExchangeTypeInfo(row.in_coin || row.coin, row.out_coin)
         return <span style={{ color: typeInfo.color, fontWeight: '500' }}>{typeInfo.label}</span>
       }
@@ -224,7 +226,7 @@ const columns = reactive<TableColumn[]>([
     label: '交易状态',
     minWidth: 100,
     slots: {
-      default: ({ row }: { row: V2ExchangeItem }) => {
+      default: ({ row }: ExchangeTableSlot) => {
         return (
           <ElTag type={getStatusTagType(EXCHANGE_STATUS_MAP, row.status)}>
             {getStatusLabel(EXCHANGE_STATUS_MAP, row.status, '未知')}
@@ -303,7 +305,7 @@ const actionColumn = {
   minWidth: 200,
   fixed: 'right' as const,
   slots: {
-    default: ({ row }: { row: V2ExchangeItem }) => {
+    default: ({ row }: ExchangeTableSlot) => {
       const isFailed = row.status === 6 // 状态6为失败订单
       return (
         <>

@@ -42,13 +42,15 @@ import {
   getStatusLabel,
   getStatusTagType,
   hasSearchValue,
-  withAllOption
+  withAllOption,
+  type TableSlot
 } from '@/utils/tableHelpers'
 import { INVITE_REWARD_STATUS_MAP, INVITE_REWARD_STATUS_OPTIONS } from '../constants'
 
 type InviteSearchParams = Omit<InviteListQueryParams, 'status'> & {
   status?: number | string
 }
+type InviteTableSlot = TableSlot<InviteRecordItem>
 
 const isBotListLoaded = ref(false)
 const botOptions = ref<BotOption[]>(withAllOption<string>([]))
@@ -136,7 +138,7 @@ const columns = ref<TableColumn[]>([
     label: '状态',
     minWidth: '100px',
     slots: {
-      default: ({ row }: { row: InviteRecordItem }) => {
+      default: ({ row }: InviteTableSlot) => {
         const statusLabel = getStatusLabel(INVITE_REWARD_STATUS_MAP, row.status)
         if (statusLabel === '-') return <span>-</span>
 

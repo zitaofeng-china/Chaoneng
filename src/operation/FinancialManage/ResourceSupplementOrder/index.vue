@@ -48,7 +48,8 @@ import {
   formatTableDateTime,
   getStatusLabel,
   getStatusTagType,
-  hasSearchValue
+  hasSearchValue,
+  type TableSlot
 } from '@/utils/tableHelpers'
 import {
   RESOURCE_SUPPLEMENT_KIND_SEARCH_OPTIONS,
@@ -61,6 +62,7 @@ type ChargeLogSearchParams = Omit<ChargeLogParams, 'status'> & {
   status?: number | string
   dateRange?: [number, number]
 }
+type ChargeLogTableSlot = TableSlot<ChargeLogItem>
 
 const searchTableRef = ref<SearchTableExpose>()
 const tronscanUrl = import.meta.env.VITE_TRONSCAN_URL || 'https://tronscan.org'
@@ -132,7 +134,7 @@ const columns: TableColumn[] = [
     label: '状态',
     width: 100,
     slots: {
-      default: ({ row }: { row: ChargeLogItem }) => {
+      default: ({ row }: ChargeLogTableSlot) => {
         return h(
           ElTag,
           { type: getStatusTagType(RESOURCE_SUPPLEMENT_STATUS_MAP, row.status), size: 'small' },
@@ -146,7 +148,7 @@ const columns: TableColumn[] = [
     label: '代理哈希',
     width: 100,
     slots: {
-      default: ({ row }: { row: ChargeLogItem }) => {
+      default: ({ row }: ChargeLogTableSlot) => {
         return renderTxidLink(row.delegated_txid)
       }
     }
@@ -156,7 +158,7 @@ const columns: TableColumn[] = [
     label: '回收哈希',
     width: 100,
     slots: {
-      default: ({ row }: { row: ChargeLogItem }) => {
+      default: ({ row }: ChargeLogTableSlot) => {
         return renderTxidLink(row.recycled_txid)
       }
     }
@@ -173,7 +175,7 @@ const columns: TableColumn[] = [
     sortable: 'custom',
     width: 180,
     slots: {
-      default: ({ row }: { row: ChargeLogItem }) => {
+      default: ({ row }: ChargeLogTableSlot) => {
         return h('span', formatTableDateTime(row.created_at))
       }
     }

@@ -186,7 +186,7 @@ const columns: TableColumn[] = [
     label: '状态',
     width: 100,
     slots: {
-      default: ({ row }: { row: BotMenuItem }) => {
+      default: ({ row }: MenuTableSlot) => {
         return (
           <ElSwitch
             v-model={row.status}
@@ -225,7 +225,7 @@ const actionColumn = {
   width: 240,
   fixed: 'right',
   slots: {
-    default: ({ row }: { row: BotMenuItem }) => {
+    default: ({ row }: MenuTableSlot) => {
       return (
         <>
           <BaseButton type="primary" onClick={() => handleEdit(row)}>

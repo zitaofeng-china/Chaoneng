@@ -39,7 +39,8 @@ import {
   dateRangeToSeconds,
   exportTableData,
   formatTableDateTime,
-  hasSearchValue
+  hasSearchValue,
+  type TableSlot
 } from '@/utils/tableHelpers'
 import { AGENT_BILL_ORDER_TYPE_MAP, AGENT_BILL_ORDER_TYPE_OPTIONS } from '../constants'
 
@@ -51,6 +52,7 @@ type AgentLedgerSearchParams = Omit<AgentBillListParams, 'kinds'> & {
   kind?: number | string
   dateRange?: [number, number]
 }
+type AgentLedgerTableSlot = TableSlot<AgentBillItem>
 
 const buildAgentBillParams = (
   params: AgentLedgerSearchParams = {},
@@ -145,7 +147,7 @@ const columns = ref<TableColumn[]>([
     minWidth: 170,
     formatter: (row: AgentBillItem) => row.order_id || '-',
     slots: {
-      default: ({ row }: { row: AgentBillItem }) => {
+      default: ({ row }: AgentLedgerTableSlot) => {
         if (!row.order_id) return <span>-</span>
 
         let routePath = ''

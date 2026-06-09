@@ -224,11 +224,13 @@ import {
   formatTableDateTime,
   hasSearchValue,
   withAllOption,
-  type SelectOption
+  type SelectOption,
+  type TableSlot
 } from '@/utils/tableHelpers'
 import { MESSAGE_SEND_KIND_OPTIONS } from '../constants'
 
 type BotOption = SelectOption<number>
+type MessageTableSlot = TableSlot<MassSendItemV1>
 
 type MessageSearchParams = Omit<MassSendListParamsV1, 'bot_id' | 'kind'> & {
   bot_id?: number | string
@@ -536,7 +538,7 @@ const tableColumns: TableColumn[] = [
     align: 'center',
     width: 100,
     slots: {
-      default: ({ row }: { row: MassSendItemV1 }) => {
+      default: ({ row }: MessageTableSlot) => {
         if (row.files && row.files.length > 0) {
           return (
             <div
@@ -619,7 +621,7 @@ const tableColumns: TableColumn[] = [
     width: 300,
     fixed: 'right',
     slots: {
-      default: ({ row }: { row: MassSendItemV1 }) => {
+      default: ({ row }: MessageTableSlot) => {
         return (
           <div style="display: flex; gap: 4px; justify-content: center;">
             <BaseButton type="primary" onClick={() => handleEdit(row)} style="margin: 0;">

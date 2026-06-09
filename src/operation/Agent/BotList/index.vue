@@ -46,7 +46,8 @@ import {
   formatTableDateTime,
   getStatusLabel,
   getStatusTagType,
-  hasSearchValue
+  hasSearchValue,
+  type TableSlot
 } from '@/utils/tableHelpers'
 import { BOT_STATUS_MAP, BOT_STATUS_OPTIONS } from '../constants'
 
@@ -57,6 +58,7 @@ const searchTableRef = ref<SearchTableExpose | null>(null)
 type AgentBotSearchParams = Omit<AgentBotQueryParams, 'status'> & {
   status?: number | ''
 }
+type AgentBotTableSlot = TableSlot<AgentBotItem>
 
 const initialSearchParams: AgentBotSearchParams = (() => {
   if (route.query.keyword) {
@@ -185,7 +187,7 @@ const columns = ref<TableColumn[]>([
     minWidth: 130,
     sortable: 'custom',
     slots: {
-      default: ({ row }: { row: AgentBotItem }) => {
+      default: ({ row }: AgentBotTableSlot) => {
         return (
           <ElLink
             type="primary"
@@ -204,7 +206,7 @@ const columns = ref<TableColumn[]>([
     minWidth: 130,
     sortable: 'custom',
     slots: {
-      default: ({ row }: { row: AgentBotItem }) => {
+      default: ({ row }: AgentBotTableSlot) => {
         return (
           <ElLink
             type="primary"

@@ -70,7 +70,8 @@ import {
   createPageParams,
   exportTableData,
   formatTableDateTime,
-  hasSearchValue
+  hasSearchValue,
+  type TableSlot
 } from '@/utils/tableHelpers'
 import { RECHARGE_COIN_OPTIONS } from './constants'
 
@@ -84,6 +85,7 @@ type DepositSearchParams = Omit<V2DepositListParams, 'origin' | 'status'> & {
 }
 
 type DepositExportRow = Record<string, string>
+type DepositTableSlot = TableSlot<V2DepositItem>
 
 const currentSearchParams = ref<DepositSearchParams>({})
 
@@ -243,7 +245,7 @@ const columns = computed(() => {
       minWidth: 120,
       hideWhen: 2, // H5时隐藏
       slots: {
-        default: ({ row }: { row: V2DepositItem }) => {
+        default: ({ row }: DepositTableSlot) => {
           if (!row.tg_user_name) return <span>-</span>
           return (
             <ElLink href={`https://t.me/${row.tg_user_name}`} type="primary" target="_blank">
@@ -279,7 +281,7 @@ const columns = computed(() => {
       label: '机器人名称',
       minWidth: 150,
       slots: {
-        default: ({ row }: { row: V2DepositItem }) => {
+        default: ({ row }: DepositTableSlot) => {
           return (
             <span
               style={{ color: '#409EFF', cursor: 'pointer' }}
@@ -320,7 +322,7 @@ const columns = computed(() => {
       label: '订单状态',
       width: 100,
       slots: {
-        default: ({ row }: { row: V2DepositItem }) => {
+        default: ({ row }: DepositTableSlot) => {
           const type = getStatusType(row.status)
           const text = getStatusText(row.status)
           return h(ElTag, { type }, () => text)
@@ -368,7 +370,7 @@ const columns = computed(() => {
       width: 120,
       fixed: 'right',
       slots: {
-        default: ({ row }: { row: V2DepositItem }) => {
+        default: ({ row }: DepositTableSlot) => {
           return (
             <BaseButton type="primary" onClick={() => handleViewDetail(row)}>
               充值详情

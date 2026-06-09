@@ -115,7 +115,8 @@ import {
   exportTableData,
   formatTableDateTime,
   getStatusLabel,
-  hasSearchValue
+  hasSearchValue,
+  type TableSlot
 } from '@/utils/tableHelpers'
 import {
   AGENT_LEVEL_LABELS,
@@ -132,6 +133,7 @@ const searchTableRef = ref<SearchTableExpose | null>(null)
 const agentFormRef = ref<InstanceType<typeof AgentForm>>()
 const rechargeDialogVisible = ref(false)
 const currentAccount = ref<AgentItem>()
+type AgentTableSlot = TableSlot<AgentItem>
 
 // 通知机器人弹窗
 const notifyBotDialogVisible = ref(false)
@@ -627,7 +629,7 @@ const columns = computed<TableColumn[]>(() => [
     label: '机器人数量',
     minWidth: 110,
     slots: {
-      default: ({ row }: { row: AgentItem }) => {
+      default: ({ row }: AgentTableSlot) => {
         const count = row.bot_count ?? 0
         return h(
           ElLink,
@@ -646,7 +648,7 @@ const columns = computed<TableColumn[]>(() => [
     label: '总用户数',
     minWidth: 100,
     slots: {
-      default: ({ row }: { row: AgentItem }) => {
+      default: ({ row }: AgentTableSlot) => {
         const count = row.user_count ?? 0
         return h(
           ElLink,

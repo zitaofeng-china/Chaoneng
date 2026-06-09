@@ -51,7 +51,12 @@ import {
 } from './constants'
 import { isPermission } from '@/utils/is'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import { createPageParams, formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
+import {
+  createPageParams,
+  formatTableDateTime,
+  hasSearchValue,
+  type TableSlot
+} from '@/utils/tableHelpers'
 const formRef = ref<InstanceType<typeof ResourcePoolAccountForm>>()
 const searchTableRef = ref<InstanceType<typeof SearchTable>>()
 
@@ -59,6 +64,7 @@ type ResourcePoolSearchParams = Omit<V2PoolListParams, 'kind' | 'status'> & {
   kind?: number | string
   status?: number | string
 }
+type ResourcePoolTableSlot = TableSlot<V2PoolItem>
 
 const columns = ref<TableColumn[]>([
   {
@@ -112,7 +118,7 @@ const columns = ref<TableColumn[]>([
     label: '状态',
     width: '100px',
     slots: {
-      default: ({ row }: { row: V2PoolItem }) => {
+      default: ({ row }: ResourcePoolTableSlot) => {
         const disableOthers = row.status === 1
         return (
           <ElSelect

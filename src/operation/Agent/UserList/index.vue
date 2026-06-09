@@ -85,7 +85,8 @@ import {
   formatTableDateTime,
   hasSearchValue,
   withAllOption,
-  type SelectOption
+  type SelectOption,
+  type TableSlot
 } from '@/utils/tableHelpers'
 import { SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'
 import MessageDialog from '../components/MessageDialog.vue'
@@ -108,6 +109,7 @@ type UserListRow = UserListItem & {
   bot_user_name?: string
   agent_name?: string
 }
+type UserTableSlot = TableSlot<UserListRow>
 
 const currentUser = ref<Partial<UserListRow>>({})
 const currentAccountId = ref<number | string | null>(null)
@@ -235,7 +237,7 @@ const columns = computed(() => {
       label: 'TG用户名',
       minWidth: 120,
       slots: {
-        default: ({ row }: { row: UserListRow }) => {
+        default: ({ row }: UserTableSlot) => {
           if (!row.tg_user_name) return <span>-</span>
           return (
             <ElLink type="primary" href={`https://t.me/${row.tg_user_name}`} target="_blank">
@@ -265,7 +267,7 @@ const columns = computed(() => {
       label: '机器人ID',
       minWidth: 110,
       slots: {
-        default: ({ row }: { row: UserListRow }) => {
+        default: ({ row }: UserTableSlot) => {
           return (
             <ElLink type="primary" onClick={() => openBotList(row.bot_id)}>
               {row.bot_id}
@@ -329,7 +331,7 @@ const columns = computed(() => {
       width: 380,
       fixed: 'right',
       slots: {
-        default: ({ row }: { row: UserListRow }) => {
+        default: ({ row }: UserTableSlot) => {
           const isH5User = (!row.tg_user_id || row.tg_user_id === 0) && !row.tg_user_name
           const isBotUser = isBotOriginUser(row)
 
