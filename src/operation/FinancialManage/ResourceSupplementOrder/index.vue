@@ -41,7 +41,6 @@ import type {
 } from '@/api/opertion/FinancialManage/common/charge'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 import {
-  createStatusOptions,
   createDefaultDateTimeRange,
   createPageParams,
   dateRangeToSeconds,
@@ -52,10 +51,10 @@ import {
   hasSearchValue
 } from '@/utils/tableHelpers'
 import {
-  RESOURCE_SUPPLEMENT_KIND_OPTIONS,
-  RESOURCE_SUPPLEMENT_SOURCE_OPTIONS,
+  RESOURCE_SUPPLEMENT_KIND_SEARCH_OPTIONS,
+  RESOURCE_SUPPLEMENT_SOURCE_SEARCH_OPTIONS,
   RESOURCE_SUPPLEMENT_STATUS_MAP,
-  withAllOption
+  RESOURCE_SUPPLEMENT_STATUS_OPTIONS
 } from '../constants'
 
 type ChargeLogSearchParams = Omit<ChargeLogParams, 'status'> & {
@@ -65,9 +64,6 @@ type ChargeLogSearchParams = Omit<ChargeLogParams, 'status'> & {
 
 const searchTableRef = ref<SearchTableExpose>()
 const tronscanUrl = import.meta.env.VITE_TRONSCAN_URL || 'https://tronscan.org'
-
-const resourceSupplementKindSearchOptions = withAllOption(RESOURCE_SUPPLEMENT_KIND_OPTIONS)
-const resourceSupplementSourceSearchOptions = withAllOption(RESOURCE_SUPPLEMENT_SOURCE_OPTIONS)
 
 const renderTxidLink = (txid?: string) => {
   if (!txid) return h('span', '-')
@@ -202,7 +198,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: resourceSupplementKindSearchOptions
+      options: RESOURCE_SUPPLEMENT_KIND_SEARCH_OPTIONS
     }
   },
   {
@@ -212,7 +208,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: resourceSupplementSourceSearchOptions
+      options: RESOURCE_SUPPLEMENT_SOURCE_SEARCH_OPTIONS
     }
   },
   {
@@ -222,7 +218,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: createStatusOptions(RESOURCE_SUPPLEMENT_STATUS_MAP)
+      options: RESOURCE_SUPPLEMENT_STATUS_OPTIONS
     }
   },
   {

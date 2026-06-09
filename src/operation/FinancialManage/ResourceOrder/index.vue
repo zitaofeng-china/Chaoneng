@@ -45,7 +45,6 @@ import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 import { getEnergyOrderKindText } from '@/utils/energyOrder'
 import {
-  createStatusOptions,
   createPageParams,
   exportTableData,
   formatTableDateTime,
@@ -57,7 +56,8 @@ import {
 import SettlementRecordDialog from './components/SettlementRecordDialog.vue'
 import {
   RESOURCE_ORDER_KIND_MAP,
-  RESOURCE_ORDER_KIND_OPTIONS,
+  RESOURCE_ORDER_KIND_SEARCH_OPTIONS,
+  RESOURCE_ORDER_STATUS_OPTIONS,
   RESOURCE_ORDER_STATUS_MAP
 } from '../constants'
 
@@ -211,7 +211,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: withAllOption(RESOURCE_ORDER_KIND_OPTIONS)
+      options: RESOURCE_ORDER_KIND_SEARCH_OPTIONS
     }
   },
   {
@@ -221,7 +221,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: createStatusOptions(RESOURCE_ORDER_STATUS_MAP, '')
+      options: RESOURCE_ORDER_STATUS_OPTIONS
     }
   },
   {

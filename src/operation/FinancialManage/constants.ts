@@ -1,11 +1,13 @@
 import { createStatusOptions, withAllOption, type StatusMeta } from '@/utils/tableHelpers'
 
-export { withAllOption }
-
 export const RESOURCE_SUPPLEMENT_KIND_OPTIONS = [
   { label: '能量', value: '能量' },
   { label: '带宽', value: '带宽' }
 ]
+
+export const RESOURCE_SUPPLEMENT_KIND_SEARCH_OPTIONS = withAllOption(
+  RESOURCE_SUPPLEMENT_KIND_OPTIONS
+)
 
 export const RESOURCE_SUPPLEMENT_SOURCE_OPTIONS = [
   { label: '能量收购池 能量', value: '能量收购池 能量' },
@@ -33,6 +35,10 @@ export const RESOURCE_SUPPLEMENT_STATUS_MAP: Record<number, StatusMeta> = {
   2: { label: '失败', type: 'danger' }
 }
 
+export const RESOURCE_SUPPLEMENT_STATUS_OPTIONS = createStatusOptions(
+  RESOURCE_SUPPLEMENT_STATUS_MAP
+)
+
 export const RESOURCE_ORDER_STATUS_MAP: Record<number, StatusMeta> = {
   1: { label: '新订单', type: 'info' },
   2: { label: '已支付', type: 'warning' },
@@ -51,3 +57,7 @@ export const RESOURCE_ORDER_KIND_OPTIONS = Object.entries(RESOURCE_ORDER_KIND_MA
     value: Number(value)
   })
 )
+
+export const RESOURCE_ORDER_KIND_SEARCH_OPTIONS = withAllOption(RESOURCE_ORDER_KIND_OPTIONS)
+
+export const RESOURCE_ORDER_STATUS_OPTIONS = createStatusOptions(RESOURCE_ORDER_STATUS_MAP, '')
