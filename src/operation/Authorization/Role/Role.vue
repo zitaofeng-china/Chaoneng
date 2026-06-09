@@ -16,7 +16,8 @@ import Write from './components/Write.vue'
 import { useTable } from '@/hooks/web/useTable'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import { useUserStore } from '@/store/modules/user'
-import { formatTableDateTime } from '@/utils/tableHelpers'
+import { formatTableDateTime, getStatusLabel, getStatusTagType } from '@/utils/tableHelpers'
+import { AUTH_ENABLE_STATUS_MAP } from '../constants'
 
 const { t } = useI18n()
 const userStore = useUserStore()
@@ -45,11 +46,9 @@ const columns: TableColumn[] = [
     slots: {
       default: ({ row }: RoleTableSlot) => {
         return (
-          <>
-            <ElTag type={row.status === 1 ? 'success' : 'danger'}>
-              {row.status === 1 ? '启用' : '禁用'}
-            </ElTag>
-          </>
+          <ElTag type={getStatusTagType(AUTH_ENABLE_STATUS_MAP, row.status)}>
+            {getStatusLabel(AUTH_ENABLE_STATUS_MAP, row.status)}
+          </ElTag>
         )
       }
     }

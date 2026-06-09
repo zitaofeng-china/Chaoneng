@@ -22,6 +22,8 @@ import type { ManageUserFormData } from './components/Write.vue'
 import { BaseButton } from '@/components/Button'
 import { UnixTime } from '@/components/UnixTime'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { getStatusLabel, getStatusTagType } from '@/utils/tableHelpers'
+import { AUTH_ENABLE_STATUS_MAP } from '../constants'
 
 const { t } = useI18n()
 
@@ -65,8 +67,8 @@ const columns: TableColumn[] = [
     label: t('userDemo.status'),
     slots: {
       default: ({ row }: ManageUserTableSlot) =>
-        h(ElTag, { type: row.status === 1 ? 'success' : 'danger' }, () =>
-          row.status === 1 ? t('userDemo.enable') : t('userDemo.disable')
+        h(ElTag, { type: getStatusTagType(AUTH_ENABLE_STATUS_MAP, row.status) }, () =>
+          getStatusLabel(AUTH_ENABLE_STATUS_MAP, row.status)
         )
     }
   },

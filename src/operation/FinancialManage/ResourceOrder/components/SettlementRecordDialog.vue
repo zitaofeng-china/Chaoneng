@@ -44,8 +44,11 @@
           </ElTableColumn>
           <ElTableColumn prop="status" label="状态" width="100" align="center">
             <template #default="{ row }">
-              <ElTag :type="row.status === 1 ? 'success' : 'danger'" size="small">
-                {{ row.status === 1 ? '成功' : '失败' }}
+              <ElTag
+                :type="getStatusTagType(SETTLEMENT_RECORD_STATUS_MAP, row.status)"
+                size="small"
+              >
+                {{ getStatusLabel(SETTLEMENT_RECORD_STATUS_MAP, row.status, '未知') }}
               </ElTag>
             </template>
           </ElTableColumn>
@@ -122,12 +125,13 @@ import {
 } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { handleErrorMessage } from '@/utils/messageHelper'
-import { formatTableDateTime } from '@/utils/tableHelpers'
+import { formatTableDateTime, getStatusLabel, getStatusTagType } from '@/utils/tableHelpers'
 import {
   v2GetSettlementRecordList,
   type V2ResourceOrderItem,
   type V2SettlementRecordItem
 } from '@/api/opertion/FinancialManage/ResourceOrder'
+import { SETTLEMENT_RECORD_STATUS_MAP } from '../../constants'
 
 const tronscanUrl = import.meta.env.VITE_TRONSCAN_URL || 'https://tronscan.org'
 

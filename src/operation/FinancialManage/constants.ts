@@ -46,6 +46,11 @@ export const RESOURCE_ORDER_STATUS_MAP: Record<number, StatusMeta> = {
   8: { label: '已取消', type: 'danger' }
 }
 
+export const SETTLEMENT_RECORD_STATUS_MAP: Record<number, StatusMeta> = {
+  1: { label: '成功', type: 'success' },
+  2: { label: '失败', type: 'danger' }
+}
+
 export const RESOURCE_ORDER_KIND_MAP: Record<number, string> = {
   6: '能量接收池子',
   7: '带宽接收池子'
