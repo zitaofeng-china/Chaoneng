@@ -102,7 +102,12 @@ import { Dialog } from '@/components/Dialog'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
-import { createPageParams, formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
+import {
+  createPageParams,
+  formatTableDateTime,
+  hasSearchValue,
+  type TableSlot
+} from '@/utils/tableHelpers'
 import {
   getChargeList,
   createChargeTask,
@@ -117,7 +122,7 @@ import {
   RESOURCE_SUPPLEMENT_TASK_STATUS_OPTIONS
 } from '../constants'
 
-type ChargeTableSlot = { row: ChargeItem }
+type ChargeTableSlot = TableSlot<ChargeItem>
 type ChargeSearchParams = ChargeListParams & Recordable
 
 const searchTableRef = ref<SearchTableExpose | null>(null)

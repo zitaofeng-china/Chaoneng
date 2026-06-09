@@ -5,7 +5,7 @@ import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
-import { formatTableDateTime } from '@/utils/tableHelpers'
+import { formatTableDateTime, type TableSlot } from '@/utils/tableHelpers'
 import type {
   V2OrderDetailResponse,
   V2OrderResource
@@ -15,7 +15,7 @@ const props = withDefaults(defineProps<{ orderData: V2OrderDetailResponse | null
   orderData: null
 })
 
-type ResourceTableSlot = { row: V2OrderResource }
+type ResourceTableSlot = TableSlot<V2OrderResource>
 type ResourceTagType = 'success' | 'warning' | 'info' | 'danger' | 'primary'
 
 const RESOURCE_TYPE_TEXT_MAP: Record<number, string> = {

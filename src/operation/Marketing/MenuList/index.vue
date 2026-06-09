@@ -75,11 +75,10 @@ import {
   handleWarningMessage,
   handleDataFormatError
 } from '@/utils/messageHelper'
-import { hasSearchValue } from '@/utils/tableHelpers'
+import { formatTableDateTime, hasSearchValue, type TableSlot } from '@/utils/tableHelpers'
 import { useValidator } from '@/hooks/web/useValidator'
 import MenuPreview from './components/MenuPreview.vue'
 import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
-import { formatTableDateTime } from '@/utils/tableHelpers'
 
 const { required } = useValidator()
 const searchTableRef = ref<SearchTableExpose | null>(null)
@@ -103,7 +102,7 @@ const formValues = reactive<MenuFormValues>({
   status: 1
 })
 
-type MenuTableSlot = { row: BotMenuItem }
+type MenuTableSlot = TableSlot<BotMenuItem>
 
 const formSchema = reactive<FormSchema[]>([
   {

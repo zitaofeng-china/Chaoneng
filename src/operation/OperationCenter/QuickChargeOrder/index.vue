@@ -41,7 +41,8 @@ import {
   exportTableData,
   getStatusLabel,
   getStatusTagType,
-  hasSearchValue
+  hasSearchValue,
+  type TableSlot
 } from '@/utils/tableHelpers'
 import type { QuickChargeOrder, QuickChargeSearchParams } from './types'
 import {
@@ -51,7 +52,7 @@ import {
   QUICK_CHARGE_STATUS_OPTIONS
 } from './constants'
 
-type QuickChargeTableSlot = { row: QuickChargeOrder }
+type QuickChargeTableSlot = TableSlot<QuickChargeOrder>
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const orderDetailRef = ref<InstanceType<typeof OrderDetail> | null>(null)

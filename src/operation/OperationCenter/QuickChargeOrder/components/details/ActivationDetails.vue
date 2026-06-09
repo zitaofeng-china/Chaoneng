@@ -5,14 +5,14 @@ import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
-import { formatTableDateTime } from '@/utils/tableHelpers'
+import { formatTableDateTime, type TableSlot } from '@/utils/tableHelpers'
 import type { QuickChargeActivation, QuickChargeOrderDetail } from '../../types'
 
 const props = withDefaults(defineProps<{ orderData: QuickChargeOrderDetail | null }>(), {
   orderData: null
 })
 
-type ActivationTableSlot = { row: QuickChargeActivation }
+type ActivationTableSlot = TableSlot<QuickChargeActivation>
 
 const currentPage = ref(1)
 const pageSize = ref(10)

@@ -5,7 +5,7 @@ import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
-import { formatTableDateTime } from '@/utils/tableHelpers'
+import { formatTableDateTime, type TableSlot } from '@/utils/tableHelpers'
 import type {
   V2OrderActivation,
   V2OrderDetailResponse
@@ -15,7 +15,7 @@ const props = withDefaults(defineProps<{ orderData: V2OrderDetailResponse | null
   orderData: null
 })
 
-type ActivationTableSlot = { row: V2OrderActivation }
+type ActivationTableSlot = TableSlot<V2OrderActivation>
 
 const currentPage = ref(1)
 const pageSize = ref(10)

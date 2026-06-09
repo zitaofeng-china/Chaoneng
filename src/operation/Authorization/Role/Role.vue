@@ -16,7 +16,12 @@ import Write from './components/Write.vue'
 import { useTable } from '@/hooks/web/useTable'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import { useUserStore } from '@/store/modules/user'
-import { formatTableDateTime, getStatusLabel, getStatusTagType } from '@/utils/tableHelpers'
+import {
+  formatTableDateTime,
+  getStatusLabel,
+  getStatusTagType,
+  type TableSlot
+} from '@/utils/tableHelpers'
 import { AUTH_ENABLE_STATUS_MAP } from '../constants'
 
 const { t } = useI18n()
@@ -30,7 +35,7 @@ const hasPermission = (permission: string) => {
   return userPermissions.value.includes(permission)
 }
 
-type RoleTableSlot = { row: RoleItem }
+type RoleTableSlot = TableSlot<RoleItem>
 type RoleFormRow = RoleItem & {
   Name?: string
 }

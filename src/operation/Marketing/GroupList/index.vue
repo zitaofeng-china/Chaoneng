@@ -36,7 +36,8 @@ import {
   dateRangeToSeconds,
   formatTableDateTime,
   hasSearchValue,
-  type SelectOption
+  type SelectOption,
+  type TableSlot
 } from '@/utils/tableHelpers'
 import { getErrorMessage } from '@/utils/messageHelper'
 import {
@@ -54,7 +55,7 @@ type ChatRow = Omit<MessageChatItem, 'broadcast'> & {
   broadcast: number
 }
 
-type ChatTableSlot = { row: ChatRow }
+type ChatTableSlot = TableSlot<ChatRow>
 type ChatSearchParams = ChatListParams & {
   date_range?: [string | number, string | number]
 }

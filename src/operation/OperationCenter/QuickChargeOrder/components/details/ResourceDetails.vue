@@ -5,14 +5,14 @@ import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
-import { formatTableDateTime } from '@/utils/tableHelpers'
+import { formatTableDateTime, type TableSlot } from '@/utils/tableHelpers'
 import type { QuickChargeOrderDetail, QuickChargeResource } from '../../types'
 
 const props = withDefaults(defineProps<{ orderData: QuickChargeOrderDetail | null }>(), {
   orderData: null
 })
 
-type ResourceTableSlot = { row: QuickChargeResource }
+type ResourceTableSlot = TableSlot<QuickChargeResource>
 type ResourceTagType = 'success' | 'warning' | 'info' | 'danger' | 'primary'
 
 const RESOURCE_TYPE_TEXT_MAP: Record<number, string> = {

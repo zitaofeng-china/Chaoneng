@@ -52,7 +52,8 @@ import {
   getStatusTagType,
   hasSearchValue,
   withAllOption,
-  type SelectOption
+  type SelectOption,
+  type TableSlot
 } from '@/utils/tableHelpers'
 import SettlementRecordDialog from './components/SettlementRecordDialog.vue'
 import {
@@ -65,7 +66,7 @@ import {
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const settlementRecordDialogRef = ref<InstanceType<typeof SettlementRecordDialog> | null>(null)
 
-type ResourceOrderTableSlot = { row: V2ResourceOrderItem }
+type ResourceOrderTableSlot = TableSlot<V2ResourceOrderItem>
 type ResourceOrderSearchParams = V2ResourceOrderListParams & Recordable
 type BotOption = SelectOption<number | string>
 

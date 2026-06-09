@@ -9,6 +9,8 @@ export interface StatusMeta {
   type?: TableTagType
 }
 
+export type TableSlot<T> = { row: T }
+
 type DateRangeValue = [number | string | Date, number | string | Date]
 type DateTimeRangeValue = [Date, Date]
 

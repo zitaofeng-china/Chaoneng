@@ -22,13 +22,13 @@ import type { ManageUserFormData } from './components/Write.vue'
 import { BaseButton } from '@/components/Button'
 import { UnixTime } from '@/components/UnixTime'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import { getStatusLabel, getStatusTagType } from '@/utils/tableHelpers'
+import { getStatusLabel, getStatusTagType, type TableSlot } from '@/utils/tableHelpers'
 import { AUTH_ENABLE_STATUS_MAP } from '../constants'
 
 const { t } = useI18n()
 
 type UserActionType = 'add' | 'edit'
-type ManageUserTableSlot = { row: ManageUserItem }
+type ManageUserTableSlot = TableSlot<ManageUserItem>
 interface ManageUserWriteExpose {
   open: () => void
   close: () => void
