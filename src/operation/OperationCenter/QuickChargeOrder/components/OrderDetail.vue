@@ -45,6 +45,7 @@ import { formatToWan } from '@/utils'
 import Descriptions from '@/components/Descriptions/src/Descriptions.vue'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { formatTableDateTime, getStatusLabel, getStatusTagType } from '@/utils/tableHelpers'
+import { renderNullableText } from '@/operation/OperationCenter/utils/displayText'
 import type { QuickChargeOrder, QuickChargeOrderDetail, QuickChargeResource } from '../types'
 import {
   getQuickChargeOrderTypeTagType,
@@ -59,16 +60,12 @@ const visible = ref(false)
 const currentOrder = ref<QuickChargeOrderDetail | null>(null)
 const activeTab = ref('basic')
 
-const renderText = (value: string | number | null | undefined, fallback = '-') => {
-  return h('span', value === undefined || value === null || value === '' ? fallback : String(value))
-}
-
 const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
   { label: '订单号', field: 'order_num' },
   {
     label: '用户名',
     field: 'tg_name',
-    slots: { default: (data: QuickChargeOrderDetail) => renderText(data?.tg_name) }
+    slots: { default: (data: QuickChargeOrderDetail) => renderNullableText(data?.tg_name) }
   },
   { label: '机器人ID', field: 'bot_id' },
   { label: '机器人用户名', field: 'bot_name' },
@@ -90,7 +87,7 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
     field: 'order_amount',
     slots: {
       default: (data: QuickChargeOrderDetail) => {
-        return renderText(
+        return renderNullableText(
           data?.order_amount !== undefined ? `${data.order_amount} ${data.pay_unit || ''}` : '',
           '暂无'
         )
@@ -106,8 +103,8 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
     slots: {
       default: (data: QuickChargeOrderDetail) => {
         const value = data?.energy_num
-        if (value === null || value === undefined || value === '') return renderText('0')
-        return renderText(Number(value) >= 10000 ? formatToWan(value) : value)
+        if (value === null || value === undefined || value === '') return renderNullableText('0')
+        return renderNullableText(Number(value) >= 10000 ? formatToWan(value) : value)
       }
     }
   },
@@ -115,7 +112,8 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
     label: '收款地址',
     field: 'receive_address',
     slots: {
-      default: (data: QuickChargeOrderDetail) => renderText(data?.receive_address, '余额支付')
+      default: (data: QuickChargeOrderDetail) =>
+        renderNullableText(data?.receive_address, '余额支付')
     }
   },
   {
@@ -133,34 +131,38 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
   {
     label: '有效时长',
     field: 'energy_rent_text',
-    slots: { default: (data: QuickChargeOrderDetail) => renderText(data?.energy_rent_text) }
+    slots: { default: (data: QuickChargeOrderDetail) => renderNullableText(data?.energy_rent_text) }
   },
   {
     label: '回收时间',
     field: 'recycle_time',
     slots: {
-      default: (data: QuickChargeOrderDetail) => renderText(formatTableDateTime(data?.recycle_time))
+      default: (data: QuickChargeOrderDetail) =>
+        renderNullableText(formatTableDateTime(data?.recycle_time))
     }
   },
   {
     label: '创建时间',
     field: 'create_time',
     slots: {
-      default: (data: QuickChargeOrderDetail) => renderText(formatTableDateTime(data?.create_time))
+      default: (data: QuickChargeOrderDetail) =>
+        renderNullableText(formatTableDateTime(data?.create_time))
     }
   },
   {
     label: '完成时间',
     field: 'finish_time',
     slots: {
-      default: (data: QuickChargeOrderDetail) => renderText(formatTableDateTime(data?.finish_time))
+      default: (data: QuickChargeOrderDetail) =>
+        renderNullableText(formatTableDateTime(data?.finish_time))
     }
   },
   {
     label: '支付时间',
     field: 'pay_time',
     slots: {
-      default: (data: QuickChargeOrderDetail) => renderText(formatTableDateTime(data?.pay_time))
+      default: (data: QuickChargeOrderDetail) =>
+        renderNullableText(formatTableDateTime(data?.pay_time))
     }
   }
 ])

@@ -52,6 +52,7 @@ import Descriptions from '@/components/Descriptions/src/Descriptions.vue'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { formatTableDateTime } from '@/utils/tableHelpers'
 import { handleErrorMessage } from '@/utils/messageHelper'
+import { renderNullableText } from '@/operation/OperationCenter/utils/displayText'
 
 const ResourceDetails = defineAsyncComponent(() => import('./details/ResourceDetails.vue'))
 const ActivationDetails = defineAsyncComponent(() => import('./details/ActivationDetails.vue'))
@@ -60,10 +61,6 @@ const visible = ref(false)
 const currentOrder = ref<V2OrderDetailResponse | null>(null)
 const activeTab = ref('basic')
 
-const renderText = (value: string | number | null | undefined, fallback = '-') => {
-  return h('span', value === undefined || value === null || value === '' ? fallback : String(value))
-}
-
 const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
   { label: '订单号', field: 'id' },
   {
@@ -71,7 +68,7 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
     field: 'tg_first_name',
     slots: {
       default: (data: V2OrderDetailResponse) =>
-        renderText(data?.tg_first_name || data?.tg_user_name)
+        renderNullableText(data?.tg_first_name || data?.tg_user_name)
     }
   },
   { label: '机器人ID', field: 'bot_id' },
@@ -80,7 +77,7 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
     field: 'bot_user_name',
     slots: {
       default: (data: V2OrderDetailResponse) =>
-        renderText(data?.bot_user_name || data?.bot_first_name)
+        renderNullableText(data?.bot_user_name || data?.bot_first_name)
     }
   },
   { label: '代理名称', field: 'agent_name' },
@@ -101,7 +98,7 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
     field: 'amount',
     slots: {
       default: (data: V2OrderDetailResponse) => {
-        return renderText(
+        return renderNullableText(
           data?.amount !== undefined ? `${data.amount} ${data.coin || ''}` : '',
           '暂无'
         )
@@ -117,8 +114,8 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
     slots: {
       default: (data: V2OrderDetailResponse) => {
         const value = data?.resources?.[0]?.amount ?? data?.summary?.energy_count
-        if (value === null || value === undefined) return renderText('0')
-        return renderText(Number(value) >= 10000 ? formatToWan(value) : value)
+        if (value === null || value === undefined) return renderNullableText('0')
+        return renderNullableText(Number(value) >= 10000 ? formatToWan(value) : value)
       }
     }
   },
@@ -126,7 +123,8 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
     label: '收款地址',
     field: 'receive_address',
     slots: {
-      default: (data: V2OrderDetailResponse) => renderText(data?.receive_address, '余额支付')
+      default: (data: V2OrderDetailResponse) =>
+        renderNullableText(data?.receive_address, '余额支付')
     }
   },
   {
@@ -142,35 +140,38 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
   {
     label: '有效时长',
     field: 'resources',
-    slots: { default: (data: V2OrderDetailResponse) => renderText(getEnergyRentText(data)) }
+    slots: { default: (data: V2OrderDetailResponse) => renderNullableText(getEnergyRentText(data)) }
   },
   {
     label: '回收时间',
     field: 'resources',
     slots: {
       default: (data: V2OrderDetailResponse) =>
-        renderText(formatTableDateTime(data?.resources?.[0]?.recycled_at))
+        renderNullableText(formatTableDateTime(data?.resources?.[0]?.recycled_at))
     }
   },
   {
     label: '创建时间',
     field: 'created_at',
     slots: {
-      default: (data: V2OrderDetailResponse) => renderText(formatTableDateTime(data?.created_at))
+      default: (data: V2OrderDetailResponse) =>
+        renderNullableText(formatTableDateTime(data?.created_at))
     }
   },
   {
     label: '完成时间',
     field: 'updated_at',
     slots: {
-      default: (data: V2OrderDetailResponse) => renderText(formatTableDateTime(data?.updated_at))
+      default: (data: V2OrderDetailResponse) =>
+        renderNullableText(formatTableDateTime(data?.updated_at))
     }
   },
   {
     label: '支付时间',
     field: 'paid_at',
     slots: {
-      default: (data: V2OrderDetailResponse) => renderText(formatTableDateTime(data?.paid_at))
+      default: (data: V2OrderDetailResponse) =>
+        renderNullableText(formatTableDateTime(data?.paid_at))
     }
   }
 ])
