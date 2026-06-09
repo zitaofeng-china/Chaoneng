@@ -11,6 +11,7 @@ import {
   getResourceTypeText
 } from '@/utils/energyOrder'
 import { formatTableDateTime, type TableSlot } from '@/utils/tableHelpers'
+import { renderSummaryCountText } from '@/operation/OperationCenter/utils/summaryText'
 import { renderTronscanTransactionLink } from '@/operation/OperationCenter/utils/transactionLink'
 import { useLocalPagination } from '@/operation/OperationCenter/utils/useLocalPagination'
 import type { QuickChargeOrderDetail, QuickChargeResource } from '../../types'
@@ -28,7 +29,7 @@ const summarySchema = computed((): DescriptionsSchema[] => {
       label: '能量笔数',
       slots: {
         default: (data: QuickChargeOrderDetail) =>
-          h('span', `${data?.summary?.energy_count ?? 0} 笔`)
+          renderSummaryCountText(data?.summary?.energy_count, '笔')
       }
     }
   ]
@@ -38,7 +39,8 @@ const summarySchema = computed((): DescriptionsSchema[] => {
       field: 'summary.used_count',
       label: '已使用笔数',
       slots: {
-        default: (data: QuickChargeOrderDetail) => h('span', `${data?.summary?.used_count ?? 0} 笔`)
+        default: (data: QuickChargeOrderDetail) =>
+          renderSummaryCountText(data?.summary?.used_count, '笔')
       }
     })
   }

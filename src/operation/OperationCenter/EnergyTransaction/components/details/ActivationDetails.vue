@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, h } from 'vue'
+import { computed } from 'vue'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
 import { formatTableDateTime, type TableSlot } from '@/utils/tableHelpers'
 import { renderActivationStatusTag } from '@/operation/OperationCenter/utils/activationStatus'
+import { renderSummaryCountText } from '@/operation/OperationCenter/utils/summaryText'
 import { renderTronscanTransactionLink } from '@/operation/OperationCenter/utils/transactionLink'
 import { useLocalPagination } from '@/operation/OperationCenter/utils/useLocalPagination'
 import type {
@@ -24,7 +25,8 @@ const summarySchema = computed((): DescriptionsSchema[] => [
     field: 'summary.active_count',
     label: '激活数量',
     slots: {
-      default: (data: V2OrderDetailResponse) => h('span', `${data?.summary?.active_count ?? 0} 个`)
+      default: (data: V2OrderDetailResponse) =>
+        renderSummaryCountText(data?.summary?.active_count, '个')
     }
   }
 ])
