@@ -28,34 +28,6 @@
       </div>
     </div>
     <ElCard shadow="hover">
-      <div class="current-price-panel" v-if="currentPrice">
-        <div class="price-display">
-          <div class="price-main">
-            <span class="price-label">当前价格</span>
-            <span class="price-value" :class="{ 'price-flash': priceFlashing }">
-              ${{ currentPrice.toFixed(4) }}
-            </span>
-            <div class="price-update-time">更新时间: {{ formatUpdateTime(lastUpdateTime) }}</div>
-          </div>
-          <div class="price-compare">
-            <span :class="['price-change', priceChangeClass]">
-              <i
-                :class="
-                  priceChangeClass === 'price-up'
-                    ? 'el-icon-caret-top'
-                    : priceChangeClass === 'price-down'
-                      ? 'el-icon-caret-bottom'
-                      : 'el-icon-minus'
-                "
-              ></i>
-              {{ priceChangePercent > 0 ? '+' : '' }}{{ priceChangePercent.toFixed(2) }}%
-            </span>
-            <div class="price-vs-yesterday" v-if="yesterdayClosePrice !== null"
-              >较昨日收盘: ${{ yesterdayClosePrice.toFixed(4) }}</div
-            >
-          </div>
-        </div>
-      </div>
       <ElSkeleton :loading="isLoading" animated :rows="4">
         <div v-if="!allChartData || (allChartData.length === 0 && !isLoading)" class="no-data">
           <el-empty description="暂无数据" />
@@ -74,7 +46,7 @@ import type { EChartsOption } from 'echarts'
 import * as echarts from 'echarts/core'
 import { DataZoomComponent } from 'echarts/components'
 import { handleErrorMessage } from '@/utils/messageHelper'
-import { getTrxTokenPriceApi, getTrxVolumeApi } from '@/api/opertion/ExchangeRate/ExchangeRateIndex'
+import { getTrxVolumeApi } from '@/api/opertion/ExchangeRate/ExchangeRateIndex'
 import {
   formatPriceValue,
   getFirstTooltipParam,
@@ -118,33 +90,6 @@ const allChartData = ref<TrxVolumeData[]>([])
 
 // 添加响应式的 dataZoom 范围
 const currentZoomRange = ref({ start: 0, end: 100 })
-
-// 添加当前价格相关的状态
-const currentPrice = ref<number | null>(null)
-const yesterdayClosePrice = ref<number | null>(null)
-const priceChangePercent = ref<number>(0)
-const lastUpdateTime = ref<number>(0)
-const isRefreshingPrice = ref<boolean>(false)
-const priceFlashing = ref<boolean>(false)
-let pricePollingInterval: number | null = null
-let previousPrice: number | null = null
-
-// 计算价格变化的样式类
-const priceChangeClass = computed(() => {
-  if (priceChangePercent.value > 0) return 'price-up'
-  if (priceChangePercent.value < 0) return 'price-down'
-  return 'price-unchanged'
-})
-
-// 格式化更新时间
-const formatUpdateTime = (timestamp: number) => {
-  if (!timestamp) return ''
-  const date = new Date(timestamp)
-  const hours = date.getHours().toString().padStart(2, '0')
-  const minutes = date.getMinutes().toString().padStart(2, '0')
-  const seconds = date.getSeconds().toString().padStart(2, '0')
-  return `${hours}:${minutes}:${seconds}`
-}
 
 // 时间处理工具函数
 const timeUtils = {
@@ -366,9 +311,6 @@ const fetchAllData = async () => {
         const defaultZoom = calculateDefaultZoomRange.value
         currentZoomRange.value = defaultZoom
 
-        // 更新昨日收盘价
-        updateYesterdayClosePrice()
-
         // 如果图表已经初始化，立即应用时间范围过滤
         if (chartInstance.value) {
           // 根据当前选择的时间范围调整dataZoom位置
@@ -406,111 +348,6 @@ const loadAllData = async () => {
     handleErrorMessage(error, '加载图表数据失败')
   } finally {
     localLoading.value = false
-  }
-}
-
-// 闪烁动画
-const flashPrice = () => {
-  if (!previousPrice || !currentPrice.value) return
-
-  // 价格有变化才闪烁
-  if (previousPrice !== currentPrice.value) {
-    priceFlashing.value = true
-
-    // 1.5秒后停止闪烁
-    setTimeout(() => {
-      priceFlashing.value = false
-    }, 1500)
-  }
-}
-
-// 获取当前TRX价格
-const fetchCurrentPrice = async () => {
-  isRefreshingPrice.value = true
-
-  try {
-    // 保存之前的价格，用于比较变化
-    previousPrice = currentPrice.value
-
-    const response = await getTrxTokenPriceApi()
-
-    if (response.price_in_usd !== undefined && response.price_in_usd !== '') {
-      currentPrice.value = toNumber(response.price_in_usd)
-      lastUpdateTime.value = Date.now()
-
-      // 如果已有昨日收盘价，计算涨跌幅
-      if (yesterdayClosePrice.value) {
-        calculatePriceChange()
-      } else {
-        // 否则获取昨日收盘价
-        fetchYesterdayClosePrice()
-      }
-
-      // 价格更新后触发闪烁效果
-      flashPrice()
-    }
-  } catch (error) {
-    handleErrorMessage(error, '获取当前TRX价格失败')
-  } finally {
-    isRefreshingPrice.value = false
-  }
-}
-
-// 更新昨日收盘价并重新计算涨跌幅
-const updateYesterdayClosePrice = () => {
-  // 从历史数据中直接获取最后一条数据的收盘价作为昨日收盘价
-  if (allChartData.value && allChartData.value.length > 0) {
-    // 使用最后一条数据
-    const latestData = allChartData.value[allChartData.value.length - 1]
-    yesterdayClosePrice.value = toNumber(latestData.close)
-  }
-
-  // 如果当前价格已有值，则重新计算涨跌幅
-  if (currentPrice.value !== null) {
-    calculatePriceChange()
-  }
-}
-
-// 修改获取昨日收盘价函数，简化逻辑
-const fetchYesterdayClosePrice = async () => {
-  if (allChartData.value && allChartData.value.length > 0) {
-    // 如果已有历史数据，直接使用最后一条数据的收盘价
-    updateYesterdayClosePrice()
-    return
-  }
-
-  // 如果当前价格已有值，重新计算涨跌幅
-  if (currentPrice.value !== null) {
-    calculatePriceChange()
-  }
-}
-
-// 计算价格变化百分比
-const calculatePriceChange = () => {
-  if (
-    currentPrice.value !== null &&
-    yesterdayClosePrice.value !== null &&
-    yesterdayClosePrice.value > 0
-  ) {
-    priceChangePercent.value =
-      ((currentPrice.value - yesterdayClosePrice.value) / yesterdayClosePrice.value) * 100
-  }
-}
-
-// 启动价格轮询
-const startPricePolling = () => {
-  fetchCurrentPrice()
-
-  pricePollingInterval = window.setInterval(() => {
-    fetchCurrentPrice()
-  }, 60 * 1000)
-}
-
-// 停止价格轮询
-const stopPricePolling = () => {
-  if (pricePollingInterval !== null) {
-    clearInterval(pricePollingInterval)
-    pricePollingInterval = null
   }
 }
 
@@ -778,18 +615,12 @@ onMounted(async () => {
   // 初始加载所有数据
   await loadAllData()
 
-  // 启动价格轮询
-  startPricePolling()
-
   // 监听窗口大小变化，自动调整图表大小
   window.addEventListener('resize', handleResize)
 })
 
 // 在组件卸载时清理资源
 onUnmounted(() => {
-  // 停止价格轮询
-  stopPricePolling()
-
   // 移除窗口大小变化监听
   window.removeEventListener('resize', handleResize)
 
@@ -845,143 +676,6 @@ onUnmounted(() => {
 
   .date-picker {
     width: 100%;
-  }
-}
-
-.current-price-panel {
-  display: flex;
-  width: 20%;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  background-color: #f9f9f9;
-  border-left: 4px solid #ff5200;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgb(0 0 0 / 5%);
-  justify-content: space-between;
-  align-items: center;
-}
-
-.price-display {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.price-main {
-  display: flex;
-  flex-direction: column;
-}
-
-.price-label {
-  margin-bottom: 4px;
-  font-size: 14px;
-  color: #666;
-}
-
-.price-value {
-  font-size: 24px;
-  font-weight: bold;
-  color: #333;
-  transition: all 0.5s;
-}
-
-.price-flash {
-  animation: priceFlash 1.5s ease;
-}
-
-@keyframes priceFlash {
-  0% {
-    color: #333;
-    background-color: transparent;
-  }
-
-  30% {
-    padding: 2px 8px;
-    color: #fff;
-    background-color: #ff5200;
-    border-radius: 4px;
-  }
-
-  100% {
-    color: #333;
-    background-color: transparent;
-  }
-}
-
-.price-compare {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.price-change {
-  display: inline-flex;
-  padding: 4px 10px;
-  font-size: 16px;
-  font-weight: bold;
-  border-radius: 4px;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-}
-
-.price-vs-yesterday {
-  font-size: 12px;
-  color: #666;
-}
-
-.price-up {
-  color: #41b883;
-  background-color: rgb(65 184 131 / 10%);
-}
-
-.price-down {
-  color: #e74c3c;
-  background-color: rgb(231 76 60 / 10%);
-}
-
-.price-unchanged {
-  color: #7f8c8d;
-  background-color: rgb(127 140 141 / 10%);
-}
-
-.price-update {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-}
-
-.price-update-time {
-  font-size: 12px;
-  color: #999;
-}
-
-.refresh-btn {
-  display: flex;
-  padding: 2px 8px;
-  font-size: 12px;
-  color: #666;
-  align-items: center;
-  gap: 4px;
-}
-
-.refresh-btn:hover {
-  color: #ff5200;
-}
-
-@media (width <= 768px) {
-  .current-price-panel {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .price-update {
-    align-items: flex-start;
-    width: 100%;
-    flex-direction: row;
-    justify-content: space-between;
   }
 }
 

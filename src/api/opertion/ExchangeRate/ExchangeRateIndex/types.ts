@@ -19,7 +19,3 @@ export interface TrxVolumeItem {
 export interface TrxVolumeResponse {
   data?: TrxVolumeItem[]
 }
-
-export interface TrxTokenPriceResponse {
-  price_in_usd?: number | string
-}
