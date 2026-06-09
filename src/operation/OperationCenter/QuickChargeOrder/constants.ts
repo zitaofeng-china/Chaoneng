@@ -6,13 +6,8 @@ import {
 } from '@/utils/tableHelpers'
 
 export const QUICK_CHARGE_RESOURCE_TYPE_OPTIONS = withAllOption([
-  { label: '能量出售', value: '能量出售' },
-  { label: '带宽出售', value: '带宽出售' }
-])
-
-export const QUICK_CHARGE_BOT_OPTIONS = withAllOption([
-  { label: 'iosvBot', value: 'iosvBot' },
-  { label: 'quickBot', value: 'quickBot' }
+  { label: '手动速充', value: 13 },
+  { label: '自动速充', value: 14 }
 ])
 
 export const QUICK_CHARGE_STATUS_MAP: Record<number, StatusMeta> = {
@@ -29,7 +24,9 @@ export const QUICK_CHARGE_ORDER_TYPE_MAP: Record<number, string> = {
   7: '速充订单',
   8: '托管',
   9: '批量下单',
-  10: '激活'
+  10: '激活',
+  13: '手动速充',
+  14: '自动速充'
 }
 
 export const QUICK_CHARGE_ORDER_TYPE_TAG_TYPE: Record<number, TableTagType> = {
@@ -39,7 +36,9 @@ export const QUICK_CHARGE_ORDER_TYPE_TAG_TYPE: Record<number, TableTagType> = {
   7: 'danger',
   8: 'warning',
   9: 'warning',
-  10: 'primary'
+  10: 'primary',
+  13: 'warning',
+  14: 'primary'
 }
 
 export const getQuickChargeOrderTypeText = (value?: number) => {

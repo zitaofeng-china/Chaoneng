@@ -152,11 +152,9 @@ export default defineComponent({
                       ) : props.mode === 'normal' ? (
                         <div class="text-[15px] my-12px">
                           <span class="font-bold">{item.label}: </span>
-                          <span style="color:#606266">
-                            {item.slots?.default
-                              ? item.slots?.default(props.data)
-                              : (get(props.data, item.field) ?? defaultData)}
-                          </span>
+                          {item.slots?.default
+                            ? item.slots?.default(props.data)
+                            : (get(props.data, item.field) ?? defaultData)}
                         </div>
                       ) : null}
                     </ElCol>

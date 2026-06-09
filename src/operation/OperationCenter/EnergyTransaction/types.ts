@@ -12,7 +12,7 @@ export type EnergyDateRange = DateRangeValue
 export interface SearchFormParams {
   keyword?: string
   origin?: number | string
-  kind?: number
+  kind?: number | number[]
   receive_address?: string
   energy_address?: string
   status?: number

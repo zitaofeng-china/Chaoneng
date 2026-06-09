@@ -3,12 +3,16 @@
     <ElTabs v-model="activeTab" class="order-detail-tabs">
       <!-- 基本信息标签页 - 始终显示 -->
       <ElTabPane label="基本信息" name="basic">
-        <div v-if="currentOrder" class="order-detail">
+        <div
+          v-if="detailLoading"
+          class="order-detail-loading"
+          v-loading="true"
+          element-loading-text="正在加载订单详情..."
+        ></div>
+        <div v-else-if="currentOrder" class="order-detail">
           <Descriptions :schema="commonDetailSchema" :data="currentOrder" :column="2" border />
         </div>
-        <div v-else-if="!currentOrder" class="p-4 text-center text-gray-500">
-          无法加载订单详情。
-        </div>
+        <div v-else class="p-4 text-center text-gray-500"> 无法加载订单详情。 </div>
       </ElTabPane>
 
       <!-- 资源详情标签页 - 只有当 resources 数组存在且有数据时才显示 -->
@@ -44,14 +48,16 @@ import { Dialog } from '@/components/Dialog'
 import { formatToWan } from '@/utils'
 import Descriptions from '@/components/Descriptions/src/Descriptions.vue'
 import type { DescriptionsSchema } from '@/components/Descriptions'
-import { formatTableDateTime, getStatusLabel, getStatusTagType } from '@/utils/tableHelpers'
+import { formatTableDateTime } from '@/utils/tableHelpers'
+import { getStatusText, getStatusType } from '@/utils/orderStatus'
 import { renderNullableText } from '@/operation/OperationCenter/utils/displayText'
-import type { QuickChargeOrder, QuickChargeOrderDetail, QuickChargeResource } from '../types'
 import {
-  getQuickChargeOrderTypeTagType,
-  getQuickChargeOrderTypeText,
-  QUICK_CHARGE_STATUS_MAP
-} from '../constants'
+  v2GetOrderDetail,
+  type V2OrderDetailResponse
+} from '@/api/opertion/OperationCenter/EnergyTransaction'
+import { handleErrorMessage } from '@/utils/messageHelper'
+import type { QuickChargeOrder, QuickChargeOrderDetail, QuickChargeResource } from '../types'
+import { getQuickChargeOrderTypeTagType, getQuickChargeOrderTypeText } from '../constants'
 
 const ResourceDetails = defineAsyncComponent(() => import('./details/ResourceDetails.vue'))
 const ActivationDetails = defineAsyncComponent(() => import('./details/ActivationDetails.vue'))
@@ -59,6 +65,7 @@ const ActivationDetails = defineAsyncComponent(() => import('./details/Activatio
 const visible = ref(false)
 const currentOrder = ref<QuickChargeOrderDetail | null>(null)
 const activeTab = ref('basic')
+const detailLoading = ref(false)
 
 const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
   { label: '订单号', field: 'order_num' },
@@ -99,11 +106,11 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
       const orderType = Number(currentOrder.value?.order_type)
       return orderType === 7 || orderType === 9 ? '带宽数' : '能量数'
     })(),
-    field: 'energy_num',
+    field: 'summary.energy_count',
     slots: {
       default: (data: QuickChargeOrderDetail) => {
-        const value = data?.energy_num
-        if (value === null || value === undefined || value === '') return renderNullableText('0')
+        const value = data?.summary?.energy_count
+        if (value === null || value === undefined) return renderNullableText('0')
         return renderNullableText(Number(value) >= 10000 ? formatToWan(value) : value)
       }
     }
@@ -122,16 +129,9 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
     slots: {
       default: (data: QuickChargeOrderDetail) => {
         const value = Number(data?.status)
-        return h(ElTag, { type: getStatusTagType(QUICK_CHARGE_STATUS_MAP, value) }, () =>
-          getStatusLabel(QUICK_CHARGE_STATUS_MAP, value)
-        )
+        return h(ElTag, { type: getStatusType(value) }, () => getStatusText(value))
       }
     }
-  },
-  {
-    label: '有效时长',
-    field: 'energy_rent_text',
-    slots: { default: (data: QuickChargeOrderDetail) => renderNullableText(data?.energy_rent_text) }
   },
   {
     label: '回收时间',
@@ -170,72 +170,95 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
 const toTimestamp = (value?: string | number | null) => {
   if (!value) return 0
   if (typeof value === 'number') return value
+  if (/^\d+$/.test(value)) return Number(value)
   const timestamp = new Date(value).getTime()
   return Number.isNaN(timestamp) ? 0 : timestamp
 }
 
-const buildSampleResource = (row: QuickChargeOrder): QuickChargeResource => ({
-  id: 1,
-  amount: row.amount || row.energy_num || '0',
-  target: row.receive_address || '-',
-  code: 1,
-  source: row.send_address || '-',
-  balance: 0,
-  expirated_at: row.end_time || '',
-  used_txid: row.used_txid || '',
-  delegated_txid: row.delegated_txid || 'sample_delegated_txid',
-  delegated_at: row.start_time || '',
-  recycled_txid: row.recycled_txid || 'sample_recycled_txid',
-  recycled_at: row.end_time || ''
+const mapResources = (resources?: V2OrderDetailResponse['resources']): QuickChargeResource[] => {
+  return (resources || []).map((resource) => ({
+    id: resource.id,
+    amount: resource.amount,
+    target: resource.target,
+    code: resource.code,
+    source: resource.source,
+    balance: resource.balance,
+    expirated_at: resource.expirated_at,
+    used_txid: resource.used_txid,
+    delegated_txid: resource.delegated_txid,
+    delegated_at: resource.delegated_at,
+    recycled_txid: resource.recycled_txid,
+    recycled_at: resource.recycled_at
+  }))
+}
+
+const createFallbackSummary = (orderId: string, energyCount = 0) => ({
+  order_id: orderId,
+  gift_bandwidth: false,
+  active_count: 0,
+  energy_count: energyCount,
+  used_count: 0
 })
 
-const open = (row: QuickChargeOrder) => {
+const buildDetail = (detailData: V2OrderDetailResponse): QuickChargeOrderDetail => {
+  const summary = detailData.summary || createFallbackSummary(detailData.id)
+  const firstResource = detailData.resources?.[0]
+
+  return {
+    id: detailData.id,
+    order_num: detailData.id,
+    tg_name: detailData.tg_first_name || detailData.tg_user_name || '-',
+    bot_id: detailData.bot_id || '-',
+    bot_name: detailData.bot_user_name || detailData.bot_first_name || '-',
+    username: detailData.agent_name || '-',
+    order_type: detailData.kind,
+    order_amount: String(detailData.amount ?? '-'),
+    pay_unit: detailData.coin || '',
+    energy_num: String(summary.energy_count ?? 0),
+    receive_address: detailData.receive_address || '',
+    energy_address: firstResource?.target || '',
+    status: detailData.status,
+    recycle_time: toTimestamp(firstResource?.recycled_at),
+    create_time: toTimestamp(detailData.created_at),
+    finish_time: toTimestamp(detailData.updated_at),
+    pay_time: toTimestamp(detailData.paid_at),
+    stop_time: null,
+    stroke_num: summary.energy_count || 0,
+    txid: firstResource?.delegated_txid || '',
+    from_address: firstResource?.source || '',
+    recycle_txid: firstResource?.recycled_txid || '',
+    used_txid: firstResource?.used_txid || '',
+    flash_price: String(detailData.amount ?? '-'),
+    kind: detailData.kind,
+    summary,
+    resources: mapResources(detailData.resources),
+    activations: detailData.activations || []
+  }
+}
+
+const open = async (row: QuickChargeOrder) => {
   if (!row || !row.id) {
     return
   }
   visible.value = true
   activeTab.value = 'basic'
+  currentOrder.value = null
+  detailLoading.value = true
 
-  const resource = buildSampleResource(row)
+  try {
+    const response = await v2GetOrderDetail(String(row.id))
+    if (response?.data) {
+      currentOrder.value = buildDetail(response.data)
+      return
+    }
 
-  const detail: QuickChargeOrderDetail = {
-    id: row.id,
-    order_num: row.id,
-    tg_name: row.tg_user_name || '-',
-    bot_id: row.bot_id || '-',
-    bot_name: row.bot_user_name || row.bot_name || '-',
-    username: row.agent_name || '-',
-    order_type: 7,
-    order_amount: row.unit_price || row.amount || '-',
-    pay_unit: row.unit_price ? 'sun/天' : '',
-    energy_num: row.amount || '0',
-    receive_address: row.receive_address || '',
-    energy_address: row.receive_address || '',
-    status: row.status,
-    energy_rent_text: row.duration || '-',
-    recycle_time: toTimestamp(row.end_time),
-    create_time: toTimestamp(row.start_time),
-    finish_time: toTimestamp(row.end_time),
-    pay_time: toTimestamp(row.start_time),
-    stop_time: null,
-    stroke_num: 1,
-    txid: resource.delegated_txid,
-    from_address: resource.source,
-    recycle_txid: resource.recycled_txid,
-    used_txid: resource.used_txid,
-    flash_price: row.unit_price || '-',
-    summary: {
-      order_id: row.id,
-      gift_bandwidth: false,
-      active_count: 0,
-      energy_count: 1,
-      used_count: 0
-    },
-    resources: [resource],
-    activations: []
+    currentOrder.value = null
+  } catch (error) {
+    handleErrorMessage(error, '获取订单详情失败')
+    currentOrder.value = null
+  } finally {
+    detailLoading.value = false
   }
-
-  currentOrder.value = detail
 }
 
 defineExpose({
@@ -250,5 +273,13 @@ defineExpose({
 
 .order-detail-tabs .el-tabs__content {
   min-height: 150px;
+}
+
+.order-detail-loading {
+  display: flex;
+  min-height: 240px;
+  color: var(--el-text-color-secondary);
+  align-items: center;
+  justify-content: center;
 }
 </style>

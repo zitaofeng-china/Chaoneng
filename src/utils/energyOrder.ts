@@ -13,7 +13,9 @@ export enum EnergyOrderKind {
   QUICK_ENERGY = 7, // 快速能量
   AUTO_HOSTING = 8, // 自动托管
   BATCH_ENERGY = 9, // 批量能量
-  BATCH_ACTIVE = 10 // 批量激活
+  BATCH_ACTIVE = 10, // 批量激活
+  MANUAL_QUICK_CHARGE = 13, // 手动速充
+  AUTO_QUICK_CHARGE = 14 // 自动速充
 }
 
 /**
@@ -26,7 +28,9 @@ export const ENERGY_ORDER_KIND_TEXT: Record<number, string> = {
   [EnergyOrderKind.QUICK_ENERGY]: '闪租',
   [EnergyOrderKind.AUTO_HOSTING]: '托管',
   [EnergyOrderKind.BATCH_ENERGY]: '批量下单',
-  [EnergyOrderKind.BATCH_ACTIVE]: '激活'
+  [EnergyOrderKind.BATCH_ACTIVE]: '激活',
+  [EnergyOrderKind.MANUAL_QUICK_CHARGE]: '手动速充',
+  [EnergyOrderKind.AUTO_QUICK_CHARGE]: '自动速充'
 }
 
 type EnergyOrderKindTagType = 'success' | 'warning' | 'info' | 'primary' | 'danger'
@@ -38,7 +42,9 @@ export const ENERGY_ORDER_KIND_TAG_TYPE: Record<number, EnergyOrderKindTagType> 
   [EnergyOrderKind.QUICK_ENERGY]: 'success',
   [EnergyOrderKind.AUTO_HOSTING]: 'warning',
   [EnergyOrderKind.BATCH_ENERGY]: 'danger',
-  [EnergyOrderKind.BATCH_ACTIVE]: 'info'
+  [EnergyOrderKind.BATCH_ACTIVE]: 'info',
+  [EnergyOrderKind.MANUAL_QUICK_CHARGE]: 'warning',
+  [EnergyOrderKind.AUTO_QUICK_CHARGE]: 'primary'
 }
 
 const RESOURCE_TYPE_TEXT_MAP: Record<number, string> = {

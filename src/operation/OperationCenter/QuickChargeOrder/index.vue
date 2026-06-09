@@ -5,12 +5,22 @@
         ref="searchTableRef"
         :columns="columns"
         :search-schema="searchSchema"
-        :fetch-data-api="fetchSampleList"
+        :fetch-data-api="fetchDataWrapper"
+        :table-props="{
+          rowKey: 'id',
+          highlightCurrentRow: false,
+          reserveSelection: false
+        }"
         :show-add-button="false"
         :search-props="{
           layout: 'inline',
-          buttonPosition: 'right'
+          buttonPosition: 'center'
         }"
+        :pagination="{
+          total: totalCount
+        }"
+        @loaded="handleDataLoaded"
+        @error="handleLoadError"
       >
         <template #searchButtons>
           <BaseButton type="primary" @click="handleExport">
@@ -26,73 +36,46 @@
 </template>
 
 <script setup lang="tsx">
-import { ref } from 'vue'
-import { ElLink, ElTag } from 'element-plus'
+import { onMounted, ref } from 'vue'
+import { ElTag } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import OrderDetail from './components/OrderDetail.vue'
-import type { TableColumn } from '@/components/Table'
-import type { FormSchema } from '@/components/Form'
 import type { SearchTableExpose } from '@/components/SearchTable'
-import { handleListMessage } from '@/utils/messageHelper'
+import { v2GetEnergyList } from '@/api/opertion/OperationCenter/EnergyTransaction'
+import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
+import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
+import { getStatusText, getStatusType, ORDER_STATUS_OPTIONS } from '@/utils/orderStatus'
 import {
+  buildBackendOrder,
   createPageParams,
   exportTableData,
-  getStatusLabel,
+  formatTableDateTime,
   hasSearchValue,
-  renderStatusTag,
+  withAllOption,
+  type SelectOption,
   type TableSlot
 } from '@/utils/tableHelpers'
-import { getTelegramUserUrl } from '@/utils/telegram'
+import type { TableColumn } from '@/components/Table'
+import type { FormSchema } from '@/components/Form'
+import type { EnergyListParams, EnergyOrder } from '../EnergyTransaction/types'
 import type { QuickChargeOrder, QuickChargeSearchParams } from './types'
 import {
-  QUICK_CHARGE_BOT_OPTIONS,
-  QUICK_CHARGE_RESOURCE_TYPE_OPTIONS,
-  QUICK_CHARGE_STATUS_MAP,
-  QUICK_CHARGE_STATUS_OPTIONS
+  getQuickChargeOrderTypeTagType,
+  getQuickChargeOrderTypeText,
+  QUICK_CHARGE_RESOURCE_TYPE_OPTIONS
 } from './constants'
 
-type QuickChargeTableSlot = TableSlot<QuickChargeOrder>
+const QUICK_CHARGE_ORDER_KINDS = [13, 14]
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const orderDetailRef = ref<InstanceType<typeof OrderDetail> | null>(null)
+const totalCount = ref(0)
+const botOptions = ref<SelectOption<number | string>[]>(withAllOption<number | string>([]))
 
-const sampleList: QuickChargeOrder[] = [
-  {
-    id: 'ORD20260429001',
-    bot_user_name: 'iosvBot',
-    agent_name: 'asdty555',
-    send_address: 'TWKDxEdEaJY***6dgnvj62Bz',
-    receive_address: 'TWKDxEdEaJY***6dgnvj62Bz',
-    type: '能量出售',
-    order_type_label: '速充订单',
-    amount: '1600 W 能量',
-    unit_price: '0.012',
-    start_time: '2025-06-03 08:50:08',
-    end_time: '2025-06-03 08:50:08',
-    duration: '60小时',
-    status: 1,
-    remark: '-'
-  },
-  {
-    id: 'ORD20260429002',
-    bot_user_name: 'quickBot',
-    agent_name: 'quick_agent',
-    send_address: 'TQpChargeAddr***A3x9',
-    receive_address: 'TRxChargeAddr***K2p8',
-    type: '带宽出售',
-    order_type_label: '速充订单',
-    amount: '800 W 带宽',
-    unit_price: '0.015',
-    start_time: '2025-06-03 10:20:00',
-    end_time: '2025-06-03 22:20:00',
-    duration: '12小时',
-    status: 2,
-    remark: '-'
-  }
-]
+type QuickChargeTableSlot = TableSlot<QuickChargeOrder>
 
 const columns: TableColumn[] = [
   { field: 'id', label: '订单号', minWidth: 160 },
@@ -100,19 +83,9 @@ const columns: TableColumn[] = [
     field: 'bot_user_name',
     label: '机器人用户名',
     minWidth: 130,
-    slots: {
-      default: ({ row }: QuickChargeTableSlot) => {
-        if (!row.bot_user_name) return <span>-</span>
-        return (
-          <ElLink type="primary" href={getTelegramUserUrl(row.bot_user_name)} target="_blank">
-            {row.bot_user_name}
-          </ElLink>
-        )
-      }
-    }
+    formatter: (row: QuickChargeOrder) => row.bot_user_name || '-'
   },
   { field: 'agent_name', label: '代理', minWidth: 120 },
-  { field: 'send_address', label: '用户发送地址', minWidth: 210 },
   { field: 'receive_address', label: '接收地址', minWidth: 210 },
   {
     field: 'order_type_label',
@@ -120,7 +93,7 @@ const columns: TableColumn[] = [
     width: 110,
     slots: {
       default: ({ row }: QuickChargeTableSlot) => (
-        <ElTag type="warning" size="small">
+        <ElTag type={getQuickChargeOrderTypeTagType(row.kind)} size="small">
           {row.order_type_label}
         </ElTag>
       )
@@ -130,14 +103,16 @@ const columns: TableColumn[] = [
   { field: 'unit_price', label: '单价（sun/天）', width: 130 },
   { field: 'start_time', label: '开始时间', width: 170 },
   { field: 'end_time', label: '结束时间', width: 170 },
-  { field: 'duration', label: '总时长', width: 100 },
   {
     field: 'status',
     label: '订单状态',
     width: 110,
     slots: {
-      default: ({ row }: QuickChargeTableSlot) =>
-        renderStatusTag(QUICK_CHARGE_STATUS_MAP, row.status)
+      default: ({ row }: QuickChargeTableSlot) => (
+        <ElTag type={getStatusType(row.status)} size="small">
+          {getStatusText(row.status)}
+        </ElTag>
+      )
     }
   },
   { field: 'remark', label: '备注', minWidth: 120 },
@@ -162,7 +137,7 @@ const searchSchema = ref<FormSchema[]>([
     component: 'Input',
     label: {
       text: '关键词',
-      tips: '订单号/机器人用户名/代理/发送地址/接收地址'
+      tips: '订单号/机器人用户名/代理/接收地址'
     },
     componentProps: {
       placeholder: '请输入关键词',
@@ -172,7 +147,7 @@ const searchSchema = ref<FormSchema[]>([
   },
   {
     field: 'type',
-    component: 'Select',
+    component: 'Select' as const,
     label: '类型',
     componentProps: {
       placeholder: '全部',
@@ -182,57 +157,150 @@ const searchSchema = ref<FormSchema[]>([
   },
   {
     field: 'status',
-    component: 'Select',
+    component: 'Select' as const,
     label: '状态',
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: QUICK_CHARGE_STATUS_OPTIONS
+      options: ORDER_STATUS_OPTIONS
     }
   },
   {
-    field: 'bot_user_name',
-    component: 'Select',
+    field: 'bot_id',
+    component: 'Select' as const,
     label: '机器人',
     componentProps: {
       placeholder: '全部',
       clearable: true,
       filterable: true,
-      options: QUICK_CHARGE_BOT_OPTIONS
+      options: botOptions.value
     }
   }
 ])
 
-const filterSampleList = (params: QuickChargeSearchParams = {}) => {
-  return sampleList.filter((item) => {
-    const keyword = String(params.keyword || '').trim()
-    const matchKeyword =
-      !keyword ||
-      [item.id, item.bot_user_name, item.agent_name, item.send_address, item.receive_address].some(
-        (value) => value.includes(keyword)
-      )
-    const matchType = !params.type || item.type === params.type
-    const matchStatus = !hasSearchValue(params.status) || item.status === Number(params.status)
-    const matchBot = !params.bot_user_name || item.bot_user_name === params.bot_user_name
+const buildQuickChargeListParams = (params: QuickChargeSearchParams): EnergyListParams => {
+  const apiParams: EnergyListParams = {
+    ...createPageParams(params),
+    kind: hasSearchValue(params.type) ? Number(params.type) : QUICK_CHARGE_ORDER_KINDS
+  }
 
-    return matchKeyword && matchType && matchStatus && matchBot
-  })
+  if (params.keyword) {
+    apiParams.keyword = params.keyword
+  }
+
+  if (hasSearchValue(params.bot_id)) {
+    apiParams.bot_id = Number(params.bot_id)
+  }
+
+  if (hasSearchValue(params.status)) {
+    apiParams.status = Number(params.status)
+  }
+
+  const order = buildBackendOrder(params.order)
+  if (order) apiParams.order = order
+
+  return apiParams
 }
 
-const fetchSampleList = async (params: QuickChargeSearchParams = {}) => {
-  const { current_page: currentPage, page_size: pageSize } = createPageParams(params)
-  const filteredList = filterSampleList(params)
-  const start = (currentPage - 1) * pageSize
-  const list = filteredList.slice(start, start + pageSize)
+const normalizeText = (value?: string | number | null, fallback = '-') => {
+  if (value === undefined || value === null || value === '') return fallback
+  return String(value)
+}
 
-  handleListMessage(
-    list,
-    [params.keyword, params.type, params.status, params.bot_user_name].some(hasSearchValue),
-    '速充订单'
-  )
+const toFiniteNumber = (value?: string | number | null) => {
+  if (value === undefined || value === null || value === '') return undefined
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) ? numberValue : undefined
+}
+
+const formatUnitPrice = (
+  amountValue?: string | number | null,
+  feeValue?: string | number | null,
+  energyCountValue?: string | number | null
+) => {
+  const amount = toFiniteNumber(amountValue)
+  const fee = toFiniteNumber(feeValue) ?? 0
+  const energyCount = toFiniteNumber(energyCountValue)
+
+  if (amount === undefined || energyCount === undefined || energyCount <= 0) return '-'
+
+  const unitPrice = ((amount - fee) / energyCount) * 1000000
+  if (!Number.isFinite(unitPrice)) return '-'
+
+  return Number.isInteger(unitPrice)
+    ? String(unitPrice)
+    : unitPrice.toFixed(6).replace(/\.?0+$/, '')
+}
+
+const mapEnergyOrderToQuickChargeOrder = (item: EnergyOrder): QuickChargeOrder => {
+  const startTimeValue = item.delegated_at || item.created_at
+  const endTimeValue = item.recycled_at || item.updated_at
+  const targetAddress = item.payment_address || item.energy_address
+
   return {
-    list,
-    total: filteredList.length
+    id: normalizeText(item.id),
+    bot_user_name: normalizeText(item.bot_user_name || item.bot_name),
+    agent_name: normalizeText(item.agent_name),
+    receive_address: normalizeText(targetAddress),
+    type: item.kind,
+    order_type_label: getQuickChargeOrderTypeText(item.kind),
+    amount: normalizeText(item.energy_count),
+    unit_price: formatUnitPrice(item.amount, item.fee, item.energy_count),
+    start_time: formatTableDateTime(startTimeValue),
+    end_time: formatTableDateTime(endTimeValue),
+    status: item.status,
+    remark: normalizeText(item.describe),
+    bot_id: item.bot_id,
+    bot_name: item.bot_name,
+    tg_user_name: item.tg_user_name,
+    energy_num: normalizeText(item.energy_count),
+    kind: item.kind
+  }
+}
+
+const hasQuickChargeSearchCondition = (params: QuickChargeSearchParams) =>
+  [params.keyword, params.type, params.status, params.bot_id].some(hasSearchValue)
+
+const loadBotOptions = async () => {
+  try {
+    const response = await v1GetMessageBotList()
+    const options = (response.data || []).map((bot: MessageBotItem) => ({
+      label: bot.user_name || `机器人${bot.id}`,
+      value: bot.id
+    }))
+
+    botOptions.value = withAllOption(options)
+
+    const botField = searchSchema.value.find((item) => item.field === 'bot_id')
+    if (botField?.componentProps) {
+      botField.componentProps.options = botOptions.value
+    }
+  } catch (error) {
+    handleErrorMessage(error, '加载机器人列表失败')
+  }
+}
+
+const fetchDataWrapper = async (params: QuickChargeSearchParams = {}) => {
+  try {
+    const response = await v2GetEnergyList(buildQuickChargeListParams(params))
+
+    if (response?.code === '000000' && response.data) {
+      const list = (response.data.list || []).map(mapEnergyOrderToQuickChargeOrder)
+      const total = response.data.pager?.total || 0
+
+      totalCount.value = total
+      handleListMessage(list, hasQuickChargeSearchCondition(params), '速充订单')
+
+      return { list, total }
+    }
+
+    handleErrorMessage('获取速充订单失败')
+    totalCount.value = 0
+    return { list: [], total: 0 }
+  } catch (error) {
+    handleErrorMessage(error, '获取速充订单失败')
+    totalCount.value = 0
+    return { list: [], total: 0 }
   }
 }
 
@@ -240,31 +308,49 @@ const handleDetail = (row: QuickChargeOrder) => {
   orderDetailRef.value?.open(row)
 }
 
+const mapQuickChargeExportItem = (item: QuickChargeOrder) => ({
+  订单号: item.id,
+  机器人用户名: item.bot_user_name,
+  代理: item.agent_name,
+  接收地址: item.receive_address,
+  类型: item.order_type_label,
+  数量: item.amount,
+  '单价（sun/天）': item.unit_price,
+  开始时间: item.start_time,
+  结束时间: item.end_time,
+  订单状态: getStatusText(item.status),
+  备注: item.remark
+})
+
 const handleExport = async () => {
-  await exportTableData<QuickChargeOrder, QuickChargeSearchParams>({
-    searchTableRef,
-    filename: '速充订单列表',
-    fetchData: async (params) => ({
-      data: { list: filterSampleList(params) }
-    }),
-    getList: (res) => res.data.list,
-    mapItem: (item) => ({
-      订单号: item.id,
-      机器人用户名: item.bot_user_name,
-      代理: item.agent_name,
-      用户发送地址: item.send_address,
-      接收地址: item.receive_address,
-      类型: item.order_type_label,
-      数量: item.amount,
-      '单价（sun/天）': item.unit_price,
-      开始时间: item.start_time,
-      结束时间: item.end_time,
-      总时长: item.duration,
-      订单状态: getStatusLabel(QUICK_CHARGE_STATUS_MAP, item.status),
-      备注: item.remark
+  try {
+    await exportTableData<EnergyOrder, QuickChargeSearchParams, EnergyListParams>({
+      searchTableRef,
+      filename: '速充订单列表',
+      fetchData: v2GetEnergyList,
+      buildParams: buildQuickChargeListParams,
+      getList: (response) => response.data?.list || [],
+      mapItem: (item) => mapQuickChargeExportItem(mapEnergyOrderToQuickChargeOrder(item)),
+      successMessage: '速充订单导出成功'
     })
-  })
+  } catch (error) {
+    handleErrorMessage(error, '速充订单导出失败')
+  }
 }
+
+const handleDataLoaded = ({ success }: { success: boolean }) => {
+  if (!success) {
+    handleErrorMessage('加载速充订单失败')
+  }
+}
+
+const handleLoadError = () => {
+  handleErrorMessage('加载速充订单失败')
+}
+
+onMounted(() => {
+  loadBotOptions()
+})
 </script>
 
 <style scoped>

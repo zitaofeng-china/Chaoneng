@@ -21,14 +21,10 @@ const defaultRequestInterceptors = (config: InternalAxiosRequestConfig) => {
   }
   if (config.method === 'get' && config.params) {
     let url = config.url as string
-    url += '?'
-    const keys = Object.keys(config.params)
-    for (const key of keys) {
-      if (config.params[key] !== void 0 && config.params[key] !== null) {
-        url += `${key}=${encodeURIComponent(config.params[key])}&`
-      }
+    const query = qs.stringify(config.params, { arrayFormat: 'repeat', skipNulls: true })
+    if (query) {
+      url += `${url.includes('?') ? '&' : '?'}${query}`
     }
-    url = url.substring(0, url.length - 1)
     config.params = {}
     config.url = url
   }
