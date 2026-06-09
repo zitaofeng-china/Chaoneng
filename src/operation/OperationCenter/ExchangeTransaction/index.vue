@@ -50,7 +50,6 @@ import { BaseButton } from '@/components/Button'
 import { ContentWrap } from '@/components/ContentWrap'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import {
-  createStatusOptions,
   createDefaultDateTimeRange,
   createNullablePageParams,
   dateRangeToSeconds,
@@ -61,7 +60,7 @@ import {
   hasSearchValue
 } from '@/utils/tableHelpers'
 import { ExchangeOrderType, getExchangeOrderType } from '@/utils/exchangeOrder'
-import { EXCHANGE_COIN_OPTIONS, EXCHANGE_STATUS_MAP } from './constants'
+import { EXCHANGE_COIN_OPTIONS, EXCHANGE_STATUS_MAP, EXCHANGE_STATUS_OPTIONS } from './constants'
 
 type ExchangeSearchParams = V2ExchangeListParams & {
   dateRange?: [number, number]
@@ -279,7 +278,7 @@ const searchSchema = reactive<FormSchema[]>([
     label: '订单状态:',
     componentProps: {
       placeholder: '全部',
-      options: createStatusOptions(EXCHANGE_STATUS_MAP, ''),
+      options: EXCHANGE_STATUS_OPTIONS,
       clearable: true
     }
   },

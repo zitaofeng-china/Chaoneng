@@ -1,4 +1,4 @@
-import { withAllOption, type StatusMeta } from '@/utils/tableHelpers'
+import { createStatusOptions, withAllOption, type StatusMeta } from '@/utils/tableHelpers'
 
 export const EXCHANGE_COIN_OPTIONS = withAllOption([
   { label: 'USDT → TRX', value: 'USDT' },
@@ -16,3 +16,5 @@ export const EXCHANGE_STATUS_MAP: Record<number, StatusMeta> = {
   8: { label: '已取消', type: 'warning' },
   9: { label: '已中止', type: 'danger' }
 }
+
+export const EXCHANGE_STATUS_OPTIONS = createStatusOptions(EXCHANGE_STATUS_MAP, '')

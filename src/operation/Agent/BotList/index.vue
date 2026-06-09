@@ -41,7 +41,6 @@ import { BaseButton } from '@/components/Button'
 import { useRoute, useRouter } from 'vue-router'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import {
-  createStatusOptions,
   createPageParams,
   exportTableData,
   formatTableDateTime,
@@ -49,7 +48,7 @@ import {
   getStatusTagType,
   hasSearchValue
 } from '@/utils/tableHelpers'
-import { BOT_STATUS_MAP } from '../constants'
+import { BOT_STATUS_MAP, BOT_STATUS_OPTIONS } from '../constants'
 
 const route = useRoute()
 const router = useRouter()
@@ -146,7 +145,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '请选择状态',
       clearable: true,
-      options: createStatusOptions(BOT_STATUS_MAP, '')
+      options: BOT_STATUS_OPTIONS
     }
   }
 ])

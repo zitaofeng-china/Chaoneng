@@ -109,20 +109,20 @@ import AgentForm from '../components/AgentForm.vue'
 import NotifyBotDialog from '../components/NotifyBotDialog.vue'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import {
-  createStatusOptions,
   createDefaultDateTimeRange,
   createPageParams,
   dateRangeToSeconds,
   exportTableData,
   formatTableDateTime,
   getStatusLabel,
-  hasSearchValue,
-  withAllOption
+  hasSearchValue
 } from '@/utils/tableHelpers'
 import {
   AGENT_LEVEL_LABELS,
   AGENT_LEVEL_OPTIONS,
+  AGENT_LEVEL_SEARCH_OPTIONS,
   AGENT_STATUS_MAP,
+  AGENT_STATUS_OPTIONS,
   BATCH_AGENT_LEVEL_OPTIONS
 } from '../constants'
 
@@ -467,7 +467,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '请选择状态',
       clearable: true,
-      options: createStatusOptions(AGENT_STATUS_MAP, '')
+      options: AGENT_STATUS_OPTIONS
     }
   },
   {
@@ -477,7 +477,7 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '请选择代理等级',
       clearable: true,
-      options: withAllOption(AGENT_LEVEL_OPTIONS)
+      options: AGENT_LEVEL_SEARCH_OPTIONS
     }
   },
   {

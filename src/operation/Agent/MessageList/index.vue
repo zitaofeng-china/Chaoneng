@@ -225,6 +225,7 @@ import {
   hasSearchValue,
   withAllOption
 } from '@/utils/tableHelpers'
+import { MESSAGE_SEND_KIND_OPTIONS } from '../constants'
 
 interface BotOption {
   label: string
@@ -449,13 +450,7 @@ const searchSchema = ref<FormSchema[]>([
     label: '信息类别',
     colProps: { span: 6 },
     componentProps: {
-      options: withAllOption(
-        [
-          { label: '只发一次', value: 1 },
-          { label: '周期发送', value: 2 }
-        ],
-        0
-      ),
+      options: MESSAGE_SEND_KIND_OPTIONS,
       placeholder: '请选择信息类别',
       clearable: true
     }
