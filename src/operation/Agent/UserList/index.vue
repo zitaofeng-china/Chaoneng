@@ -85,6 +85,7 @@ import {
   formatTableDateTime,
   hasSearchValue,
   withAllOption,
+  type DateRangeValue,
   type SelectOption,
   type TableSlot
 } from '@/utils/tableHelpers'
@@ -97,10 +98,9 @@ import ChangePasswordDialog from '../components/UserDialogs/ChangePasswordDialog
 const route = useRoute()
 const router = useRouter()
 
-type UserDateRange = [string | number | Date, string | number | Date]
 type UserSearchParams = Omit<UserListParams, 'start_time' | 'end_time' | 'origin'> & {
   origin?: number | string
-  dateRange?: UserDateRange
+  dateRange?: DateRangeValue
 }
 
 type BotOption = SelectOption<string>

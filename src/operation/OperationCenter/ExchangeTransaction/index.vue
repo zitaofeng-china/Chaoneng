@@ -58,13 +58,14 @@ import {
   getStatusLabel,
   getStatusTagType,
   hasSearchValue,
+  type DateRangeValue,
   type TableSlot
 } from '@/utils/tableHelpers'
 import { ExchangeOrderType, getExchangeOrderType } from '@/utils/exchangeOrder'
 import { EXCHANGE_COIN_OPTIONS, EXCHANGE_STATUS_MAP, EXCHANGE_STATUS_OPTIONS } from './constants'
 
 type ExchangeSearchParams = V2ExchangeListParams & {
-  dateRange?: [number, number]
+  dateRange?: DateRangeValue
 }
 type ExchangeTableSlot = TableSlot<V2ExchangeItem>
 

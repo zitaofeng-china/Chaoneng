@@ -49,6 +49,7 @@ import {
   getStatusLabel,
   getStatusTagType,
   hasSearchValue,
+  type DateRangeValue,
   type TableSlot
 } from '@/utils/tableHelpers'
 import {
@@ -60,7 +61,7 @@ import {
 
 type ChargeLogSearchParams = Omit<ChargeLogParams, 'status'> & {
   status?: number | string
-  dateRange?: [number, number]
+  dateRange?: DateRangeValue
 }
 type ChargeLogTableSlot = TableSlot<ChargeLogItem>
 

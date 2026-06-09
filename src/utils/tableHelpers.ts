@@ -11,7 +11,7 @@ export interface StatusMeta {
 
 export type TableSlot<T> = { row: T }
 
-type DateRangeValue = [number | string | Date, number | string | Date]
+export type DateRangeValue = [number | string | Date, number | string | Date]
 type DateTimeRangeValue = [Date, Date]
 
 interface PageParamsLike {

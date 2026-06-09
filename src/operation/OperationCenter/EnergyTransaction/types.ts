@@ -2,11 +2,12 @@ import type {
   V2EnergyItem,
   V2EnergyListParams
 } from '@/api/opertion/OperationCenter/EnergyTransaction'
+import type { DateRangeValue } from '@/utils/tableHelpers'
 
 export type EnergyOrder = V2EnergyItem
 export type EnergyListParams = V2EnergyListParams
 
-export type EnergyDateRange = [number, number]
+export type EnergyDateRange = DateRangeValue
 
 export interface SearchFormParams {
   keyword?: string

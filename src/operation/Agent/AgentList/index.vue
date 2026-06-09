@@ -116,6 +116,7 @@ import {
   formatTableDateTime,
   getStatusLabel,
   hasSearchValue,
+  type DateRangeValue,
   type TableSlot
 } from '@/utils/tableHelpers'
 import {
@@ -154,9 +155,8 @@ const emailFormData = reactive({ email: '' })
 const emailFormRef = ref<FormInstance>()
 let autoExitTimer: ReturnType<typeof setTimeout> | null = null
 
-type AgentDateRange = [string | number | Date, string | number | Date]
 type AgentSearchParams = AgentQueryParams & {
-  dateRange?: AgentDateRange
+  dateRange?: DateRangeValue
 }
 
 interface EmailSuggestion {

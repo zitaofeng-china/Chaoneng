@@ -40,6 +40,7 @@ import {
   exportTableData,
   formatTableDateTime,
   hasSearchValue,
+  type DateRangeValue,
   type TableSlot
 } from '@/utils/tableHelpers'
 import { AGENT_BILL_ORDER_TYPE_MAP, AGENT_BILL_ORDER_TYPE_OPTIONS } from '../constants'
@@ -50,7 +51,7 @@ const currentSearchParams = ref<AgentLedgerSearchParams>({})
 
 type AgentLedgerSearchParams = Omit<AgentBillListParams, 'kinds'> & {
   kind?: number | string
-  dateRange?: [number, number]
+  dateRange?: DateRangeValue
 }
 type AgentLedgerTableSlot = TableSlot<AgentBillItem>
 
