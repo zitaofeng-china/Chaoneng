@@ -52,6 +52,7 @@ import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/u
 import {
   createStatusOptions,
   createDefaultDateTimeRange,
+  createNullablePageParams,
   dateRangeToSeconds,
   exportTableData,
   formatTableDateTime,
@@ -91,8 +92,7 @@ const buildExchangeListParams = (
   pageSize?: number
 ): V2ExchangeListParams => {
   const apiParams: V2ExchangeListParams = {
-    current_page: params.current_page || 1,
-    page_size: pageSize ?? params.page_size ?? 10
+    ...createNullablePageParams(params, 10, pageSize)
   }
 
   Object.assign(apiParams, dateRangeToSeconds(params.dateRange))

@@ -61,6 +61,20 @@ export const createPageParams = (
   page_size: (pageSize ?? Number(params.page_size)) || defaultPageSize
 })
 
+const normalizeNullablePageSize = (pageSize?: number | string) => {
+  if (pageSize === undefined || pageSize === '') return undefined
+  return Number(pageSize)
+}
+
+export const createNullablePageParams = (
+  params: PageParamsLike = {},
+  defaultPageSize = 10,
+  pageSize?: number
+) => ({
+  current_page: Number(params.current_page) || 1,
+  page_size: pageSize ?? normalizeNullablePageSize(params.page_size) ?? defaultPageSize
+})
+
 type DateTimeValue = number | string | Date | null | undefined
 
 const normalizeDateTimeValue = (value: DateTimeValue) => {

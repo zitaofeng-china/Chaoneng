@@ -35,6 +35,7 @@ import { useRouter } from 'vue-router'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 import {
   createDefaultDateTimeRange,
+  createNullablePageParams,
   dateRangeToSeconds,
   exportTableData,
   formatTableDateTime,
@@ -56,8 +57,7 @@ const buildAgentBillParams = (
   pageSize?: number
 ): AgentBillListParams => {
   const apiParams: AgentBillListParams = {
-    current_page: params.current_page || 1,
-    page_size: pageSize ?? params.page_size ?? 10
+    ...createNullablePageParams(params, 10, pageSize)
   }
 
   if (params.keyword) apiParams.keyword = params.keyword
