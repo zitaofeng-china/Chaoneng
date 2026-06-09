@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, h } from 'vue'
-import { ElTag, ElTooltip } from 'element-plus'
+import { ElTag } from 'element-plus'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
 import { formatTableDateTime, type TableSlot } from '@/utils/tableHelpers'
-import { getTronscanTransactionUrl } from '@/utils/tronscan'
+import { renderTronscanTransactionLink } from '@/operation/OperationCenter/utils/transactionLink'
 import type { QuickChargeActivation, QuickChargeOrderDetail } from '../../types'
 
 const props = withDefaults(defineProps<{ orderData: QuickChargeOrderDetail | null }>(), {
@@ -56,26 +56,7 @@ const activationTableSchema = computed((): TableColumn[] => [
     align: 'center',
     slots: {
       default: ({ row }: ActivationTableSlot) => {
-        if (!row.actived_txid || row.actived_txid.trim() === '') return h('span', '-')
-        return h(
-          ElTooltip,
-          {
-            content: row.actived_txid,
-            placement: 'top'
-          },
-          {
-            default: () =>
-              h(
-                'a',
-                {
-                  href: getTronscanTransactionUrl(row.actived_txid),
-                  target: '_blank',
-                  style: 'color: #409eff; cursor: pointer; text-decoration: none;'
-                },
-                '点击跳转'
-              )
-          }
-        )
+        return renderTronscanTransactionLink(row.actived_txid)
       }
     }
   },

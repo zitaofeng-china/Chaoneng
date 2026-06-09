@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, h } from 'vue'
-import { ElTag, ElTooltip } from 'element-plus'
+import { ElTag } from 'element-plus'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
@@ -11,7 +11,7 @@ import {
   getResourceTypeText
 } from '@/utils/energyOrder'
 import { formatTableDateTime, type TableSlot } from '@/utils/tableHelpers'
-import { getTronscanTransactionUrl } from '@/utils/tronscan'
+import { renderTronscanTransactionLink } from '@/operation/OperationCenter/utils/transactionLink'
 import type { QuickChargeOrderDetail, QuickChargeResource } from '../../types'
 
 const props = withDefaults(defineProps<{ orderData: QuickChargeOrderDetail | null }>(), {
@@ -82,26 +82,7 @@ const resourceTableSchema = computed((): TableColumn[] => [
     align: 'center',
     slots: {
       default: ({ row }: ResourceTableSlot) => {
-        if (!row.delegated_txid) return h('span', '-')
-        return h(
-          ElTooltip,
-          {
-            content: row.delegated_txid,
-            placement: 'top'
-          },
-          {
-            default: () =>
-              h(
-                'a',
-                {
-                  href: getTronscanTransactionUrl(row.delegated_txid),
-                  target: '_blank',
-                  style: 'color: #409eff; cursor: pointer; text-decoration: none;'
-                },
-                '点击跳转'
-              )
-          }
-        )
+        return renderTronscanTransactionLink(row.delegated_txid)
       }
     }
   },
@@ -112,26 +93,7 @@ const resourceTableSchema = computed((): TableColumn[] => [
     align: 'center',
     slots: {
       default: ({ row }: ResourceTableSlot) => {
-        if (!row.recycled_txid) return h('span', '-')
-        return h(
-          ElTooltip,
-          {
-            content: row.recycled_txid,
-            placement: 'top'
-          },
-          {
-            default: () =>
-              h(
-                'a',
-                {
-                  href: getTronscanTransactionUrl(row.recycled_txid),
-                  target: '_blank',
-                  style: 'color: #409eff; cursor: pointer; text-decoration: none;'
-                },
-                '点击跳转'
-              )
-          }
-        )
+        return renderTronscanTransactionLink(row.recycled_txid)
       }
     }
   },
