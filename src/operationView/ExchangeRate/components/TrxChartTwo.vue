@@ -136,7 +136,7 @@ const lastUpdateTime = ref<number>(0)
 const isRefreshingPrice = ref<boolean>(false)
 const priceFlashing = ref<boolean>(false)
 let pricePollingInterval: number | null = null
-let previousPrice: number | null = null
+const previousPrice: number | null = null
 
 // 计算价格变化的样式类
 const priceChangeClass = computed(() => {
@@ -376,40 +376,8 @@ const flashPrice = () => {
 
 // 获取当前TRX价格
 const fetchCurrentPrice = async () => {
-  isRefreshingPrice.value = true
-
-  try {
-    // 保存之前的价格，用于比较变化
-    previousPrice = currentPrice.value
-
-    const response = await axios.get('https://apilist.tronscanapi.com/api/token/price', {
-      params: {
-        token: 'trx'
-      }
-    })
-
-    if (response.data && response.data.price_in_usd) {
-      currentPrice.value = parseFloat(response.data.price_in_usd)
-      lastUpdateTime.value = Date.now()
-
-      // 如果已有昨日收盘价，计算涨跌幅
-      if (yesterdayClosePrice.value) {
-        calculatePriceChange()
-      } else {
-        // 否则获取昨日收盘价
-        fetchYesterdayClosePrice()
-      }
-
-      // 价格更新后触发闪烁效果
-      flashPrice()
-
-      console.log('当前TRX价格更新:', currentPrice.value, '之前价格:', previousPrice)
-    }
-  } catch (error) {
-    console.error('获取当前TRX价格失败:', error)
-  } finally {
-    isRefreshingPrice.value = false
-  }
+  currentPrice.value = null
+  isRefreshingPrice.value = false
 }
 
 // 更新昨日收盘价并重新计算涨跌幅
@@ -489,16 +457,7 @@ const calculatePriceChange = () => {
 
 // 启动价格轮询
 const startPricePolling = () => {
-  // 立即获取一次当前价格
-  fetchCurrentPrice()
-
-  // 设置5分钟轮询
-  pricePollingInterval = window.setInterval(
-    () => {
-      fetchCurrentPrice()
-    },
-    5 * 60 * 1000
-  ) // 5分钟 = 300,000毫秒
+  currentPrice.value = null
 }
 
 // 停止价格轮询
@@ -802,17 +761,6 @@ onMounted(async () => {
 
   // 初始加载所有数据
   await loadAllData()
-
-  // 获取当前TRX价格
-  fetchCurrentPrice()
-
-  // 设置5分钟轮询更新价格
-  pricePollingInterval = window.setInterval(
-    () => {
-      fetchCurrentPrice()
-    },
-    5 * 60 * 1000
-  )
 
   // 监听窗口大小变化，自动调整图表大小
   window.addEventListener('resize', () => {

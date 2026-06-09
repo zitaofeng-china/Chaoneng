@@ -149,7 +149,7 @@ const lastUpdateTime = ref<number>(0)
 const isRefreshingPrice = ref<boolean>(false)
 const priceFlashing = ref<boolean>(false)
 let pricePollingInterval: number | null = null
-let previousPrice: number | null = null
+const previousPrice: number | null = null
 
 // 计算价格变化的样式类
 const priceChangeClass = computed(() => {
@@ -489,39 +489,8 @@ const flashPrice = () => {
 
 // 获取当前TRX价格
 const fetchCurrentPrice = async () => {
-  isRefreshingPrice.value = true
-
-  try {
-    // 保存之前的价格，用于比较变化
-    previousPrice = currentPrice.value
-
-    const response = await axios.get('https://apilist.tronscanapi.com/api/token/price', {
-      params: {
-        token: 'trx'
-      }
-    })
-
-    if (response.data && response.data.price_in_usd) {
-      currentPrice.value = parseFloat(response.data.price_in_usd)
-      lastUpdateTime.value = Date.now()
-
-      // 如果已有昨日收盘价，计算涨跌幅
-      if (yesterdayClosePrice.value) {
-        calculatePriceChange()
-      } else {
-        // 否则获取昨日收盘价
-        fetchYesterdayClosePrice()
-      }
-
-      // 价格更新后触发闪烁效果
-      flashPrice()
-    }
-  } catch (error) {
-    // 静默处理错误，不显示提示
-    console.error('获取当前TRX价格失败:', error)
-  } finally {
-    isRefreshingPrice.value = false
-  }
+  currentPrice.value = null
+  isRefreshingPrice.value = false
 }
 
 // 更新昨日收盘价并重新计算涨跌幅
@@ -570,11 +539,7 @@ const calculatePriceChange = () => {
 
 // 启动价格轮询
 const startPricePolling = () => {
-  fetchCurrentPrice()
-
-  pricePollingInterval = window.setInterval(() => {
-    fetchCurrentPrice()
-  }, 60 * 1000)
+  currentPrice.value = null
 }
 
 // 停止价格轮询
