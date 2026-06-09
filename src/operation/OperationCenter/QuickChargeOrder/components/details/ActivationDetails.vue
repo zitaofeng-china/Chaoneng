@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, h } from 'vue'
+import { computed, h } from 'vue'
 import { ElTag } from 'element-plus'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
@@ -7,6 +7,7 @@ import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
 import { formatTableDateTime, type TableSlot } from '@/utils/tableHelpers'
 import { renderTronscanTransactionLink } from '@/operation/OperationCenter/utils/transactionLink'
+import { useLocalPagination } from '@/operation/OperationCenter/utils/useLocalPagination'
 import type { QuickChargeActivation, QuickChargeOrderDetail } from '../../types'
 
 const props = withDefaults(defineProps<{ orderData: QuickChargeOrderDetail | null }>(), {
@@ -14,9 +15,6 @@ const props = withDefaults(defineProps<{ orderData: QuickChargeOrderDetail | nul
 })
 
 type ActivationTableSlot = TableSlot<QuickChargeActivation>
-
-const currentPage = ref(1)
-const pageSize = ref(10)
 
 const summarySchema = computed((): DescriptionsSchema[] => [
   {
@@ -72,24 +70,14 @@ const fullActivationList = computed<QuickChargeActivation[]>(() => {
   return props.orderData?.activations || []
 })
 
-const paginatedActivationList = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return fullActivationList.value.slice(start, end)
-})
-
-const totalCount = computed(() => {
-  return fullActivationList.value.length
-})
-
-const handlePageChange = (page: number) => {
-  currentPage.value = page
-}
-
-const handleSizeChange = (size: number) => {
-  pageSize.value = size
-  currentPage.value = 1
-}
+const {
+  currentPage,
+  pageSize,
+  paginatedList: paginatedActivationList,
+  totalCount,
+  handlePageChange,
+  handleSizeChange
+} = useLocalPagination(fullActivationList)
 </script>
 
 <template>

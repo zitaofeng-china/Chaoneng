@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, h } from 'vue'
+import { computed, h } from 'vue'
 import { ElTag } from 'element-plus'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
@@ -12,6 +12,7 @@ import {
 } from '@/utils/energyOrder'
 import { formatTableDateTime, type TableSlot } from '@/utils/tableHelpers'
 import { renderTronscanTransactionLink } from '@/operation/OperationCenter/utils/transactionLink'
+import { useLocalPagination } from '@/operation/OperationCenter/utils/useLocalPagination'
 import type {
   V2OrderDetailResponse,
   V2OrderResource
@@ -22,9 +23,6 @@ const props = withDefaults(defineProps<{ orderData: V2OrderDetailResponse | null
 })
 
 type ResourceTableSlot = TableSlot<V2OrderResource>
-
-const currentPage = ref(1)
-const pageSize = ref(10)
 
 const summarySchema = computed((): DescriptionsSchema[] => {
   const baseSchema: DescriptionsSchema[] = [
@@ -118,24 +116,14 @@ const fullResourceList = computed<V2OrderResource[]>(() => {
   return props.orderData?.resources || []
 })
 
-const paginatedResourceList = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return fullResourceList.value.slice(start, end)
-})
-
-const totalCount = computed(() => {
-  return fullResourceList.value.length
-})
-
-const handlePageChange = (page: number) => {
-  currentPage.value = page
-}
-
-const handleSizeChange = (size: number) => {
-  pageSize.value = size
-  currentPage.value = 1
-}
+const {
+  currentPage,
+  pageSize,
+  paginatedList: paginatedResourceList,
+  totalCount,
+  handlePageChange,
+  handleSizeChange
+} = useLocalPagination(fullResourceList)
 </script>
 
 <template>
