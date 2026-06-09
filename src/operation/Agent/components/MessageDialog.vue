@@ -469,7 +469,7 @@ const showMessagePreview = ref(false)
 const messagePreviewData = ref<MessagePreviewData>({})
 
 // 消息内容编辑器引用
-const messageContentEditorRef = ref()
+const messageContentEditorRef = ref<InstanceType<typeof MessageContentEditor> | null>(null)
 
 // 格式化按钮相关
 const getContent = async () => formData.value.content || ''

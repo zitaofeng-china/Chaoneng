@@ -38,7 +38,7 @@ defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-const textareaRef = ref()
+const textareaRef = ref<InstanceType<typeof ElInput> | null>(null)
 
 const handleChange = (value: string) => {
   emit('update:modelValue', value)

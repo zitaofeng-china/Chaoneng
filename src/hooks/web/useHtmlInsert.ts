@@ -1,9 +1,15 @@
 // Import necessary dependencies
-import { h, Ref } from 'vue'
+import { h, type Ref } from 'vue'
 import { ElMessageBox, ElLink } from 'element-plus'
 
 // Type for tag types
 type TagType = 'b' | 'i' | 'u' | 'precode'
+
+type TextareaLikeComponent = {
+  $el?: Element
+}
+
+type TextareaRefTarget = HTMLTextAreaElement | TextareaLikeComponent | null | undefined
 
 /**
  * Hook for inserting HTML formatting tags into a text content.
@@ -15,7 +21,7 @@ type TagType = 'b' | 'i' | 'u' | 'precode'
 export function useHtmlInsert(
   getContent: () => Promise<string>,
   setContent: (newContent: string) => Promise<void>,
-  textareaRef?: Ref<any>
+  textareaRef?: Ref<TextareaRefTarget>
 ) {
   // Get selected text from textarea
   const getSelectedText = (): { text: string; start: number; end: number } | null => {
@@ -25,7 +31,7 @@ export function useHtmlInsert(
     let textarea: HTMLTextAreaElement | null = null
 
     // 如果是 Element Plus 的 ElInput 组件
-    if (textareaRef.value.$el) {
+    if ('$el' in textareaRef.value && textareaRef.value.$el) {
       textarea = textareaRef.value.$el.querySelector('textarea')
     } else if (textareaRef.value instanceof HTMLTextAreaElement) {
       textarea = textareaRef.value

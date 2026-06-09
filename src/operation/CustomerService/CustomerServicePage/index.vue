@@ -66,7 +66,7 @@ import { CUSTOMER_SERVICE_STATUS_MAP, CUSTOMER_SERVICE_STATUS_OPTIONS } from '..
 
 // --- Refs and Reactive Variables ---
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
-const formRef = ref()
+const formRef = ref<InstanceType<typeof Form> | null>(null)
 const dialogVisible = ref(false)
 const submitLoading = ref(false)
 const isEdit = ref(false)
