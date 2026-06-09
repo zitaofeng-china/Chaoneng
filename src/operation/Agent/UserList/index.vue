@@ -84,7 +84,8 @@ import {
   exportTableData,
   formatTableDateTime,
   hasSearchValue,
-  withAllOption
+  withAllOption,
+  type SelectOption
 } from '@/utils/tableHelpers'
 import { SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'
 import MessageDialog from '../components/MessageDialog.vue'
@@ -101,10 +102,7 @@ type UserSearchParams = Omit<UserListParams, 'start_time' | 'end_time' | 'origin
   dateRange?: UserDateRange
 }
 
-type BotOption = {
-  label: string
-  value: string
-}
+type BotOption = SelectOption<string>
 
 type UserListRow = UserListItem & {
   bot_user_name?: string
