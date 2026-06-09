@@ -190,14 +190,14 @@
                 <div class="value-wrapper">
                   <el-input-number
                     v-if="editModeMap[agent.id]"
-                    v-model="formDataMap[agent.id].energy_price1"
+                    v-model="formDataMap[agent.id].charge"
                     :precision="2"
                     :step="0.1"
                     :min="0"
                     size="small"
                     controls-position="right"
                   />
-                  <span v-else class="value-text">{{ formDataMap[agent.id].energy_price1 }}</span>
+                  <span v-else class="value-text">{{ formDataMap[agent.id].charge }}</span>
                   <span class="unit">TRX</span>
                 </div>
               </div>
@@ -460,7 +460,7 @@ const hasChanges = (agentId: number) => {
     Number(formData.bot_fee) !== Number(original.bot_fee) ||
     Number(formData.batch_flash) !== Number(original.batch_flash || 0) ||
     Number(formData.bandwidth) !== Number(original.bandwidth || 0) ||
-    Number(formData.energy_price1) !== Number(original.energy_price1 || 0) ||
+    Number(formData.charge) !== Number(original.charge || 0) ||
     Number(formData.weal) !== Number(original.weal || 0)
   )
 }
@@ -495,7 +495,7 @@ const handleCancel = (agentId: number) => {
       bot_fee: Number(original.bot_fee),
       batch_flash: Number(original.batch_flash || 0),
       bandwidth: Number(original.bandwidth || 0),
-      energy_price1: Number(original.energy_price1 || 0),
+      charge: Number(original.charge || 0),
       weal: Number(original.weal || 0)
     }
   }
@@ -547,7 +547,7 @@ const loadPriceData = async () => {
         bot_fee: Number(item.bot_fee),
         batch_flash: Number(item.batch_flash || 0),
         bandwidth: Number(item.bandwidth || 0),
-        energy_price1: Number(item.energy_price1 || 0),
+        charge: Number(item.charge || 0),
         weal: Number(item.weal || 0)
       }
     })
@@ -592,7 +592,7 @@ const handleSave = async (agentId: number) => {
       bot_fee: formData.bot_fee,
       batch_flash: formData.batch_flash,
       bandwidth: formData.bandwidth,
-      energy_price1: formData.energy_price1,
+      charge: formData.charge,
       weal: formData.weal
     })
 
@@ -617,8 +617,6 @@ onActivated(() => {
 </script>
 
 <style scoped>
-
-
 @media (width <= 1280px) {
   .row-first > .price-item-card:nth-child(1),
   .row-first > .price-item-card:nth-child(3),

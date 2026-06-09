@@ -190,14 +190,14 @@
                 <div class="value-wrapper">
                   <el-input-number
                     v-if="editModeMap[agent.id]"
-                    v-model="formDataMap[agent.id].energy_price1"
+                    v-model="formDataMap[agent.id].charge"
                     :precision="2"
                     :step="0.1"
                     :min="0"
                     size="small"
                     controls-position="right"
                   />
-                  <span v-else class="value-text">{{ formDataMap[agent.id].energy_price1 }}</span>
+                  <span v-else class="value-text">{{ formDataMap[agent.id].charge }}</span>
                   <span class="unit">TRX</span>
                 </div>
               </div>
@@ -407,7 +407,7 @@ interface PriceFormData {
   bot_fee: number
   batch_flash: number
   bandwidth: number
-  energy_price1: number
+  charge: number
   weal: number
 }
 
@@ -420,6 +420,8 @@ const getAgentLevelName = (id: number): string => {
 const formDataMap = reactive<Record<number, PriceFormData>>({})
 
 const toNumber = (value: string | number | undefined | null) => Number(value || 0)
+
+const getChargeValue = (item: V1PriceListResponse) => toNumber(item.charge)
 
 const createPriceFormData = (item: V1PriceListResponse): PriceFormData => ({
   active: toNumber(item.active),
@@ -438,7 +440,7 @@ const createPriceFormData = (item: V1PriceListResponse): PriceFormData => ({
   bot_fee: toNumber(item.bot_fee),
   batch_flash: toNumber(item.batch_flash),
   bandwidth: toNumber(item.bandwidth),
-  energy_price1: toNumber(item.energy_price1),
+  charge: getChargeValue(item),
   weal: toNumber(item.weal)
 })
 
@@ -495,7 +497,7 @@ const hasChanges = (agentId: number) => {
     Number(formData.bot_fee) !== Number(original.bot_fee) ||
     Number(formData.batch_flash) !== Number(original.batch_flash || 0) ||
     Number(formData.bandwidth) !== Number(original.bandwidth || 0) ||
-    Number(formData.energy_price1) !== Number(original.energy_price1 || 0) ||
+    Number(formData.charge) !== getChargeValue(original) ||
     Number(formData.weal) !== Number(original.weal || 0)
   )
 }
@@ -577,7 +579,7 @@ const handleSave = async (agentId: number) => {
       bot_fee: formData.bot_fee,
       batch_flash: formData.batch_flash,
       bandwidth: formData.bandwidth,
-      energy_price1: formData.energy_price1,
+      charge: formData.charge,
       weal: formData.weal
     })
 

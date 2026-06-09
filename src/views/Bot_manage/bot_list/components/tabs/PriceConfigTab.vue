@@ -438,110 +438,26 @@ const priceSchema = reactive<FormSchema[]>([
     colProps: { span: 24 }
   },
   {
-    field: 'energy_price1',
+    field: 'charge',
     component: 'InputNumber' as const,
-    label: '工作日能量出售单价（SUN/天）',
+    label: '速充',
     componentProps: {
-      placeholder: '请输入工作日能量出售单价',
+      placeholder: '请输入速充价格',
       min: 0,
       precision: 2
     },
     formItemProps: {
       rules: [
-        { required: true, message: '工作日能量出售单价是必填项' },
-        createCostPriceValidator('energy_price1', '工作日能量出售单价')
+        { required: true, message: '速充价格是必填项' },
+        createCostPriceValidator('charge', '速充价格')
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.energy_price1
-          const costText = costPrice !== undefined ? `成本价: ${costPrice} SUN/天` : '成本价: N/A'
+          const costPrice = computedCostPrices.value.charge
+          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
           return (
             <>
-              工作日能量出售单价（SUN/天）
-              <small style="color: #909399; font-size: 10px;">（{costText}）</small>
-            </>
-          )
-        }
-      }
-    }
-  },
-  {
-    field: 'bandwidth_price1',
-    component: 'InputNumber' as const,
-    label: '工作日带宽出售单价（SUN/天）',
-    componentProps: {
-      placeholder: '请输入工作日带宽出售单价',
-      min: 0,
-      precision: 2
-    },
-    formItemProps: {
-      rules: [
-        { required: true, message: '工作日带宽出售单价是必填项' },
-        createCostPriceValidator('bandwidth_price1', '工作日带宽出售单价')
-      ],
-      slots: {
-        label: () => {
-          const costPrice = computedCostPrices.value.bandwidth_price1
-          const costText = costPrice !== undefined ? `成本价: ${costPrice} SUN/天` : '成本价: N/A'
-          return (
-            <>
-              工作日带宽出售单价（SUN/天）
-              <small style="color: #909399; font-size: 10px;">（{costText}）</small>
-            </>
-          )
-        }
-      }
-    }
-  },
-  {
-    field: 'energy_price2',
-    component: 'InputNumber' as const,
-    label: '节假日能量出售单价（SUN/天）',
-    componentProps: {
-      placeholder: '请输入节假日能量出售单价',
-      min: 0,
-      precision: 2
-    },
-    formItemProps: {
-      rules: [
-        { required: true, message: '节假日能量出售单价是必填项' },
-        createCostPriceValidator('energy_price2', '节假日能量出售单价')
-      ],
-      slots: {
-        label: () => {
-          const costPrice = computedCostPrices.value.energy_price2
-          const costText = costPrice !== undefined ? `成本价: ${costPrice} SUN/天` : '成本价: N/A'
-          return (
-            <>
-              节假日能量出售单价（SUN/天）
-              <small style="color: #909399; font-size: 10px;">（{costText}）</small>
-            </>
-          )
-        }
-      }
-    }
-  },
-  {
-    field: 'bandwidth_price2',
-    component: 'InputNumber' as const,
-    label: '节假日带宽出售单价（SUN/天）',
-    componentProps: {
-      placeholder: '请输入节假日带宽出售单价',
-      min: 0,
-      precision: 2
-    },
-    formItemProps: {
-      rules: [
-        { required: true, message: '节假日带宽出售单价是必填项' },
-        createCostPriceValidator('bandwidth_price2', '节假日带宽出售单价')
-      ],
-      slots: {
-        label: () => {
-          const costPrice = computedCostPrices.value.bandwidth_price2
-          const costText = costPrice !== undefined ? `成本价: ${costPrice} SUN/天` : '成本价: N/A'
-          return (
-            <>
-              节假日带宽出售单价（SUN/天）
+              速充
               <small style="color: #909399; font-size: 10px;">（{costText}）</small>
             </>
           )

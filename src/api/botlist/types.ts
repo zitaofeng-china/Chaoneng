@@ -104,10 +104,7 @@ export type SystemPrice = {
   trx_2_usdt: string // TRX转USDT价格
   usdt_2_trx: string // USDT转TRX价格
   batch_flash: string // 批量闪兑价格
-  energy_price1?: string // 速充工作日能量出售单价
-  bandwidth_price1?: string // 速充工作日带宽出售单价
-  energy_price2?: string // 速充节假日能量出售单价
-  bandwidth_price2?: string // 速充节假日带宽出售单价
+  charge?: string // 速充价格
   bot_fee: string // 机器人费用
   weal?: string // 福利1小时价格
 }
@@ -127,10 +124,7 @@ export type BotPriceConfig = {
   batch_flash: string // 批量下单能量单价
 
   // 速充配置
-  energy_price1: string // 工作日能量出售单价
-  bandwidth_price1: string // 工作日带宽出售单价
-  energy_price2: string // 节假日能量出售单价
-  bandwidth_price2: string // 节假日带宽出售单价
+  charge?: string // 速充价格
 
   // 闪租能量
   flash: string
@@ -274,10 +268,7 @@ export type UpdateBotPriceParams = {
   batch_flash?: number // 批量下单能量单价
 
   // 速充配置
-  energy_price1?: number // 工作日能量出售单价
-  bandwidth_price1?: number // 工作日带宽出售单价
-  energy_price2?: number // 节假日能量出售单价
-  bandwidth_price2?: number // 节假日带宽出售单价
+  charge?: number // 速充价格
 
   // 闪租能量
   flash?: number

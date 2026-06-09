@@ -39,6 +39,13 @@ export function useBotConfigV1() {
     4: null, // 时间能量
     5: null // 笔数能量
   })
+
+  const parsePriceValue = (value: unknown) => {
+    const numericValue = typeof value === 'number' ? value : parseFloat(String(value ?? '0'))
+    return Number.isFinite(numericValue) ? numericValue : 0
+  }
+
+  const getChargePrice = (priceData: Record<string, any>) => parsePriceValue(priceData.charge)
   // 缓存原始地址值（用于清空时调用删除接口）
   const addressRecordValues = reactive<Record<number, string>>({
     2: '',
@@ -194,24 +201,21 @@ export function useBotConfigV1() {
       // 保存成本价数据
       const systemPrice = systemPriceRes.data
       Object.assign(costPrices, {
-        flash: parseFloat(systemPrice.flash) || 0,
-        time_1h: parseFloat(systemPrice.time_1h) || 0,
-        time_1d: parseFloat(systemPrice.time_1d) || 0,
-        time_3d: parseFloat(systemPrice.time_3d) || 0,
-        time_7d: parseFloat(systemPrice.time_7d) || 0,
-        time_15d: parseFloat(systemPrice.time_15d) || 0,
-        time_30d: parseFloat(systemPrice.time_30d) || 0,
-        stroke: parseFloat(systemPrice.stroke) || 0,
-        hosting_65k: parseFloat(systemPrice.hosting_65k) || 0,
-        hosting_131k: parseFloat(systemPrice.hosting_131k) || 0,
-        batch_flash: parseFloat(systemPrice.batch_flash) || 0,
-        energy_price1: parseFloat(systemPrice.energy_price1 || '0') || 0,
-        bandwidth_price1: parseFloat(systemPrice.bandwidth_price1 || '0') || 0,
-        energy_price2: parseFloat(systemPrice.energy_price2 || '0') || 0,
-        bandwidth_price2: parseFloat(systemPrice.bandwidth_price2 || '0') || 0,
-        bandwidth: parseFloat(systemPrice.bandwidth || '0') || 0,
-        active: parseFloat(systemPrice.active) || 0,
-        weal: parseFloat(systemPrice.weal || '0') || 0
+        flash: parsePriceValue(systemPrice.flash),
+        time_1h: parsePriceValue(systemPrice.time_1h),
+        time_1d: parsePriceValue(systemPrice.time_1d),
+        time_3d: parsePriceValue(systemPrice.time_3d),
+        time_7d: parsePriceValue(systemPrice.time_7d),
+        time_15d: parsePriceValue(systemPrice.time_15d),
+        time_30d: parsePriceValue(systemPrice.time_30d),
+        stroke: parsePriceValue(systemPrice.stroke),
+        hosting_65k: parsePriceValue(systemPrice.hosting_65k),
+        hosting_131k: parsePriceValue(systemPrice.hosting_131k),
+        batch_flash: parsePriceValue(systemPrice.batch_flash),
+        charge: getChargePrice(systemPrice),
+        bandwidth: parsePriceValue(systemPrice.bandwidth),
+        active: parsePriceValue(systemPrice.active),
+        weal: parsePriceValue(systemPrice.weal)
       })
 
       // 保存当前价格配置
@@ -220,29 +224,26 @@ export function useBotConfigV1() {
 
       // 设置表单值
       formMethods.setValues({
-        flash: parseFloat(botPriceData.flash) || 0,
-        time_1h: parseFloat(botPriceData.time_1h) || 0,
-        time_1d: parseFloat(botPriceData.time_1d) || 0,
-        time_3d: parseFloat(botPriceData.time_3d) || 0,
-        time_7d: parseFloat(botPriceData.time_7d) || 0,
-        time_15d: parseFloat(botPriceData.time_15d) || 0,
-        time_30d: parseFloat(botPriceData.time_30d) || 0,
-        stroke: parseFloat(botPriceData.stroke) || 0,
-        stroke_usdt: parseFloat(botPriceData.stroke_usdt) || 0,
-        hosting_65k: parseFloat(botPriceData.hosting_65k) || 0,
-        hosting_131k: parseFloat(botPriceData.hosting_131k) || 0,
-        batch_flash: parseFloat(botPriceData.batch_flash) || 0,
-        energy_price1: parseFloat(botPriceData.energy_price1) || 0,
-        bandwidth_price1: parseFloat(botPriceData.bandwidth_price1) || 0,
-        energy_price2: parseFloat(botPriceData.energy_price2) || 0,
-        bandwidth_price2: parseFloat(botPriceData.bandwidth_price2) || 0,
-        active: parseFloat(botPriceData.active) || 0,
-        min_trx_balance: parseFloat(botPriceData.min_trx_balance) || 0,
-        usdt_2_trx: (parseFloat(botPriceData.usdt_2_trx) || 0) * 100,
-        max_usdt_2_trx: parseFloat(botPriceData.max_usdt_2_trx) || 0,
-        trx_2_usdt: (parseFloat(botPriceData.trx_2_usdt) || 0) * 100,
-        max_trx_2_usdt: parseFloat(botPriceData.max_trx_2_usdt) || 0,
-        weal: parseFloat(botPriceData.weal) || 0
+        flash: parsePriceValue(botPriceData.flash),
+        time_1h: parsePriceValue(botPriceData.time_1h),
+        time_1d: parsePriceValue(botPriceData.time_1d),
+        time_3d: parsePriceValue(botPriceData.time_3d),
+        time_7d: parsePriceValue(botPriceData.time_7d),
+        time_15d: parsePriceValue(botPriceData.time_15d),
+        time_30d: parsePriceValue(botPriceData.time_30d),
+        stroke: parsePriceValue(botPriceData.stroke),
+        stroke_usdt: parsePriceValue(botPriceData.stroke_usdt),
+        hosting_65k: parsePriceValue(botPriceData.hosting_65k),
+        hosting_131k: parsePriceValue(botPriceData.hosting_131k),
+        batch_flash: parsePriceValue(botPriceData.batch_flash),
+        charge: getChargePrice(botPriceData),
+        active: parsePriceValue(botPriceData.active),
+        min_trx_balance: parsePriceValue(botPriceData.min_trx_balance),
+        usdt_2_trx: parsePriceValue(botPriceData.usdt_2_trx) * 100,
+        max_usdt_2_trx: parsePriceValue(botPriceData.max_usdt_2_trx),
+        trx_2_usdt: parsePriceValue(botPriceData.trx_2_usdt) * 100,
+        max_trx_2_usdt: parsePriceValue(botPriceData.max_trx_2_usdt),
+        weal: parsePriceValue(botPriceData.weal)
       })
 
       return true
@@ -503,10 +504,7 @@ export function useBotConfigV1() {
         { field: 'hosting_65k', label: '65000能量', costKey: 'hosting_65k' },
         { field: 'hosting_131k', label: '131000能量', costKey: 'hosting_131k' },
         { field: 'batch_flash', label: '批量能量单价', costKey: 'batch_flash' },
-        { field: 'energy_price1', label: '工作日能量出售单价', costKey: 'energy_price1' },
-        { field: 'bandwidth_price1', label: '工作日带宽出售单价', costKey: 'bandwidth_price1' },
-        { field: 'energy_price2', label: '节假日能量出售单价', costKey: 'energy_price2' },
-        { field: 'bandwidth_price2', label: '节假日带宽出售单价', costKey: 'bandwidth_price2' },
+        { field: 'charge', label: '速充', costKey: 'charge' },
         { field: 'active', label: '激活地址单价', costKey: 'active' }
       ]
 
@@ -558,10 +556,7 @@ export function useBotConfigV1() {
         hosting_65k: priceData.hosting_65k || 0,
         hosting_131k: priceData.hosting_131k || 0,
         batch_flash: priceData.batch_flash || 0,
-        energy_price1: priceData.energy_price1 || 0,
-        bandwidth_price1: priceData.bandwidth_price1 || 0,
-        energy_price2: priceData.energy_price2 || 0,
-        bandwidth_price2: priceData.bandwidth_price2 || 0,
+        charge: priceData.charge || 0,
         active: priceData.active || 0,
         usdt_2_trx: (priceData.usdt_2_trx || 0) / 100,
         trx_2_usdt: (priceData.trx_2_usdt || 0) / 100,
