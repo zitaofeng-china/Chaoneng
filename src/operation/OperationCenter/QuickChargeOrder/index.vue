@@ -41,8 +41,8 @@ import {
   createPageParams,
   exportTableData,
   getStatusLabel,
-  getStatusTagType,
   hasSearchValue,
+  renderStatusTag,
   type TableSlot
 } from '@/utils/tableHelpers'
 import { getTelegramUserUrl } from '@/utils/telegram'
@@ -136,11 +136,8 @@ const columns: TableColumn[] = [
     label: '订单状态',
     width: 110,
     slots: {
-      default: ({ row }: QuickChargeTableSlot) => (
-        <ElTag type={getStatusTagType(QUICK_CHARGE_STATUS_MAP, row.status)} size="small">
-          {getStatusLabel(QUICK_CHARGE_STATUS_MAP, row.status)}
-        </ElTag>
-      )
+      default: ({ row }: QuickChargeTableSlot) =>
+        renderStatusTag(QUICK_CHARGE_STATUS_MAP, row.status)
     }
   },
   { field: 'remark', label: '备注', minWidth: 120 },

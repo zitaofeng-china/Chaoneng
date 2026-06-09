@@ -1,6 +1,8 @@
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleSuccessMessage } from '@/utils/messageHelper'
 import { formatToDateTime } from '@/utils/dateUtil'
+import { h } from 'vue'
+import { ElTag } from 'element-plus'
 
 export type TableTagType = 'success' | 'warning' | 'info' | 'primary' | 'danger'
 
@@ -149,7 +151,7 @@ export const dateRangeToSeconds = (dateRange?: DateRangeValue) => {
 
 export const getStatusLabel = (
   statusMap: Record<number, StatusMeta>,
-  status: number | string | undefined,
+  status: number | string | null | undefined,
   fallback = '-'
 ) => {
   if (status === undefined || status === null || status === '') return fallback
@@ -158,11 +160,22 @@ export const getStatusLabel = (
 
 export const getStatusTagType = (
   statusMap: Record<number, StatusMeta>,
-  status: number | string | undefined,
+  status: number | string | null | undefined,
   fallback: TableTagType = 'info'
 ) => {
   if (status === undefined || status === null || status === '') return fallback
   return statusMap[Number(status)]?.type || fallback
+}
+
+export const renderStatusTag = (
+  statusMap: Record<number, StatusMeta>,
+  status: number | string | null | undefined,
+  fallback = '-',
+  size: 'default' | 'small' | 'large' = 'small'
+) => {
+  return h(ElTag, { type: getStatusTagType(statusMap, status), size }, () =>
+    getStatusLabel(statusMap, status, fallback)
+  )
 }
 
 export type SelectOption<T extends string | number | undefined = string | number | undefined> = {

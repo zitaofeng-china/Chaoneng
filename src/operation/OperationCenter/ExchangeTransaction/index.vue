@@ -34,7 +34,7 @@
 
 <script setup lang="tsx">
 import { ref, reactive } from 'vue'
-import { ElTag, ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { SearchTable } from '@/components/SearchTable'
 import type { SearchTableExpose } from '@/components/SearchTable'
 import type { TableColumn } from '@/components/Table'
@@ -56,8 +56,8 @@ import {
   exportTableData,
   formatTableDateTime,
   getStatusLabel,
-  getStatusTagType,
   hasSearchValue,
+  renderStatusTag,
   type DateRangeValue,
   type TableSlot
 } from '@/utils/tableHelpers'
@@ -227,13 +227,8 @@ const columns = reactive<TableColumn[]>([
     label: '交易状态',
     minWidth: 100,
     slots: {
-      default: ({ row }: ExchangeTableSlot) => {
-        return (
-          <ElTag type={getStatusTagType(EXCHANGE_STATUS_MAP, row.status)}>
-            {getStatusLabel(EXCHANGE_STATUS_MAP, row.status, '未知')}
-          </ElTag>
-        )
-      }
+      default: ({ row }: ExchangeTableSlot) =>
+        renderStatusTag(EXCHANGE_STATUS_MAP, row.status, '未知')
     }
   },
   {
