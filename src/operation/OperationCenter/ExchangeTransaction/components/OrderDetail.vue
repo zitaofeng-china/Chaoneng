@@ -60,6 +60,7 @@ import {
 import Icon from '@/components/Icon/src/Icon.vue'
 import { handleErrorMessage } from '@/utils/messageHelper'
 import { formatTableDateTime, getStatusLabel, getStatusTagType } from '@/utils/tableHelpers'
+import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import { ExchangeOrderType, getExchangeOrderType } from '@/utils/exchangeOrder'
 import { EXCHANGE_STATUS_MAP } from '../constants'
 
@@ -226,7 +227,7 @@ const transactionInSchema = computed<DescriptionsSchema[]>(() => [
         return h(
           ElLink,
           {
-            href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${txid}`,
+            href: getTronscanTransactionUrl(txid),
             type: 'primary',
             target: '_blank'
           },
@@ -279,7 +280,7 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
         return h(
           ElLink,
           {
-            href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${txid}`,
+            href: getTronscanTransactionUrl(txid),
             type: 'primary',
             target: '_blank'
           },

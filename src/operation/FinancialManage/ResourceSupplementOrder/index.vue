@@ -52,6 +52,7 @@ import {
   type DateRangeValue,
   type TableSlot
 } from '@/utils/tableHelpers'
+import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import {
   RESOURCE_SUPPLEMENT_KIND_SEARCH_OPTIONS,
   RESOURCE_SUPPLEMENT_SOURCE_SEARCH_OPTIONS,
@@ -66,7 +67,6 @@ type ChargeLogSearchParams = Omit<ChargeLogParams, 'status'> & {
 type ChargeLogTableSlot = TableSlot<ChargeLogItem>
 
 const searchTableRef = ref<SearchTableExpose>()
-const tronscanUrl = import.meta.env.VITE_TRONSCAN_URL || 'https://tronscan.org'
 
 const renderTxidLink = (txid?: string) => {
   if (!txid) return h('span', '-')
@@ -74,7 +74,7 @@ const renderTxidLink = (txid?: string) => {
     ElLink,
     {
       type: 'primary',
-      href: `${tronscanUrl}/#/transaction/${txid}`,
+      href: getTronscanTransactionUrl(txid),
       target: '_blank'
     },
     () => '查看'

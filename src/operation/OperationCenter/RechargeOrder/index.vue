@@ -73,6 +73,7 @@ import {
   hasSearchValue,
   type TableSlot
 } from '@/utils/tableHelpers'
+import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import { RECHARGE_COIN_OPTIONS } from './constants'
 
 const router = useRouter()
@@ -207,11 +208,7 @@ const rechargeDetailSchema = computed(() => {
         default: (row: V2PayTransaction) => {
           if (!row || !row.id) return h('span', '-')
           return (
-            <ElLink
-              href={`${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${row.id}`}
-              type="primary"
-              target="_blank"
-            >
+            <ElLink href={getTronscanTransactionUrl(row.id)} type="primary" target="_blank">
               {row.id}
             </ElLink>
           )

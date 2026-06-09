@@ -6,6 +6,7 @@ import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
 import { formatTableDateTime, type TableSlot, type TableTagType } from '@/utils/tableHelpers'
+import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import type { QuickChargeOrderDetail, QuickChargeResource } from '../../types'
 
 const props = withDefaults(defineProps<{ orderData: QuickChargeOrderDetail | null }>(), {
@@ -100,7 +101,7 @@ const resourceTableSchema = computed((): TableColumn[] => [
               h(
                 'a',
                 {
-                  href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${row.delegated_txid}`,
+                  href: getTronscanTransactionUrl(row.delegated_txid),
                   target: '_blank',
                   style: 'color: #409eff; cursor: pointer; text-decoration: none;'
                 },
@@ -130,7 +131,7 @@ const resourceTableSchema = computed((): TableColumn[] => [
               h(
                 'a',
                 {
-                  href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${row.recycled_txid}`,
+                  href: getTronscanTransactionUrl(row.recycled_txid),
                   target: '_blank',
                   style: 'color: #409eff; cursor: pointer; text-decoration: none;'
                 },

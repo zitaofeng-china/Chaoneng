@@ -57,7 +57,7 @@
               <ElLink
                 v-if="row.txid"
                 type="primary"
-                :href="`${tronscanUrl}/#/transaction/${row.txid}`"
+                :href="getTronscanTransactionUrl(row.txid)"
                 target="_blank"
               >
                 查看
@@ -126,14 +126,13 @@ import {
 import { Dialog } from '@/components/Dialog'
 import { handleErrorMessage } from '@/utils/messageHelper'
 import { formatTableDateTime, getStatusLabel, getStatusTagType } from '@/utils/tableHelpers'
+import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import {
   v2GetSettlementRecordList,
   type V2ResourceOrderItem,
   type V2SettlementRecordItem
 } from '@/api/opertion/FinancialManage/ResourceOrder'
 import { SETTLEMENT_RECORD_STATUS_MAP } from '../../constants'
-
-const tronscanUrl = import.meta.env.VITE_TRONSCAN_URL || 'https://tronscan.org'
 
 // 将纳秒时长（后端单位）转换为 天+小时+分钟 格式
 const formatDuration = (ns: number): string => {

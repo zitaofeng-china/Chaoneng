@@ -6,6 +6,7 @@ import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
 import { formatTableDateTime, type TableSlot } from '@/utils/tableHelpers'
+import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import type {
   V2OrderActivation,
   V2OrderDetailResponse
@@ -70,7 +71,7 @@ const activationTableSchema = computed((): TableColumn[] => [
               h(
                 'a',
                 {
-                  href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${row.actived_txid}`,
+                  href: getTronscanTransactionUrl(row.actived_txid),
                   target: '_blank',
                   style: 'color: #409eff; cursor: pointer; text-decoration: none;'
                 },
