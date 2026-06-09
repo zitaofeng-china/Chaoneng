@@ -51,6 +51,7 @@ import { SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'
 import {
   buildBackendOrder,
   createDefaultDateTimeRange,
+  createPageParams,
   exportTableData,
   hasSearchValue
 } from '@/utils/tableHelpers'
@@ -189,8 +190,7 @@ const fetchDataWrapper = async (
     selectedSource.value = params.origin ?? ''
 
     const apiParams: EnergyListParams = {
-      current_page: params.current_page || 1,
-      page_size: params.page_size || 10,
+      ...createPageParams(params),
       ...buildEnergyListParams(params)
     }
 

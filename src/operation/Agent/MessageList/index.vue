@@ -219,7 +219,12 @@ import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
 import AdvancedSettingsDialog from './components/AdvancedSettingsDialog.vue'
 import VideoPreviewDialog from '@/operation/components/MessageDialog/components/VideoPreviewDialog.vue'
 import { getErrorMessage, handleErrorMessage } from '@/utils/messageHelper'
-import { formatTableDateTime, hasSearchValue, withAllOption } from '@/utils/tableHelpers'
+import {
+  createPageParams,
+  formatTableDateTime,
+  hasSearchValue,
+  withAllOption
+} from '@/utils/tableHelpers'
 
 interface BotOption {
   label: string
@@ -233,8 +238,7 @@ type MessageSearchParams = Omit<MassSendListParamsV1, 'bot_id' | 'kind'> & {
 
 const buildMessageListParams = (params: MessageSearchParams = {}): MassSendListParamsV1 => {
   const queryParams: MassSendListParamsV1 = {
-    current_page: Number(params.current_page) || 1,
-    page_size: Number(params.page_size) || 10
+    ...createPageParams(params)
   }
 
   if (hasSearchValue(params.bot_id) && Number(params.bot_id) !== 0) {

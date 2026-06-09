@@ -51,7 +51,12 @@ import {
 } from './constants'
 import { isPermission } from '@/utils/is'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import { formatTableDateTime, hasSearchValue, withAllOption } from '@/utils/tableHelpers'
+import {
+  createPageParams,
+  formatTableDateTime,
+  hasSearchValue,
+  withAllOption
+} from '@/utils/tableHelpers'
 const formRef = ref<InstanceType<typeof ResourcePoolAccountForm>>()
 const searchTableRef = ref<InstanceType<typeof SearchTable>>()
 
@@ -188,8 +193,7 @@ const searchSchema = reactive<FormSchema[]>([
 const getResourcePoolData = async (params: ResourcePoolSearchParams = {}) => {
   try {
     const apiParams: V2PoolListParams = {
-      current_page: params.current_page || 1,
-      page_size: params.page_size || 10
+      ...createPageParams(params)
     }
 
     if (params.keyword) {

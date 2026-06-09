@@ -165,7 +165,7 @@ import {
   type MessageAgentItem,
   type MessageBotItem
 } from '@/api/opertion/common/message'
-import { formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
+import { createPageParams, formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
 import {
   ALLOWED_PAYMENT_ADDRESS_KINDS,
   PAYMENT_ADDRESS_KIND_MAP,
@@ -405,8 +405,7 @@ const searchSchema = reactive<FormSchema[]>([
 const fetchData = async (params: AddressSearchParams = {}) => {
   try {
     const processedParams: V2AddressListParams = {
-      current_page: params.current_page || 1,
-      page_size: params.page_size || 10
+      ...createPageParams(params)
     }
     if (params.keyword) {
       processedParams.keyword = params.keyword.replace(/\s*[\(（].*$/g, '').trim()
