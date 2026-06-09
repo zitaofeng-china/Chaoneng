@@ -170,6 +170,7 @@ import {
 } from '@/api/opertion/common/menuList'
 import { getErrorMessage } from '@/utils/messageHelper'
 import { formatTableDateTime } from '@/utils/tableHelpers'
+import type { SelectOption } from '@/utils/tableHelpers'
 
 type InlineButtonType = 'url' | 'call'
 
@@ -222,7 +223,7 @@ const formatTimestamp = (timestamp: number): string => {
 }
 
 // 表单相关
-const callbackList = ref<Array<{ label: string; value: string }>>([])
+const callbackList = ref<SelectOption<string>[]>([])
 const formDialogVisible = ref(false)
 const formDialogTitle = ref('添加内联按钮')
 const formRef = ref<FormInstance>()

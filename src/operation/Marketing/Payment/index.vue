@@ -173,6 +173,7 @@ import {
   PAYMENT_AGENT_BALANCE_ADDRESS_KIND,
   PAYMENT_MULTI_ADDRESS_KINDS
 } from '../constants'
+import type { SelectOption } from '@/utils/tableHelpers'
 
 // 表格和表单引用
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null) // SearchTable 引用
@@ -182,8 +183,11 @@ const addressDialogVisible = ref(false)
 const addressDialogMode = ref<'add' | 'edit'>('add')
 const currentAddress = ref<V2AddressItem | null>(null)
 const addressFormRef = ref<FormInstance>()
-const agentList = ref<Array<{ label: string; value: number }>>([])
-const botList = ref<Array<{ label: string; value: number; agent_id: number }>>([])
+type AgentOption = SelectOption<number>
+type BotOption = SelectOption<number> & { agent_id: number }
+
+const agentList = ref<AgentOption[]>([])
+const botList = ref<BotOption[]>([])
 
 type AddressSearchParams = Omit<V2AddressListParams, 'kind'> & {
   kind?: number | string

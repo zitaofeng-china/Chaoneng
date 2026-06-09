@@ -51,6 +51,7 @@
 import { computed, watch, ref, type PropType } from 'vue'
 import { ElFormItem, ElRadioGroup, ElRadio, ElInput, ElSelectV2, ElMessage } from 'element-plus'
 import { v1GetMessageUserList } from '@/api/opertion/common/message'
+import type { SelectOption } from '@/utils/tableHelpers'
 
 const props = defineProps({
   filterType: {
@@ -86,7 +87,7 @@ const props = defineProps({
 const emit = defineEmits(['update:filterType', 'update:userList'])
 
 const loadingUsers = ref(false)
-const userOptions = ref<Array<{ label: string; value: number }>>([])
+const userOptions = ref<SelectOption<number>[]>([])
 
 const selectedUserIds = computed(() => {
   if (!props.userList) return []

@@ -25,11 +25,9 @@
 <script setup lang="ts">
 import { computed, type PropType } from 'vue'
 import { ElFormItem, ElInput, ElSelect, ElOption } from 'element-plus'
+import type { SelectOption } from '@/utils/tableHelpers'
 
-interface BotOption {
-  label: string
-  value: number | string
-}
+type BotOption = SelectOption<number | string>
 
 const props = defineProps({
   modelValue: {

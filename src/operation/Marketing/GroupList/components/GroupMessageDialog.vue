@@ -219,6 +219,7 @@ import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
 import { getMessageFileType } from '@/operation/components/MessageDialog/utils'
 import { getChatTypeText } from '@/operation/utils/chat'
 import type { MessagePreviewData } from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
+import type { SelectOption } from '@/utils/tableHelpers'
 
 interface GroupMessageTarget {
   id: number | string
@@ -228,7 +229,7 @@ interface GroupMessageTarget {
   bot_user_name?: string
 }
 
-type BotOption = { label: string; value: number | string }
+type BotOption = SelectOption<number | string>
 type InlineButtonSelection = number | string
 type PreviewButton = { id: number; text: string; url?: string }
 

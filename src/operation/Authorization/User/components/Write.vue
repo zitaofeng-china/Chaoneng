@@ -10,6 +10,7 @@ import { getRoleListApi } from '@/api/opertion/Authorization/common/role'
 import type { RoleItem } from '@/api/opertion/Authorization/common/role'
 import type { ManageUserItem } from '@/api/opertion/Authorization/User'
 import { handleErrorMessage } from '@/utils/messageHelper'
+import type { SelectOption } from '@/utils/tableHelpers'
 
 const { t } = useI18n()
 
@@ -43,7 +44,7 @@ const emit = defineEmits(['success', 'closed'])
 
 const dialogVisible = ref(false)
 
-const roleOptions = ref<{ label: string; value: number | string }[]>([])
+const roleOptions = ref<SelectOption<number | string>[]>([])
 const roleOptionsLoading = ref(false)
 
 const fetchRoleOptions = async () => {
