@@ -51,7 +51,8 @@ import {
   getStatusLabel,
   getStatusTagType,
   hasSearchValue,
-  withAllOption
+  withAllOption,
+  type SelectOption
 } from '@/utils/tableHelpers'
 import SettlementRecordDialog from './components/SettlementRecordDialog.vue'
 import {
@@ -66,7 +67,7 @@ const settlementRecordDialogRef = ref<InstanceType<typeof SettlementRecordDialog
 
 type ResourceOrderTableSlot = { row: V2ResourceOrderItem }
 type ResourceOrderSearchParams = V2ResourceOrderListParams & Recordable
-type BotOption = { label: string; value: number | string }
+type BotOption = SelectOption<number | string>
 
 const getResourceOrderKindText = (kind: number) => {
   return RESOURCE_ORDER_KIND_MAP[kind] || getEnergyOrderKindText(kind) || String(kind || '-')

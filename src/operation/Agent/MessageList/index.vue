@@ -223,14 +223,12 @@ import {
   createPageParams,
   formatTableDateTime,
   hasSearchValue,
-  withAllOption
+  withAllOption,
+  type SelectOption
 } from '@/utils/tableHelpers'
 import { MESSAGE_SEND_KIND_OPTIONS } from '../constants'
 
-interface BotOption {
-  label: string
-  value: number
-}
+type BotOption = SelectOption<number>
 
 type MessageSearchParams = Omit<MassSendListParamsV1, 'bot_id' | 'kind'> & {
   bot_id?: number | string

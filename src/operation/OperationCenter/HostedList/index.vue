@@ -38,16 +38,14 @@ import {
   createPageParams,
   formatTableDateTime,
   hasSearchValue,
-  withAllOption
+  withAllOption,
+  type SelectOption
 } from '@/utils/tableHelpers'
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const currentRowForDelete = ref<HostingItemV2 | null>(null)
 
-interface BotOption {
-  label: string
-  value: number | string
-}
+type BotOption = SelectOption<number | string>
 
 const botOptions = ref<BotOption[]>([])
 const isBotOptionsLoaded = ref(false)

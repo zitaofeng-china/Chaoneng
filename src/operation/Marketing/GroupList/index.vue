@@ -35,7 +35,8 @@ import {
   createPageParams,
   dateRangeToSeconds,
   formatTableDateTime,
-  hasSearchValue
+  hasSearchValue,
+  type SelectOption
 } from '@/utils/tableHelpers'
 import { getErrorMessage } from '@/utils/messageHelper'
 import {
@@ -57,7 +58,7 @@ type ChatTableSlot = { row: ChatRow }
 type ChatSearchParams = ChatListParams & {
   date_range?: [string | number, string | number]
 }
-type BotOption = { label: string; value: number }
+type BotOption = SelectOption<number>
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const broadcastUpdatingMap = reactive<Record<string, boolean>>({})
