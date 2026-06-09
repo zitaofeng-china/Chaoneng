@@ -16,9 +16,8 @@ export const QUICK_CHARGE_BOT_OPTIONS = withAllOption([
 ])
 
 export const QUICK_CHARGE_STATUS_MAP: Record<number, StatusMeta> = {
-  1: { label: '进行中', type: 'primary' },
-  2: { label: '已完成', type: 'success' },
-  3: { label: '已取消', type: 'info' }
+  1: { label: '成功', type: 'success' },
+  2: { label: '失败', type: 'danger' }
 }
 
 export const QUICK_CHARGE_STATUS_OPTIONS = createStatusOptions(QUICK_CHARGE_STATUS_MAP)
