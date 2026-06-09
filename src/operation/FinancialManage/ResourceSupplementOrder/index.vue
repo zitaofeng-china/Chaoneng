@@ -32,7 +32,7 @@ import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
-import type { SearchTableExpose } from '@/components/SearchTable/src/types'
+import type { SearchTableExpose } from '@/components/SearchTable'
 import { getChargeLogList } from '@/api/opertion/FinancialManage/common/charge'
 import type {
   ChargeLogItem,

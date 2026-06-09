@@ -36,8 +36,8 @@
 import { ref, reactive } from 'vue'
 import { ElTag, ElMessage, ElMessageBox } from 'element-plus'
 import { SearchTable } from '@/components/SearchTable'
-import type { SearchTableExpose } from '@/components/SearchTable/src/types'
-import type { TableColumn } from '@/components/Table/src/types'
+import type { SearchTableExpose } from '@/components/SearchTable'
+import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import OrderDetail from './components/OrderDetail.vue'
 import {

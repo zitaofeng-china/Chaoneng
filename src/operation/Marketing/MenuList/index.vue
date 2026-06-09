@@ -57,7 +57,7 @@ import { Form } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
-import type { SearchTableExpose } from '@/components/SearchTable/src/types'
+import type { SearchTableExpose } from '@/components/SearchTable'
 import {
   getBotMenuList,
   addBotMenu,
