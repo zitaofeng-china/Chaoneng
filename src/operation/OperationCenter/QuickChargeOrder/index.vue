@@ -38,6 +38,7 @@ import type { FormSchema } from '@/components/Form'
 import type { SearchTableExpose } from '@/components/SearchTable'
 import { handleListMessage } from '@/utils/messageHelper'
 import {
+  createPageParams,
   exportTableData,
   getStatusLabel,
   getStatusTagType,
@@ -218,8 +219,7 @@ const filterSampleList = (params: QuickChargeSearchParams = {}) => {
 }
 
 const fetchSampleList = async (params: QuickChargeSearchParams = {}) => {
-  const currentPage = Number(params.current_page) || 1
-  const pageSize = Number(params.page_size) || 10
+  const { current_page: currentPage, page_size: pageSize } = createPageParams(params)
   const filteredList = filterSampleList(params)
   const start = (currentPage - 1) * pageSize
   const list = filteredList.slice(start, start + pageSize)
