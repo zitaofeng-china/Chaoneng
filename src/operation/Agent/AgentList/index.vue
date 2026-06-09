@@ -111,6 +111,7 @@ import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/u
 import {
   createStatusOptions,
   createDefaultDateTimeRange,
+  createPageParams,
   dateRangeToSeconds,
   exportTableData,
   formatTableDateTime,
@@ -224,8 +225,7 @@ const buildAgentListParams = (
   pageSize?: number
 ): AgentQueryParams => {
   const apiParams: AgentQueryParams = {
-    current_page: Number(params.current_page) || 1,
-    page_size: (pageSize ?? Number(params.page_size)) || 8
+    ...createPageParams(params, 8, pageSize)
   }
 
   if (params.keyword) apiParams.keyword = params.keyword

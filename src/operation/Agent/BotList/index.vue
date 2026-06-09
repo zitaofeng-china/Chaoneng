@@ -42,6 +42,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import {
   createStatusOptions,
+  createPageParams,
   exportTableData,
   formatTableDateTime,
   getStatusLabel,
@@ -81,8 +82,7 @@ const buildAgentBotParams = (
   pageSize?: number
 ): AgentBotQueryParams => {
   const apiParams: AgentBotQueryParams = {
-    current_page: Number(params.current_page) || 1,
-    page_size: (pageSize ?? Number(params.page_size)) || 10
+    ...createPageParams(params, 10, pageSize)
   }
 
   if (params.keyword) apiParams.keyword = params.keyword

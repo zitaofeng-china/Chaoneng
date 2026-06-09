@@ -67,6 +67,7 @@ import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
 import { getStatusText, getStatusType, ORDER_STATUS_OPTIONS } from '@/utils/orderStatus'
 import { getSourceText, SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'
 import {
+  createPageParams,
   exportTableData,
   formatTableDateTime,
   hasSearchValue,
@@ -96,8 +97,7 @@ const buildDepositListParams = (
   pageSize?: number
 ): V2DepositListParams => {
   const adaptedParams: V2DepositListParams = {
-    current_page: Number(params.current_page) || 1,
-    page_size: (pageSize ?? Number(params.page_size)) || 10
+    ...createPageParams(params, 10, pageSize)
   }
 
   if (params.keyword) adaptedParams.keyword = params.keyword

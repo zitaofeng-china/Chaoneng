@@ -79,6 +79,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
 import {
   createDefaultDateTimeRange,
+  createPageParams,
   dateRangeToSeconds,
   exportTableData,
   formatTableDateTime,
@@ -129,8 +130,7 @@ const searchTableRef = ref<SearchTableExpose | null>(null)
 
 const buildUserListParams = (params: UserSearchParams = {}, pageSize?: number): UserListParams => {
   const apiParams: UserListParams = {
-    current_page: Number(params.current_page) || 1,
-    page_size: (pageSize ?? Number(params.page_size)) || 10
+    ...createPageParams(params, 10, pageSize)
   }
 
   if (params.keyword) apiParams.keyword = params.keyword
