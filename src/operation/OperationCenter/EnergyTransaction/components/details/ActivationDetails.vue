@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, h } from 'vue'
-import { ElTag } from 'element-plus'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
 import { formatTableDateTime, type TableSlot } from '@/utils/tableHelpers'
+import { renderActivationStatusTag } from '@/operation/OperationCenter/utils/activationStatus'
 import { renderTronscanTransactionLink } from '@/operation/OperationCenter/utils/transactionLink'
 import { useLocalPagination } from '@/operation/OperationCenter/utils/useLocalPagination'
 import type {
@@ -43,10 +43,7 @@ const activationTableSchema = computed((): TableColumn[] => [
     width: 100,
     slots: {
       default: ({ row }: ActivationTableSlot) => {
-        const hasActivated = row.actived_txid && row.actived_txid.trim() !== ''
-        const text = hasActivated ? '已激活' : '待激活'
-        const type = hasActivated ? 'success' : 'warning'
-        return h(ElTag, { type, size: 'small' }, () => text)
+        return renderActivationStatusTag(row.actived_txid)
       }
     }
   },
