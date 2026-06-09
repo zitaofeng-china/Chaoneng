@@ -62,6 +62,7 @@ import { handleErrorMessage } from '@/utils/messageHelper'
 import { formatTableDateTime, getStatusLabel, getStatusTagType } from '@/utils/tableHelpers'
 import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import { ExchangeOrderType, getExchangeOrderType } from '@/utils/exchangeOrder'
+import { renderNullableText } from '@/operation/OperationCenter/utils/displayText'
 import { EXCHANGE_STATUS_MAP } from '../constants'
 
 const visible = ref(false)
@@ -83,10 +84,6 @@ const formatAmount = (amount: string | number | undefined) => {
 
 const formatNullableDateTime = (value?: string | number | null) => {
   return formatTableDateTime(value)
-}
-
-const renderText = (value: string | number | null | undefined, fallback = '-') => {
-  return h('span', value === undefined || value === null || value === '' ? fallback : String(value))
 }
 
 const isUsdtToTrx = (data?: V2ExchangeDetail | null) => {
@@ -240,13 +237,13 @@ const transactionInSchema = computed<DescriptionsSchema[]>(() => [
     field: 'pay_transaction',
     label: '发送人',
     span: 24,
-    slots: { default: (row: V2ExchangeDetail) => renderText(row?.pay_transaction?.from) }
+    slots: { default: (row: V2ExchangeDetail) => renderNullableText(row?.pay_transaction?.from) }
   },
   {
     field: 'pay_transaction',
     label: '接收人',
     span: 24,
-    slots: { default: (row: V2ExchangeDetail) => renderText(row?.pay_transaction?.to) }
+    slots: { default: (row: V2ExchangeDetail) => renderNullableText(row?.pay_transaction?.to) }
   },
   {
     field: 'amount',
@@ -263,7 +260,7 @@ const transactionInSchema = computed<DescriptionsSchema[]>(() => [
     label: '转出时间',
     slots: {
       default: (row: V2ExchangeDetail) =>
-        renderText(formatNullableDateTime(row?.pay_transaction?.time))
+        renderNullableText(formatNullableDateTime(row?.pay_transaction?.time))
     }
   }
 ])
@@ -294,7 +291,7 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
     label: '发送人',
     span: 24,
     slots: {
-      default: (row: V2ExchangeDetail) => renderText(row?.deliver_transaction?.from)
+      default: (row: V2ExchangeDetail) => renderNullableText(row?.deliver_transaction?.from)
     }
   },
   {
@@ -302,7 +299,7 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
     label: '接收人',
     span: 24,
     slots: {
-      default: (row: V2ExchangeDetail) => renderText(row?.deliver_transaction?.to)
+      default: (row: V2ExchangeDetail) => renderNullableText(row?.deliver_transaction?.to)
     }
   },
   {
@@ -321,7 +318,7 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
     label: '接收时间',
     slots: {
       default: (row: V2ExchangeDetail) =>
-        renderText(formatNullableDateTime(row?.deliver_transaction?.time))
+        renderNullableText(formatNullableDateTime(row?.deliver_transaction?.time))
     }
   }
 ])
