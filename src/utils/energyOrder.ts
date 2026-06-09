@@ -173,10 +173,10 @@ export function calculateEnergyRentText(
  * @param amount 能量数量
  * @returns 格式化后的字符串
  */
-export function formatEnergyAmount(amount: string | number | undefined): string {
-  if (amount === undefined || amount === null || amount === '') return '-'
+export function formatEnergyAmount(amount: string | number | undefined, fallback = '-'): string {
+  if (amount === undefined || amount === null || amount === '') return fallback
   const num = typeof amount === 'string' ? parseFloat(amount) : amount
-  if (isNaN(num)) return '-'
+  if (isNaN(num)) return fallback
   return num.toLocaleString('en-US')
 }
 

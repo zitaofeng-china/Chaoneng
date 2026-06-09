@@ -5,7 +5,11 @@ import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
-import { getResourceTypeTagType, getResourceTypeText } from '@/utils/energyOrder'
+import {
+  formatEnergyAmount,
+  getResourceTypeTagType,
+  getResourceTypeText
+} from '@/utils/energyOrder'
 import { formatTableDateTime, type TableSlot } from '@/utils/tableHelpers'
 import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import type {
@@ -66,7 +70,7 @@ const resourceTableSchema = computed((): TableColumn[] => [
     label: '数量',
     align: 'center',
     width: 120,
-    formatter: (row: V2OrderResource) => (row.amount ? row.amount.toLocaleString() : '0')
+    formatter: (row: V2OrderResource) => formatEnergyAmount(row.amount, '0')
   },
   {
     field: 'target',

@@ -5,7 +5,11 @@ import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
-import { getResourceTypeTagType, getResourceTypeText } from '@/utils/energyOrder'
+import {
+  formatEnergyAmount,
+  getResourceTypeTagType,
+  getResourceTypeText
+} from '@/utils/energyOrder'
 import { formatTableDateTime, type TableSlot } from '@/utils/tableHelpers'
 import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import type { QuickChargeOrderDetail, QuickChargeResource } from '../../types'
@@ -63,8 +67,7 @@ const resourceTableSchema = computed((): TableColumn[] => [
     label: '数量',
     align: 'center',
     width: 120,
-    formatter: (row: QuickChargeResource) =>
-      typeof row.amount === 'number' ? row.amount.toLocaleString() : row.amount || '0'
+    formatter: (row: QuickChargeResource) => formatEnergyAmount(row.amount, '0')
   },
   {
     field: 'target',
