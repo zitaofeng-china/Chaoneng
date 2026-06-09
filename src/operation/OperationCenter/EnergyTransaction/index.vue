@@ -48,7 +48,12 @@ import { useRoute } from 'vue-router'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import { ORDER_STATUS_OPTIONS } from '@/utils/orderStatus'
 import { SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'
-import { buildBackendOrder, exportTableData, hasSearchValue } from '@/utils/tableHelpers'
+import {
+  buildBackendOrder,
+  createDefaultDateTimeRange,
+  exportTableData,
+  hasSearchValue
+} from '@/utils/tableHelpers'
 import { ENERGY_ORDER_KIND_OPTIONS } from '@/utils/energyOrder'
 import { getFilteredColumns } from './columns'
 import {
@@ -172,10 +177,7 @@ const searchSchema = [
       valueFormat: 'x',
       startPlaceholder: '开始日期',
       endPlaceholder: '结束日期',
-      defaultTime: [
-        new Date(2000, 1, 1, 0, 0, 0), // 开始时间默认为 00:00:00
-        new Date(2000, 1, 1, 23, 59, 59) // 结束时间默认为 23:59:59
-      ]
+      defaultTime: createDefaultDateTimeRange()
     }
   }
 ]

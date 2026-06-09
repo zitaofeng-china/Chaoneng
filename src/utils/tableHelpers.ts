@@ -10,6 +10,7 @@ export interface StatusMeta {
 }
 
 type DateRangeValue = [number | string | Date, number | string | Date]
+type DateTimeRangeValue = [Date, Date]
 
 interface SearchMethodsLike {
   getFormData?: () => Promise<Recordable | undefined>
@@ -40,6 +41,11 @@ const unwrapRef = <T>(value: T | RefLike<T>): T | undefined => {
 
 export const hasSearchValue = (value: unknown) =>
   value !== undefined && value !== null && value !== ''
+
+export const createDefaultDateTimeRange = (): DateTimeRangeValue => [
+  new Date(2000, 1, 1, 0, 0, 0),
+  new Date(2000, 1, 1, 23, 59, 59)
+]
 
 type DateTimeValue = number | string | Date | null | undefined
 

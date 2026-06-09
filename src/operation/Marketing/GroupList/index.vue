@@ -31,6 +31,7 @@ import { BaseButton } from '@/components/Button'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import {
+  createDefaultDateTimeRange,
   dateRangeToSeconds,
   formatTableDateTime,
   hasSearchValue,
@@ -127,7 +128,7 @@ const searchSchema = reactive<FormSchema[]>([
       format: 'YYYY-MM-DD HH:mm:ss',
       valueFormat: 'x',
       style: { width: '240px' },
-      defaultTime: [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
+      defaultTime: createDefaultDateTimeRange()
     }
   }
 ])

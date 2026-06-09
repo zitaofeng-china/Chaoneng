@@ -78,6 +78,7 @@ import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/
 import { useRoute, useRouter } from 'vue-router'
 import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
 import {
+  createDefaultDateTimeRange,
   dateRangeToSeconds,
   exportTableData,
   formatTableDateTime,
@@ -423,7 +424,7 @@ const searchSchema = computed<FormSchema[]>(() => [
       valueFormat: 'x',
       startPlaceholder: '开始日期',
       endPlaceholder: '结束日期',
-      defaultTime: [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
+      defaultTime: createDefaultDateTimeRange()
     }
   }
 ])

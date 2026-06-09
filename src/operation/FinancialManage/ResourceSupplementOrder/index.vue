@@ -42,6 +42,7 @@ import type {
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 import {
   createStatusOptions,
+  createDefaultDateTimeRange,
   dateRangeToSeconds,
   exportTableData,
   formatTableDateTime,
@@ -233,7 +234,7 @@ const searchSchema = ref<FormSchema[]>([
       valueFormat: 'x',
       startPlaceholder: '开始时间',
       endPlaceholder: '结束时间',
-      defaultTime: [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
+      defaultTime: createDefaultDateTimeRange()
     }
   }
 ])
