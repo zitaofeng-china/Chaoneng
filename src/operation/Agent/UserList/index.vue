@@ -67,7 +67,7 @@ import { SearchTable } from '@/components/SearchTable'
 import type { SearchTableExpose } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
-import { FormSchema } from '@/components/Form'
+import type { FormSchema } from '@/components/Form'
 import type { TableColumn } from '@/components/Table'
 import {
   v1GetUserList,

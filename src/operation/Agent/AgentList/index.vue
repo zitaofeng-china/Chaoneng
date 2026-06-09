@@ -91,8 +91,8 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { SearchTable } from '@/components/SearchTable'
 import type { SearchTableExpose } from '@/components/SearchTable'
-import { FormSchema } from '@/components/Form'
-import { TableColumn } from '@/components/Table'
+import type { FormSchema } from '@/components/Form'
+import type { TableColumn } from '@/components/Table'
 import {
   getAgentListApi,
   updateAgentApi,

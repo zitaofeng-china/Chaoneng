@@ -28,8 +28,8 @@ import { ElTag, ElMessage, ElMessageBox, ElLink } from 'element-plus'
 import { Icon } from '@/components/Icon'
 import { SearchTable } from '@/components/SearchTable'
 import type { SearchTableExpose } from '@/components/SearchTable'
-import { FormSchema } from '@/components/Form'
-import { TableColumn } from '@/components/Table'
+import type { FormSchema } from '@/components/Form'
+import type { TableColumn } from '@/components/Table'
 import {
   getAgentBotListApi,
   updateAgentBotApi,

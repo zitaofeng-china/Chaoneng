@@ -38,7 +38,7 @@ import { ElTag, ElMessage, ElMessageBox } from 'element-plus'
 import { SearchTable } from '@/components/SearchTable'
 import type { SearchTableExpose } from '@/components/SearchTable/src/types'
 import type { TableColumn } from '@/components/Table/src/types'
-import { FormSchema } from '@/components/Form'
+import type { FormSchema } from '@/components/Form'
 import OrderDetail from './components/OrderDetail.vue'
 import {
   v2GetExchangeList,
