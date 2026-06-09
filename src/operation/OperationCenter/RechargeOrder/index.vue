@@ -70,9 +70,9 @@ import {
   createPageParams,
   exportTableData,
   formatTableDateTime,
-  hasSearchValue,
-  withAllOption
+  hasSearchValue
 } from '@/utils/tableHelpers'
+import { RECHARGE_COIN_OPTIONS } from './constants'
 
 const router = useRouter()
 const route = useRoute()
@@ -430,10 +430,7 @@ const searchSchema = [
     component: 'Select' as const,
     label: '订单类型',
     componentProps: {
-      options: withAllOption([
-        { label: '充值TRX', value: 'TRX' },
-        { label: '充值USDT', value: 'USDT' }
-      ]),
+      options: RECHARGE_COIN_OPTIONS,
       placeholder: '请选择订单类型'
     }
   },

@@ -39,9 +39,12 @@ import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 import {
   createPageParams,
   formatTableDateTime,
+  getStatusLabel,
+  getStatusTagType,
   hasSearchValue,
   withAllOption
 } from '@/utils/tableHelpers'
+import { INVITE_REWARD_STATUS_MAP, INVITE_REWARD_STATUS_OPTIONS } from '../constants'
 
 type InviteSearchParams = Omit<InviteListQueryParams, 'status'> & {
   status?: number | string
@@ -134,12 +137,12 @@ const columns = ref<TableColumn[]>([
     minWidth: '100px',
     slots: {
       default: ({ row }: { row: InviteRecordItem }) => {
-        if (row.status === 1) {
-          return <ElTag type="success">已发放</ElTag>
-        } else if (row.status === 2) {
-          return <ElTag type="danger">未发放</ElTag>
-        }
-        return <span>-</span>
+        const statusLabel = getStatusLabel(INVITE_REWARD_STATUS_MAP, row.status)
+        if (statusLabel === '-') return <span>-</span>
+
+        return (
+          <ElTag type={getStatusTagType(INVITE_REWARD_STATUS_MAP, row.status)}>{statusLabel}</ElTag>
+        )
       }
     }
   },
@@ -183,10 +186,7 @@ const searchSchema = computed<FormSchema[]>(() => [
     componentProps: {
       placeholder: '请选择状态',
       clearable: true,
-      options: withAllOption([
-        { label: '已发放', value: 1 },
-        { label: '未发放', value: 2 }
-      ])
+      options: INVITE_REWARD_STATUS_OPTIONS
     }
   }
 ])

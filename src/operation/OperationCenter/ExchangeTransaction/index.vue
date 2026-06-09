@@ -58,11 +58,10 @@ import {
   formatTableDateTime,
   getStatusLabel,
   getStatusTagType,
-  hasSearchValue,
-  withAllOption
+  hasSearchValue
 } from '@/utils/tableHelpers'
 import { ExchangeOrderType, getExchangeOrderType } from '@/utils/exchangeOrder'
-import { EXCHANGE_STATUS_MAP } from './constants'
+import { EXCHANGE_COIN_OPTIONS, EXCHANGE_STATUS_MAP } from './constants'
 
 type ExchangeSearchParams = V2ExchangeListParams & {
   dateRange?: [number, number]
@@ -105,7 +104,7 @@ const buildExchangeListParams = (
 }
 
 const searchTableRef = ref<SearchTableExpose>()
-const orderDetailRef = ref()
+const orderDetailRef = ref<InstanceType<typeof OrderDetail> | null>(null)
 
 const currentSearchParams = ref<ExchangeSearchParams>({})
 
@@ -270,10 +269,7 @@ const searchSchema = reactive<FormSchema[]>([
     label: '交易类型:',
     componentProps: {
       placeholder: '全部',
-      options: withAllOption([
-        { label: 'USDT → TRX', value: 'USDT' },
-        { label: 'TRX → USDT', value: 'TRX' }
-      ]),
+      options: EXCHANGE_COIN_OPTIONS,
       clearable: true
     }
   },

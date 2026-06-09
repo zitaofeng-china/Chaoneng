@@ -1,4 +1,9 @@
-import type { StatusMeta } from '@/utils/tableHelpers'
+import { withAllOption, type StatusMeta } from '@/utils/tableHelpers'
+
+export const EXCHANGE_COIN_OPTIONS = withAllOption([
+  { label: 'USDT → TRX', value: 'USDT' },
+  { label: 'TRX → USDT', value: 'TRX' }
+])
 
 export const EXCHANGE_STATUS_MAP: Record<number, StatusMeta> = {
   1: { label: '待支付', type: 'info' },

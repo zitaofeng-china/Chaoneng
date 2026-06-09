@@ -1,6 +1,6 @@
-import type { StatusMeta } from '@/utils/tableHelpers'
+import { createStatusOptions, withAllOption, type StatusMeta } from '@/utils/tableHelpers'
 
-export { withAllOption } from '@/utils/tableHelpers'
+export { withAllOption }
 
 export const RESOURCE_SUPPLEMENT_KIND_OPTIONS = [
   { label: '能量', value: '能量' },
@@ -14,6 +14,19 @@ export const RESOURCE_SUPPLEMENT_SOURCE_OPTIONS = [
   { label: 'https://feee.io 带宽', value: 'https://feee.io 带宽' },
   { label: 'https://trxfee.io 带宽', value: 'https://trxfee.io 带宽' }
 ]
+
+export const RESOURCE_SUPPLEMENT_SOURCE_SEARCH_OPTIONS = withAllOption(
+  RESOURCE_SUPPLEMENT_SOURCE_OPTIONS
+)
+
+export const RESOURCE_SUPPLEMENT_TASK_STATUS_MAP: Record<number, StatusMeta> = {
+  1: { label: '启动', type: 'success' },
+  2: { label: '关闭', type: 'danger' }
+}
+
+export const RESOURCE_SUPPLEMENT_TASK_STATUS_OPTIONS = createStatusOptions(
+  RESOURCE_SUPPLEMENT_TASK_STATUS_MAP
+)
 
 export const RESOURCE_SUPPLEMENT_STATUS_MAP: Record<number, StatusMeta> = {
   1: { label: '成功', type: 'success' },

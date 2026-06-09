@@ -111,7 +111,11 @@ import {
   type ChargeListParams,
   type ChargeTaskParams
 } from '@/api/opertion/FinancialManage/common/charge'
-import { RESOURCE_SUPPLEMENT_SOURCE_OPTIONS, withAllOption } from '../constants'
+import {
+  RESOURCE_SUPPLEMENT_SOURCE_OPTIONS,
+  RESOURCE_SUPPLEMENT_SOURCE_SEARCH_OPTIONS,
+  RESOURCE_SUPPLEMENT_TASK_STATUS_OPTIONS
+} from '../constants'
 
 type ChargeTableSlot = { row: ChargeItem }
 type ChargeSearchParams = ChargeListParams & Recordable
@@ -121,13 +125,6 @@ const formRef = ref<FormInstance>()
 const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit'>('add')
 const editingRowId = ref<number | null>(null)
-
-const statusOptions = withAllOption([
-  { label: '启动', value: 1 },
-  { label: '关闭', value: 2 }
-])
-
-const taskSourceSearchOptions = withAllOption(RESOURCE_SUPPLEMENT_SOURCE_OPTIONS)
 
 const createDefaultTaskForm = (): ChargeTaskParams => ({
   origin: '',
@@ -231,7 +228,7 @@ const searchSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请选择供给源',
       clearable: true,
-      options: taskSourceSearchOptions
+      options: RESOURCE_SUPPLEMENT_SOURCE_SEARCH_OPTIONS
     }
   },
   {
@@ -241,7 +238,7 @@ const searchSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请选择状态',
       clearable: true,
-      options: statusOptions
+      options: RESOURCE_SUPPLEMENT_TASK_STATUS_OPTIONS
     }
   }
 ])

@@ -1,4 +1,4 @@
-import type { StatusMeta } from '@/utils/tableHelpers'
+import { createStatusOptions, type StatusMeta } from '@/utils/tableHelpers'
 
 export const AGENT_STATUS_MAP: Record<number, StatusMeta> = {
   1: { label: '启用' },
@@ -42,3 +42,10 @@ export const AGENT_BILL_ORDER_TYPE_OPTIONS = Object.entries(AGENT_BILL_ORDER_TYP
     value: Number(value)
   })
 )
+
+export const INVITE_REWARD_STATUS_MAP: Record<number, StatusMeta> = {
+  1: { label: '已发放', type: 'success' },
+  2: { label: '未发放', type: 'danger' }
+}
+
+export const INVITE_REWARD_STATUS_OPTIONS = createStatusOptions(INVITE_REWARD_STATUS_MAP)
