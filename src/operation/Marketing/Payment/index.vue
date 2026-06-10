@@ -96,6 +96,16 @@
               clearable
             />
           </ElFormItem>
+          <ElFormItem label="过期时间:" prop="expired_at">
+            <ElDatePicker
+              v-model="addressForm.expired_at"
+              type="datetime"
+              value-format="X"
+              placeholder="请选择过期时间"
+              class="w-full"
+              clearable
+            />
+          </ElFormItem>
         </ElForm>
         <template #footer>
           <div class="flex justify-end">
@@ -133,6 +143,7 @@ import {
   ElForm,
   ElFormItem,
   ElInput,
+  ElDatePicker,
   ElSelect,
   ElOption,
   ElSelectV2
@@ -209,7 +220,8 @@ const addressForm = reactive({
   kind: 1,
   agent_id: undefined as number | undefined,
   bot_id: undefined as number | undefined,
-  address: ''
+  address: '',
+  expired_at: ''
 })
 
 // 使用表单Hook - 导入表单
@@ -285,6 +297,27 @@ const addressFormRules: FormRules = {
   agent_id: [{ validator: validateAgent, trigger: 'change' }],
   bot_id: [{ validator: validateBot, trigger: 'change' }],
   address: [{ required: true, message: '请输入地址', trigger: 'blur' }]
+}
+
+const normalizeExpiredAtValue = (value: unknown) => {
+  if (value === undefined || value === null || value === '') return ''
+  if (typeof value === 'number') {
+    return String(value > 9999999999 ? Math.floor(value / 1000) : value)
+  }
+
+  const text = String(value).trim()
+  if (!text) return ''
+  if (/^\d+$/.test(text)) {
+    return text.length > 10 ? String(Math.floor(Number(text) / 1000)) : text
+  }
+
+  const timestamp = new Date(text).getTime()
+  return Number.isNaN(timestamp) ? '' : String(Math.floor(timestamp / 1000))
+}
+
+const buildExpiredAtPayload = () => {
+  const value = normalizeExpiredAtValue(addressForm.expired_at)
+  return value ? Number(value) : 0
 }
 
 const getAddressKindInfo = (kind: number | string) => {
@@ -480,7 +513,8 @@ const handleAdd = () => {
     kind: 1,
     agent_id: undefined,
     bot_id: undefined,
-    address: ''
+    address: '',
+    expired_at: ''
   })
   addressDialogVisible.value = true
   nextTick(() => {
@@ -500,7 +534,8 @@ const handleEdit = (row: V2AddressItem) => {
     kind,
     agent_id: row.agent_id ? Number(row.agent_id) : undefined,
     bot_id: row.bot_id ? Number(row.bot_id) : undefined,
-    address: row.address || ''
+    address: row.address || '',
+    expired_at: normalizeExpiredAtValue(row.expired_at)
   })
   addressDialogVisible.value = true
   nextTick(() => {
@@ -682,7 +717,8 @@ const submitAddAddresses = async () => {
         bot_id: botId,
         created_at: selectedAddress.created_at,
         created_by: selectedAddress.created_by,
-        updated_at: selectedAddress.updated_at
+        updated_at: selectedAddress.updated_at,
+        expired_at: buildExpiredAtPayload()
       })
       handleSuccessMessage('编辑成功')
     } else {
@@ -690,7 +726,8 @@ const submitAddAddresses = async () => {
         kind,
         agent_id: showAgentField.value ? agentId : undefined,
         bot_id: showBotField.value ? botId : undefined,
-        list: addressList
+        list: addressList,
+        expired_at: buildExpiredAtPayload() || undefined
       })
       handleSuccessMessage('新增成功')
     }

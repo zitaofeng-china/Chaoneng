@@ -31,6 +31,7 @@ export interface V2AddressItem {
   agent_name: string // 代理名称
   email: string // 代理邮箱
   created_by: string // 创建人
+  expired_at?: number | string // 过期时间
 }
 
 /**
@@ -58,6 +59,7 @@ export interface V2CreateAddressParams {
   bot_id?: number // 机器人ID
   kind: number // 类型：1-代理充值, 2-用户充值, 3-兑换, 4-时间能量, 5-笔数能量, 6-福利能量
   list: string[] // 地址列表
+  expired_at?: number | string // 过期时间
 }
 
 /**
@@ -72,6 +74,7 @@ export interface V2UpdateAddressParams {
   id: number // 地址ID
   kind: number // 类型
   updated_at: number | string // 更新时间
+  expired_at?: number | string // 过期时间
 }
 
 /**
