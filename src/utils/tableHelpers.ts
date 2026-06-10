@@ -321,12 +321,19 @@ export async function exportTableData<
     successMessage = '导出成功'
   } = options
   const formData = await getSearchFormData(searchTableRef, fallbackParams)
-  const exportParams = { ...formData, page_size: -1 } as ExportParams<TSearchParams>
-  const response = toTableResponse<T>(
-    await (options.buildParams
-      ? options.fetchData(options.buildParams(exportParams))
-      : options.fetchData(exportParams))
-  )
+  const exportParams = {
+    ...formData,
+    current_page: -1,
+    page_size: -1
+  } as ExportParams<TSearchParams>
+  const apiParams = options.buildParams
+    ? {
+        current_page: exportParams.current_page,
+        page_size: exportParams.page_size,
+        ...options.buildParams(exportParams)
+      }
+    : exportParams
+  const response = toTableResponse<T>(await options.fetchData(apiParams as TApiParams))
   const list = getList ? getList(response) : getDefaultList<T>(response)
   if (!Array.isArray(list)) {
     throw new Error('导出失败：数据格式错误')

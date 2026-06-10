@@ -76,9 +76,9 @@ import type { FormSchema } from '@/components/Form'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { v1GetExchangeOrderList, v1GetExchangeOrderDetail } from '@/api/exchange_order'
 import { Icon } from '@/components/Icon'
-import { simpleExportToExcel } from '@/utils/excel'
 import { ExchangeOrderListItem } from '@/api/exchange_transaction'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { exportTableData } from '@/utils/tableHelpers'
 
 // const { t } = useI18n()
 const router = useRouter()
@@ -624,43 +624,34 @@ const handleViewDetail = async (row: any) => {
 // 导出订单
 const handleExport = async () => {
   try {
-    // 尝试获取当前搜索条件，如果失败则使用保存的参数
-    let params
-    try {
-      params = await searchTableRef.value?.searchMethods?.getFormData()
-    } catch (e) {
-      // 如果 getFormData 不可用，使用保存的搜索参数
-      params = currentSearchParams.value
-    }
+    await exportTableData<any>({
+      searchTableRef,
+      fallbackParams: currentSearchParams.value,
+      filename: '兑换订单列表',
+      fetchData: v1GetExchangeOrderList,
+      buildParams: (params) => {
+        const adaptedParams: any = {}
 
-    // 映射参数字段
-    const adaptedParams: any = {}
+        if (params.order_id) adaptedParams.order_id = params.order_id
+        if (params.keyword) adaptedParams.keyword = params.keyword
+        if (params.in_coin) adaptedParams.coin = params.in_coin
+        if (params.status) adaptedParams.status = params.status
 
-    if (params?.order_id) adaptedParams.order_id = params.order_id
-    if (params?.keyword) adaptedParams.keyword = params.keyword
-    if (params?.in_coin) adaptedParams.coin = params.in_coin // in_coin → coin
-    if (params?.status) adaptedParams.status = params.status
+        if (params.dateRange && params.dateRange.length === 2) {
+          adaptedParams.start_time = new Date(params.dateRange[0]).toISOString()
+          adaptedParams.end_time = new Date(params.dateRange[1]).toISOString()
+        }
 
-    // 处理时间范围
-    if (params?.dateRange && params.dateRange.length === 2) {
-      adaptedParams.start_time = new Date(params.dateRange[0]).toISOString()
-      adaptedParams.end_time = new Date(params.dateRange[1]).toISOString()
-    }
-
-    console.log('导出参数:', adaptedParams)
-
-    // 使用获取列表的接口，传入搜索条件
-    const res = await v1GetExchangeOrderList(adaptedParams)
-
-    if (res.code === '000000' && res.data && res.data.list) {
-      // 将数据转换为 Excel 格式，列名与列表显示一致
-      const list = res.data.list.map((item: any) => ({
+        return adaptedParams
+      },
+      getList: (response) =>
+        [...(response.data?.list || [])].sort(
+          (a: any, b: any) => (b.paid_at || b.created_at || 0) - (a.paid_at || a.created_at || 0)
+        ),
+      mapItem: (item) => ({
         订单号: item.id,
         机器人名称: item.bot_name,
-        // 用户账号: item.user_account || '-',
-        // 用户邮箱: item.user_email || '-',
-        // 来源: item.source === 'h5' ? 'H5' : item.source === 'bot' ? '机器人' : item.source || '-',
-        订单类型: item.coin === 'USDT' ? 'USDT → TRX' : 'TRX → USDT', // 根据coin判断
+        订单类型: item.coin === 'USDT' ? 'USDT → TRX' : 'TRX → USDT',
         支付金额: item.amount || '-',
         支付币种: item.coin || '-',
         兑换金额: item.out_amount || '-',
@@ -669,22 +660,10 @@ const handleExport = async () => {
         订单状态: getStatusText(item.status),
         备注: item.describe || '-',
         创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
-        支付时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-',
-        _timestamp: item.paid_at || item.created_at || 0 // 用于排序的时间戳
-      }))
-
-      // 按时间倒序排序（最新的在前）
-      list.sort((a, b) => b._timestamp - a._timestamp)
-
-      // 移除排序用的时间戳字段
-      const exportList = list.map(({ _timestamp, ...rest }) => rest)
-
-      // 导出为 Excel
-      simpleExportToExcel(exportList, '兑换订单列表')
-      handleSuccessMessage('订单导出成功')
-    } else {
-      ElMessage.error('导出失败：数据格式错误')
-    }
+        支付时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-'
+      }),
+      successMessage: '订单导出成功'
+    })
   } catch (error) {
     handleErrorMessage(error, '订单导出失败')
   }

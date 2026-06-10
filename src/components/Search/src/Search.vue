@@ -54,9 +54,45 @@ const visible = ref(true)
 // 表单数据
 const formModel = ref<Recordable>(props.model)
 
+const getSearchComponentOrder = (component?: string) => {
+  switch (component) {
+    case 'Input':
+    case 'InputPassword':
+    case 'Autocomplete':
+    case 'InputNumber':
+      return 1
+    case 'Select':
+    case 'SelectV2':
+    case 'TreeSelect':
+    case 'Cascader':
+      return 2
+    case 'DatePicker':
+    case 'TimePicker':
+    case 'TimeSelect':
+      return 3
+    default:
+      return 4
+  }
+}
+
 const newSchema = computed(() => {
   const propsComputed = unref(getProps)
   let schema: FormSchema[] = cloneDeep(propsComputed.schema)
+
+  schema = schema
+    .map((item, index) => ({
+      item,
+      index,
+      order: getSearchComponentOrder(item.component)
+    }))
+    .sort((a, b) => {
+      if (a.order !== b.order) {
+        return a.order - b.order
+      }
+      return a.index - b.index
+    })
+    .map(({ item }) => item)
+
   if (propsComputed.showExpand && propsComputed.expandField && !unref(visible)) {
     const index = findIndex(schema, (v: FormSchema) => v.field === propsComputed.expandField)
     schema.map((v, i) => {

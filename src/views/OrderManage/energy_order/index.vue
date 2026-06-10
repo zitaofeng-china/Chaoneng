@@ -31,7 +31,7 @@
 import { ref, onMounted, h, computed } from 'vue'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute, useRouter } from 'vue-router'
-import { ElTag, ElLink, ElMessage } from 'element-plus'
+import { ElTag, ElLink } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
@@ -40,9 +40,9 @@ import { v1GetEnergyOrderList, v1GetEnergyOrderDetail } from '@/api/energy_order
 import OrderDetailDialog from './components/OrderDetailDialog.vue'
 import formatEnergyNum from '../helpers/formatEnergyNum'
 import { Icon } from '@/components/Icon'
-import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import { getPaymentMethodText } from '@/utils/energyOrder'
+import { dateRangeToSeconds, exportTableData } from '@/utils/tableHelpers'
 
 // 辅助函数：检查值是否为空
 const isEmpty = (value: any): boolean => {
@@ -417,6 +417,18 @@ const searchSchema = [
       ],
       placeholder: '请选择订单状态'
     }
+  },
+  {
+    field: 'dateRange',
+    component: 'DatePicker' as const,
+    label: '创建时间',
+    componentProps: {
+      type: 'datetimerange',
+      valueFormat: 'x',
+      startPlaceholder: '开始日期',
+      endPlaceholder: '结束日期',
+      defaultTime: [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
+    }
   }
 ]
 
@@ -612,66 +624,54 @@ const handleViewDetail = async (row: any) => {
 // 导出订单
 const handleExport = async () => {
   try {
-    // 尝试获取当前搜索条件，如果失败则使用保存的参数
-    let params
-    try {
-      params = await searchTableRef.value?.searchMethods?.getFormData()
-    } catch (e) {
-      params = currentSearchParams.value
-    }
+    await exportTableData<any>({
+      searchTableRef,
+      fallbackParams: currentSearchParams.value,
+      filename: '能量订单列表',
+      fetchData: v1GetEnergyOrderList,
+      buildParams: (params) => {
+        const adaptedParams: any = {}
 
-    // 直接使用API字段
-    const adaptedParams: any = {}
+        if (params.order_id) adaptedParams.order_id = params.order_id
+        if (params.origin !== undefined && params.origin !== '') {
+          adaptedParams.origin = Number(params.origin)
+        }
+        if (params.status) adaptedParams.status = params.status
+        if (params.keyword) adaptedParams.keyword = params.keyword
+        if (params.kind) adaptedParams.kind = params.kind
+        if (params.receive_address) adaptedParams.receive_address = params.receive_address
+        if (params.payment_address) adaptedParams.energy_address = params.payment_address
 
-    if (params?.order_id) adaptedParams.order_id = params.order_id
-    if (params?.origin) adaptedParams.origin = params.origin
-    if (params?.status) adaptedParams.status = params.status
-    if (params?.keyword) adaptedParams.keyword = params.keyword
-    if (params?.kind) adaptedParams.kind = params.kind
-    if (params?.receive_address) adaptedParams.receive_address = params.receive_address
-    if (params?.energy_address) adaptedParams.energy_address = params.energy_address
+        Object.assign(adaptedParams, dateRangeToSeconds(params.dateRange))
 
-    // 处理时间范围
-    if (params?.dateRange && params.dateRange.length === 2) {
-      adaptedParams.start_time = Math.floor(params.dateRange[0] / 1000).toString()
-      adaptedParams.end_time = Math.floor(params.dateRange[1] / 1000).toString()
-    }
-
-    console.log('导出参数:', adaptedParams)
-
-    const res = await v1GetEnergyOrderList(adaptedParams)
-
-    if (res.code === '000000' && res.data && res.data.list) {
-      // 订单类型映射
-      const typeTextMap: Record<number, string> = {
-        4: '按时间',
-        5: '按笔数',
-        6: '福利',
-        7: '闪租',
-        8: '托管',
-        9: '批量下单',
-        10: '激活'
-      }
-
-      // 将数据转换为 Excel 格式，使用API原始字段
-      const list = res.data.list.map((item: any) => ({
+        return adaptedParams
+      },
+      mapItem: (item) => ({
         订单号: item.id,
         TG用户名: item.tg_user_name,
         TG用户昵称: item.tg_first_name,
         用户账号: item.username || '-',
         用户邮箱: item.email || '-',
         来源: (() => {
-          // 来源判断逻辑：如果TG用户名不存在且用户账号存在则来源是H5，反之就是机器人
           if (!item.tg_user_name && item.username) {
             return 'H5'
-          } else if (item.tg_user_name) {
+          }
+          if (item.tg_user_name) {
             return '机器人'
           }
-          // 兜底：根据 origin 判断
           return item.origin === 1 ? '机器人' : item.origin === 2 ? 'H5' : '-'
         })(),
         机器人名称: item.bot_name,
-        订单类型: typeTextMap[item.kind] || '-',
+        订单类型:
+          {
+            4: '按时间',
+            5: '按笔数',
+            6: '福利',
+            7: '闪租',
+            8: '托管',
+            9: '批量下单',
+            10: '激活'
+          }[item.kind] || '-',
         支付金额: item.amount && item.amount != 0 ? item.amount : '-',
         支付币种: item.coin || '-',
         能量数量: formatEnergyNum(item.energy_amount),
@@ -685,14 +685,9 @@ const handleExport = async () => {
         订单状态: getStatusTextForTable(item.status),
         创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
         完成时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-'
-      }))
-
-      // 导出为 Excel
-      simpleExportToExcel(list, '能量订单列表')
-      handleSuccessMessage('订单导出成功')
-    } else {
-      ElMessage.error('导出失败：数据格式错误')
-    }
+      }),
+      successMessage: '订单导出成功'
+    })
   } catch (error) {
     handleErrorMessage(error, '订单导出失败')
   }

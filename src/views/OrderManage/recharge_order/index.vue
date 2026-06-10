@@ -46,7 +46,7 @@
 <script setup lang="tsx">
 import { ref, onMounted, h, computed } from 'vue'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { ElButton, ElTag, ElMessage, ElTabs, ElTabPane } from 'element-plus'
+import { ElButton, ElTag, ElTabs, ElTabPane } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Dialog } from '@/components/Dialog'
 import { SearchTable } from '@/components/SearchTable'
@@ -58,8 +58,8 @@ import type { DescriptionsSchema } from '@/components/Descriptions'
 import { v1GetDepositList, v1GetDepositDetail } from '@/api/recharge_order'
 import { ElLink } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
-import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { dateRangeToSeconds, exportTableData } from '@/utils/tableHelpers'
 
 const router = useRouter()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -650,33 +650,29 @@ const handleViewDetail = async (row: any) => {
 // 导出订单
 const handleExport = async () => {
   try {
-    // 获取当前搜索条件
-    const params = await searchTableRef.value?.searchMethods.getFormData()
+    await exportTableData<any>({
+      searchTableRef,
+      filename: '充值订单列表',
+      fetchData: v1GetDepositList,
+      buildParams: (params) => {
+        const adaptedParams: any = {}
+        if (params.order_id) adaptedParams.order_id = params.order_id
+        if (params.source !== undefined && params.source !== '') {
+          adaptedParams.origin = Number(params.source)
+        }
+        if (params.status) adaptedParams.status = params.status
+        if (params.query) adaptedParams.keyword = params.query
+        if (params.order_type) {
+          adaptedParams.coin = params.order_type == 1 ? 'TRX' : 'USDT'
+        }
+        if (params.receive_address) adaptedParams.receive_address = params.receive_address
+        if (params.pay_address) adaptedParams.pay_address = params.pay_address
 
-    // 构建查询参数（复用 fetchRechargeOrderList 的逻辑）
-    const adaptedParams: any = {}
-    if (params?.order_id) adaptedParams.order_id = params.order_id
-    if (params?.source !== undefined && params?.source !== '') {
-      adaptedParams.origin = Number(params.source) // source → origin (数字类型)
-    }
-    if (params?.status) adaptedParams.status = params.status
-    if (params?.query) adaptedParams.keyword = params.query
-    if (params?.order_type) {
-      adaptedParams.coin = params.order_type == 1 ? 'TRX' : 'USDT'
-    }
-    if (params?.receive_address) adaptedParams.receive_address = params.receive_address
-    if (params?.pay_address) adaptedParams.pay_address = params.pay_address
-    if (params?.dateRange && params.dateRange.length === 2) {
-      adaptedParams.start_time = Math.floor(params.dateRange[0] / 1000).toString()
-      adaptedParams.end_time = Math.floor(params.dateRange[1] / 1000).toString()
-    }
+        Object.assign(adaptedParams, dateRangeToSeconds(params.dateRange))
 
-    // 使用获取列表的接口，传入搜索条件
-    const res = await v1GetDepositList(adaptedParams)
-
-    if (res.code === '000000' && res.data && res.data.list) {
-      // 将数据转换为 Excel 格式，列名与列表显示一致
-      const list = res.data.list.map((item: any) => ({
+        return adaptedParams
+      },
+      mapItem: (item) => ({
         订单号: item.id || '-',
         TG用户名: item.tg_user_name || '-',
         TG用户昵称: item.tg_first_name || '-',
@@ -693,14 +689,9 @@ const handleExport = async () => {
         备注: item.describe || '-',
         创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
         完成时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-'
-      }))
-
-      // 导出为 Excel
-      simpleExportToExcel(list, '充值订单列表')
-      handleSuccessMessage('订单导出成功')
-    } else {
-      ElMessage.error('导出失败：数据格式错误')
-    }
+      }),
+      successMessage: '订单导出成功'
+    })
   } catch (error) {
     handleErrorMessage(error, '订单导出失败')
   }
