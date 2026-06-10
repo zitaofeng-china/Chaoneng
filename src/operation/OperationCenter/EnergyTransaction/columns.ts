@@ -167,13 +167,6 @@ export function getAllColumns(): ColumnConfig[] {
       formatter: (row) => calculateEnergyRentText(row.kind, row.delegated_at, row.recycled_at)
     },
     {
-      field: 'recycled_at',
-      label: '回收时间',
-      sortable: 'custom',
-      width: 160,
-      formatter: (row) => formatTableDateTime(row.recycled_at)
-    },
-    {
       field: 'status',
       label: '状态',
       width: 100,
@@ -191,6 +184,13 @@ export function getAllColumns(): ColumnConfig[] {
       sortable: 'custom',
       width: 160,
       formatter: (row) => formatTableDateTime(row.created_at)
+    },
+    {
+      field: 'recycled_at',
+      label: '回收时间',
+      sortable: 'custom',
+      width: 160,
+      formatter: (row) => formatTableDateTime(row.recycled_at)
     },
     {
       field: 'describe',

@@ -148,8 +148,20 @@ const orderDetailSchema = computed(() => {
       }
     },
     { field: 'user_id', label: 'TG用户ID' },
-    { field: 'tg_user_name', label: 'TG用户名' },
-    { field: 'tg_first_name', label: 'TG用户昵称' },
+    {
+      field: 'tg_user_name',
+      label: '用户账号',
+      slots: {
+        default: (row: V2DepositDetail) => h('span', row.tg_user_name || row.username || '-')
+      }
+    },
+    {
+      field: 'tg_first_name',
+      label: '用户邮箱',
+      slots: {
+        default: (row: V2DepositDetail) => h('span', row.tg_first_name || row.email || '-')
+      }
+    },
     { field: 'bot_id', label: '机器人ID' },
     {
       field: 'bot_user_name',
@@ -174,7 +186,6 @@ const orderDetailSchema = computed(() => {
     {
       field: 'created_at',
       label: '创建时间',
-      span: 24,
       slots: {
         default: (row: V2DepositDetail) => {
           if (!row || !row.created_at) return h('span', '-')
@@ -185,7 +196,6 @@ const orderDetailSchema = computed(() => {
     {
       field: 'paid_at',
       label: '支付时间',
-      span: 24,
       slots: {
         default: (row: V2DepositDetail) => {
           if (!row || !row.paid_at) return h('span', '-')
