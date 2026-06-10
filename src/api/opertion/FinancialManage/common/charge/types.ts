@@ -72,8 +72,10 @@ export interface ChargeLogItem {
   updated_at: number
   kind: string // 资源类型
   origin: string // 供给源
-  finance_address: string // 财务地址
-  target_pool: string // 供给对象/池子
+  finance_address?: string // 财务地址（旧字段）
+  target_pool?: string // 供给对象/池子（旧字段）
+  vault?: string // 财务地址
+  target?: string // 供给对象/池子
   minimum?: number // 补充阈值
   amount: number // 补充数量
   fee?: string | number // 手续费

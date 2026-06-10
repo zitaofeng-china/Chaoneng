@@ -68,6 +68,9 @@ type ChargeLogTableSlot = TableSlot<ChargeLogItem>
 
 const searchTableRef = ref<SearchTableExpose>()
 
+const getTargetValue = (row: ChargeLogItem) => row.target || row.target_pool || '-'
+const getVaultValue = (row: ChargeLogItem) => row.vault || row.finance_address || '-'
+
 const renderTxidLink = (txid?: string) => {
   if (!txid) return h('span', '-')
   return h(
@@ -106,16 +109,16 @@ const columns: TableColumn[] = [
     formatter: (row: ChargeLogItem) => row.origin || '-'
   },
   {
-    field: 'target_pool',
+    field: 'target',
     label: '供给对象',
     minWidth: 200,
-    formatter: (row: ChargeLogItem) => row.target_pool || '-'
+    formatter: (row: ChargeLogItem) => getTargetValue(row)
   },
   {
-    field: 'finance_address',
+    field: 'vault',
     label: '财务地址',
     minWidth: 200,
-    formatter: (row: ChargeLogItem) => row.finance_address || '-'
+    formatter: (row: ChargeLogItem) => getVaultValue(row)
   },
   {
     field: 'minimum',
@@ -183,9 +186,9 @@ const searchSchema = ref<FormSchema[]>([
   {
     field: 'keyword',
     component: 'Input' as const,
-    label: '关键字',
+    label: '关键词',
     componentProps: {
-      placeholder: '请输入关键字',
+      placeholder: '财务地址/供给对象',
       clearable: true
     }
   },
@@ -267,8 +270,8 @@ const handleExport = async () => {
       getList: (res: IResponse<ChargeLogResponse>) => res?.data?.list || [],
       mapItem: (item) => ({
         供给源: item.origin || '-',
-        供给对象: item.target_pool || '-',
-        财务地址: item.finance_address || '-',
+        供给对象: getTargetValue(item),
+        财务地址: getVaultValue(item),
         阈值: item.minimum ?? '-',
         补充数量: item.amount ?? '-',
         手续费: item.fee || '0',

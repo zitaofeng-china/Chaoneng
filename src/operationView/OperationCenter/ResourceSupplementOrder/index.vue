@@ -44,6 +44,9 @@ import {
 const searchTableRef = ref()
 const tronscanUrl = import.meta.env.VITE_TRONSCAN_URL || 'https://tronscan.org'
 
+const getTargetValue = (row: any) => row.target || row.target_pool || '-'
+const getVaultValue = (row: any) => row.vault || row.finance_address || '-'
+
 const CHARGE_LOG_STATUS_MAP = {
   1: { label: '成功', type: 'success' },
   2: { label: '失败', type: 'danger' }
@@ -91,16 +94,16 @@ const buildChargeLogParams = (params: any = {}) => {
 const columns: TableColumn[] = [
   { field: 'origin', label: '供给源', minWidth: 180, formatter: (row) => row.origin || '-' },
   {
-    field: 'target_pool',
+    field: 'target',
     label: '供给对象',
     minWidth: 200,
-    formatter: (row) => row.target_pool || '-'
+    formatter: (row) => getTargetValue(row)
   },
   {
-    field: 'finance_address',
+    field: 'vault',
     label: '财务地址',
     minWidth: 200,
-    formatter: (row) => row.finance_address || '-'
+    formatter: (row) => getVaultValue(row)
   },
   {
     field: 'minimum',
@@ -167,9 +170,9 @@ const searchSchema = ref([
   {
     field: 'keyword',
     component: 'Input' as const,
-    label: '关键字',
+    label: '关键词',
     componentProps: {
-      placeholder: '请输入关键字',
+      placeholder: '财务地址/供给对象',
       clearable: true
     }
   },
@@ -260,8 +263,8 @@ const handleExport = async () => {
       getList: (res) => res?.data?.list || [],
       mapItem: (item) => ({
         供给源: item.origin || '-',
-        供给对象: item.target_pool || '-',
-        财务地址: item.finance_address || '-',
+        供给对象: getTargetValue(item),
+        财务地址: getVaultValue(item),
         阈值: item.minimum ?? '-',
         补充数量: item.amount ?? '-',
         手续费: item.fee || '0',
