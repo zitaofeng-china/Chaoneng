@@ -1,5 +1,5 @@
 import request from '@/axios'
-import type { BillListParamsV1, BillListResponseV1, AccountDetailResponse } from './type'
+import type { BillListParamsV1, BillListResponseV1, AccountDetail } from './type'
 
 // ==================== 新接口 v1 ====================
 
@@ -40,7 +40,7 @@ export const v1GetBillList = (params: BillListParamsV1) => {
  * 参数：无
  */
 export const getAccountListApi = (params?: any) => {
-  return request.get<AccountDetailResponse>({ url: '/user/get_detail', params })
+  return request.get<AccountDetail>({ url: '/user/get_detail', params })
 }
 
 /**

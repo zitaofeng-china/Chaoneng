@@ -16,6 +16,7 @@ import {
   syncTgStatusApi
 } from '@/api/botlist'
 import { v1UpdateSite, v1GetSiteDetail } from '@/api/site'
+import { getAccountListApi } from '@/api/account'
 
 export function useBotConfigV1() {
   // 共享状态
@@ -26,6 +27,7 @@ export function useBotConfigV1() {
   const syncing = ref(false)
   const loading = ref(false)
   const submitting = ref(false)
+  const showBandwidthCost = ref(false)
 
   // 价格配置数据（成本价）
   const costPrices = reactive<Record<string, any>>({})
@@ -183,9 +185,10 @@ export function useBotConfigV1() {
   // 加载价格配置
   const loadPriceConfig = async (id: number, formMethods: any) => {
     try {
-      const [systemPriceRes, botPriceRes] = await Promise.all([
+      const [systemPriceRes, botPriceRes, accountRes] = await Promise.all([
         v1GetSystemPrice(),
-        v1GetBotPriceConfig(id)
+        v1GetBotPriceConfig(id),
+        getAccountListApi()
       ])
 
       if (systemPriceRes.code !== '000000' || !systemPriceRes.data) {
@@ -197,6 +200,8 @@ export function useBotConfigV1() {
         ElMessage.error('获取机器人价格配置失败')
         return false
       }
+
+      showBandwidthCost.value = accountRes.data?.gift_bandwidth === true
 
       // 保存成本价数据
       const systemPrice = systemPriceRes.data
@@ -670,6 +675,7 @@ export function useBotConfigV1() {
     loading,
     submitting,
     costPrices,
+    showBandwidthCost,
     currentPrices,
 
     // 方法

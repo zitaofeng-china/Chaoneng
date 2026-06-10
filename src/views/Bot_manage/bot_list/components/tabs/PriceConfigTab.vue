@@ -13,10 +13,15 @@ const props = defineProps({
   costPrices: {
     type: Object,
     default: () => ({})
+  },
+  showBandwidthCost: {
+    type: Boolean,
+    default: false
   }
 })
 
 const computedCostPrices = computed(() => props.costPrices || {})
+const shouldShowBandwidthCost = computed(() => props.showBandwidthCost)
 
 const { formRegister, formMethods } = useForm()
 
@@ -29,6 +34,12 @@ const formatCostValue = (value: any) => {
 const getCombinedCostText = (energyCostKey: string, bandwidthCostKey = 'bandwidth') => {
   const energyCost = computedCostPrices.value[energyCostKey]
   const bandwidthCost = computedCostPrices.value[bandwidthCostKey]
+
+  if (!shouldShowBandwidthCost.value) {
+    return energyCost === undefined
+      ? '能量成本价: N/A TRX'
+      : `能量成本价: ${formatCostValue(energyCost)} TRX`
+  }
 
   if (energyCost === undefined || bandwidthCost === undefined) {
     return '能量成本价: N/A + 带宽成本价: N/A = N/A TRX'

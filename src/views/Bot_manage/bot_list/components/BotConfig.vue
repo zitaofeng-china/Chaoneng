@@ -16,7 +16,11 @@
         </ElTabPane>
 
         <ElTabPane label="价格配置" name="priceConfig">
-          <PriceConfigTab ref="priceConfigTabRef" :cost-prices="costPrices" />
+          <PriceConfigTab
+            ref="priceConfigTabRef"
+            :cost-prices="costPrices"
+            :show-bandwidth-cost="showBandwidthCost"
+          />
         </ElTabPane>
 
         <!-- 福利配置已迁移至运营端营销管理 -->
@@ -69,6 +73,7 @@ const {
   loading,
   submitting,
   costPrices,
+  showBandwidthCost,
   syncTgStatus,
   loadTabConfig,
   submitTabConfig
