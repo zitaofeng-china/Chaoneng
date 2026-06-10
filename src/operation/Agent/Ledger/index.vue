@@ -55,6 +55,9 @@ type AgentLedgerSearchParams = Omit<AgentBillListParams, 'kinds'> & {
 }
 type AgentLedgerTableSlot = TableSlot<AgentBillItem>
 
+const isQuickChargeBill = (row: AgentBillItem) =>
+  [13, 14].includes(Number(row.kind)) || row.describe?.includes('速充')
+
 const buildAgentBillParams = (
   params: AgentLedgerSearchParams = {},
   pageSize?: number
@@ -168,9 +171,18 @@ const columns = ref<TableColumn[]>([
           case 10: // 激活
             routePath = '/operation/energy_transaction'
             break
+          case 13: // 手动速充
+          case 14: // 自动速充
+            routePath = '/operation/quick_charge_order'
+            break
           case 11: // 机器人付费
+          case 12: // 奖励
             return <span>{row.order_id}</span>
           default:
+            if (isQuickChargeBill(row)) {
+              routePath = '/operation/quick_charge_order'
+              break
+            }
             return <span>{row.order_id}</span>
         }
 

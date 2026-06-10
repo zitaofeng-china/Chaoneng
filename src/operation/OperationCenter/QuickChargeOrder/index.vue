@@ -21,6 +21,7 @@
         }"
         @loaded="handleDataLoaded"
         @error="handleLoadError"
+        @ready="onSearchTableReady"
       >
         <template #searchButtons>
           <BaseButton type="primary" @click="handleExport">
@@ -62,6 +63,7 @@ import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import type { EnergyListParams, EnergyOrder } from '../EnergyTransaction/types'
 import type { QuickChargeOrder, QuickChargeSearchParams } from './types'
+import { useRoute } from 'vue-router'
 import {
   getQuickChargeOrderTypeTagType,
   getQuickChargeOrderTypeText,
@@ -72,6 +74,7 @@ const QUICK_CHARGE_ORDER_KINDS = [13, 14]
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const orderDetailRef = ref<InstanceType<typeof OrderDetail> | null>(null)
+const route = useRoute()
 const totalCount = ref(0)
 const botOptions = ref<SelectOption<number | string>[]>(withAllOption<number | string>([]))
 
@@ -137,10 +140,10 @@ const searchSchema = ref<FormSchema[]>([
     component: 'Input',
     label: {
       text: '关键词',
-      tips: '订单号/机器人用户名/代理/接收地址'
+      tips: '订单号/机器人用户名/代理'
     },
     componentProps: {
-      placeholder: '请输入关键词',
+      placeholder: '订单号/机器人用户名/代理',
       clearable: true,
       style: { width: '330px' }
     }
@@ -346,6 +349,14 @@ const handleDataLoaded = ({ success }: { success: boolean }) => {
 
 const handleLoadError = () => {
   handleErrorMessage('加载速充订单失败')
+}
+
+const onSearchTableReady = (instance: SearchTableExpose) => {
+  const keyword = route.query.keyword || route.query.query
+  if (!keyword) return
+
+  instance.setSearchParams({ keyword })
+  instance.reload()
 }
 
 onMounted(() => {

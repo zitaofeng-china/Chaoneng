@@ -47,7 +47,10 @@ export const AGENT_BILL_ORDER_TYPE_MAP: Record<number, string> = {
   8: '托管',
   9: '批量能量',
   10: '激活',
-  11: '机器人付费'
+  11: '机器人付费',
+  12: '奖励',
+  13: '手动速充',
+  14: '自动速充'
 }
 
 export const AGENT_BILL_ORDER_TYPE_OPTIONS = Object.entries(AGENT_BILL_ORDER_TYPE_MAP).map(
