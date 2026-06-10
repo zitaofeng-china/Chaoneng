@@ -50,7 +50,7 @@ export const v2UpdateAddress = (data: V2UpdateAddressParams): Promise<IResponse>
  */
 export const v2DeleteAddress = (data: V2DeleteAddressParams): Promise<IResponse> => {
   return request.delete({
-    url: ADDRESS_V2_BASE_URL,
+    url: ADDRESS_V1_BASE_URL,
     data
   })
 }
