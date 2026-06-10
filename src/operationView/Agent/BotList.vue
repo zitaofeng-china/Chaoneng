@@ -135,7 +135,7 @@ const searchSchema = ref<FormSchema[]>([
     component: 'Input',
     label: {
       text: '关键字',
-      tips: '支持机器人ID/用户名/代理名称查询'
+      tips: '支持机器人ID/用户名/代理名称'
     },
     colProps: {
       span: 12 // 增加输入框占用的栅格列数，默认是6

@@ -194,10 +194,10 @@ const searchSchema = ref<FormSchema[]>([
     component: 'Input',
     label: {
       text: '关键词',
-      tips: '订单号/机器人用户名/代理/发送地址/接受地址'
+      tips: '订单号/机器人用户名/代理'
     },
     componentProps: {
-      placeholder: '请输入关键词',
+      placeholder: '订单号/机器人用户名/代理',
       clearable: true,
       style: { width: '330px' }
     }

@@ -459,7 +459,7 @@ const searchSchema = ref<FormSchema[]>([
     component: 'Input',
     label: '关键字',
     componentProps: {
-      placeholder: '联系方式/代理名称'
+      placeholder: '代理用户名/代理邮箱'
     }
   },
   {
