@@ -191,8 +191,9 @@
                   <el-input-number
                     v-if="editModeMap[agent.id]"
                     v-model="formDataMap[agent.id].charge"
-                    :precision="2"
-                    :step="0.1"
+                    :precision="0"
+                    :step="1"
+                    step-strictly
                     :min="0"
                     size="small"
                     controls-position="right"
@@ -421,7 +422,7 @@ const formDataMap = reactive<Record<number, PriceFormData>>({})
 
 const toNumber = (value: string | number | undefined | null) => Number(value || 0)
 
-const getChargeValue = (item: V1PriceListResponse) => toNumber(item.charge)
+const getChargeValue = (item: V1PriceListResponse) => Math.round(toNumber(item.charge))
 
 const createPriceFormData = (item: V1PriceListResponse): PriceFormData => ({
   active: toNumber(item.active),
@@ -579,7 +580,7 @@ const handleSave = async (agentId: number) => {
       bot_fee: formData.bot_fee,
       batch_flash: formData.batch_flash,
       bandwidth: formData.bandwidth,
-      charge: formData.charge,
+      charge: Math.round(Number(formData.charge) || 0),
       weal: formData.weal
     })
 

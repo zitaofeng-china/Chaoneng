@@ -191,8 +191,9 @@
                   <el-input-number
                     v-if="editModeMap[agent.id]"
                     v-model="formDataMap[agent.id].charge"
-                    :precision="2"
-                    :step="0.1"
+                    :precision="0"
+                    :step="1"
+                    step-strictly
                     :min="0"
                     size="small"
                     controls-position="right"
@@ -592,7 +593,7 @@ const handleSave = async (agentId: number) => {
       bot_fee: formData.bot_fee,
       batch_flash: formData.batch_flash,
       bandwidth: formData.bandwidth,
-      charge: formData.charge,
+      charge: Math.round(Number(formData.charge) || 0),
       weal: formData.weal
     })
 
