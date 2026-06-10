@@ -22,6 +22,7 @@ export interface HostingListParamsV2 {
   user_id?: number // 用户ID
   source?: string // 来源 (H5/机器人)
   origin?: number // 来源（1=机器人，2=H5）
+  kind?: number // 托管类型（8=托管能量，14=托管速充）
   order?: string // 排序参数（例如：created_at ASC）
 }
 
@@ -43,6 +44,9 @@ export interface HostingItemV2 {
   username?: string // 用户账号
   email?: string // 用户邮箱
   origin?: number // 来源（1=机器人，2=H5）
+  kind?: number // 托管类型（8=托管能量，14=托管速充）
+  minimum?: number | string // 最小值
+  maximum?: number | string // 最大值
 }
 
 /**

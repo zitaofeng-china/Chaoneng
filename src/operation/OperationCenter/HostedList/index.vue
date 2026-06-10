@@ -49,9 +49,20 @@ type BotOption = SelectOption<number | string>
 
 const botOptions = ref<BotOption[]>([])
 const isBotOptionsLoaded = ref(false)
-type HostingSearchParams = Omit<HostingListParamsV2, 'bot_id' | 'origin'> & {
+type HostingSearchParams = Omit<HostingListParamsV2, 'bot_id' | 'origin' | 'kind'> & {
   bot_id?: number | string
   origin?: number | string
+  kind?: number | string
+}
+
+const HOSTING_TYPE_OPTIONS = withAllOption([
+  { label: '托管速充', value: 14 },
+  { label: '托管能量', value: 8 }
+])
+
+const HOSTING_TYPE_MAP: Record<number, string> = {
+  14: '托管速充',
+  8: '托管能量'
 }
 
 const buildHostingListParams = (params: HostingSearchParams = {}): HostingListParamsV2 => {
@@ -64,6 +75,7 @@ const buildHostingListParams = (params: HostingSearchParams = {}): HostingListPa
   if (params.keyword && params.keyword.trim()) queryParams.keyword = params.keyword.trim()
   if (params.origin !== undefined && params.origin !== '')
     queryParams.origin = Number(params.origin)
+  if (params.kind !== undefined && params.kind !== '') queryParams.kind = Number(params.kind)
   if (params.order) queryParams.order = params.order
 
   return queryParams
@@ -135,10 +147,28 @@ const columns = computed(() => {
       formatter: (row: HostingItemV2) => getSourceText(row.origin, row.tg_user_name, row.username)
     },
     {
+      field: 'kind',
+      label: '托管类型',
+      width: 120,
+      formatter: (row: HostingItemV2) => HOSTING_TYPE_MAP[Number(row.kind)] || '-'
+    },
+    {
       field: 'address',
       label: '托管地址',
       minWidth: 250,
       formatter: (row: HostingItemV2) => row.address || '-'
+    },
+    {
+      field: 'minimum',
+      label: '最小值',
+      width: 120,
+      formatter: (row: HostingItemV2) => row.minimum ?? '-'
+    },
+    {
+      field: 'maximum',
+      label: '最大值',
+      width: 120,
+      formatter: (row: HostingItemV2) => row.maximum ?? '-'
     },
     {
       field: 'created_at',
@@ -216,6 +246,16 @@ const searchSchema = computed<FormSchema[]>(() => [
       clearable: true,
       options: SOURCE_TYPE_OPTIONS
     }
+  },
+  {
+    field: 'kind',
+    label: '托管类型',
+    component: 'Select',
+    componentProps: {
+      placeholder: '请选择托管类型',
+      clearable: true,
+      options: HOSTING_TYPE_OPTIONS
+    }
   }
 ])
 
@@ -230,7 +270,9 @@ const fetchAutoManageList = async (
     if (res.code === '000000' && res.data) {
       const list = res.data.list || []
 
-      const hasSearchCondition = [params.bot_id, params.keyword, params.origin].some(hasSearchValue)
+      const hasSearchCondition = [params.bot_id, params.keyword, params.origin, params.kind].some(
+        hasSearchValue
+      )
       handleListMessage(list, hasSearchCondition, '托管地址')
 
       return {
