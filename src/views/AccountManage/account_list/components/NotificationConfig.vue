@@ -4,7 +4,10 @@
       <h3 class="text-lg font-semibold">代理消息提醒配置</h3>
       <div class="official-bot-tip">
         该功能启用前,请务必关注官方机器人
-        <a href="https://t.me/trxtoo" target="_blank" rel="noopener noreferrer">@trxtoo</a>!
+        <a v-if="notifyBotName" :href="notifyBotLink" target="_blank" rel="noopener noreferrer">{{
+          notifyBotDisplayName
+        }}</a>
+        <span v-else>通知机器人</span>!
       </div>
     </div>
 
@@ -59,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import {
   ElForm,
   ElFormItem,
@@ -70,6 +73,7 @@ import {
   ElMessage
 } from 'element-plus'
 import { v1UpdateUserNotify } from '@/api/account'
+import { v1GetNotifyBot } from '@/api/botlist'
 
 interface NotificationFormState {
   enabled: boolean
@@ -105,6 +109,27 @@ const originalData = reactive<NotificationFormState>({
 })
 
 const saving = ref(false)
+const notifyBotName = ref('')
+
+const notifyBotDisplayName = computed(() => {
+  if (!notifyBotName.value) return ''
+  return notifyBotName.value.startsWith('@') ? notifyBotName.value : `@${notifyBotName.value}`
+})
+
+const notifyBotLink = computed(() => {
+  const username = notifyBotName.value.replace(/^@/, '')
+  return username ? `https://t.me/${username}` : ''
+})
+
+const fetchNotifyBotName = async () => {
+  try {
+    const res = await v1GetNotifyBot()
+    notifyBotName.value = res.data?.user_name || ''
+  } catch (error) {
+    console.error('获取通知机器人名称失败:', error)
+    notifyBotName.value = ''
+  }
+}
 
 // 同步父组件传入的数据到表单
 const syncFromProps = () => {
@@ -121,6 +146,10 @@ watch(
   () => syncFromProps(),
   { immediate: true }
 )
+
+onMounted(() => {
+  fetchNotifyBotName()
+})
 
 // 保存配置
 const handleSave = async () => {
