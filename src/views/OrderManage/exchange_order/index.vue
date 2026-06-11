@@ -360,6 +360,16 @@ const columns: TableColumn[] = [
     formatter: (row) => row.actual_rate || '-'
   },
   {
+    field: 'agent_profit',
+    label: '代理利润',
+    width: 120,
+    showOverflowTooltip: false,
+    formatter: (row) =>
+      row.agent_profit !== undefined && row.agent_profit !== null && row.agent_profit !== ''
+        ? `${row.agent_profit} TRX`
+        : '-'
+  },
+  {
     field: 'order_type',
     label: '订单类型',
     width: 140,

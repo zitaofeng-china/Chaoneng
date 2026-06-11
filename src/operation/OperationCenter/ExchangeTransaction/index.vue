@@ -126,6 +126,7 @@ const handleExport = async () => {
         return {
           订单ID: item.id || '-',
           代理名称: item.agent_name || '-',
+          机器人用户名: item.bot_name || '-',
           支付金额: item.amount || '-',
           支付币种: item.coin || '-',
           兑换汇率: item.actual_rate || '-',
@@ -161,6 +162,12 @@ const columns = reactive<TableColumn[]>([
     label: '代理名称',
     minWidth: 150,
     formatter: (row) => row.agent_name || '-'
+  },
+  {
+    field: 'bot_name',
+    label: '机器人用户名',
+    minWidth: 150,
+    formatter: (row) => row.bot_name || '-'
   },
   {
     field: 'amount',
@@ -251,9 +258,12 @@ const searchSchema = reactive<FormSchema[]>([
   {
     field: 'keyword',
     component: 'Input',
-    label: '关键词',
+    label: {
+      text: '关键词',
+      tips: '订单号/代理名称/机器人用户名'
+    },
     componentProps: {
-      placeholder: '订单号/代理名称',
+      placeholder: '请输入关键字搜索',
       clearable: true
     }
   },
