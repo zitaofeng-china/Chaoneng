@@ -549,7 +549,7 @@ const buildDonut = (title: string, data: { name: string; value: number }[]): ECh
         name: title,
         type: 'pie',
         radius: ['45%', '70%'],
-        center: ['38%', '50%'],
+        center: ['50%', '50%'],
         avoidLabelOverlap: true,
         itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
         label: { show: false },
@@ -564,13 +564,13 @@ const buildDonut = (title: string, data: { name: string; value: number }[]): ECh
       ? [
           {
             type: 'text',
-            left: '30%',
+            left: 'center',
             top: '43%',
             style: { text: '合计', fill: '#909399', fontSize: 12 }
           },
           {
             type: 'text',
-            left: '30%',
+            left: 'center',
             top: '51%',
             style: {
               text: `${formatNumber(total)}`,

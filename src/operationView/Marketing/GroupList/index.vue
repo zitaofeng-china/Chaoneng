@@ -143,7 +143,7 @@ const columns: TableColumn[] = [
   },
   {
     field: 'broadcast',
-    label: '是否启用',
+    label: '是否启用播报',
     width: 110,
     slots: {
       default: ({ row }: any) => {
