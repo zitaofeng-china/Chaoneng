@@ -70,7 +70,7 @@ import {
   QUICK_CHARGE_RESOURCE_TYPE_OPTIONS
 } from './constants'
 
-const QUICK_CHARGE_ORDER_KINDS = [13, 14]
+const QUICK_CHARGE_ORDER_KINDS = [15, 21]
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const orderDetailRef = ref<InstanceType<typeof OrderDetail> | null>(null)

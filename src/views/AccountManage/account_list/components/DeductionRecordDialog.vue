@@ -51,10 +51,12 @@ const orderTypeMap = () => {
     5: '按笔数',
     6: '福利能量',
     7: '快速能量',
-    8: '自动托管',
     9: '批量能量',
     10: '批量激活',
-    11: '机器人付费'
+    11: '机器人付费',
+    15: '速充能量',
+    20: '托管',
+    21: '托管速充'
   }
 }
 
@@ -86,7 +88,7 @@ const columns: TableColumn[] = [
           case 3: // 兑换
             href = `${href}/exchange_order`
             break
-          case 8: // 自动托管
+          case 20: // 托管
             href = `${href}/hosted_order`
             break
           case 11: // 机器人付费

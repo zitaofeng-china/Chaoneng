@@ -24,7 +24,7 @@ export interface V2ExchangeItem {
   created_at: number // 创建时间（Unix时间戳-秒）
   updated_at: number // 更新时间（Unix时间戳-秒）
   paid_at: number // 支付时间（Unix时间戳-秒）
-  kind: number // 类型: 1-代理充值, 2-用户充值, 3-兑换, 4-时间能量, 5-笔数能量, 6-福利能量, 7-快速能量, 8-自动托管, 9-批量能量, 10-批量激活, 11-机器人付费
+  kind: number // 类型: 1-代理充值, 2-用户充值, 3-兑换, 4-时间能量, 5-笔数能量, 6-福利能量, 7-快速能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充
   status: number // 状态: 1-新订单, 2-已支付, 3-已发送, 4-已回收, 5-已完成, 6-失败订单, 7-已退款, 8-已取消, 9-中止订单
   user_id: number // 用户ID
   agent_id: number // 代理ID

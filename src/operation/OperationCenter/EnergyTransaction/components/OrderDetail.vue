@@ -178,7 +178,7 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
 
 const getEnergyRentText = (data?: V2OrderDetailResponse | null) => {
   if (!data) return '-'
-  if (data.kind === 5 || data.kind === 8) return '长期有效'
+  if (data.kind === 5 || data.kind === 20) return '长期有效'
 
   const firstResource = data.resources?.[0]
   if (!firstResource?.expirated_at || !firstResource?.delegated_at) return '-'

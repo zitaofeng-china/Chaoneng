@@ -19,7 +19,7 @@ export interface AgentBillListParams {
   current_page?: number // 当前页码
   end_time?: string // 结束时间
   keyword?: string // 关键字
-  kinds?: number[] // 类型数组：12-奖励, 13-手动速充, 14-自动速充等
+  kinds?: number[] // 类型数组：12-奖励, 15-速充能量, 20-托管, 21-托管速充等
   order_id?: string // 订单ID
   order?: string // 排序参数
   page_size?: number // 每页大小
@@ -33,7 +33,7 @@ export interface AgentBillListParams {
 export interface AgentBillItem {
   order_id: string // 订单ID
   created_at: number // 创建时间（Unix时间戳-秒）
-  kind: number // 类型：12-奖励, 13-手动速充, 14-自动速充等
+  kind: number // 类型：12-奖励, 15-速充能量, 20-托管, 21-托管速充等
   agent_id: number // 代理ID
   bot_id: number // 机器人ID
   amount: string // 金额

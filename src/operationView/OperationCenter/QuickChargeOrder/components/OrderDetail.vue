@@ -150,18 +150,20 @@ const orderTypeMap = {
   5: '按笔数',
   6: '福利',
   7: '速充订单',
-  8: '托管',
   9: '批量下单',
-  10: '激活'
+  10: '激活',
+  15: '速充能量',
+  21: '托管速充'
 }
 const orderTypeColorMap = {
   4: 'info',
   5: 'primary',
   6: 'success',
   7: 'danger',
-  8: 'warning',
   9: 'warning',
-  10: 'primary'
+  10: 'primary',
+  15: 'warning',
+  21: 'primary'
 }
 const statusMap = {
   1: '进行中',

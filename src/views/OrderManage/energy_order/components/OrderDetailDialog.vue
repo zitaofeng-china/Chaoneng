@@ -77,7 +77,7 @@ const formatExpirationTime = (orderType?: number): string => {
     case 7: // KindFlashEnergy - 快速能量（快速租用，1小时有效，用了会提前回收）
       return '1小时'
 
-    case 8: // KindHosting - 自动托管（一次发放两笔）
+    case 20: // KindHosting - 托管（一次发放两笔）
       return '一天'
 
     case 9: // KindBatchEnergy - 批量能量（带自动激活）

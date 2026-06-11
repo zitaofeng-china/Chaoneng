@@ -52,18 +52,18 @@ const orderTypeMap = () => {
     5: '按笔数',
     6: '福利能量',
     7: '闪租',
-    8: '托管',
     9: '批量能量',
     10: '激活',
     11: '机器人付费',
     12: '奖励',
-    13: '手动速充',
-    14: '自动速充'
+    15: '速充能量',
+    20: '托管',
+    21: '托管速充'
   }
 }
 
 const isQuickChargeBill = (row: any) =>
-  [13, 14].includes(Number(row.order_type)) || row.describe?.includes('速充')
+  [15, 21].includes(Number(row.order_type)) || row.describe?.includes('速充')
 
 // API 封装 - 参考能量订单页面的实现
 const fetchAgentLedgerList = async (params: any) => {
@@ -246,13 +246,13 @@ const columns = ref<TableColumn[]>([
           case 5: // 按笔数
           case 6: // 福利能量
           case 7: // 闪租
-          case 8: // 托管
           case 9: // 批量能量
           case 10: // 激活
+          case 20: // 托管
             routePath = '/operation/energy_transaction'
             break
-          case 13: // 手动速充
-          case 14: // 自动速充
+          case 15: // 速充能量
+          case 21: // 托管速充
             routePath = '/operation/quick_charge_order'
             break
           case 11: // 机器人付费

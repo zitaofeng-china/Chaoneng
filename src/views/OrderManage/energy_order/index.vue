@@ -75,7 +75,7 @@ const formatExpirationTime = (orderType?: number): string => {
     case 7: // KindFlashEnergy - 快速能量（快速租用，1小时有效，用了会提前回收）
       return '1小时'
 
-    case 8: // KindHosting - 自动托管（一次发放两笔）
+    case 20: // KindHosting - 托管（一次发放两笔）
       return '一天'
 
     case 9: // KindBatchEnergy - 批量能量（带自动激活）
@@ -391,7 +391,7 @@ const searchSchema = [
         { label: '按笔数', value: 5 },
         { label: '福利', value: 6 },
         { label: '闪租', value: 7 },
-        { label: '托管', value: 8 },
+        { label: '托管', value: 20 },
         { label: '批量下单', value: 9 },
         { label: '激活', value: 10 }
       ],
@@ -598,8 +598,8 @@ const handleViewDetail = async (row: any) => {
         }
       }
 
-      // 笔数能量(5)和自动托管(8)显示为长期有效
-      if (detail.kind === 5 || detail.kind === 8) {
+      // 笔数能量(5)和托管(20)显示为长期有效
+      if (detail.kind === 5 || detail.kind === 20) {
         energyRentText = '长期有效'
       }
 

@@ -152,18 +152,18 @@ const orderTypeMap = {
   5: '按笔数',
   6: '福利',
   7: '闪租',
-  8: '托管',
   9: '批量下单',
-  10: '激活'
+  10: '激活',
+  20: '托管'
 }
 const orderTypeColorMap = {
   4: 'info',
   5: 'primary',
   6: 'success',
   7: 'danger',
-  8: 'warning',
   9: 'warning',
-  10: 'primary'
+  10: 'primary',
+  20: 'warning'
 }
 const statusMap = {
   1: '新订单',
@@ -255,8 +255,8 @@ const open = async (row: { id: string | number; order_type?: number }) => {
         }
       }
 
-      // 笔数能量(5)和自动托管(8)显示为长期有效
-      if (detailData.kind === 5 || detailData.kind === 8) {
+      // 笔数能量(5)和托管(20)显示为长期有效
+      if (detailData.kind === 5 || detailData.kind === 20) {
         energyRentText = '长期有效'
       }
 
