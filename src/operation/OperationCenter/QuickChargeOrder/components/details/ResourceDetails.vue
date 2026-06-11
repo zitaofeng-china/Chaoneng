@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed, h } from 'vue'
 import { ElTag } from 'element-plus'
-import { Descriptions } from '@/components/Descriptions'
-import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
 import {
@@ -11,7 +9,6 @@ import {
   getResourceTypeText
 } from '@/utils/energyOrder'
 import { formatTableDateTime, type TableSlot } from '@/utils/tableHelpers'
-import { renderSummaryCountText } from '@/operation/OperationCenter/utils/summaryText'
 import { renderTronscanTransactionLink } from '@/operation/OperationCenter/utils/transactionLink'
 import { useLocalPagination } from '@/operation/OperationCenter/utils/useLocalPagination'
 import type { QuickChargeOrderDetail, QuickChargeResource } from '../../types'
@@ -21,32 +18,6 @@ const props = withDefaults(defineProps<{ orderData: QuickChargeOrderDetail | nul
 })
 
 type ResourceTableSlot = TableSlot<QuickChargeResource>
-
-const summarySchema = computed((): DescriptionsSchema[] => {
-  const baseSchema: DescriptionsSchema[] = [
-    {
-      field: 'summary.energy_count',
-      label: '能量笔数',
-      slots: {
-        default: (data: QuickChargeOrderDetail) =>
-          renderSummaryCountText(data?.summary?.energy_count, '笔')
-      }
-    }
-  ]
-
-  if (props.orderData?.kind === 5) {
-    baseSchema.push({
-      field: 'summary.used_count',
-      label: '已使用笔数',
-      slots: {
-        default: (data: QuickChargeOrderDetail) =>
-          renderSummaryCountText(data?.summary?.used_count, '笔')
-      }
-    })
-  }
-
-  return baseSchema
-})
 
 const resourceTableSchema = computed((): TableColumn[] => [
   {
@@ -127,9 +98,7 @@ const {
 
 <template>
   <div v-if="orderData">
-    <Descriptions :schema="summarySchema" :data="orderData" :column="2" border />
-
-    <div class="mt-20px">
+    <div>
       <Table
         :columns="resourceTableSchema"
         :data="paginatedResourceList"

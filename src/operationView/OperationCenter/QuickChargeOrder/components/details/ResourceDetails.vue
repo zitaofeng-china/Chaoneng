@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, h } from 'vue'
 import { ElTag, ElTooltip } from 'element-plus'
-import { Descriptions } from '@/components/Descriptions'
-import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
 import { formatToDateTime } from '@/utils/dateUtil'
@@ -17,32 +15,6 @@ const props = defineProps({
 // 分页相关
 const currentPage = ref(1)
 const pageSize = ref(10)
-
-// 汇总信息 schema
-const summarySchema = computed((): DescriptionsSchema[] => {
-  const baseSchema: DescriptionsSchema[] = [
-    {
-      field: 'summary.energy_count',
-      label: '能量笔数',
-      slots: {
-        default: (data) => h('span', `${data?.summary?.energy_count ?? 0} 笔`)
-      }
-    }
-  ]
-
-  // 只有 kind 为 5（按笔数能量）时才显示"已使用笔数"
-  if (props.orderData?.kind === 5) {
-    baseSchema.push({
-      field: 'summary.used_count',
-      label: '已使用笔数',
-      slots: {
-        default: (data) => h('span', `${data?.summary?.used_count ?? 0} 笔`)
-      }
-    })
-  }
-
-  return baseSchema
-})
 
 // 资源列表表格列
 const resourceTableSchema = computed((): TableColumn[] => [
@@ -188,11 +160,8 @@ const handleSizeChange = (size: number) => {
 
 <template>
   <div v-if="orderData">
-    <!-- 汇总信息 -->
-    <Descriptions :schema="summarySchema" :data="orderData" :column="2" border />
-
     <!-- 资源列表 -->
-    <div class="mt-20px">
+    <div>
       <Table
         :columns="resourceTableSchema"
         :data="paginatedResourceList"
