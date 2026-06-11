@@ -18,11 +18,12 @@ export interface ExchangeOrderListParamsV1 {
   bot_name?: string // 机器人名称
   coin?: string // 币种（USDT/TRX）
   current_page?: number // 当前页码
-  end_time?: string // 结束时间
   keyword?: string // 关键字
+  order?: string // 排序参数（例如：created_at DESC）
   order_id?: string // 订单ID
   page_size?: number // 每页大小
-  start_time?: string // 开始时间
+  start_time?: string // 开始时间（Unix时间戳-秒，字符串格式）
+  end_time?: string // 结束时间（Unix时间戳-秒，字符串格式）
   status?: number // 状态
 }
 

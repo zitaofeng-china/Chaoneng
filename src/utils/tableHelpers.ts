@@ -354,7 +354,9 @@ export async function exportTableData<
         ...options.buildParams(exportParams)
       }
     : exportParams
-  const response = toTableResponse<T>(await options.fetchData(apiParams as TApiParams))
+  const response = toTableResponse<T>(
+    await (options.fetchData as (params: Recordable) => Promise<unknown>)(apiParams as Recordable)
+  )
   const list = getList ? getList(response) : getDefaultList<T>(response)
   if (!Array.isArray(list)) {
     throw new Error('导出失败：数据格式错误')

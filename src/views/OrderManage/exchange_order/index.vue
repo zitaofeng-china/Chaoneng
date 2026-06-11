@@ -77,8 +77,14 @@ import type { DescriptionsSchema } from '@/components/Descriptions'
 import { v1GetExchangeOrderList, v1GetExchangeOrderDetail } from '@/api/exchange_order'
 import { Icon } from '@/components/Icon'
 import { ExchangeOrderListItem } from '@/api/exchange_transaction'
-import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import { exportTableData } from '@/utils/tableHelpers'
+import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
+import {
+  dateRangeToSeconds,
+  exportTableData,
+  hasSearchValue,
+  type DateRangeValue
+} from '@/utils/tableHelpers'
+import type { ExchangeOrderListParamsV1 } from '@/api/exchange_order'
 
 // const { t } = useI18n()
 const router = useRouter()
@@ -90,7 +96,13 @@ const orderDetail = ref<any>({})
 const activeTab = ref('detail')
 
 // 保存当前搜索参数
-const currentSearchParams = ref<any>({})
+type ExchangeOrderSearchParams = ExchangeOrderListParamsV1 & {
+  dateRange?: DateRangeValue
+  in_coin?: string
+  order?: string
+}
+
+const currentSearchParams = ref<ExchangeOrderSearchParams>({})
 
 // 标签页标题（动态根据订单类型）
 const userOutTabLabel = computed(() => {
@@ -510,47 +522,50 @@ const navigateToBotList = (botId: string) => {
 }
 
 // API 封装
-const fetchExchangeOrderList = async (params: any) => {
+const buildExchangeOrderListParams = (
+  params: ExchangeOrderSearchParams = {},
+  pageSize?: number
+): ExchangeOrderListParamsV1 => {
+  // 映射参数字段
+  const adaptedParams: ExchangeOrderListParamsV1 = {}
+
+  if (params.order_id) adaptedParams.order_id = params.order_id
+  if (params.keyword) adaptedParams.keyword = params.keyword
+  if (params.in_coin) adaptedParams.coin = params.in_coin // in_coin → coin
+  if (hasSearchValue(params.status)) adaptedParams.status = Number(params.status)
+
+  // 分页参数
+  adaptedParams.current_page = Number(params.current_page) || 1
+  adaptedParams.page_size = pageSize ?? (Number(params.page_size) || 10)
+
+  // 处理排序参数 - 字段名映射
+  if (params.order) {
+    const fieldMapping: Record<string, string> = {
+      create_time: 'created_at',
+      pay_time: 'paid_at'
+    }
+
+    // 解析排序参数，格式：column ASC 或 column DESC
+    const orderParts = params.order.split(' ')
+    if (orderParts.length === 2) {
+      const [field, direction] = orderParts
+      const mappedField = fieldMapping[field] || field
+      adaptedParams.order = `${mappedField} ${direction}`
+    }
+  }
+
+  Object.assign(adaptedParams, dateRangeToSeconds(params.dateRange))
+
+  return adaptedParams
+}
+
+const fetchExchangeOrderList = async (params: ExchangeOrderSearchParams) => {
   try {
     // 保存当前搜索参数（用于导出）
     currentSearchParams.value = params
 
-    // 映射参数字段
-    const adaptedParams: any = {}
-
-    if (params.order_id) adaptedParams.order_id = params.order_id
-    if (params.keyword) adaptedParams.keyword = params.keyword
-    if (params.in_coin) adaptedParams.coin = params.in_coin // in_coin → coin
-    if (params.status) adaptedParams.status = params.status
-
-    // 分页参数
-    adaptedParams.current_page = params.current_page || 1
-    adaptedParams.page_size = params.page_size || 10
-
-    // 处理排序参数 - 字段名映射
-    if (params.order) {
-      const fieldMapping: Record<string, string> = {
-        create_time: 'created_at',
-        pay_time: 'paid_at'
-      }
-
-      // 解析排序参数，格式：column ASC 或 column DESC
-      const orderParts = params.order.split(' ')
-      if (orderParts.length === 2) {
-        const [field, direction] = orderParts
-        const mappedField = fieldMapping[field] || field
-        adaptedParams.order = `${mappedField} ${direction}`
-      }
-    }
-
-    // 处理时间范围
-    if (params.dateRange && params.dateRange.length === 2) {
-      adaptedParams.start_time = new Date(params.dateRange[0]).toISOString()
-      adaptedParams.end_time = new Date(params.dateRange[1]).toISOString()
-    }
-
     // 使用新接口 v1GetExchangeOrderList
-    const response = await v1GetExchangeOrderList(adaptedParams)
+    const response = await v1GetExchangeOrderList(buildExchangeOrderListParams(params))
 
     // 简化映射：直接使用API字段，只做必要转换
     const list = (response.data?.list || []).map((item: any) => ({
@@ -629,21 +644,7 @@ const handleExport = async () => {
       fallbackParams: currentSearchParams.value,
       filename: '兑换订单列表',
       fetchData: v1GetExchangeOrderList,
-      buildParams: (params) => {
-        const adaptedParams: any = {}
-
-        if (params.order_id) adaptedParams.order_id = params.order_id
-        if (params.keyword) adaptedParams.keyword = params.keyword
-        if (params.in_coin) adaptedParams.coin = params.in_coin
-        if (params.status) adaptedParams.status = params.status
-
-        if (params.dateRange && params.dateRange.length === 2) {
-          adaptedParams.start_time = new Date(params.dateRange[0]).toISOString()
-          adaptedParams.end_time = new Date(params.dateRange[1]).toISOString()
-        }
-
-        return adaptedParams
-      },
+      buildParams: buildExchangeOrderListParams,
       getList: (response) =>
         [...(response.data?.list || [])].sort(
           (a: any, b: any) => (b.paid_at || b.created_at || 0) - (a.paid_at || a.created_at || 0)
