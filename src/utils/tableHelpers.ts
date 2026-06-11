@@ -114,13 +114,33 @@ const parseDateOnlyToSecond = (value: string, boundary: 'start' | 'end') => {
   return Math.floor(date.getTime() / 1000)
 }
 
+const isLocalDayStart = (timestampMs: number) => {
+  const date = new Date(timestampMs)
+  return (
+    date.getHours() === 0 &&
+    date.getMinutes() === 0 &&
+    date.getSeconds() === 0 &&
+    date.getMilliseconds() === 0
+  )
+}
+
+const normalizeEndBoundary = (timestampMs: number, boundary: 'start' | 'end') => {
+  if (boundary !== 'end' || !isLocalDayStart(timestampMs)) {
+    return Math.floor(timestampMs / 1000)
+  }
+  return Math.floor(timestampMs / 1000) + 86400 - 1
+}
+
 const toSecondTimestamp = (value: number | string | Date, boundary: 'start' | 'end') => {
   if (value instanceof Date) {
-    return Math.floor(value.getTime() / 1000)
+    return normalizeEndBoundary(value.getTime(), boundary)
   }
 
   if (typeof value === 'number') {
-    return String(Math.trunc(value)).length <= 10 ? Math.trunc(value) : Math.floor(value / 1000)
+    const normalizedValue = Math.trunc(value)
+    const timestampMs =
+      String(Math.abs(normalizedValue)).length <= 10 ? normalizedValue * 1000 : normalizedValue
+    return normalizeEndBoundary(timestampMs, boundary)
   }
 
   const trimmedValue = value.trim()
@@ -130,11 +150,12 @@ const toSecondTimestamp = (value: number | string | Date, boundary: 'start' | 'e
 
   if (/^\d+$/.test(trimmedValue)) {
     const numericValue = Number(trimmedValue)
-    return trimmedValue.length <= 10 ? numericValue : Math.floor(numericValue / 1000)
+    const timestampMs = trimmedValue.length <= 10 ? numericValue * 1000 : numericValue
+    return normalizeEndBoundary(timestampMs, boundary)
   }
 
   const parsedTimestamp = new Date(trimmedValue).getTime()
-  return Number.isNaN(parsedTimestamp) ? undefined : Math.floor(parsedTimestamp / 1000)
+  return Number.isNaN(parsedTimestamp) ? undefined : normalizeEndBoundary(parsedTimestamp, boundary)
 }
 
 export const dateRangeToSeconds = (dateRange?: DateRangeValue) => {
