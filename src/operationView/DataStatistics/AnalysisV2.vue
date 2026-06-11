@@ -279,6 +279,10 @@ const timeRangeOptions = [
   { label: '7天', value: '7d' },
   { label: '30日', value: '30d' }
 ]
+const CHINA_TIME_OFFSET_SECONDS = 8 * 3600
+
+const getChinaDayStart = (timestamp: number) =>
+  Math.floor((timestamp + CHINA_TIME_OFFSET_SECONDS) / 86400) * 86400 - CHINA_TIME_OFFSET_SECONDS
 
 // ============== 统计数据（结构与后端对齐，先置 0）==============
 const statsData = reactive({
@@ -769,21 +773,29 @@ const loadData = async () => {
     const params: Record<string, string> = {}
     if (customRange.value && customRange.value.length === 2) {
       // value-format="YYYY-MM-DD"，需要转为秒级时间戳
-      params.start_time = String(Math.floor(new Date(customRange.value[0]).getTime() / 1000))
-      params.end_time = String(Math.floor(new Date(customRange.value[1]).getTime() / 1000))
+      const startTime = Math.floor(new Date(customRange.value[0]).getTime() / 1000)
+      const endTime = Math.floor(new Date(customRange.value[1]).getTime() / 1000) + 86400 - 1
+      params.start_time = String(startTime)
+      params.end_time = String(endTime)
     } else if (currentRange.value) {
       const now = Math.floor(Date.now() / 1000)
-      const dayStart = now - (now % 86400) - 8 * 3600
+      const dayStart = getChinaDayStart(now)
       const rangeMap: Record<string, number> = {
         today: dayStart,
         yesterday: dayStart - 86400,
         '7d': dayStart - 6 * 86400,
         '30d': dayStart - 29 * 86400
       }
+      const rangeDaysMap: Record<string, number> = {
+        today: 1,
+        yesterday: 1,
+        '7d': 7,
+        '30d': 30
+      }
       const start = rangeMap[currentRange.value]
       if (start !== undefined) {
         params.start_time = String(start)
-        params.end_time = String(currentRange.value === 'yesterday' ? dayStart : now)
+        params.end_time = String(start + (rangeDaysMap[currentRange.value] || 1) * 86400 - 1)
       }
     }
 
