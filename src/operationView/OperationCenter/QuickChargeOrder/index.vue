@@ -126,6 +126,12 @@ const getStatusTagType = (status: number) => {
   return getCommonStatusTagType(QUICK_CHARGE_STATUS_MAP, status)
 }
 
+const formatRoundedUnitPrice = (value: string | number | null | undefined) => {
+  if (value === undefined || value === null || value === '') return '-'
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) ? String(Math.round(numberValue)) : String(value)
+}
+
 const columns: TableColumn[] = [
   { field: 'id', label: '订单号', minWidth: 160 },
   {
@@ -156,7 +162,12 @@ const columns: TableColumn[] = [
     }
   },
   { field: 'amount', label: '数量', width: 130 },
-  { field: 'unit_price', label: '单价（sun/天）', width: 130 },
+  {
+    field: 'unit_price',
+    label: '单价（sun/天）',
+    width: 130,
+    formatter: (row: QuickChargeOrder) => formatRoundedUnitPrice(row.unit_price)
+  },
   { field: 'start_time', label: '开始时间', width: 170 },
   { field: 'end_time', label: '结束时间', width: 170 },
   { field: 'duration', label: '总时长', width: 100 },
@@ -283,7 +294,7 @@ const handleExport = async () => {
       接收地址: item.receive_address,
       类型: item.order_type_label,
       数量: item.amount,
-      '单价（sun/天）': item.unit_price,
+      '单价（sun/天）': formatRoundedUnitPrice(item.unit_price),
       开始时间: item.start_time,
       结束时间: item.end_time,
       总时长: item.duration,

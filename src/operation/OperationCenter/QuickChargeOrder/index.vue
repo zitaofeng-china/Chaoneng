@@ -230,9 +230,7 @@ const formatUnitPrice = (
   const unitPrice = ((amount - fee) / energyCount) * 1000000
   if (!Number.isFinite(unitPrice)) return '-'
 
-  return Number.isInteger(unitPrice)
-    ? String(unitPrice)
-    : unitPrice.toFixed(6).replace(/\.?0+$/, '')
+  return String(Math.round(unitPrice))
 }
 
 const mapEnergyOrderToQuickChargeOrder = (item: EnergyOrder): QuickChargeOrder => {
