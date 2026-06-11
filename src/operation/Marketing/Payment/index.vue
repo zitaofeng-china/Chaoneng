@@ -44,10 +44,10 @@
           :rules="addressFormRules"
           label-width="100px"
         >
-          <ElFormItem label="收款类型:" prop="kind">
+          <ElFormItem label="收款地址类型:" prop="kind">
             <ElSelect
               v-model="addressForm.kind"
-              placeholder="请选择收款类型"
+              placeholder="请选择收款地址类型"
               class="w-full"
               :disabled="isAddressKindDisabled"
               @change="handleAddressKindChange"
@@ -104,6 +104,10 @@
               placeholder="请选择过期时间"
               class="w-full"
               clearable
+              :disabled-date="disabledExpiredDate"
+              :disabled-hours="disabledExpiredHours"
+              :disabled-minutes="disabledExpiredMinutes"
+              :disabled-seconds="disabledExpiredSeconds"
             />
           </ElFormItem>
         </ElForm>
@@ -292,11 +296,84 @@ const validateBot = (
   callback(new Error('请选择机器人'))
 }
 
+const getExpiredAtDate = () => {
+  const value = normalizeExpiredAtValue(addressForm.expired_at)
+  return value ? new Date(Number(value) * 1000) : null
+}
+
+const isSameDate = (date: Date, target: Date) =>
+  date.getFullYear() === target.getFullYear() &&
+  date.getMonth() === target.getMonth() &&
+  date.getDate() === target.getDate()
+
+const createNumberRange = (start: number, end: number) => {
+  const result: number[] = []
+  for (let value = start; value <= end; value++) {
+    result.push(value)
+  }
+  return result
+}
+
+const disabledExpiredDate = (time: Date) => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return time.getTime() < today.getTime()
+}
+
+const disabledExpiredHours = () => {
+  const selectedDate = getExpiredAtDate()
+  if (!selectedDate) return []
+
+  const now = new Date()
+  if (!isSameDate(selectedDate, now)) return []
+  return createNumberRange(0, now.getHours() - 1)
+}
+
+const disabledExpiredMinutes = (hour: number) => {
+  const selectedDate = getExpiredAtDate()
+  if (!selectedDate) return []
+
+  const now = new Date()
+  if (!isSameDate(selectedDate, now) || hour !== now.getHours()) return []
+  return createNumberRange(0, now.getMinutes() - 1)
+}
+
+const disabledExpiredSeconds = (hour: number, minute: number) => {
+  const selectedDate = getExpiredAtDate()
+  if (!selectedDate) return []
+
+  const now = new Date()
+  if (!isSameDate(selectedDate, now) || hour !== now.getHours() || minute !== now.getMinutes()) {
+    return []
+  }
+  return createNumberRange(0, now.getSeconds() - 1)
+}
+
+const validateExpiredAt = (
+  _rule: unknown,
+  value: string | number | undefined,
+  callback: (error?: Error) => void
+) => {
+  const normalizedValue = normalizeExpiredAtValue(value)
+  if (!normalizedValue) {
+    callback()
+    return
+  }
+
+  if (Number(normalizedValue) < Math.floor(Date.now() / 1000)) {
+    callback(new Error('过期时间不能选择过去的时间'))
+    return
+  }
+
+  callback()
+}
+
 const addressFormRules: FormRules = {
-  kind: [{ required: true, message: '请选择收款类型', trigger: 'change' }],
+  kind: [{ required: true, message: '请选择收款地址类型', trigger: 'change' }],
   agent_id: [{ validator: validateAgent, trigger: 'change' }],
   bot_id: [{ validator: validateBot, trigger: 'change' }],
-  address: [{ required: true, message: '请输入地址', trigger: 'blur' }]
+  address: [{ required: true, message: '请输入地址', trigger: 'blur' }],
+  expired_at: [{ validator: validateExpiredAt, trigger: 'change' }]
 }
 
 const normalizeExpiredAtValue = (value: unknown) => {
@@ -363,7 +440,7 @@ const columns = ref<TableColumn[]>([
   },
   {
     field: 'kind',
-    label: '收款类型',
+    label: '收款地址类型',
     minWidth: '220px',
     formatter: (row: V2AddressItem) => {
       const kindInfo = getAddressKindInfo(row.kind)
@@ -429,7 +506,7 @@ const searchSchema = reactive<FormSchema[]>([
   {
     field: 'kind',
     component: 'Select',
-    label: '收款类型',
+    label: '收款地址类型',
     componentProps: {
       placeholder: '全部',
       clearable: true,

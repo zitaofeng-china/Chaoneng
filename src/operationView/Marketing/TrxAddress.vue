@@ -44,10 +44,10 @@
           :rules="addressFormRules"
           label-width="100px"
         >
-          <ElFormItem label="收款类型:" prop="kind">
+          <ElFormItem label="收款地址类型:" prop="kind">
             <ElSelect
               v-model="addressForm.kind"
-              placeholder="请选择收款类型"
+              placeholder="请选择收款地址类型"
               class="w-full"
               :disabled="isAddressKindDisabled"
               @change="handleAddressKindChange"
@@ -187,12 +187,12 @@ const addressForm = reactive({
 const { formRegister: importFormRegister, formMethods: importFormMethods } = useForm()
 
 const addressKindMap: Record<number, { label: string; className: string }> = {
-  1: { label: '【代理余额充值】收款地址', className: 'kind-agent' },
-  2: { label: '【用户余额充值】收款地址', className: 'kind-user' },
-  3: { label: '【闪兑T / U】收款地址', className: 'kind-exchange' },
-  4: { label: '【能量闪租】收款地址', className: 'kind-flash' },
-  5: { label: '【按笔数购买】收款地址', className: 'kind-count' },
-  6: { label: '【福利能量】收款地址', className: 'kind-welfare' }
+  1: { label: '代理余额充值', className: 'kind-agent' },
+  2: { label: '用户余额充值', className: 'kind-user' },
+  3: { label: '闪兑', className: 'kind-exchange' },
+  4: { label: '闪租能量', className: 'kind-flash' },
+  5: { label: '笔数能量', className: 'kind-count' },
+  6: { label: '福利能量', className: 'kind-welfare' }
 }
 
 const addressKindOptions = Object.entries(addressKindMap).map(([value, item]) => ({
@@ -260,7 +260,7 @@ const validateBot = (_rule: any, value: number | undefined, callback: (error?: E
 }
 
 const addressFormRules: FormRules = {
-  kind: [{ required: true, message: '请选择收款类型', trigger: 'change' }],
+  kind: [{ required: true, message: '请选择收款地址类型', trigger: 'change' }],
   agent_id: [{ validator: validateAgent, trigger: 'change' }],
   bot_id: [{ validator: validateBot, trigger: 'change' }],
   address: [{ required: true, message: '请输入地址', trigger: 'blur' }]
@@ -310,7 +310,7 @@ const columns = ref<TableColumn[]>([
   },
   {
     field: 'kind',
-    label: '收款类型',
+    label: '收款地址类型',
     minWidth: '220px',
     formatter: (row) => {
       const kindInfo = getAddressKindInfo(row.kind)
@@ -376,7 +376,7 @@ const searchSchema = reactive<FormSchema[]>([
   {
     field: 'kind',
     component: 'Select',
-    label: '收款类型',
+    label: '收款地址类型',
     componentProps: {
       placeholder: '全部',
       clearable: true,
