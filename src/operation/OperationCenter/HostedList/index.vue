@@ -17,7 +17,7 @@
 
 <script setup lang="tsx">
 import { ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElTag } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import type { SearchTableExpose } from '@/components/SearchTable'
@@ -49,20 +49,31 @@ type BotOption = SelectOption<number | string>
 
 const botOptions = ref<BotOption[]>([])
 const isBotOptionsLoaded = ref(false)
-type HostingSearchParams = Omit<HostingListParamsV2, 'bot_id' | 'origin' | 'kind'> & {
+type HostingSearchParams = Omit<HostingListParamsV2, 'bot_id' | 'origin' | 'kind' | 'status'> & {
   bot_id?: number | string
   origin?: number | string
   kind?: number | string
+  status?: number | string
 }
 
 const HOSTING_TYPE_OPTIONS = withAllOption([
-  { label: '托管速充', value: 14 },
-  { label: '托管能量', value: 8 }
+  { label: '托管速充', value: 21 },
+  { label: '托管', value: 20 }
 ])
 
 const HOSTING_TYPE_MAP: Record<number, string> = {
-  14: '托管速充',
-  8: '托管能量'
+  21: '托管速充',
+  20: '托管'
+}
+
+const HOSTING_STATUS_OPTIONS = withAllOption([
+  { label: '启用', value: 1 },
+  { label: '禁用', value: 2 }
+])
+
+const HOSTING_STATUS_MAP: Record<number, { label: string; type: 'success' | 'danger' }> = {
+  1: { label: '启用', type: 'success' },
+  2: { label: '禁用', type: 'danger' }
 }
 
 const buildHostingListParams = (params: HostingSearchParams = {}): HostingListParamsV2 => {
@@ -76,6 +87,8 @@ const buildHostingListParams = (params: HostingSearchParams = {}): HostingListPa
   if (params.origin !== undefined && params.origin !== '')
     queryParams.origin = Number(params.origin)
   if (params.kind !== undefined && params.kind !== '') queryParams.kind = Number(params.kind)
+  if (params.status !== undefined && params.status !== '')
+    queryParams.status = Number(params.status)
   if (params.order) queryParams.order = params.order
 
   return queryParams
@@ -151,6 +164,19 @@ const columns = computed(() => {
       label: '托管类型',
       width: 120,
       formatter: (row: HostingItemV2) => HOSTING_TYPE_MAP[Number(row.kind)] || '-'
+    },
+    {
+      field: 'status',
+      label: '状态',
+      width: 100,
+      slots: {
+        default: ({ row }: { row: HostingItemV2 }) => {
+          const status = HOSTING_STATUS_MAP[Number(row.status)]
+          if (!status) return <span>-</span>
+
+          return <ElTag type={status.type}>{status.label}</ElTag>
+        }
+      }
     },
     {
       field: 'address',
@@ -256,6 +282,16 @@ const searchSchema = computed<FormSchema[]>(() => [
       clearable: true,
       options: HOSTING_TYPE_OPTIONS
     }
+  },
+  {
+    field: 'status',
+    label: '状态',
+    component: 'Select',
+    componentProps: {
+      placeholder: '请选择状态',
+      clearable: true,
+      options: HOSTING_STATUS_OPTIONS
+    }
   }
 ])
 
@@ -270,9 +306,13 @@ const fetchAutoManageList = async (
     if (res.code === '000000' && res.data) {
       const list = res.data.list || []
 
-      const hasSearchCondition = [params.bot_id, params.keyword, params.origin, params.kind].some(
-        hasSearchValue
-      )
+      const hasSearchCondition = [
+        params.bot_id,
+        params.keyword,
+        params.origin,
+        params.kind,
+        params.status
+      ].some(hasSearchValue)
       handleListMessage(list, hasSearchCondition, '托管地址')
 
       return {
