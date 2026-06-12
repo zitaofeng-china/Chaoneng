@@ -160,7 +160,7 @@ const searchSchema = computed<FormSchema[]>(() => [
     component: 'Input',
     label: {
       text: '关键字',
-      tips: '受邀人ID/受邀人/邀请人/机器人名称/代理名称'
+      tips: '受邀人ID/机器人名称/邀请人ID/代理名称'
     },
     componentProps: {
       placeholder: '请输入关键字',

@@ -48,6 +48,7 @@ import { AGENT_BILL_ORDER_TYPE_MAP, AGENT_BILL_ORDER_TYPE_OPTIONS } from '../con
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const router = useRouter()
 const currentSearchParams = ref<AgentLedgerSearchParams>({})
+const AGENT_LEDGER_EXPORT_ORDER = 'created_at DESC'
 
 type AgentLedgerSearchParams = Omit<AgentBillListParams, 'kinds'> & {
   kind?: number | string
@@ -113,7 +114,7 @@ const searchSchema = ref<FormSchema[]>([
     component: 'Input',
     label: {
       text: '关键字',
-      tips: '机器人名称/代理名称/关联订单ID'
+      tips: '关联订单ID/代理名称/机器人名称'
     },
     componentProps: {
       placeholder: '请输入关键字'
@@ -260,7 +261,11 @@ const handleExport = async () => {
       fallbackParams: currentSearchParams.value,
       filename: '代理账单',
       fetchData: v1GetAgentBillList,
-      buildParams: buildAgentBillParams,
+      buildParams: (params) =>
+        buildAgentBillParams({
+          ...params,
+          order: AGENT_LEDGER_EXPORT_ORDER
+        }),
       mapItem: (item) => ({
         关联订单ID: item.order_id || '-',
         代理邮箱: item.agent_email || item.agent_name || '-',

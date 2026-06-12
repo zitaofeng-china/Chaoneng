@@ -128,7 +128,7 @@ const searchSchema = ref<FormSchema[]>([
     component: 'Input',
     label: {
       text: '关键字',
-      tips: '支持机器人ID/用户名/代理名称'
+      tips: '支持机器人ID/机器人用户名/代理名称'
     },
     colProps: {
       span: 12

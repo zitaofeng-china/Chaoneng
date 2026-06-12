@@ -388,7 +388,7 @@ const searchSchema = computed<FormSchema[]>(() => [
     component: 'Input' as const,
     label: {
       text: '关键字',
-      tips: '支持用户名/昵称/用户账号/用户邮箱'
+      tips: '支持TG用户ID/TG用户昵称/TG用户名/用户账号/用户邮箱'
     },
     componentProps: {
       placeholder: '请输入关键字搜索'
