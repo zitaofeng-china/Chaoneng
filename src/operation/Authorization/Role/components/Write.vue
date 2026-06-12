@@ -35,7 +35,7 @@ interface MenuTreeNode {
 
 type RolePermission = string
 
-const excludedRoutes = ['ExchangeRate', 'ExchangeRateIndex']
+const excludedRoutes = ['ExchangeRate']
 
 const props = defineProps({
   currentRow: Object as PropType<RoleFormData | null | undefined>,
@@ -194,6 +194,7 @@ function buildMenuTree(routes: AppRouteRecordRaw[]): MenuTreeNode[] {
 const menuTree = buildMenuTree(operationRoutes)
 
 const treeRef = ref<InstanceType<typeof ElTree>>()
+const isApplyingTreeCheck = ref(false)
 
 const selectedNodeId = ref<string | null>(null)
 const selectedNodeButtonList = ref<ButtonListItem[]>([])
@@ -205,6 +206,50 @@ const getMenuPermissions = (permissions: RolePermission[]) =>
 
 const getButtonPermissions = (permissions: RolePermission[]) =>
   permissions.filter((permission) => permission.includes('.'))
+
+const buildMenuChildrenMap = (nodes: MenuTreeNode[]) => {
+  const childrenMap: Record<string, string[]> = {}
+
+  const traverse = (nodeList: MenuTreeNode[]) => {
+    nodeList.forEach((node) => {
+      childrenMap[node.id] = (node.children || []).map((child) => child.id)
+      if (node.children?.length) {
+        traverse(node.children)
+      }
+    })
+  }
+
+  traverse(nodes)
+  return childrenMap
+}
+
+const menuChildrenMap = buildMenuChildrenMap(menuTree)
+
+const getLeafMenuPermissions = (permissions: RolePermission[]) =>
+  permissions.filter((permission) => (menuChildrenMap[permission] || []).length === 0)
+
+const setTreeCheckedKeys = async (menuPermissions: RolePermission[]) => {
+  const leafMenuPermissions = getLeafMenuPermissions(menuPermissions)
+  isApplyingTreeCheck.value = true
+  treeRef.value?.setCheckedKeys([], false)
+  treeRef.value?.setCheckedKeys(leafMenuPermissions, false)
+  await nextTick()
+  isApplyingTreeCheck.value = false
+  return leafMenuPermissions
+}
+
+const syncTreePermissions = async (menuPermissions: RolePermission[]) => {
+  await setTreeCheckedKeys(menuPermissions)
+  const normalizedMenuPermissions = Array.from(new Set(menuPermissions))
+  const buttonPermissions = getButtonPermissions(currentPermissionsRef.value).filter(
+    (permission) => {
+      const menuId = permission.split('.')[0]
+      return normalizedMenuPermissions.includes(menuId)
+    }
+  )
+
+  await syncFormPermissions([...normalizedMenuPermissions, ...buttonPermissions])
+}
 
 const syncFormPermissions = async (permissions: RolePermission[]) => {
   currentPermissionsRef.value = permissions
@@ -293,7 +338,6 @@ const formSchema = computed<FormSchema[]>(() => [
                 ref={treeRef}
                 data={menuTree}
                 show-checkbox
-                check-strictly
                 node-key="id"
                 highlight-current
                 default-expand-all
@@ -341,19 +385,20 @@ const rules = {
   ]
 }
 
-const handleCheckChange = async () => {
-  await nextTick()
+const handleCheckChange = async (
+  nodeData: MenuTreeNode,
+  treeState: {
+    checkedKeys?: Array<string | number>
+    halfCheckedKeys?: Array<string | number>
+  }
+) => {
+  if (isApplyingTreeCheck.value) return
 
-  const checkedKeys = treeRef.value?.getCheckedKeys(false) ?? []
-  const menuPermissions = checkedKeys.map(String)
-  const buttonPermissions = getButtonPermissions(currentPermissionsRef.value).filter(
-    (permission) => {
-      const menuId = permission.split('.')[0]
-      return menuPermissions.includes(menuId)
-    }
+  const menuPermissions = Array.from(
+    new Set([...(treeState.checkedKeys || []), ...(treeState.halfCheckedKeys || [])].map(String))
   )
 
-  await syncFormPermissions([...menuPermissions, ...buttonPermissions])
+  await syncTreePermissions(menuPermissions)
 }
 
 const nodeClick = (nodeData: MenuTreeNode) => {
@@ -387,7 +432,9 @@ watch(
       const initialValues = { name: '', status: 1, permissions: [] }
       setValues(initialValues)
       currentPermissionsRef.value = []
-      nextTick(() => treeRef.value?.setCheckedKeys([], false))
+      nextTick(() => {
+        void setTreeCheckedKeys([])
+      })
     } else {
       const validRow = row as RoleFormData
       const currentPermissions = Array.isArray(validRow.permissions)
@@ -417,8 +464,7 @@ watch(
         : [...menuPermissions, ...getButtonPermissions(currentPermissions)]
 
       nextTick(() => {
-        treeRef.value?.setCheckedKeys([], false)
-        treeRef.value?.setCheckedKeys(menuPermissions, false)
+        void setTreeCheckedKeys(menuPermissions)
       })
     }
   },
@@ -438,24 +484,24 @@ const open = () => {
       const initialValues = { name: '', status: 1, permissions: [] }
       setValues(initialValues)
       currentPermissionsRef.value = []
-      treeRef.value?.setCheckedKeys([], false)
+      await setTreeCheckedKeys([])
     } else {
       const rowData = props.currentRow as RoleFormData
       const currentPermissions = Array.isArray(rowData.permissions)
         ? rowData.permissions.map(String)
         : []
       const menuPermissions = getMenuPermissions(currentPermissions)
+      const buttonPermissions = getButtonPermissions(currentPermissions)
 
       const valuesToSet = {
         name: rowData.Name ?? rowData.name ?? '',
         status: rowData.status ?? 1,
-        permissions: currentPermissions
+        permissions: [...menuPermissions, ...buttonPermissions]
       }
       setValues(valuesToSet)
 
-      treeRef.value?.setCheckedKeys([], false)
-      treeRef.value?.setCheckedKeys(menuPermissions, false)
-      currentPermissionsRef.value = currentPermissions
+      await setTreeCheckedKeys(menuPermissions)
+      currentPermissionsRef.value = [...menuPermissions, ...buttonPermissions]
     }
   })
 }

@@ -4,7 +4,8 @@ import { useTagsView } from '@/hooks/web/useTagsView'
 import { useRouter } from 'vue-router'
 import { inject } from 'vue'
 const systemType = inject('systemType')
-const homeUrl = systemType === 'Management' ? '/bot_manage/bot_list' : '/exchange_rate/index'
+const homeUrl =
+  systemType === 'Management' ? '/bot_manage/bot_list' : '/data_analysis/data_statistics'
 
 const { push } = useRouter()
 

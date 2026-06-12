@@ -71,12 +71,18 @@ export const usePermissionStore = defineStore('permission', {
                   const routeName = route.name as string
                   const hasRouteName = !!routeName
                   const hasAccess = !hasRouteName || allowedNames.has(routeName)
+                  const isContainerRoute = Boolean(route.children?.length)
 
-                  if (hasAccess && route.children && route.children.length > 0) {
+                  if (isContainerRoute && route.children) {
                     route.children = filterRecursive(route.children, allowedNames)
                   }
-                  const shouldKeep = hasAccess && (!route.children || route.children.length > 0)
-                  return shouldKeep
+
+                  // 容器菜单由可访问的子页面决定，避免新增分组菜单破坏旧角色权限。
+                  if (isContainerRoute) {
+                    return Boolean(route.children?.length)
+                  }
+
+                  return hasAccess
                 })
               }
               const clonedRoutes = cloneDeep(operationRoutes)

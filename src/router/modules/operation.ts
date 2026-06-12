@@ -4,43 +4,41 @@ let operationRoutes: AppRouteRecordRaw[] = []
 if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
   operationRoutes = [
     {
-      path: '/data_statistics',
+      path: '/data_analysis',
       component: Layout,
       name: 'DataStatistics',
-      redirect: '/data_statistics/index',
+      redirect: '/data_analysis/data_statistics',
       meta: {
-        title: '数据统计',
-        icon: 'vi-mdi:chart-bar'
+        title: '数据分析',
+        icon: 'vi-mdi:chart-bar',
+        alwaysShow: true
       },
       children: [
         {
-          path: 'index',
+          path: 'data_statistics',
+          alias: '/data_statistics/index',
           component: () => import('@/operation/DataStatistics/Analysis/index.vue'),
           name: 'Analysis',
           meta: {
-            title: '数据统计',
-            icon: 'vi-mdi:chart-bar'
+            title: '数据统计'
           }
-        }
-      ]
-    },
-    {
-      path: '/exchange_rate',
-      component: Layout,
-      name: 'ExchangeRate',
-      redirect: '/exchange_rate/index',
-      meta: {
-        title: '实时汇率监听',
-        icon: 'vi-mdi:currency-usd'
-      },
-      children: [
+        },
         {
-          path: 'index',
+          path: 'exchange_rate',
+          alias: '/exchange_rate/index',
           component: () => import('@/operation/ExchangeRate/ExchangeRateIndex/index.vue'),
           name: 'ExchangeRateIndex',
           meta: {
-            title: '实时汇率监听',
-            icon: 'vi-mdi:currency-usd'
+            title: '实时汇率监听'
+          }
+        },
+        {
+          path: 'announcement',
+          alias: '/system_config/announcement',
+          component: () => import('@/operation/SystemConfig/Announcement/index.vue'),
+          name: 'Announcement',
+          meta: {
+            title: '现金池管理'
           }
         }
       ]
@@ -343,14 +341,6 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           meta: {
             title: '资源池账户',
             buttonList: ['add', 'edit', 'delete']
-          }
-        },
-        {
-          path: 'announcement',
-          component: () => import('@/operation/SystemConfig/Announcement/index.vue'),
-          name: 'Announcement',
-          meta: {
-            title: '系统公告'
           }
         }
       ]
