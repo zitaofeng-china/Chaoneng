@@ -33,5 +33,5 @@
     ]
   },
   "include": ["src", "types/**/*.d.ts", "mock/**/*.ts", ".eslintrc-auto-import.json"],
-  "exclude": ["dist", "node_modules", "src/operationView"]
+  "exclude": ["dist", "node_modules", "archive"]
 }

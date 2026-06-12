@@ -431,7 +431,6 @@ const handleFormSubmit = async () => {
     }
   }
 }
-
 </script>
 
 <style scoped>

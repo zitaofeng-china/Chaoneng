@@ -8,7 +8,7 @@ import vueParser from 'vue-eslint-parser'
 import prettier from 'eslint-plugin-prettier'
 
 export default tseslint.config({
-  ignores: ['src/operationView/**'],
+  ignores: ['archive/**'],
   files: ['src/**/*.ts', 'src/**/*.tsx', 'src/**/*.vue'],
   // tseslint.config添加了extends扁平函数，直接用。否则是eslint9.0版本是没有extends的
   extends: [
