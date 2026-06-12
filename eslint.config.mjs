@@ -8,7 +8,7 @@ import vueParser from 'vue-eslint-parser'
 import prettier from 'eslint-plugin-prettier'
 
 export default tseslint.config({
-  // ignores: ['node_modules', 'prettier.config.cjs', 'dist*'],
+  ignores: ['src/operationView/**'],
   files: ['src/**/*.ts', 'src/**/*.tsx', 'src/**/*.vue'],
   // tseslint.config添加了extends扁平函数，直接用。否则是eslint9.0版本是没有extends的
   extends: [
@@ -53,6 +53,17 @@ export default tseslint.config({
     '@typescript-eslint/explicit-module-boundary-types': 0,
     '@typescript-eslint/no-unused-vars': 0,
     'no-unused-vars': 0,
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: ['@/operationView', '@/operationView/*', '@/operationView/**'],
+            message: '旧运营端已停用，请使用 @/operation 下的新设计。'
+          }
+        ]
+      }
+    ],
     'space-before-function-paren': 0,
     'vue/attributes-order': 0,
     'vue/one-component-per-file': 0,
