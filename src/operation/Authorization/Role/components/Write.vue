@@ -59,6 +59,8 @@ const buttonCodeMap: Record<string, string> = {
 }
 
 const routeParentMap: Record<string, string | null> = {}
+const DATA_STATISTICS_PERMISSION = 'Analysis'
+const DEFAULT_ADD_ROLE_PERMISSIONS: RolePermission[] = [DATA_STATISTICS_PERMISSION]
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
@@ -373,7 +375,7 @@ const rules = {
       required: true,
       validator: (_rule: unknown, value: unknown, callback: (error?: Error) => void) => {
         if (!Array.isArray(value) || value.length === 0) {
-          callback(new Error(t('role.assignPermissions', '请至少分配一个菜单或按钮权限')))
+          callback(new Error('请至少选择一个菜单'))
         } else {
           callback()
         }
@@ -384,7 +386,7 @@ const rules = {
 }
 
 const handleCheckChange = async (
-  nodeData: MenuTreeNode,
+  _nodeData: MenuTreeNode,
   treeState: {
     checkedKeys?: Array<string | number>
     halfCheckedKeys?: Array<string | number>
@@ -427,11 +429,15 @@ watch(
     selectedNodeButtonList.value = []
 
     if (type === 'add' || !row || typeof row !== 'object' || row === null) {
-      const initialValues = { name: '', status: 1, permissions: [] }
+      const initialValues = {
+        name: '',
+        status: 1,
+        permissions: [...DEFAULT_ADD_ROLE_PERMISSIONS]
+      }
       setValues(initialValues)
-      currentPermissionsRef.value = []
+      currentPermissionsRef.value = [...DEFAULT_ADD_ROLE_PERMISSIONS]
       nextTick(() => {
-        void setTreeCheckedKeys([])
+        void setTreeCheckedKeys(DEFAULT_ADD_ROLE_PERMISSIONS)
       })
     } else {
       const validRow = row as RoleFormData
@@ -479,10 +485,14 @@ const open = () => {
     elForm?.clearValidate()
 
     if (!props.currentRow || typeof props.currentRow !== 'object' || props.currentRow === null) {
-      const initialValues = { name: '', status: 1, permissions: [] }
+      const initialValues = {
+        name: '',
+        status: 1,
+        permissions: [...DEFAULT_ADD_ROLE_PERMISSIONS]
+      }
       setValues(initialValues)
-      currentPermissionsRef.value = []
-      await setTreeCheckedKeys([])
+      currentPermissionsRef.value = [...DEFAULT_ADD_ROLE_PERMISSIONS]
+      await setTreeCheckedKeys(DEFAULT_ADD_ROLE_PERMISSIONS)
     } else {
       const rowData = props.currentRow as RoleFormData
       const currentPermissions = Array.isArray(rowData.permissions)
@@ -510,12 +520,23 @@ const close = () => {
 
 const submit = async () => {
   const elForm = await getElFormExpose()
-  const valid = await elForm?.validate().catch(() => {
+  let validateError: unknown = null
+  const valid = await elForm?.validate().catch((error) => {
+    validateError = error
     return false
   })
 
   if (!valid) {
-    ElMessage.error(t('common.formValidateError', '表单校验失败，请检查输入项'))
+    const firstErrorMessage =
+      validateError && typeof validateError === 'object'
+        ? Object.values(validateError as Record<string, Array<{ message?: string }>>)
+            .flat()
+            .find((item) => item?.message)?.message
+        : ''
+
+    ElMessage.error(
+      firstErrorMessage || t('common.formValidateError', '表单校验失败，请检查输入项')
+    )
     return
   }
 
