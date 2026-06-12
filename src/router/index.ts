@@ -16,7 +16,7 @@ const systemType = import.meta.env.VITE_SYSTEM_TYPE || 'Management'
 const rootRoute: AppRouteRecordRaw = {
   path: '/',
   component: Layout,
-  redirect: systemType === 'Management' ? '/bot_manage/bot_list' : '/data_analysis/data_statistics',
+  redirect: '/home',
   name: 'Root',
   meta: {
     hidden: true

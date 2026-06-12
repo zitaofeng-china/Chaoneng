@@ -5,7 +5,8 @@ import operationRoutes from '@/router/modules/operation'
 import {
   generateRoutesByFrontEnd,
   generateRoutesByServer,
-  flatMultiLevelRoutes
+  flatMultiLevelRoutes,
+  normalizeRouteRedirects
 } from '@/utils/routerHelper'
 import { store } from '../index'
 import { cloneDeep } from 'lodash-es'
@@ -112,6 +113,7 @@ export const usePermissionStore = defineStore('permission', {
               })
           }
           routerMap = filterBlacklistedRoutes(routerMap)
+          normalizeRouteRedirects(routerMap)
 
           const finalAddRouters = routerMap.concat([
             {

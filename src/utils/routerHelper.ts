@@ -128,6 +128,54 @@ export const pathResolve = (parentPath: string, path: string) => {
   return `${parentPath}${childPath}`.replace(/\/\//g, '/').trim()
 }
 
+const isWildcardRoute = (path: string) => path.includes(':path(.*)')
+
+export const getFirstAccessibleRoutePath = (
+  routes: AppRouteRecordRaw[],
+  basePath = '/'
+): string | undefined => {
+  for (const route of routes) {
+    const meta = route.meta ?? {}
+    if (meta.hidden || !route.path || isWildcardRoute(route.path)) {
+      continue
+    }
+
+    const currentPath = pathResolve(basePath, route.path)
+    const children = Array.isArray(route.children) ? route.children : []
+
+    if (children.length > 0) {
+      const childPath = getFirstAccessibleRoutePath(children, currentPath)
+      if (childPath) {
+        return childPath
+      }
+      continue
+    }
+
+    return currentPath
+  }
+
+  return undefined
+}
+
+export const normalizeRouteRedirects = (routes: AppRouteRecordRaw[], basePath = '/') => {
+  routes.forEach((route) => {
+    if (!route.path || isWildcardRoute(route.path)) {
+      return
+    }
+
+    const currentPath = pathResolve(basePath, route.path)
+    const children = Array.isArray(route.children) ? route.children : []
+
+    if (children.length > 0) {
+      normalizeRouteRedirects(children, currentPath)
+      const firstChildPath = getFirstAccessibleRoutePath(children, currentPath)
+      if (firstChildPath) {
+        route.redirect = firstChildPath
+      }
+    }
+  })
+}
+
 // 路由降级
 export const flatMultiLevelRoutes = (routes: AppRouteRecordRaw[]) => {
   const modules: AppRouteRecordRaw[] = cloneDeep(routes)

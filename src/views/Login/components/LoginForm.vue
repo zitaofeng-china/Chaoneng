@@ -13,6 +13,7 @@ import { useValidator } from '@/hooks/web/useValidator'
 import { useUserStore } from '@/store/modules/user'
 import { BaseButton } from '@/components/Button'
 import { isManagementSystem } from '@/utils/system'
+import { getFirstAccessibleRoutePath } from '@/utils/routerHelper'
 import {
   passwordLoginApi,
   verifyCodeLoginApi,
@@ -553,7 +554,10 @@ const signIn = async () => {
             permissionStore.setIsAddRouters(true)
             // 使用 replace 而不是 push，避免在历史记录中留下登录页
             // 获取目标路径，优先使用 redirect，其次使用第一个路由，最后使用根路径
-            const targetPath = redirect.value || permissionStore.addRouters[0]?.path || '/'
+            const targetPath =
+              redirect.value ||
+              getFirstAccessibleRoutePath(permissionStore.getAddRouters) ||
+              '/home'
             // 使用 nextTick 确保路由已经完全添加
             await new Promise((resolve) => setTimeout(resolve, 0))
             replace({ path: targetPath })
@@ -611,7 +615,8 @@ const getRole = async () => {
     permissionStore.setIsAddRouters(true)
     // 使用 replace 而不是 push，避免在历史记录中留下登录页
     // 获取目标路径，优先使用 redirect，其次使用第一个路由，最后使用根路径
-    const targetPath = redirect.value || permissionStore.addRouters[0]?.path || '/'
+    const targetPath =
+      redirect.value || getFirstAccessibleRoutePath(permissionStore.getAddRouters) || '/home'
     // 使用 nextTick 确保路由已经完全添加
     await new Promise((resolve) => setTimeout(resolve, 0))
     replace({ path: targetPath })

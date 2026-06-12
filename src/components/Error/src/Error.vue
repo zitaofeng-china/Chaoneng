@@ -34,13 +34,18 @@ const errorMap: {
 }
 
 const props = defineProps({
-  type: propTypes.string.validate((v: string) => ['404', '500', '403'].includes(v)).def('404')
+  type: propTypes.string.validate((v: string) => ['404', '500', '403'].includes(v)).def('404'),
+  showLogout: propTypes.bool.def(false)
 })
 
-const emit = defineEmits(['errorClick'])
+const emit = defineEmits(['errorClick', 'logoutClick'])
 
 const btnClick = () => {
   emit('errorClick', props.type)
+}
+
+const logoutClick = () => {
+  emit('logoutClick')
 }
 </script>
 
@@ -49,8 +54,9 @@ const btnClick = () => {
     <div class="text-center">
       <img width="350" :src="errorMap[type].url" alt="" />
       <div class="text-14px text-[var(--el-color-info)]">{{ errorMap[type].message }}</div>
-      <div class="mt-20px">
+      <div class="mt-20px flex justify-center gap-12px">
         <BaseButton type="primary" @click="btnClick">{{ errorMap[type].buttonText }}</BaseButton>
+        <BaseButton v-if="showLogout" @click="logoutClick">{{ t('common.loginOut') }}</BaseButton>
       </div>
     </div>
   </div>

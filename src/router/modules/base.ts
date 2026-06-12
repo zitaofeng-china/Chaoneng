@@ -28,6 +28,15 @@ const baseRoutes: AppRouteRecordRaw[] = [
     }
   },
   {
+    path: '/home',
+    component: () => import('@/views/Redirect/Home.vue'),
+    name: 'HomeRedirect',
+    meta: {
+      hidden: true,
+      noTagsView: true
+    }
+  },
+  {
     path: '/login',
     component: Login, // 直接使用导入的组件，避免懒加载
     name: 'Login',

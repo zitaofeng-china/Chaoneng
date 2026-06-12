@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { Error } from '@/components/Error'
-import { usePermissionStore } from '@/store/modules/permission'
+import { useUserStore } from '@/store/modules/user'
 import { useRouter } from 'vue-router'
 
 const { push } = useRouter()
-
-const permissionStore = usePermissionStore()
+const userStore = useUserStore()
 
 const errorClick = () => {
-  push(permissionStore.addRouters[0]?.path as string)
+  push('/home')
+}
+
+const handleLogout = () => {
+  userStore.logoutConfirm()
 }
 </script>
 
 <template>
-  <Error @error-click="errorClick" />
+  <Error show-logout @error-click="errorClick" @logout-click="handleLogout" />
 </template>

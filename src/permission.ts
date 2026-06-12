@@ -55,7 +55,7 @@ router.beforeEach(async (to, from, next) => {
     }
 
     if (to.path === '/login') {
-      next({ path: '/' })
+      next({ path: '/home' })
     } else {
       if (permissionStore.getIsAddRouters) {
         // 检查路由是否存在
@@ -95,7 +95,7 @@ router.beforeEach(async (to, from, next) => {
       })
 
       permissionStore.setIsAddRouters(true)
-      const redirectPath = from.query.redirect || to.path
+      const redirectPath = from.query.redirect || (to.path === '/' ? '/home' : to.path)
       const redirect = decodeURIComponent(redirectPath as string)
       const nextData = to.path === redirect ? { ...to, replace: true } : { path: redirect }
       next(nextData)
