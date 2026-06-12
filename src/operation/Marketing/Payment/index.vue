@@ -499,7 +499,7 @@ const searchSchema = reactive<FormSchema[]>([
     component: 'Input',
     label: '关键字',
     componentProps: {
-      placeholder: 'TRX地址/代理信息',
+      placeholder: 'TRX收款地址/代理信息',
       clearable: true
     }
   },

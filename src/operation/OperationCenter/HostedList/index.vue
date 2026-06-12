@@ -255,7 +255,7 @@ const searchSchema = computed<FormSchema[]>(() => [
   {
     field: 'keyword',
     label: {
-      tips: '托管地址/用户名/用户账号/用户邮箱',
+      tips: '用户名/用户账号/用户邮箱/托管地址',
       text: '关键词'
     },
     component: 'Input',

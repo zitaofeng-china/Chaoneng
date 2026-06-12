@@ -140,12 +140,12 @@ const searchSchema = reactive<FormSchema[]>([
 const columns: TableColumn[] = [
   {
     field: 'id',
-    label: 'ID',
+    label: '聊天ID',
     width: 150
   },
   {
     field: 'name',
-    label: '名称',
+    label: '聊天名称',
     minWidth: 180,
     formatter: (row: ChatRow) => row.name || '-'
   },

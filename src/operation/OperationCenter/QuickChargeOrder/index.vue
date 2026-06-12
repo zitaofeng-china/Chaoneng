@@ -38,7 +38,7 @@
 
 <script setup lang="tsx">
 import { onMounted, ref } from 'vue'
-import { ElTag } from 'element-plus'
+import { ElLink, ElTag } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
@@ -63,7 +63,7 @@ import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import type { EnergyListParams, EnergyOrder } from '../EnergyTransaction/types'
 import type { QuickChargeOrder, QuickChargeSearchParams } from './types'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   getQuickChargeOrderTypeTagType,
   getQuickChargeOrderTypeText,
@@ -75,6 +75,7 @@ const QUICK_CHARGE_ORDER_KINDS = [15, 21]
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const orderDetailRef = ref<InstanceType<typeof OrderDetail> | null>(null)
 const route = useRoute()
+const router = useRouter()
 const totalCount = ref(0)
 const botOptions = ref<SelectOption<number | string>[]>(withAllOption<number | string>([]))
 
@@ -86,7 +87,25 @@ const columns: TableColumn[] = [
     field: 'bot_user_name',
     label: '机器人用户名',
     minWidth: 130,
-    formatter: (row: QuickChargeOrder) => row.bot_user_name || '-'
+    slots: {
+      default: ({ row }: QuickChargeTableSlot) => {
+        const botUserName = row.bot_user_name
+        if (!botUserName || botUserName === '-') {
+          return <span>-</span>
+        }
+
+        return (
+          <ElLink
+            type="primary"
+            onClick={() =>
+              router.push({ path: '/agent/bot_list', query: { keyword: botUserName } })
+            }
+          >
+            {botUserName}
+          </ElLink>
+        )
+      }
+    }
   },
   { field: 'agent_name', label: '代理', minWidth: 120 },
   { field: 'receive_address', label: '接收地址', minWidth: 210 },

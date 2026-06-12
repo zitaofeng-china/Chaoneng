@@ -192,7 +192,7 @@ const searchSchema = ref<FormSchema[]>([
     field: 'keyword',
     component: 'Input' as const,
     label: {
-      tips: '订单ID/代理名称/机器人名称/地址',
+      tips: '订单ID/代理名称/机器人名称/用户发送地址',
       text: '关键词'
     },
     componentProps: {

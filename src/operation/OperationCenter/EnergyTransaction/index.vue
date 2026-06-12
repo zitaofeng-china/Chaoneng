@@ -114,7 +114,7 @@ const searchSchema = [
     field: 'keyword',
     component: 'Input' as const,
     label: {
-      tips: 'TG用户ID/TG用户名/TG用户昵称/机器人名称/代理名称/用户账号/用户邮箱',
+      tips: '订单ID/代理名称/机器人名称/TG用户名/TG用户昵称/用户账号/用户邮箱',
       text: '关键词'
     },
     componentProps: {

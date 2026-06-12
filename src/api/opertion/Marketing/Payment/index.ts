@@ -60,7 +60,7 @@ export const v2DeleteAddress = (data: V2DeleteAddressParams): Promise<IResponse>
  */
 export const v2BatchImportAddress = (formData: FormData): Promise<IResponse> => {
   return request.post({
-    url: `${ADDRESS_V1_BASE_URL}/import`,
+    url: `${ADDRESS_V2_BASE_URL}/import`,
     data: formData,
     headers: {
       'Content-Type': 'multipart/form-data'
@@ -73,7 +73,7 @@ export const v2BatchImportAddress = (formData: FormData): Promise<IResponse> => 
  */
 export const v2ExportAddressModule = () => {
   return request.get({
-    url: `${ADDRESS_V1_BASE_URL}/module`,
+    url: `${ADDRESS_V2_BASE_URL}/module`,
     responseType: 'blob'
   })
 }
