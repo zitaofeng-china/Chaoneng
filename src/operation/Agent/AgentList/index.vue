@@ -11,7 +11,9 @@
         :pagination="{ pageSize: 8, pageSizes: [8, 10, 20, 30, 50, 100] }"
       >
         <template #leftToolbar>
-          <BaseButton type="primary" @click="handleAddAgent">新增代理</BaseButton>
+          <BaseButton type="primary" :disabled="isBatchEditMode" @click="handleAddAgent">
+            新增代理
+          </BaseButton>
           <template v-if="!isBatchEditMode">
             <BaseButton type="warning" @click="handleBatchEdit">批量修改</BaseButton>
             <BaseButton type="success" @click="handleNotifyBot">通知机器人</BaseButton>
@@ -56,7 +58,6 @@
             <div class="stat-box">
               <div class="stat-label">代理充值</div>
               <div class="stat-value">{{ formatStatNum(agentStats.sum_deposit_trx) }}</div>
-              <div class="stat-sub">只统计线上数据</div>
             </div>
           </div>
         </template>
@@ -254,10 +255,31 @@ const buildUpdatePayload = (
   ...updates
 })
 
+const resetEmailEditingState = () => {
+  editingEmailId.value = null
+  editingEmailValue.value = ''
+  emailFormData.email = ''
+
+  if (autoExitTimer) {
+    clearTimeout(autoExitTimer)
+    autoExitTimer = null
+  }
+}
+
 const resetBatchEditState = () => {
   isBatchEditMode.value = false
   selectedAgentIds.value = []
   batchPriceId.value = 0
+  resetEmailEditingState()
+}
+
+const guardBatchEditMutation = (actionText: string): boolean => {
+  if (!isBatchEditMode.value) {
+    return false
+  }
+
+  ElMessage.warning(`批量修改状态下不可${actionText}，请先保存或取消批量修改`)
+  return true
 }
 
 const getAgentLevelText = (priceId?: number): string => {
@@ -304,6 +326,8 @@ const getAgentList = async (
 }
 
 const updateAgentStatus = async (id: number | string, status: number, row: AgentItem) => {
+  if (guardBatchEditMutation('修改状态')) return
+
   try {
     await updateAgentApi(buildUpdatePayload(id, row, { status }))
     handleSuccessMessage(status === 1 ? '启用成功' : '禁用成功')
@@ -315,6 +339,8 @@ const updateAgentStatus = async (id: number | string, status: number, row: Agent
 
 // 更新代理等级
 const updateAgentLevel = async (id: number | string, priceId: number, row: AgentItem) => {
+  if (guardBatchEditMutation('修改代理等级')) return
+
   try {
     await updateAgentApi(buildUpdatePayload(id, row, { price_id: priceId }))
     handleSuccessMessage('代理等级更新成功')
@@ -326,6 +352,8 @@ const updateAgentLevel = async (id: number | string, priceId: number, row: Agent
 
 // 更新是否赠送带宽
 const updateGiftBandwidth = async (id: number | string, giftBandwidth: boolean, row: AgentItem) => {
+  if (guardBatchEditMutation('修改赠送带宽')) return
+
   try {
     await updateAgentApi(buildUpdatePayload(id, row, { gift_bandwidth: giftBandwidth }))
     handleSuccessMessage(giftBandwidth ? '已开启赠送带宽' : '已关闭赠送带宽')
@@ -338,6 +366,8 @@ const updateGiftBandwidth = async (id: number | string, giftBandwidth: boolean, 
 
 // 联系方式编辑相关函数
 const handleEmailDoubleClick = (row: AgentItem) => {
+  if (guardBatchEditMutation('修改代理邮箱')) return
+
   // 清除之前的定时器
   if (autoExitTimer) {
     clearTimeout(autoExitTimer)
@@ -418,6 +448,11 @@ const handleEmailInput = (value: string) => {
 const handleEmailBlur = async (row: AgentItem) => {
   // 延迟关闭,以便点击建议时能触发
   setTimeout(async () => {
+    if (isBatchEditMode.value) {
+      resetEmailEditingState()
+      return
+    }
+
     // 验证表单
     try {
       await emailFormRef.value?.validate()
@@ -546,7 +581,10 @@ const columns = computed<TableColumn[]>(() => [
         )
       }
       return (
-        <div class="email-display" onDblclick={() => handleEmailDoubleClick(row)}>
+        <div
+          class={['email-display', { 'email-display--disabled': isBatchEditMode.value }]}
+          onDblclick={() => handleEmailDoubleClick(row)}
+        >
           {row.email || '-'}
         </div>
       )
@@ -696,6 +734,7 @@ const columns = computed<TableColumn[]>(() => [
           activeText="赠送"
           inactiveText="不赠送"
           inline-prompt
+          disabled={isBatchEditMode.value}
         />
       )
     }
@@ -712,6 +751,7 @@ const columns = computed<TableColumn[]>(() => [
           activeText="启用"
           inactiveText="禁用"
           inline-prompt
+          disabled={isBatchEditMode.value}
         />
       )
     }
@@ -736,10 +776,18 @@ const columns = computed<TableColumn[]>(() => [
 const renderActionButtons = (row: AgentItem) => {
   return (
     <div class="action-buttons">
-      <BaseButton type="primary" onClick={() => handleEditAgent(row)}>
+      <BaseButton
+        type="primary"
+        disabled={isBatchEditMode.value}
+        onClick={() => handleEditAgent(row)}
+      >
         修改密码
       </BaseButton>
-      <BaseButton type="primary" onClick={() => handleRecharge(row)}>
+      <BaseButton
+        type="primary"
+        disabled={isBatchEditMode.value}
+        onClick={() => handleRecharge(row)}
+      >
         充值
       </BaseButton>
     </div>
@@ -748,6 +796,8 @@ const renderActionButtons = (row: AgentItem) => {
 
 // 事件处理
 const handleAddAgent = () => {
+  if (guardBatchEditMutation('新增代理')) return
+
   agentFormRef.value?.openDialog('add')
 }
 
@@ -795,6 +845,8 @@ const handleBatchPriceLevelChange = (priceId: number) => {
 }
 
 const handleEditAgent = (row: AgentItem) => {
+  if (guardBatchEditMutation('修改代理密码')) return
+
   const editData = {
     id: row.id,
     username: row.username,
@@ -807,6 +859,8 @@ const handleEditAgent = (row: AgentItem) => {
 }
 
 const handleRecharge = (row: AgentItem) => {
+  if (guardBatchEditMutation('给代理充值')) return
+
   currentAccount.value = row
   rechargeDialogVisible.value = true
 }
@@ -846,6 +900,14 @@ const handleAgentError = (error: { type: 'add' | 'edit'; error: unknown }) => {
 
 .email-display:hover {
   background-color: #f5f7fa;
+}
+
+.email-display--disabled {
+  cursor: not-allowed;
+}
+
+.email-display--disabled:hover {
+  background-color: transparent;
 }
 
 .email-edit-wrapper {
