@@ -199,7 +199,7 @@ import {
   batchCreateAssetAccount,
   type AssetBalanceData,
   type AccountBalanceSnapshot
-} from '@/api/opertion/SystemConfig/Announcement'
+} from '@/api/opertion/DataStatistics/Announcement'
 import { simpleExportToExcel } from '@/utils/excel'
 import type { EChartsOption } from 'echarts'
 

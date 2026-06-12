@@ -10,8 +10,8 @@
 </template>
 
 <script setup lang="tsx">
-import TrxChart from '../components/TrxChart.vue'
-import TrxTable from '../components/TrxTable.vue'
+import TrxChart from './components/TrxChart.vue'
+import TrxTable from './components/TrxTable.vue'
 
 // 页面组件逻辑由相应的子组件自行处理
 </script>

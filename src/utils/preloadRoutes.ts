@@ -56,7 +56,7 @@ class RoutePreloader {
     // 运营端核心路由列表（按优先级排序）
     const coreRoutes = [
       // 1. 默认入口和数据看板
-      () => import('@/operation/ExchangeRate/ExchangeRateIndex/index.vue'),
+      () => import('@/operation/DataStatistics/ExchangeRateIndex/index.vue'),
       () => import('@/operation/DataStatistics/Analysis/index.vue'),
 
       // 2. 订单管理（高频访问）

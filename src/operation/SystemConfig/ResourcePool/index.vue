@@ -31,7 +31,7 @@ import { ElButton, ElMessageBox, ElMessage, ElSelect, ElOption } from 'element-p
 import { ContentWrap } from '@/components/ContentWrap'
 import { Icon } from '@/components/Icon'
 import type { FormSchema } from '@/components/Form'
-import ResourcePoolAccountForm from '../components/ResourcePoolAccountForm.vue'
+import ResourcePoolAccountForm from './components/ResourcePoolAccountForm.vue'
 import { SearchTable } from '@/components/SearchTable'
 import type { TableColumn } from '@/components/Table'
 import {

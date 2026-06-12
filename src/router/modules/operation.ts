@@ -26,7 +26,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         {
           path: 'exchange_rate',
           alias: '/exchange_rate/index',
-          component: () => import('@/operation/ExchangeRate/ExchangeRateIndex/index.vue'),
+          component: () => import('@/operation/DataStatistics/ExchangeRateIndex/index.vue'),
           name: 'ExchangeRateIndex',
           meta: {
             title: '实时汇率监听'
@@ -35,7 +35,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         {
           path: 'announcement',
           alias: '/system_config/announcement',
-          component: () => import('@/operation/SystemConfig/Announcement/index.vue'),
+          component: () => import('@/operation/DataStatistics/Announcement/index.vue'),
           name: 'Announcement',
           meta: {
             title: '现金池管理'

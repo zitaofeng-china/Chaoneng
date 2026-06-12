@@ -20,7 +20,7 @@
 import { reactive } from 'vue'
 import { useTable } from '@/hooks/web/useTable'
 import { Table, TableColumn } from '@/components/Table'
-import { getTrxVolumeApi } from '@/api/opertion/ExchangeRate/ExchangeRateIndex'
+import { getTrxVolumeApi } from '@/api/opertion/DataStatistics/ExchangeRateIndex'
 import { handleErrorMessage } from '@/utils/messageHelper'
 import {
   formatPriceValue,

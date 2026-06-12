@@ -35,8 +35,6 @@ interface MenuTreeNode {
 
 type RolePermission = string
 
-const excludedRoutes = ['ExchangeRate']
-
 const props = defineProps({
   currentRow: Object as PropType<RoleFormData | null | undefined>,
   dialogTitle: String,
@@ -110,7 +108,7 @@ function buildRouteParentMap(routes: AppRouteRecordRaw[], parentName: string | n
     const routeName = getRouteName(route)
     const children = getRouteChildren(route)
 
-    if (routeName && !excludedRoutes.includes(routeName) && route.meta?.title) {
+    if (routeName && route.meta?.title) {
       routeParentMap[routeName] = parentName
       if (children.length > 0) {
         buildRouteParentMap(children, routeName)
@@ -174,7 +172,7 @@ function buildMenuTree(routes: AppRouteRecordRaw[]): MenuTreeNode[] {
   return routes
     .filter((route) => {
       const routeName = getRouteName(route)
-      if (!routeName || excludedRoutes.includes(routeName)) {
+      if (!routeName) {
         return false
       }
       return Boolean(route.meta?.title && !route.meta.hidden)

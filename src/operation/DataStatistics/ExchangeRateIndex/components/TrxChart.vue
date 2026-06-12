@@ -46,7 +46,7 @@ import type { EChartsOption } from 'echarts'
 import * as echarts from 'echarts/core'
 import { DataZoomComponent } from 'echarts/components'
 import { handleErrorMessage } from '@/utils/messageHelper'
-import { getTrxVolumeApi } from '@/api/opertion/ExchangeRate/ExchangeRateIndex'
+import { getTrxVolumeApi } from '@/api/opertion/DataStatistics/ExchangeRateIndex'
 import {
   formatPriceValue,
   getFirstTooltipParam,

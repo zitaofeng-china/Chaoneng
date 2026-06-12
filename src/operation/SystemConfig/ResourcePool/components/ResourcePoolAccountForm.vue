@@ -24,11 +24,7 @@ import {
   type V2CreatePoolParams,
   type V2UpdatePoolParams
 } from '@/api/opertion/SystemConfig/ResourcePool'
-import {
-  isReceivePoolKind,
-  isThresholdPoolKind,
-  RESOURCE_POOL_TYPE_OPTIONS
-} from '../ResourcePool/constants'
+import { isReceivePoolKind, isThresholdPoolKind, RESOURCE_POOL_TYPE_OPTIONS } from '../constants'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 interface ResourcePoolFormData {
