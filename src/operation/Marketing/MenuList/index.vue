@@ -2,6 +2,7 @@
   <div class="app-container">
     <ContentWrap>
       <SearchTable
+        ref="searchTableRef"
         :columns="columns"
         :fetch-data-api="fetchMenuList"
         :fetch-del-api="deleteMenu"
@@ -11,52 +12,120 @@
         :search-props="{ showSearch: false }"
         :immediate="true"
         @loaded="handleDataLoaded"
-        ref="searchTableRef"
         @add="handleAdd"
       >
-        <!-- 在工具栏左侧添加刷新按钮 -->
         <template #leftToolbar>
           <BaseButton @click="handleRefresh">刷新</BaseButton>
         </template>
-        <!-- 在工具栏右侧添加预览按钮 -->
         <template #rightToolbar>
           <BaseButton type="primary" @click="handlePreview">点我预览</BaseButton>
           <BaseButton type="warning" @click="handleInlineButton">内联按钮</BaseButton>
         </template>
       </SearchTable>
 
-      <!-- 表单弹窗 -->
-      <Dialog v-model="dialogVisible" :title="dialogTitle">
-        <!-- 表单内容 -->
-        <Form ref="formRef" :schema="formSchema" @register="formRegister" />
+      <Dialog v-model="dialogVisible" :title="dialogTitle" width="680px">
+        <ElForm
+          ref="formRef"
+          :model="formData"
+          :rules="formRules"
+          label-position="top"
+          class="menu-form"
+        >
+          <ElFormItem label="菜单名称" prop="menu_name">
+            <ElInput
+              v-model="formData.menu_name"
+              placeholder="请输入菜单名称"
+              maxlength="50"
+              clearable
+            />
+          </ElFormItem>
+
+          <ElFormItem label="排序" prop="order_num">
+            <ElInputNumber
+              v-model="formData.order_num"
+              placeholder="请输入排序（数字越小越靠前）"
+              :min="0"
+              class="w-full"
+            />
+          </ElFormItem>
+
+          <ElFormItem label="状态" prop="status">
+            <ElSelect v-model="formData.status" placeholder="请选择状态" class="w-full">
+              <ElOption label="启用" :value="1" />
+              <ElOption label="禁用" :value="2" />
+            </ElSelect>
+          </ElFormItem>
+
+          <div class="section-divider">
+            <span class="section-title">{{ visibilitySectionTitle }}</span>
+          </div>
+
+          <ElFormItem label="可见范围" prop="visibility_scope">
+            <ElRadioGroup v-model="formData.visibility_scope">
+              <ElRadio :value="VISIBLE_SCOPE_ALL">默认全部</ElRadio>
+              <ElRadio :value="VISIBLE_SCOPE_PARTIAL">指定部分代理可见</ElRadio>
+            </ElRadioGroup>
+          </ElFormItem>
+
+          <ElFormItem
+            v-if="showVisibleAgentSelect"
+            label="代理账号列表"
+            prop="agent_ids"
+            class="agent-select-form-item"
+          >
+            <ElSelectV2
+              v-model="formData.agent_ids"
+              :options="agentOptions"
+              multiple
+              filterable
+              clearable
+              placeholder="请选择代理"
+              style="width: 100%"
+              :loading="agentLoading"
+              collapse-tags
+              collapse-tags-tooltip
+              :max-collapse-tags="3"
+            />
+          </ElFormItem>
+        </ElForm>
+
         <template #footer>
           <div class="flex justify-end">
             <ElButton @click="dialogVisible = false">取消</ElButton>
-            <ElButton type="primary" @click="handleSubmit">提交</ElButton>
+            <ElButton type="primary" :loading="submitting" @click="handleSubmit">提交</ElButton>
           </div>
         </template>
       </Dialog>
 
-      <!-- 使用菜单预览组件 -->
       <MenuPreview v-model="previewVisible" @update:modelValue="previewHandleClose" />
-
-      <!-- 内联按钮弹窗 -->
       <InlineButtonDialog v-model="inlineButtonDialogVisible" />
     </ContentWrap>
   </div>
 </template>
 
 <script setup lang="tsx">
-import { ref, h, reactive, nextTick } from 'vue'
-import { ElButton, ElTag, ElMessage, ElSwitch } from 'element-plus'
+import { computed, h, nextTick, reactive, ref } from 'vue'
+import {
+  ElButton,
+  ElForm,
+  ElFormItem,
+  ElInput,
+  ElInputNumber,
+  ElMessage,
+  ElOption,
+  ElRadio,
+  ElRadioGroup,
+  ElSelect,
+  ElSelectV2,
+  ElSwitch,
+  ElTag
+} from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Dialog } from '@/components/Dialog'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
-import { Form } from '@/components/Form'
-import { useForm } from '@/hooks/web/useForm'
 import type { TableColumn } from '@/components/Table'
-import type { FormSchema } from '@/components/Form'
 import type { SearchTableExpose } from '@/components/SearchTable'
 import {
   getBotMenuList,
@@ -68,100 +137,214 @@ import {
   type BatchUpdateBotMenuParams,
   type BotMenuItem
 } from '@/api/opertion/common/menuList'
+import { v1GetMessageAgentList, type MessageAgentItem } from '@/api/opertion/common/message'
 import {
-  handleListMessage,
+  handleDataFormatError,
   handleErrorMessage,
+  handleListMessage,
   handleSuccessMessage,
-  handleWarningMessage,
-  handleDataFormatError
+  handleWarningMessage
 } from '@/utils/messageHelper'
-import { formatTableDateTime, hasSearchValue, type TableSlot } from '@/utils/tableHelpers'
-import { useValidator } from '@/hooks/web/useValidator'
+import {
+  formatTableDateTime,
+  hasSearchValue,
+  type SelectOption,
+  type TableSlot
+} from '@/utils/tableHelpers'
 import MenuPreview from './components/MenuPreview.vue'
 import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
 
-const { required } = useValidator()
-const searchTableRef = ref<SearchTableExpose | null>(null)
-const previewVisible = ref(false)
-const inlineButtonDialogVisible = ref(false)
-const { formRegister, formMethods } = useForm()
-const { getElFormExpose } = formMethods
-
-const isLoaded = ref(false)
+const VISIBLE_SCOPE_ALL = 1
+const VISIBLE_SCOPE_PARTIAL = 2
 
 interface MenuFormValues {
   id?: number
   menu_name: string
   order_num: number
   status: number
+  visibility_scope: number
+  agent_ids: number[]
 }
 
-const formValues = reactive<MenuFormValues>({
+type MenuTableSlot = TableSlot<BotMenuItem>
+type AgentOption = SelectOption<number>
+type MenuPayload = AddBotMenuParams & {
+  visibility_scope?: number
+  agent_ids?: number[]
+}
+type UpdateMenuPayload = BatchUpdateBotMenuParams & {
+  menus: Array<
+    BatchUpdateBotMenuParams['menus'][number] & {
+      visibility_scope?: number
+      agent_ids?: number[]
+    }
+  >
+}
+
+const searchTableRef = ref<SearchTableExpose | null>(null)
+const formRef = ref<FormInstance>()
+const previewVisible = ref(false)
+const inlineButtonDialogVisible = ref(false)
+const dialogVisible = ref(false)
+const dialogTitle = ref('添加菜单')
+const isLoaded = ref(false)
+const submitting = ref(false)
+const agentLoading = ref(false)
+const agentOptions = ref<AgentOption[]>([])
+
+const formData = reactive<MenuFormValues>({
   menu_name: '',
   order_num: 0,
-  status: 1
+  status: 1,
+  visibility_scope: VISIBLE_SCOPE_ALL,
+  agent_ids: []
 })
 
-type MenuTableSlot = TableSlot<BotMenuItem>
+const showVisibleAgentSelect = computed(() => formData.visibility_scope === VISIBLE_SCOPE_PARTIAL)
 
-const formSchema = reactive<FormSchema[]>([
-  {
-    field: 'menu_name',
-    component: 'Input' as const,
-    label: '菜单名称',
-    componentProps: {
-      placeholder: '请输入菜单名称'
-    },
-    formItemProps: {
-      rules: required('菜单名称不能为空')
+const visibilitySectionTitle = computed(() => {
+  const menuName = formData.menu_name?.trim()
+  return menuName ? `菜单可见权限配置-${menuName}` : '菜单可见权限配置'
+})
+
+const formRules: FormRules<MenuFormValues> = {
+  menu_name: [{ required: true, message: '菜单名称不能为空', trigger: 'blur' }],
+  order_num: [{ required: true, message: '排序不能为空', trigger: 'change' }],
+  status: [{ required: true, message: '状态不能为空', trigger: 'change' }],
+  visibility_scope: [{ required: true, message: '请选择可见范围', trigger: 'change' }],
+  agent_ids: [
+    {
+      validator: (_rule, value, callback) => {
+        if (formData.visibility_scope !== VISIBLE_SCOPE_PARTIAL) {
+          callback()
+          return
+        }
+        if (Array.isArray(value) && value.length > 0) {
+          callback()
+          return
+        }
+        callback(new Error('请选择至少一个代理'))
+      },
+      trigger: 'change'
     }
-  },
-  {
-    field: 'order_num',
-    component: 'InputNumber' as const,
-    label: '排序',
-    componentProps: {
-      placeholder: '请输入排序（数字越小越靠前）',
-      min: 0
-    },
-    formItemProps: {
-      rules: required('排序不能为空')
-    }
-  },
-  {
-    field: 'status',
-    component: 'Select' as const,
-    label: '状态',
-    value: 1,
-    componentProps: {
-      options: [
-        { label: '启用', value: 1 },
-        { label: '禁用', value: 2 }
-      ],
-      placeholder: '请选择状态'
-    },
-    formItemProps: {
-      rules: required('状态不能为空')
+  ]
+}
+
+const resetFormData = () => {
+  Object.assign(formData, {
+    id: undefined,
+    menu_name: '',
+    order_num: 0,
+    status: 1,
+    visibility_scope: VISIBLE_SCOPE_ALL,
+    agent_ids: []
+  })
+}
+
+const hydrateVisibilityFields = (row?: Partial<Record<string, unknown>>) => {
+  const rawAgentIds = row?.agent_ids
+  const normalizedAgentIds = Array.isArray(rawAgentIds)
+    ? rawAgentIds.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0)
+    : []
+
+  const rawVisibilityScope = Number(row?.visibility_scope)
+  const visibilityScope =
+    rawVisibilityScope === VISIBLE_SCOPE_PARTIAL ||
+    (normalizedAgentIds.length > 0 && rawVisibilityScope !== VISIBLE_SCOPE_ALL)
+      ? VISIBLE_SCOPE_PARTIAL
+      : VISIBLE_SCOPE_ALL
+
+  formData.visibility_scope = visibilityScope
+  formData.agent_ids = normalizedAgentIds
+}
+
+const ensureSelectedAgentOptions = (selectedIds: number[]) => {
+  if (!selectedIds.length) return
+
+  const existingIds = new Set(agentOptions.value.map((item) => item.value))
+  const missingIds = selectedIds.filter((id) => !existingIds.has(id))
+  if (!missingIds.length) return
+
+  const placeholderOptions = missingIds.map((id) => ({
+    label: `代理 ${id}`,
+    value: id
+  }))
+  agentOptions.value = [...placeholderOptions, ...agentOptions.value]
+}
+
+type MenuDialogRow = Partial<BotMenuItem> & {
+  visibility_scope?: unknown
+  agent_ids?: unknown
+}
+
+const fetchAgentOptions = async () => {
+  agentLoading.value = true
+  try {
+    const response = await v1GetMessageAgentList()
+    agentOptions.value = (response.data || []).map((agent: MessageAgentItem) => ({
+      label: agent.email ? `${agent.username} (${agent.email})` : agent.username,
+      value: Number(agent.id)
+    }))
+
+    ensureSelectedAgentOptions(formData.agent_ids)
+  } catch (error) {
+    agentOptions.value = []
+    handleErrorMessage(error, '获取代理列表失败')
+  } finally {
+    agentLoading.value = false
+  }
+}
+
+const openDialog = async (title: string, row?: MenuDialogRow) => {
+  dialogTitle.value = title
+  dialogVisible.value = true
+  resetFormData()
+
+  if (row) {
+    Object.assign(formData, {
+      id: row.id ? Number(row.id) : undefined,
+      menu_name: row.menu_name ? String(row.menu_name) : '',
+      order_num: row.order_num ? Number(row.order_num) : 0,
+      status: row.status ? Number(row.status) : 1
+    })
+    hydrateVisibilityFields(row)
+  }
+
+  await fetchAgentOptions()
+  ensureSelectedAgentOptions(formData.agent_ids)
+
+  await nextTick()
+  formRef.value?.clearValidate()
+}
+
+const buildVisibilityPayload = () => {
+  if (formData.visibility_scope !== VISIBLE_SCOPE_PARTIAL) {
+    return {
+      visibility_scope: VISIBLE_SCOPE_ALL,
+      agent_ids: [] as number[]
     }
   }
-])
 
-// 表格列配置（简化版，只显示基本信息）
+  return {
+    visibility_scope: VISIBLE_SCOPE_PARTIAL,
+    agent_ids: [...formData.agent_ids]
+  }
+}
+
 const columns: TableColumn[] = [
   {
     field: 'menu_name',
     label: '菜单名称',
     minWidth: 150,
     slots: {
-      default: ({ row }: MenuTableSlot) => {
-        return h(
+      default: ({ row }: MenuTableSlot) =>
+        h(
           'span',
           {
             style: { color: '#333', fontWeight: '500' }
           },
           row.menu_name
         )
-      }
     }
   },
   {
@@ -169,8 +352,8 @@ const columns: TableColumn[] = [
     label: '排序',
     width: 100,
     slots: {
-      default: ({ row }: MenuTableSlot) => {
-        return h(
+      default: ({ row }: MenuTableSlot) =>
+        h(
           ElTag,
           {
             type: 'info',
@@ -178,7 +361,6 @@ const columns: TableColumn[] = [
           },
           () => row.order_num
         )
-      }
     }
   },
   {
@@ -186,16 +368,14 @@ const columns: TableColumn[] = [
     label: '状态',
     width: 100,
     slots: {
-      default: ({ row }: MenuTableSlot) => {
-        return (
-          <ElSwitch
-            v-model={row.status}
-            activeValue={1}
-            inactiveValue={2}
-            onChange={() => handleStatusChange(row)}
-          />
-        )
-      }
+      default: ({ row }: MenuTableSlot) => (
+        <ElSwitch
+          v-model={row.status}
+          activeValue={1}
+          inactiveValue={2}
+          onChange={() => handleStatusChange(row)}
+        />
+      )
     }
   },
   {
@@ -203,48 +383,40 @@ const columns: TableColumn[] = [
     label: '创建时间',
     minWidth: 170,
     sortable: 'custom',
-    formatter: (row: BotMenuItem) => {
-      return formatTableDateTime(row.created_at)
-    }
+    formatter: (row: BotMenuItem) => formatTableDateTime(row.created_at)
   },
   {
     field: 'updated_at',
     label: '更新时间',
     minWidth: 170,
     sortable: 'custom',
-    formatter: (row: BotMenuItem) => {
-      return formatTableDateTime(row.updated_at)
-    }
+    formatter: (row: BotMenuItem) => formatTableDateTime(row.updated_at)
   }
 ]
 
-// 操作列配置
 const actionColumn = {
   field: 'action',
   label: '操作',
   width: 240,
   fixed: 'right',
   slots: {
-    default: ({ row }: MenuTableSlot) => {
-      return (
-        <>
-          <BaseButton type="primary" onClick={() => handleEdit(row)}>
-            编辑
-          </BaseButton>
-          <BaseButton type="danger" onClick={() => handleDelete(row)}>
-            删除
-          </BaseButton>
-        </>
-      )
-    }
+    default: ({ row }: MenuTableSlot) => (
+      <>
+        <BaseButton type="primary" onClick={() => handleEdit(row)}>
+          编辑
+        </BaseButton>
+        <BaseButton type="danger" onClick={() => handleDelete(row)}>
+          删除
+        </BaseButton>
+      </>
+    )
   }
 }
 
-// API 封装
 const fetchMenuList = async (params: Partial<GetBotMenuListParams> = {}) => {
   try {
     const queryParams: GetBotMenuListParams = {
-      bot_id: params.bot_id || 0, // 从参数获取 bot_id，默认为 0
+      bot_id: params.bot_id || 0,
       status: hasSearchValue(params.status) ? params.status : undefined
     }
 
@@ -252,11 +424,8 @@ const fetchMenuList = async (params: Partial<GetBotMenuListParams> = {}) => {
 
     if (response.code === '000000' && response.data) {
       const list = Array.isArray(response.data) ? response.data : []
-
-      // 按 order_num 从大到小排序
       list.sort((a, b) => b.order_num - a.order_num)
-      const hasSearchCondition = hasSearchValue(params.status)
-      handleListMessage(list, hasSearchCondition, '菜单')
+      handleListMessage(list, hasSearchValue(params.status), '菜单')
 
       return {
         list,
@@ -274,60 +443,35 @@ const fetchMenuList = async (params: Partial<GetBotMenuListParams> = {}) => {
 
 const deleteMenu = async (): Promise<boolean> => {
   const row = searchTableRef.value?.currentRow
-  if (row && row.id) {
-    try {
-      const res = await deleteBotMenu(row.id)
-      if (res.code === '000000') {
-        handleSuccessMessage('删除成功')
-        return true
-      }
-      handleErrorMessage(res.msg || '删除失败', '删除失败')
-      return false
-    } catch (error) {
-      handleErrorMessage(error, '删除菜单失败')
-      return false
-    }
-  } else {
+  if (!row?.id) {
     handleWarningMessage('删除失败：数据不完整')
+    return false
+  }
+
+  try {
+    const response = await deleteBotMenu(row.id)
+    if (response.code === '000000') {
+      handleSuccessMessage('删除成功')
+      return true
+    }
+    handleErrorMessage(response.msg || '删除失败', '删除失败')
+    return false
+  } catch (error) {
+    handleErrorMessage(error, '删除菜单失败')
     return false
   }
 }
 
-// 处理删除按钮点击
 const handleDelete = (row: BotMenuItem) => {
-  if (searchTableRef.value) {
-    searchTableRef.value.delete(row)
-  }
+  searchTableRef.value?.delete(row)
 }
 
-// 事件处理函数
-const handleAdd = () => {
-  dialogVisible.value = true
-  dialogTitle.value = '添加菜单'
-
-  const defaultValues: MenuFormValues = {
-    menu_name: '',
-    order_num: 0,
-    status: 1
-  }
-
-  Object.assign(formValues, defaultValues)
-  formMethods.setValues(defaultValues)
+const handleAdd = async () => {
+  await openDialog('添加菜单')
 }
 
-const handleEdit = (row: BotMenuItem) => {
-  dialogVisible.value = true
-  dialogTitle.value = '编辑菜单'
-
-  const editValues: MenuFormValues = {
-    id: row.id,
-    menu_name: row.menu_name,
-    order_num: row.order_num,
-    status: row.status
-  }
-
-  Object.assign(formValues, editValues)
-  formMethods.setValues(editValues)
+const handleEdit = async (row: BotMenuItem) => {
+  await openDialog('编辑菜单', row)
 }
 
 const handlePreview = () => {
@@ -344,83 +488,71 @@ const handleRefresh = () => {
 }
 
 const handleSubmit = async () => {
+  if (!formRef.value || submitting.value) return
+
   try {
-    const formRef = await getElFormExpose()
+    await formRef.value.validate()
 
-    // 使用Promise方式处理表单验证
-    try {
-      // 添加非空检查
-      if (!formRef) {
-        ElMessage.error('表单实例获取失败')
-        return
-      }
-
-      await formRef.validate()
-
-      // 校验通过后获取表单数据
-      const values = await formMethods.getFormData<MenuFormValues>()
-
-      // 排序号重复校验：与当前列表中除自身外的菜单比对
-      const currentList: BotMenuItem[] = searchTableRef.value?.tableState?.dataList?.value || []
-      const duplicated = currentList.find(
-        (item) =>
-          Number(item.order_num) === Number(values.order_num) &&
-          (!values.id || item.id !== values.id)
-      )
-      if (duplicated) {
-        ElMessage.warning(`排序号 ${values.order_num} 已被「${duplicated.menu_name}」占用，请更换`)
-        return
-      }
-
-      if (values.id) {
-        const updateParams: BatchUpdateBotMenuParams = {
-          bot_id: 0, // 运营端默认 bot_id 为 0
-          menus: [
-            {
-              id: values.id,
-              menu_name: values.menu_name,
-              order_num: values.order_num,
-              status: values.status
-            }
-          ]
-        }
-
-        await batchUpdateBotMenu(updateParams)
-        ElMessage.success('更新成功')
-      } else {
-        const addParams: AddBotMenuParams = {
-          menu_name: values.menu_name,
-          order_num: values.order_num,
-          status: values.status
-        }
-
-        await addBotMenu(addParams)
-        ElMessage.success('添加成功')
-      }
-
-      dialogVisible.value = false
-
-      // 刷新列表
-      searchTableRef.value?.reload()
-    } catch {
-      ElMessage.error('表单验证失败，请检查填写内容')
+    const currentList: BotMenuItem[] = searchTableRef.value?.tableState?.dataList?.value || []
+    const duplicated = currentList.find(
+      (item) =>
+        Number(item.order_num) === Number(formData.order_num) &&
+        (!formData.id || item.id !== formData.id)
+    )
+    if (duplicated) {
+      ElMessage.warning(`排序号 ${formData.order_num} 已被「${duplicated.menu_name}」占用，请更换`)
+      return
     }
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : '保存失败'
-    ElMessage.error(message)
+
+    submitting.value = true
+    const visibilityPayload = buildVisibilityPayload()
+
+    if (formData.id) {
+      const updateParams: UpdateMenuPayload = {
+        bot_id: 0,
+        menus: [
+          {
+            id: formData.id,
+            menu_name: formData.menu_name,
+            order_num: formData.order_num,
+            status: formData.status,
+            ...visibilityPayload
+          }
+        ]
+      }
+
+      await batchUpdateBotMenu(updateParams as BatchUpdateBotMenuParams)
+      ElMessage.success('更新成功')
+    } else {
+      const addParams: MenuPayload = {
+        menu_name: formData.menu_name,
+        order_num: formData.order_num,
+        status: formData.status,
+        ...visibilityPayload
+      }
+
+      await addBotMenu(addParams as AddBotMenuParams)
+      ElMessage.success('添加成功')
+    }
+
+    dialogVisible.value = false
+    searchTableRef.value?.reload()
+  } catch (error) {
+    if (error instanceof Error && error.message) {
+      ElMessage.error(error.message)
+      return
+    }
+    ElMessage.error('表单验证失败，请检查填写内容')
+  } finally {
+    submitting.value = false
   }
 }
-
-// 弹窗相关
-const dialogVisible = ref(false)
-const dialogTitle = ref('添加菜单')
 
 const previewHandleClose = () => {
   previewVisible.value = false
   searchTableRef.value?.reload()
 }
 
-// 数据加载完成回调
 const handleDataLoaded = ({
   data,
   success
@@ -432,18 +564,19 @@ const handleDataLoaded = ({
   nextTick(() => {
     isLoaded.value = true
   })
+
   if (data?.length === 0 && success) {
     ElMessage.info('未查询到符合条件的数据')
   }
 }
 
-// 状态切换处理函数
 const handleStatusChange = async (row: BotMenuItem) => {
   if (!isLoaded.value) return
 
+  const previousStatus = row.status === 1 ? 2 : 1
   try {
     const updateParams: BatchUpdateBotMenuParams = {
-      bot_id: 0, // 运营端默认 bot_id 为 0
+      bot_id: 0,
       menus: [
         {
           id: row.id,
@@ -456,19 +589,46 @@ const handleStatusChange = async (row: BotMenuItem) => {
 
     await batchUpdateBotMenu(updateParams)
     ElMessage.success('状态更新成功')
-
-    // 刷新列表
     searchTableRef.value?.reload()
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : '状态更新失败'
-    ElMessage.error(message)
-
-    // 恢复原状态
-    row.status = row.status === 0 ? 1 : 0
+  } catch (error) {
+    handleErrorMessage(error, '状态更新失败')
+    row.status = previousStatus
   }
 }
 </script>
 
 <style scoped>
-/* 移除菜单预览相关样式 */
+.menu-form {
+  padding: 0 4px;
+}
+
+.menu-form :deep(.el-form-item) {
+  margin-bottom: 18px;
+}
+
+.menu-form :deep(.el-form-item__label) {
+  padding-bottom: 6px;
+  font-weight: 500;
+}
+
+.section-divider {
+  position: relative;
+  padding-top: 16px;
+  margin: 8px 0 18px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+}
+
+.w-full {
+  width: 100%;
+}
+
+.agent-select-form-item :deep(.el-select) {
+  width: 100%;
+}
 </style>
