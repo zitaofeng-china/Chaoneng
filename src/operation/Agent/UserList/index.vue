@@ -32,6 +32,7 @@
         :bot-list="botsForDialog"
         custom-title="发送消息"
         :is-single-user="true"
+        :show-chat-list="false"
         @success="handleMessageSent"
       />
 

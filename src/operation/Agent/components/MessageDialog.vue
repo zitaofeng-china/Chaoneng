@@ -44,11 +44,7 @@
       />
 
       <!-- 群组列表选择框 -->
-      <ElFormItem
-        v-if="type === 'mass' && formData.filter_type === 'user_custom'"
-        label="聊天列表："
-        prop="chat_ids"
-      >
+      <ElFormItem v-if="showChatListField" label="聊天列表：" prop="chat_ids">
         <ElSelectV2
           v-model="formData.chat_ids"
           :options="groupOptions"
@@ -332,6 +328,10 @@ const props = defineProps({
   isSingleUser: {
     type: Boolean,
     default: false
+  },
+  showChatList: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -348,6 +348,10 @@ const dialogVisible = computed({
 const dialogTitle = computed(() => {
   return props.customTitle || '发送消息'
 })
+
+const showChatListField = computed(
+  () => props.showChatList && props.type === 'mass' && formData.value.filter_type === 'user_custom'
+)
 
 // 表单数据
 const formData = ref({
@@ -413,8 +417,17 @@ const formRules = computed(() => ({
           return
         }
 
-        // 检查用户列表和群组列表是否都为空
         const hasUserList = value && value.trim() !== ''
+        if (!props.showChatList) {
+          if (!hasUserList) {
+            callback(new Error('请输入TG用户ID列表'))
+          } else {
+            callback()
+          }
+          return
+        }
+
+        // 检查用户列表和群组列表是否都为空
         const hasGroupList = formData.value.chat_ids && formData.value.chat_ids.length > 0
 
         // 如果两者都为空，报错
@@ -431,8 +444,12 @@ const formRules = computed(() => ({
       required: false, // 不强制必填，使用自定义验证
       trigger: ['blur', 'change'],
       validator: (_rule: unknown, value: number[], callback: ValidatorCallback) => {
-        // 如果不是自定义用户模式，或者是多机器人模式，不验证
-        if (formData.value.filter_type !== 'user_custom' || isMultipleBots.value) {
+        // 如果聊天列表已隐藏，或者不是自定义用户模式，或者是多机器人模式，不验证
+        if (
+          !props.showChatList ||
+          formData.value.filter_type !== 'user_custom' ||
+          isMultipleBots.value
+        ) {
           callback()
           return
         }
@@ -556,7 +573,9 @@ const handleBotChange = (value: number | string | (number | string)[]) => {
       formData.value.user_list = ''
       formData.value.chat_ids = [] // 清空群组选择
       // 加载新机器人的群组列表
-      fetchGroupList(value[0])
+      if (props.showChatList) {
+        fetchGroupList(value[0])
+      }
     } else {
       // 没有选择机器人，清空用户列表
       formData.value.user_list = ''
@@ -569,7 +588,7 @@ const handleBotChange = (value: number | string | (number | string)[]) => {
     formData.value.user_list = ''
     formData.value.chat_ids = []
     // 加载新机器人的群组列表
-    if (value) {
+    if (props.showChatList && value) {
       fetchGroupList(value)
     } else {
       groupList.value = []
@@ -620,6 +639,8 @@ const fetchGroupList = async (botId?: number | string) => {
 
 // 处理群组选择框显示/隐藏
 const handleGroupSelectVisibleChange = (visible: boolean) => {
+  if (!props.showChatList) return
+
   if (visible && groupList.value.length === 0) {
     // 当下拉框打开且群组列表为空时，尝试加载群组列表
     const botId = selectedBotIdForUserList.value
@@ -823,12 +844,14 @@ const handleConfirmSend = async (buttonLayout?: number[][]) => {
     }
     // 如果是自定义用户模式
     else if (formData.value.filter_type === 'user_custom') {
-      // 检查用户列表和群组列表是否都为空
       const hasUserList = formData.value.user_list && formData.value.user_list.trim() !== ''
-      const hasGroupList = formData.value.chat_ids && formData.value.chat_ids.length > 0
+      const hasGroupList =
+        props.showChatList && formData.value.chat_ids && formData.value.chat_ids.length > 0
 
       if (!hasUserList && !hasGroupList) {
-        ElMessage.error('TG用户ID列表和聊天列表至少需要填写一个')
+        ElMessage.error(
+          props.showChatList ? 'TG用户ID列表和聊天列表至少需要填写一个' : '请输入TG用户ID列表'
+        )
         submitting.value = false
         return
       }
@@ -936,7 +959,11 @@ watch(
 watch(
   () => formData.value.user_list,
   () => {
-    if (formData.value.filter_type === 'user_custom' && !isMultipleBots.value) {
+    if (
+      props.showChatList &&
+      formData.value.filter_type === 'user_custom' &&
+      !isMultipleBots.value
+    ) {
       // 延迟验证，避免在输入过程中频繁提示
       setTimeout(() => {
         formRef.value?.validateField('chat_ids', () => {})
