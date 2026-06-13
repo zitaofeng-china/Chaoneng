@@ -1,66 +1,90 @@
-// ========== 新接口 v2 类型定义 ==========
-
 /**
- * 资源池列表查询参数 - 新接口 v2
+ * 资源池列表查询参数
+ * GET /v1/pool
  */
-export interface V2PoolListParams {
-  current_page?: number // 当前页码
-  keyword?: string // 关键字
-  page_size?: number // 每页大小
-  kind?: number // 类型：1-TRX池, 2-USDT池, 3-能量池, 4-带宽池, 5-激活池, 6-能量接收池, 7-带宽接收池, 8-财务池
-  status?: number // 状态：1-启用, 2-禁用, 3-备用
-}
-
-/**
- * 资源池列表项 - 新接口 v2
- */
-export interface V2PoolItem {
-  id: number // ID
-  created_at: number // 创建时间（Unix时间戳秒）
-  updated_at: number // 更新时间（Unix时间戳秒）
-  address: string // 地址
-  kind: number // 类型：1-TRX池, 2-USDT池, 3-能量池, 4-带宽池, 5-激活池, 6-能量接收池, 7-带宽接收池, 8-财务池
-  status: number // 状态：1-启用, 2-禁用, 3-备用
-  amount: string // 余额
-  limit: string // 限额
-  permission_id: number // 权限ID
-  permission_name: string // 权限名称
-  created_by: string // 创建人
-  describe: string // 描述
+export interface PoolListParams {
+  current_page?: number
+  keyword?: string
+  kind?: number
+  order?: string
+  page_size?: number
+  status?: number
 }
 
 /**
- * 分页信息 - 新接口 v2
+ * 资源池列表项
  */
-export interface V2Pager {
-  current_page: number // 当前页码
-  page_size: number // 每页大小
-  total: number // 总数
+export interface PoolItem {
+  id: number
+  created_at: number
+  updated_at: number
+  address: string
+  kind: number
+  status: number
+  amount: string
+  limit: string
+  permission_id: number
+  permission_name: string
+  created_by: string
+  describe: string
 }
 
-export interface V2PoolListResponse {
-  list: V2PoolItem[] // 资源池列表
-  pager: V2Pager // 分页信息
+export interface PoolPager {
+  current_page: number
+  page_size: number
+  total: number
+}
+
+export interface PoolListResponse {
+  list: PoolItem[]
+  pager: PoolPager
 }
 
 /**
- * 创建资源池参数 - 新接口 v2
+ * 创建资源池参数
+ * POST /v1/pool
  */
-export interface V2CreatePoolParams {
-  address: string // 地址（必填）
-  kind: number // 类型：1-TRX池, 2-USDT池, 3-能量池, 4-带宽池, 5-激活池, 6-能量接收池, 7-带宽接收池, 8-财务池（必填）
-  limit: number // 限额（必填）
-  permission_name: string // 权限名称（必填）
+export interface CreatePoolParams {
+  address: string
+  created_by: string
+  kind: number
+  limit: number
+  permission_name: string
 }
 
 /**
- * 更新资源池参数 - 新接口 v2
+ * 更新资源池参数
+ * PUT /v1/pool
  */
-export interface V2UpdatePoolParams {
-  id: number // 资源池ID（必填）
-  address?: string // 地址
-  kind?: number // 类型
-  limit?: number // 限额（可选）
-  permission_name?: string // 权限名称
-  status?: number // 状态：1-启用, 2-禁用（可选）
+export interface UpdatePoolParams {
+  id: number
+  limit?: number
+  status?: number
 }
+
+/**
+ * 资源池通知机器人
+ * GET /v1/pool/notify
+ */
+export interface ResourcePoolNotifyData {
+  chat_id: number
+  status?: number
+  token: string
+}
+
+/**
+ * 更新资源池通知机器人参数
+ * PUT /v1/pool/notify
+ */
+export interface UpdateResourcePoolNotifyParams {
+  chat_id: number
+  status?: number
+  token: string
+}
+
+// 兼容现有页面命名，避免大范围联动修改
+export type V2PoolListParams = PoolListParams
+export type V2PoolItem = PoolItem
+export type V2PoolListResponse = PoolListResponse
+export type V2CreatePoolParams = CreatePoolParams
+export type V2UpdatePoolParams = UpdatePoolParams

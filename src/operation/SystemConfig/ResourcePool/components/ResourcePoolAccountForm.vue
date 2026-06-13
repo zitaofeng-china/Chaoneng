@@ -26,6 +26,7 @@ import {
 } from '@/api/opertion/SystemConfig/ResourcePool'
 import { isReceivePoolKind, isThresholdPoolKind, RESOURCE_POOL_TYPE_OPTIONS } from '../constants'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { useUserStoreWithOut } from '@/store/modules/user'
 
 interface ResourcePoolFormData {
   id?: number
@@ -45,6 +46,7 @@ type ResourcePoolFormValue = string | number | undefined
 type ResourcePoolFormValues = Record<string, ResourcePoolFormValue>
 
 const emit = defineEmits(['success'])
+const userStore = useUserStoreWithOut()
 const visible = ref(false)
 const submitting = ref(false)
 const formMode = ref<'add' | 'edit'>('add')
@@ -211,8 +213,10 @@ const handleSubmit = async () => {
 
   try {
     if (formMode.value === 'add') {
+      const createdBy = userStore.getUserInfo?.username || userStore.getUserInfo?.name || ''
       const createParams: V2CreatePoolParams = {
         address,
+        created_by: createdBy,
         kind,
         limit,
         permission_name: isReceivePoolKind(kind) ? permissionName : ''
@@ -226,15 +230,10 @@ const handleSubmit = async () => {
     } else {
       const updateParams: V2UpdatePoolParams = {
         id: currentData.value.id!,
-        address,
-        kind,
         status: currentData.value.status
       }
       if (isThresholdPoolKind(kind)) {
         updateParams.limit = limit
-      }
-      if (isReceivePoolKind(kind)) {
-        updateParams.permission_name = permissionName
       }
 
       const res = await v2UpdatePool(updateParams)

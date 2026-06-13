@@ -139,38 +139,7 @@
           <Echart :options="dailyChangeOptions" :height="300" />
         </el-card>
       </div>
-      <!-- 机器人设置弹窗 -->
-      <Dialog v-model="botSettingVisible" title="机器人设置" width="500px" max-height="300px">
-        <div class="bot-setting-form">
-          <div class="form-item">
-            <label class="form-label">机器人token</label>
-            <el-input v-model="botSetting.token" placeholder="请输入机器人token" />
-          </div>
-          <div class="form-item">
-            <label class="form-label">推送群ID</label>
-            <el-input v-model="botSetting.groupId" placeholder="请输入推送群ID" />
-          </div>
-          <div class="form-item">
-            <label class="form-label">推送时间</label>
-            <el-select v-model="botSetting.interval" style="width: 100%">
-              <el-option label="每30分钟" value="30" />
-              <el-option label="每1小时" value="60" />
-              <el-option label="每2小时" value="120" />
-              <el-option label="每6小时" value="360" />
-              <el-option label="每12小时" value="720" />
-              <el-option label="每24小时" value="1440" />
-            </el-select>
-          </div>
-        </div>
-        <template #footer>
-          <div style="display: flex; justify-content: flex-end; gap: 12px">
-            <el-button @click="botSettingVisible = false">取消</el-button>
-            <el-button type="primary" @click="handleSaveBotSetting" :loading="submitting">
-              确认
-            </el-button>
-          </div>
-        </template>
-      </Dialog>
+      <NotifyBotDialog v-model:visible="notifyBotDialogVisible" mode="asset" title="机器人设置" />
     </ContentWrap>
   </div>
 </template>
@@ -190,12 +159,11 @@ import {
 import type { UploadFile } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Echart } from '@/components/Echart'
+import NotifyBotDialog from '@/operation/Agent/components/NotifyBotDialog.vue'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import {
   createAssetAccount,
   getAssetReport,
-  updateAssetNotify,
-  getAssetNotify,
   batchCreateAssetAccount,
   type AssetBalanceData,
   type AccountBalanceSnapshot
@@ -253,15 +221,7 @@ const disableFutureDate = (time: Date) => {
   return time.getTime() > Date.now()
 }
 const nameInput = ref('')
-const submitting = ref(false)
-
-// 机器人设置
-const botSettingVisible = ref(false)
-const botSetting = reactive({
-  token: '',
-  groupId: '',
-  interval: '30'
-})
+const notifyBotDialogVisible = ref(false)
 
 // 动态账户列配置
 const accountColumns = ref<AccountColumn[]>([])
@@ -795,44 +755,8 @@ const handleExport = async () => {
 }
 
 // 推送余额播报
-const handlePushReport = async () => {
-  botSettingVisible.value = true
-  try {
-    const res = await getAssetNotify()
-    if (res?.data) {
-      botSetting.token = res.data.token || ''
-      botSetting.groupId = res.data.chat_id ? String(res.data.chat_id) : ''
-      botSetting.interval = res.data.interval ? String(res.data.interval) : '30'
-    }
-  } catch (error) {
-    handleErrorMessage(error, '获取机器人设置失败，请手动填写')
-  }
-}
-
-// 保存机器人设置
-const handleSaveBotSetting = async () => {
-  if (!botSetting.token) {
-    ElMessage.warning('请输入机器人token')
-    return
-  }
-  if (!botSetting.groupId) {
-    ElMessage.warning('请输入推送群ID')
-    return
-  }
-  try {
-    submitting.value = true
-    await updateAssetNotify({
-      token: botSetting.token,
-      chat_id: Number(botSetting.groupId),
-      interval: Number(botSetting.interval)
-    })
-    handleSuccessMessage('机器人设置保存成功')
-    botSettingVisible.value = false
-  } catch (error) {
-    handleErrorMessage(error, '保存失败')
-  } finally {
-    submitting.value = false
-  }
+const handlePushReport = () => {
+  notifyBotDialogVisible.value = true
 }
 
 // 时间范围变更
@@ -952,23 +876,5 @@ onMounted(() => {
 
 .chart-card {
   width: 100%;
-}
-
-.bot-setting-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.bot-setting-form .form-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.bot-setting-form .form-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #303133;
 }
 </style>

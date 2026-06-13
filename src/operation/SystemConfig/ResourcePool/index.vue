@@ -16,11 +16,13 @@
             <Icon icon="ep:plus" class="mr-5px" />
             新增
           </ElButton>
+          <ElButton type="success" @click="handleNotifyConfig"> 通知配置 </ElButton>
         </template>
       </SearchTable>
 
       <!-- 表单弹窗 -->
       <ResourcePoolAccountForm ref="formRef" @success="handleSuccess" />
+      <NotifyBotDialog v-model:visible="notifyBotDialogVisible" mode="resourcePool" />
     </ContentWrap>
   </div>
 </template>
@@ -32,6 +34,7 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { Icon } from '@/components/Icon'
 import type { FormSchema } from '@/components/Form'
 import ResourcePoolAccountForm from './components/ResourcePoolAccountForm.vue'
+import NotifyBotDialog from '@/operation/Agent/components/NotifyBotDialog.vue'
 import { SearchTable } from '@/components/SearchTable'
 import type { TableColumn } from '@/components/Table'
 import {
@@ -52,6 +55,7 @@ import {
 import { isPermission } from '@/utils/is'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import {
+  buildBackendOrder,
   createPageParams,
   formatTableDateTime,
   hasSearchValue,
@@ -59,6 +63,7 @@ import {
 } from '@/utils/tableHelpers'
 const formRef = ref<InstanceType<typeof ResourcePoolAccountForm>>()
 const searchTableRef = ref<InstanceType<typeof SearchTable>>()
+const notifyBotDialogVisible = ref(false)
 
 type ResourcePoolSearchParams = Omit<V2PoolListParams, 'kind' | 'status'> & {
   kind?: number | string
@@ -158,17 +163,28 @@ const columns = ref<TableColumn[]>([
     field: 'created_at',
     label: '创建时间',
     width: '180px',
+    sortable: 'custom',
     formatter: (row: V2PoolItem) => formatTableDateTime(row.created_at)
   },
   {
     field: 'updated_at',
     label: '更新时间',
     width: '180px',
+    sortable: 'custom',
     formatter: (row: V2PoolItem) => formatTableDateTime(row.updated_at)
   }
 ])
 
 const searchSchema = reactive<FormSchema[]>([
+  {
+    field: 'keyword',
+    component: 'Input',
+    label: '关键字：',
+    componentProps: {
+      placeholder: '请输入公钥/权限名称',
+      clearable: true
+    }
+  },
   {
     field: 'kind',
     component: 'Select',
@@ -209,6 +225,11 @@ const getResourcePoolData = async (params: ResourcePoolSearchParams = {}) => {
       apiParams.status = Number(params.status)
     }
 
+    const backendOrder = buildBackendOrder(params.order)
+    if (backendOrder) {
+      apiParams.order = backendOrder
+    }
+
     const response = await v2GetPoolList(apiParams)
 
     if (response?.data) {
@@ -239,6 +260,10 @@ const handleAdd = () => {
     mode: 'add',
     data: {}
   })
+}
+
+const handleNotifyConfig = () => {
+  notifyBotDialogVisible.value = true
 }
 
 const reloadTable = () => {
