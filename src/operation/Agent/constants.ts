@@ -10,7 +10,8 @@ export const AGENT_STATUS_OPTIONS = createStatusOptions(AGENT_STATUS_MAP, '')
 export const AGENT_LEVEL_LABELS: Record<number, string> = {
   1: '一级代理',
   2: '二级代理',
-  3: '三级代理'
+  3: '三级代理',
+  8: '自营代理'
 }
 
 export const AGENT_LEVEL_OPTIONS = Object.entries(AGENT_LEVEL_LABELS).map(([value, label]) => ({
