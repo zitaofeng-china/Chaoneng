@@ -41,7 +41,12 @@ import OrderDetailDialog from './components/OrderDetailDialog.vue'
 import formatEnergyNum from '../helpers/formatEnergyNum'
 import { Icon } from '@/components/Icon'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import { getPaymentMethodText } from '@/utils/energyOrder'
+import {
+  ENERGY_ORDER_KIND_OPTIONS,
+  getEnergyOrderKindTagType,
+  getEnergyOrderKindText,
+  getPaymentMethodText
+} from '@/utils/energyOrder'
 import { dateRangeToSeconds, exportTableData } from '@/utils/tableHelpers'
 
 // 辅助函数：检查值是否为空
@@ -169,37 +174,14 @@ const columns = computed<TableColumn[]>(() => {
       width: 120,
       slots: {
         default: ({ row }: any) => {
-          const typeTextMap: Record<number, string> = {
-            4: '按时间',
-            5: '按笔数',
-            6: '福利',
-            7: '闪租',
-            8: '托管',
-            9: '批量下单',
-            10: '激活'
-          }
-          // Assign fixed color types
-          const typeColorMap: Record<
-            number,
-            'primary' | 'success' | 'warning' | 'danger' | 'info'
-          > = {
-            4: 'success',
-            5: 'primary',
-            6: 'primary',
-            7: 'success',
-            8: 'warning',
-            9: 'danger',
-            10: 'info'
-          }
-
           const orderTypeNum = typeof row.kind === 'string' ? parseInt(row.kind, 10) : row.kind
+          const text = getEnergyOrderKindText(orderTypeNum)
 
-          if (isNaN(orderTypeNum) || !(orderTypeNum in typeTextMap)) {
+          if (isNaN(orderTypeNum) || text === '未知类型') {
             return h(ElTag, { type: 'info', size: 'small' }, () => '未知类型')
           }
 
-          const tagType = typeColorMap[orderTypeNum] || 'info' // Fallback to info
-          const text = typeTextMap[orderTypeNum]
+          const tagType = getEnergyOrderKindTagType(orderTypeNum)
 
           return h(ElTag, { type: tagType, size: 'small' }, () => text)
         }
@@ -288,11 +270,11 @@ const columns = computed<TableColumn[]>(() => {
       formatter: (row) => (row.created_at ? formatToDateTime(row.created_at) : '-')
     },
     {
-      field: 'paid_at',
+      field: 'updated_at',
       label: '完成时间',
       sortable: 'custom',
       width: 180,
-      formatter: (row) => (row.paid_at ? formatToDateTime(row.paid_at) : '-')
+      formatter: (row) => (row.updated_at ? formatToDateTime(row.updated_at) : '-')
     }
   ]
 
@@ -385,16 +367,7 @@ const searchSchema = [
     component: 'Select' as const,
     label: '订单类型',
     componentProps: {
-      options: [
-        { label: '全部', value: '' },
-        { label: '按时间', value: 4 },
-        { label: '按笔数', value: 5 },
-        { label: '福利', value: 6 },
-        { label: '闪租', value: 7 },
-        { label: '托管', value: 20 },
-        { label: '批量下单', value: 9 },
-        { label: '激活', value: 10 }
-      ],
+      options: ENERGY_ORDER_KIND_OPTIONS,
       placeholder: '请选择订单类型'
     }
   },
@@ -513,6 +486,7 @@ const fetchEnergyOrderList = async (params: any) => {
     const list = (response.data?.list || []).map((item: any) => ({
       ...item, // 保留所有原始字段
       created_at: item.created_at * 1000, // 秒 → 毫秒
+      updated_at: item.updated_at * 1000, // 秒 → 毫秒
       paid_at: item.paid_at ? item.paid_at * 1000 : null, // 秒 → 毫秒
       energy_rent_text: formatExpirationTime(item.kind), // 计算有效期
       // 来源判断逻辑：如果TG用户名不存在且用户账号存在则来源是H5，反之就是机器人
@@ -607,6 +581,7 @@ const handleViewDetail = async (row: any) => {
       selectedOrderDetail.value = {
         ...detail,
         created_at: detail.created_at * 1000, // 秒 → 毫秒
+        updated_at: detail.updated_at * 1000, // 秒 → 毫秒
         paid_at: detail.paid_at ? detail.paid_at * 1000 : null, // 秒 → 毫秒
         // 从 resources 计算的字段
         energy_amount: energyAmount,
@@ -662,16 +637,7 @@ const handleExport = async () => {
           return item.origin === 1 ? '机器人' : item.origin === 2 ? 'H5' : '-'
         })(),
         机器人名称: item.bot_name,
-        订单类型:
-          {
-            4: '按时间',
-            5: '按笔数',
-            6: '福利',
-            7: '闪租',
-            8: '托管',
-            9: '批量下单',
-            10: '激活'
-          }[item.kind] || '-',
+        订单类型: getEnergyOrderKindText(item.kind),
         支付金额: item.amount && item.amount != 0 ? item.amount : '-',
         支付币种: item.coin || '-',
         能量数量: formatEnergyNum(item.energy_amount),
@@ -684,7 +650,7 @@ const handleExport = async () => {
         笔数: item.energy_count || '-',
         订单状态: getStatusTextForTable(item.status),
         创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
-        完成时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-'
+        完成时间: item.updated_at ? formatToDateTime(item.updated_at * 1000) : '-'
       }),
       successMessage: '订单导出成功'
     })

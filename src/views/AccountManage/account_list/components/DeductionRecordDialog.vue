@@ -91,6 +91,10 @@ const columns: TableColumn[] = [
           case 20: // 托管
             href = `${href}/hosted_order`
             break
+          case 15: // 速充能量
+          case 21: // 托管速充
+            href = `${href}/quick_charge_order`
+            break
           case 11: // 机器人付费
             // 机器人付费可能没有对应的订单页面
             href = ''

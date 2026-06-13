@@ -152,6 +152,14 @@ const managementRoutes: AppRouteRecordRaw[] = [
         meta: {
           title: '兑换订单'
         }
+      },
+      {
+        path: 'quick_charge_order',
+        component: () => import('@/views/OrderManage/quick_charge_order/index.vue'),
+        name: 'QuickChargeOrderManage',
+        meta: {
+          title: '速充订单'
+        }
       }
     ]
   },

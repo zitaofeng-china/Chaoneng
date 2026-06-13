@@ -107,7 +107,9 @@ export const ENERGY_ORDER_KIND_OPTIONS = [
   { label: '闪租', value: EnergyOrderKind.QUICK_ENERGY },
   { label: '托管', value: EnergyOrderKind.AUTO_HOSTING },
   { label: '批量下单', value: EnergyOrderKind.BATCH_ENERGY },
-  { label: '激活', value: EnergyOrderKind.BATCH_ACTIVE }
+  { label: '激活', value: EnergyOrderKind.BATCH_ACTIVE },
+  { label: '速充能量', value: EnergyOrderKind.MANUAL_QUICK_CHARGE },
+  { label: '托管速充', value: EnergyOrderKind.HOSTING_QUICK_CHARGE }
 ]
 
 /**

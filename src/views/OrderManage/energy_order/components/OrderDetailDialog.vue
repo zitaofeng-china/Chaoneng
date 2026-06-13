@@ -6,6 +6,7 @@ import { Dialog } from '@/components/Dialog'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { formatToDateTime } from '@/utils/dateUtil'
+import { getEnergyOrderKindTagType, getEnergyOrderKindText } from '@/utils/energyOrder'
 import isEmpty from 'lodash-es/isEmpty'
 import formatEnergyNum from '../../helpers/formatEnergyNum'
 // Import the new detail components (using defineAsyncComponent for lazy loading)
@@ -155,35 +156,14 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
       slots: {
         default: (data: any) => {
           if (!data || data.kind === undefined) return h('span', '-')
-          const typeTextMap: Record<number, string> = {
-            4: '按时间',
-            5: '按笔数',
-            6: '福利',
-            7: '闪租',
-            8: '托管',
-            9: '批量下单',
-            10: '激活'
-          }
-          const typeColorMap: Record<
-            number,
-            'primary' | 'success' | 'warning' | 'danger' | 'info'
-          > = {
-            4: 'success',
-            5: 'primary',
-            6: 'primary',
-            7: 'success',
-            8: 'warning',
-            9: 'danger',
-            10: 'info'
-          }
           const orderTypeNum = typeof data.kind === 'string' ? parseInt(data.kind, 10) : data.kind
+          const text = getEnergyOrderKindText(orderTypeNum)
 
-          if (isNaN(orderTypeNum) || !(orderTypeNum in typeTextMap)) {
+          if (isNaN(orderTypeNum) || text === '未知类型') {
             return h(ElTag, { type: 'info', size: 'small' }, () => '未知类型')
           }
 
-          const tagType = typeColorMap[orderTypeNum] || 'info'
-          const text = typeTextMap[orderTypeNum]
+          const tagType = getEnergyOrderKindTagType(orderTypeNum)
           return h(ElTag, { type: tagType, size: 'small' }, () => text)
         }
       }
@@ -311,10 +291,11 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
       }
     },
     {
-      field: 'paid_at',
+      field: 'updated_at',
       label: '完成时间',
       slots: {
-        default: (data: any) => h('span', {}, data.paid_at ? formatToDateTime(data.paid_at) : '-')
+        default: (data: any) =>
+          h('span', {}, data.updated_at ? formatToDateTime(data.updated_at) : '-')
       }
     },
     {
