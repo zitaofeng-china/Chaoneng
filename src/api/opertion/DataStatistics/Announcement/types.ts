@@ -11,15 +11,23 @@ export interface CreateAssetAccountParams {
 /** 资产通知配置响应 */
 export interface AssetNotifyData {
   chat_id: number
+  first_name: string
+  id: number
   interval: number
   token: string
+  updated_at: string | number
+  user_name: string
 }
 
 /** 更新资产通知配置参数 */
 export interface UpdateAssetNotifyParams {
   chat_id: number
+  first_name?: string
+  id?: number
   interval: number
   token: string
+  updated_at?: string | number
+  user_name?: string
 }
 
 /** 单个账户余额快照 */

@@ -68,8 +68,12 @@ export interface UpdatePoolParams {
  */
 export interface ResourcePoolNotifyData {
   chat_id: number
-  status?: number
+  first_name: string
+  id: number
+  status: number
   token: string
+  updated_at: string | number
+  user_name: string
 }
 
 /**
@@ -78,8 +82,12 @@ export interface ResourcePoolNotifyData {
  */
 export interface UpdateResourcePoolNotifyParams {
   chat_id: number
+  first_name?: string
+  id?: number
   status?: number
   token: string
+  updated_at?: string | number
+  user_name?: string
 }
 
 // 兼容现有页面命名，避免大范围联动修改

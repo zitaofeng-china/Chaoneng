@@ -6,55 +6,42 @@
     :max-height="dialogMaxHeight"
   >
     <div v-loading="loading" class="notify-bot-body">
-      <ElDescriptions
-        v-if="isConfigMode || botInfo"
-        :column="1"
-        border
-        label-width="110px"
-        :class="{ 'resource-pool-descriptions': isConfigMode }"
-      >
-        <template v-if="isConfigMode">
-          <ElDescriptionsItem label="接收消息ID">
-            {{ resourcePoolForm.chat_id || '-' }}
-          </ElDescriptionsItem>
-          <ElDescriptionsItem label="Token">
-            <div class="token-cell">
-              <span class="token-text">{{ resourcePoolForm.token || '-' }}</span>
-              <ElButton
-                v-if="resourcePoolForm.token"
-                link
-                type="primary"
-                size="small"
-                @click="copyToken"
-              >
-                复制
-              </ElButton>
-            </div>
-          </ElDescriptionsItem>
-          <ElDescriptionsItem v-if="isResourcePoolMode" label="状态">
-            <span :class="getNotifyStatusClass(resourcePoolForm.status)">
-              {{ getNotifyStatusLabel(resourcePoolForm.status) }}
-            </span>
-          </ElDescriptionsItem>
-        </template>
-        <template v-else>
-          <ElDescriptionsItem label="机器人ID">{{ agentBotInfo?.id }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="机器人用户名">{{
-            agentBotInfo?.user_name || '-'
-          }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="机器人名称">{{
-            agentBotInfo?.first_name || '-'
-          }}</ElDescriptionsItem>
-          <ElDescriptionsItem label="Token">
-            <div class="token-cell">
-              <span class="token-text">{{ agentBotInfo?.token }}</span>
-              <ElButton link type="primary" size="small" @click="copyToken">复制</ElButton>
-            </div>
-          </ElDescriptionsItem>
-          <ElDescriptionsItem label="更新时间">
-            {{ formatTableDateTime(agentBotInfo?.updated_at) }}
-          </ElDescriptionsItem>
-        </template>
+      <ElDescriptions v-if="currentBotInfo" :column="1" border label-width="110px">
+        <ElDescriptionsItem label="机器人ID">{{ currentBotInfo.id || '-' }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="机器人用户名">{{
+          currentBotInfo.user_name || '-'
+        }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="机器人名称">{{
+          currentBotInfo.first_name || '-'
+        }}</ElDescriptionsItem>
+        <ElDescriptionsItem label="Token">
+          <div class="token-cell">
+            <span class="token-text">{{ currentBotInfo.token || '-' }}</span>
+            <ElButton
+              v-if="currentBotInfo.token"
+              link
+              type="primary"
+              size="small"
+              @click="copyToken"
+            >
+              复制
+            </ElButton>
+          </div>
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="更新时间">
+          {{ currentBotInfo.updated_at ? formatTableDateTime(currentBotInfo.updated_at) : '-' }}
+        </ElDescriptionsItem>
+        <ElDescriptionsItem v-if="isResourcePoolMode || isAssetMode" label="接收消息ID">
+          {{ resourcePoolForm.chat_id || '-' }}
+        </ElDescriptionsItem>
+        <ElDescriptionsItem v-if="isResourcePoolMode" label="通知状态">
+          <span :class="getNotifyStatusClass(resourcePoolForm.status)">
+            {{ getNotifyStatusLabel(resourcePoolForm.status) }}
+          </span>
+        </ElDescriptionsItem>
+        <ElDescriptionsItem v-if="isAssetMode" label="推送时间">
+          {{ getIntervalLabel(resourcePoolForm.interval) }}
+        </ElDescriptionsItem>
       </ElDescriptions>
 
       <ElEmpty v-else-if="!loading" :description="emptyDescription" />
@@ -125,17 +112,14 @@
         <div class="edit-token-label">修改机器人 Token</div>
         <div class="edit-token-row">
           <ElInput v-model="tokenInput" placeholder="请输入新的机器人 Token" clearable />
-          <ElButton type="primary" :loading="submitting" @click="handleSave">保存</ElButton>
         </div>
       </div>
     </div>
 
     <template #footer>
       <div class="flex justify-end">
-        <ElButton v-if="isConfigMode" type="primary" :loading="submitting" @click="handleSave">
-          保存
-        </ElButton>
-        <ElButton @click="handleClose">关闭</ElButton>
+        <ElButton @click="handleClose">{{ isConfigMode ? '取消' : '关闭' }}</ElButton>
+        <ElButton type="primary" :loading="submitting" @click="handleSave"> 保存 </ElButton>
       </div>
     </template>
   </Dialog>
@@ -199,10 +183,10 @@ const dialogVisible = computed({
 const isConfigMode = computed(() => props.mode === 'resourcePool' || props.mode === 'asset')
 const isResourcePoolMode = computed(() => props.mode === 'resourcePool')
 const isAssetMode = computed(() => props.mode === 'asset')
-const dialogTitle = computed(() => props.title || (isConfigMode.value ? '通知配置' : '通知机器人'))
-const emptyDescription = computed(() => (isConfigMode.value ? '暂无通知配置' : '暂无通知机器人'))
-const dialogWidth = computed(() => (isConfigMode.value ? '840px' : '680px'))
-const dialogMaxHeight = computed(() => (isConfigMode.value ? '420px' : 'auto'))
+const dialogTitle = computed(() => props.title || '通知机器人')
+const emptyDescription = computed(() => '暂无通知机器人')
+const dialogWidth = computed(() => (isResourcePoolMode.value ? '840px' : '680px'))
+const dialogMaxHeight = computed(() => 'auto')
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -225,6 +209,14 @@ const NOTIFY_STATUS_LABEL_MAP: Record<number, string> = {
   1: '启用',
   2: '禁用'
 }
+const INTERVAL_LABEL_MAP: Record<number, string> = {
+  30: '每30分钟',
+  60: '每1小时',
+  120: '每2小时',
+  360: '每6小时',
+  720: '每12小时',
+  1440: '每24小时'
+}
 
 interface ReceiverSuggestionItem {
   value: string
@@ -234,6 +226,8 @@ interface ReceiverSuggestionItem {
 }
 
 const getNotifyStatusLabel = (status?: number) => NOTIFY_STATUS_LABEL_MAP[status || 1] || '启用'
+const getIntervalLabel = (interval?: number) =>
+  INTERVAL_LABEL_MAP[interval || 30] || `每${interval || 30}分钟`
 
 const getNotifyStatusClass = (status?: number) =>
   status === 2 ? 'notify-status notify-status--disabled' : 'notify-status notify-status--enabled'
@@ -254,7 +248,7 @@ const resourcePoolRules: FormRules = {
     }
   ]
 }
-const botInfo = computed(() => {
+const currentBotInfo = computed(() => {
   if (isResourcePoolMode.value) return resourcePoolBotInfo.value
   if (isAssetMode.value) return assetBotInfo.value
   return agentBotInfo.value

@@ -139,7 +139,7 @@
           <Echart :options="dailyChangeOptions" :height="300" />
         </el-card>
       </div>
-      <NotifyBotDialog v-model:visible="notifyBotDialogVisible" mode="asset" title="机器人设置" />
+      <NotifyBotDialog v-model:visible="notifyBotDialogVisible" mode="asset" title="通知机器人" />
     </ContentWrap>
   </div>
 </template>
