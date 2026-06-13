@@ -229,6 +229,16 @@ interface GroupMessageTarget {
   bot_user_name?: string
 }
 
+interface GroupMessageDraft {
+  content: string
+  period: number
+  enable_period: boolean
+  delete_sent: boolean
+  send_at: string | Date | number
+  checkList: Array<number | string>
+  fileList: UploadUserFile[]
+}
+
 type BotOption = SelectOption<number | string>
 type InlineButtonSelection = number | string
 type PreviewButton = { id: number; text: string; url?: string }
@@ -242,13 +252,17 @@ const props = defineProps({
     type: Object as PropType<GroupMessageTarget | null>,
     default: null
   },
+  draft: {
+    type: Object as PropType<GroupMessageDraft | null>,
+    default: null
+  },
   botList: {
     type: Array as PropType<BotOption[]>,
     default: () => []
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'success'])
+const emit = defineEmits(['update:modelValue', 'success', 'cancel'])
 
 const submitting = ref(false)
 const formRef = ref<FormInstance>()
@@ -305,6 +319,7 @@ const previewFileType = ref<'image' | 'video'>('image')
 // 消息预览相关
 const showMessagePreview = ref(false)
 const messagePreviewData = ref<MessagePreviewData>({})
+const closeReason = ref<'submit' | 'cancel' | null>(null)
 
 // 消息内容编辑器引用
 const messageContentEditorRef = ref<InstanceType<typeof MessageContentEditor> | null>(null)
@@ -396,8 +411,73 @@ const openInlineButtonDialog = () => {
   inlineButtonDialogVisible.value = true
 }
 
+const cloneUploadFileList = (fileList: UploadUserFile[]) => {
+  return fileList.map((file) => ({ ...file }))
+}
+
+const buildDraftPayload = (): GroupMessageDraft => {
+  return {
+    content: formData.value.content,
+    period: formData.value.period,
+    enable_period: formData.value.enable_period,
+    delete_sent: formData.value.delete_sent,
+    send_at: formData.value.send_at,
+    checkList: [...checkList.value],
+    fileList: cloneUploadFileList(fileListRef.value)
+  }
+}
+
+const applyDraft = (draft: GroupMessageDraft | null) => {
+  if (!draft) {
+    formData.value = {
+      content: '',
+      period: 1,
+      enable_period: false,
+      delete_sent: false,
+      send_at: ''
+    }
+    checkList.value = []
+    fileListRef.value = []
+    return
+  }
+
+  formData.value = {
+    content: draft.content || '',
+    period: draft.period >= 1 ? draft.period : 1,
+    enable_period: Boolean(draft.enable_period),
+    delete_sent: Boolean(draft.delete_sent),
+    send_at: draft.send_at || ''
+  }
+  checkList.value = [...(draft.checkList || [])]
+  fileListRef.value = cloneUploadFileList(draft.fileList || [])
+}
+
+const resetDialogState = () => {
+  formRef.value?.resetFields()
+  formData.value = {
+    content: '',
+    period: 1,
+    enable_period: false,
+    delete_sent: false,
+    send_at: ''
+  }
+  menuList.value = []
+  checkList.value = []
+  fileListRef.value = []
+
+  if (videoPreviewUrl.value.startsWith('blob:')) {
+    URL.revokeObjectURL(videoPreviewUrl.value)
+  }
+  videoPreviewUrl.value = ''
+  showImageViewer.value = false
+  showVideoViewer.value = false
+  showMessagePreview.value = false
+}
+
 // 取消操作
 const handleCancel = () => {
+  closeReason.value = 'cancel'
+  emit('cancel', buildDraftPayload())
   dialogVisible.value = false
 }
 
@@ -516,6 +596,7 @@ const handleConfirmSend = async (buttonLayout?: number[][]) => {
 
     await v1SendGroupMessage(apiParams)
 
+    closeReason.value = 'submit'
     emit('success')
     ElMessage.success('发送消息请求成功')
     showMessagePreview.value = false
@@ -533,31 +614,13 @@ watch(
   async (val) => {
     if (val) {
       await fetchMenuList()
-      // 重置字段
-      checkList.value = []
-      fileListRef.value = []
+      applyDraft(props.draft)
     } else {
-      // 弹窗关闭时清空所有状态
-      formRef.value?.resetFields()
-      formData.value = {
-        content: '',
-        period: 1,
-        enable_period: false,
-        delete_sent: false,
-        send_at: ''
+      if (closeReason.value !== 'submit' && closeReason.value !== 'cancel') {
+        emit('cancel', buildDraftPayload())
       }
-      menuList.value = []
-      checkList.value = []
-      fileListRef.value = []
-
-      // 清理视频预览的 blob URL
-      if (videoPreviewUrl.value.startsWith('blob:')) {
-        URL.revokeObjectURL(videoPreviewUrl.value)
-      }
-      videoPreviewUrl.value = ''
-      showImageViewer.value = false
-      showVideoViewer.value = false
-      showMessagePreview.value = false
+      resetDialogState()
+      closeReason.value = null
     }
   },
   { immediate: true }

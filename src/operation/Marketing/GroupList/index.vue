@@ -16,14 +16,17 @@
       v-model="messageDialogVisible"
       :current-group="currentGroup"
       :bot-list="botList"
+      :draft="currentGroupDraft"
+      @cancel="handleMessageCancel"
       @success="handleMessageSuccess"
     />
   </div>
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElTag, ElLink, ElMessage, ElSwitch } from 'element-plus'
+import type { UploadUserFile } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import type { SearchTableExpose } from '@/components/SearchTable'
@@ -62,6 +65,15 @@ type ChatSearchParams = ChatListParams & {
   date_range?: DateRangeValue
 }
 type BotOption = SelectOption<number>
+interface GroupMessageDraft {
+  content: string
+  period: number
+  enable_period: boolean
+  delete_sent: boolean
+  send_at: string | Date | number
+  checkList: Array<number | string>
+  fileList: UploadUserFile[]
+}
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const broadcastUpdatingMap = reactive<Record<string, boolean>>({})
@@ -70,6 +82,18 @@ const botList = ref<BotOption[]>([])
 
 const messageDialogVisible = ref(false)
 const currentGroup = ref<ChatRow | null>(null)
+const pendingMessageDraft = ref<{
+  groupId: string
+  data: GroupMessageDraft
+} | null>(null)
+
+const currentGroupDraft = computed<GroupMessageDraft | null>(() => {
+  const groupId = currentGroup.value?.id
+  if (!groupId || pendingMessageDraft.value?.groupId !== String(groupId)) {
+    return null
+  }
+  return pendingMessageDraft.value.data
+})
 
 const formatChatTime = (value?: string | number) => {
   return formatTableDateTime(value)
@@ -312,6 +336,9 @@ const fetchGroupList = async (params: ChatSearchParams = {}) => {
 }
 
 const handleViewDetail = (row: ChatRow) => {
+  if (pendingMessageDraft.value && pendingMessageDraft.value.groupId !== String(row.id)) {
+    pendingMessageDraft.value = null
+  }
   currentGroup.value = row
   messageDialogVisible.value = true
 }
@@ -336,8 +363,21 @@ const handleBroadcastChange = async (row: ChatRow, value: number) => {
 }
 
 const handleMessageSuccess = () => {
+  pendingMessageDraft.value = null
   ElMessage.success('消息发送成功')
   searchTableRef.value?.reload()
+}
+
+const handleMessageCancel = (draft: GroupMessageDraft) => {
+  const groupId = currentGroup.value?.id
+  if (!groupId) {
+    pendingMessageDraft.value = null
+    return
+  }
+  pendingMessageDraft.value = {
+    groupId: String(groupId),
+    data: draft
+  }
 }
 
 onMounted(() => {
