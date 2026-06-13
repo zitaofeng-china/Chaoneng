@@ -378,6 +378,7 @@ import { ElMessage } from 'element-plus'
 import { v2GetPriceList, v2UpdateSystemPrice } from '@/api/marketing/agent_price'
 import type { V1PriceListResponse } from '@/api/marketing/agent_price_types'
 import { useRoute } from 'vue-router'
+import { AGENT_PRICE_LEVEL_LABELS } from '@/operation/Marketing/constants'
 
 const route = useRoute()
 const loading = ref(false)
@@ -390,20 +391,7 @@ const hasEditPermission = computed(() => {
 })
 
 const getAgentLevelName = (id: number): string => {
-  const levelMap: Record<number, string> = {
-    1: '一级代理',
-    2: '二级代理',
-    3: '三级代理',
-    4: '四级代理',
-    5: '五级代理',
-    6: '六级代理',
-    7: '七级代理',
-    8: '八级代理',
-    9: '九级代理',
-    10: '十级代理',
-    11: '十一级代理'
-  }
-  return levelMap[id] || `${id}级代理`
+  return AGENT_PRICE_LEVEL_LABELS[id] || `${id}级代理`
 }
 
 const formDataMap = reactive<Record<number, any>>({})
@@ -522,7 +510,7 @@ const loadPriceData = async () => {
   try {
     const res = await v2GetPriceList({
       current_page: 1,
-      order: 'created_at ASC',
+      order: 'id ASC',
       page_size: 3
     })
 

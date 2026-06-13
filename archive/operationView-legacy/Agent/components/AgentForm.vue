@@ -20,7 +20,8 @@ const emits = defineEmits(['success', 'error'])
 const AGENT_LEVELS = [
   { label: '一级代理', value: 1 },
   { label: '二级代理', value: 2 },
-  { label: '三级代理', value: 3 }
+  { label: '三级代理', value: 3 },
+  { label: '自营代理', value: 8 }
 ] as const
 
 const DEFAULT_PRICE_ID = 3

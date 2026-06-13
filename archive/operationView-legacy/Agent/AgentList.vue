@@ -232,21 +232,24 @@ const BATCH_AGENT_LEVEL_OPTIONS = [
   { label: '选择等级', value: 0 },
   { label: '一级代理', value: 1 },
   { label: '二级代理', value: 2 },
-  { label: '三级代理', value: 3 }
+  { label: '三级代理', value: 3 },
+  { label: '自营代理', value: 8 }
 ]
 
 // 代理等级选项（用于表格单元格下拉框）
 const AGENT_LEVEL_OPTIONS = [
   { label: '一级代理', value: 1 },
   { label: '二级代理', value: 2 },
-  { label: '三级代理', value: 3 }
+  { label: '三级代理', value: 3 },
+  { label: '自营代理', value: 8 }
 ]
 
 // 代理等级映射
 const AGENT_LEVEL_MAP: Record<number, string> = {
   1: '一级代理',
   2: '二级代理',
-  3: '三级代理'
+  3: '三级代理',
+  8: '自营代理'
 }
 
 // 辅助函数：构建更新代理的 payload
