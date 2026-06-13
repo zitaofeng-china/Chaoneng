@@ -24,6 +24,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           }
         },
         {
+          path: 'user_statistics_report',
+          alias: '/data_statistics/user_statistics_report',
+          component: () => import('@/operation/DataStatistics/UserStatisticsReport/index.vue'),
+          name: 'UserStatisticsReport',
+          meta: {
+            title: '人数统计报表'
+          }
+        },
+        {
           path: 'exchange_rate',
           alias: '/exchange_rate/index',
           component: () => import('@/operation/DataStatistics/ExchangeRateIndex/index.vue'),
@@ -119,7 +128,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           component: () => import('@/operation/Marketing/Payment/index.vue'),
           name: 'Payment',
           meta: {
-            title: '收款配置',
+            title: '地址管理',
             buttonList: ['add', 'edit', 'delete']
           }
         },

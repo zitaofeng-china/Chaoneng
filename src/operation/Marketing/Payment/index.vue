@@ -35,20 +35,20 @@
       <Dialog
         v-model="addressDialogVisible"
         :title="addressDialogTitle"
-        width="560px"
+        :width="addressDialogWidth"
         max-height="360px"
       >
         <ElForm
           ref="addressFormRef"
           :model="addressForm"
           :rules="addressFormRules"
-          label-width="100px"
+          label-width="120px"
         >
           <ElFormItem label="收款地址类型:" prop="kind">
             <ElSelect
               v-model="addressForm.kind"
               placeholder="请选择收款地址类型"
-              class="w-full"
+              class="address-form-field"
               :disabled="isAddressKindDisabled"
               @change="handleAddressKindChange"
             >
@@ -70,7 +70,7 @@
               v-model="addressForm.agent_id"
               placeholder="请选择代理"
               :options="agentList"
-              class="w-full"
+              class="address-form-field"
               filterable
               clearable
               @change="handleAddressAgentChange"
@@ -81,7 +81,7 @@
               v-model="addressForm.bot_id"
               :placeholder="addressForm.agent_id ? '请选择机器人' : '请先选择代理'"
               :options="filteredBotList"
-              class="w-full"
+              class="address-form-field"
               filterable
               clearable
               :disabled="!addressForm.agent_id"
@@ -90,6 +90,7 @@
           <ElFormItem label="收款地址:" prop="address">
             <ElInput
               v-model="addressForm.address"
+              class="address-form-field"
               :type="isAddressTextarea ? 'textarea' : 'text'"
               :rows="isAddressTextarea ? 6 : undefined"
               :placeholder="isAddressTextarea ? '请输入地址，每行一个' : '请输入地址'"
@@ -102,7 +103,7 @@
               type="datetime"
               value-format="X"
               placeholder="请选择过期时间"
-              class="w-full"
+              class="address-form-field"
               clearable
               :disabled-date="disabledExpiredDate"
               :disabled-hours="disabledExpiredHours"
@@ -269,6 +270,8 @@ const isBotRequired = computed(() => showBotField.value)
 const addressDialogTitle = computed(() =>
   addressDialogMode.value === 'add' ? '新增地址' : '编辑地址'
 )
+
+const addressDialogWidth = computed(() => (addressDialogMode.value === 'edit' ? '760px' : '620px'))
 
 const filteredBotList = computed(() => botList.value)
 
@@ -888,5 +891,10 @@ onMounted(() => {
   gap: 8px;
   align-items: center;
   justify-content: center;
+}
+
+.address-form-field {
+  width: 400px;
+  max-width: 100%;
 }
 </style>

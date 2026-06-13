@@ -6,6 +6,7 @@
 
 - `DataStatistics`:
   - `src/api/opertion/DataStatistics/Analysis`
+  - `src/api/opertion/DataStatistics/UserStatisticsReport`
   - `src/api/opertion/DataStatistics/ExchangeRateIndex`
   - `src/api/opertion/DataStatistics/Announcement`
 - `OperationCenter`:
@@ -28,6 +29,7 @@
 - 运营端 API 目录应与页面权限归属保持一致，而不是沿用旧目录名。
 - 当前数据分析主路由对应的权限与 API 归属如下：
   - `Analysis` -> `src/api/opertion/DataStatistics/Analysis`
+  - `UserStatisticsReport` -> `src/api/opertion/DataStatistics/UserStatisticsReport`
   - `ExchangeRateIndex` -> `src/api/opertion/DataStatistics/ExchangeRateIndex`
   - `Announcement` -> `src/api/opertion/DataStatistics/Announcement`
 - 当前系统配置主路由只保留：
