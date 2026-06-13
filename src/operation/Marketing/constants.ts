@@ -32,7 +32,7 @@ export const AGENT_PRICE_LEVEL_LABELS: Record<number, string> = {
   5: '五级代理',
   6: '六级代理',
   7: '七级代理',
-  8: '八级代理',
+  8: '自营代理',
   9: '九级代理',
   10: '十级代理',
   11: '十一级代理'

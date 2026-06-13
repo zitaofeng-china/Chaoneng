@@ -530,8 +530,8 @@ const loadPriceData = async () => {
   try {
     const res = await v1GetPriceList({
       current_page: 1,
-      order: 'created_at ASC',
-      page_size: 3
+      order: 'id ASC',
+      page_size: 4
     })
 
     priceList.value = res.data.list || []
