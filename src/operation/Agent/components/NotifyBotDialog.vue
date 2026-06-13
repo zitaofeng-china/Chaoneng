@@ -63,15 +63,17 @@
               />
             </ElFormItem>
             <ElFormItem label="接收消息对象ID" prop="chat_id" required>
-              <ElAutocomplete
+              <ElSelectV2
                 v-model="resourcePoolForm.chat_id"
-                :fetch-suggestions="queryReceiverSuggestions"
-                trigger-on-focus
+                :options="receiverOptions"
+                filterable
                 clearable
-                select-when-unmatched
                 placeholder="请输入接收消息ID（频道/群组/个人）"
                 style="width: 100%"
-                @select="handleReceiverSelect"
+                :loading="receiverLoading"
+                :remote-method="handleReceiverSearch"
+                @visible-change="handleReceiverVisibleChange"
+                @change="handleReceiverChange"
               >
                 <template #default="{ item }">
                   <div class="receiver-suggestion">
@@ -82,7 +84,7 @@
                     <div class="receiver-suggestion__meta">{{ item.subtitle }}</div>
                   </div>
                 </template>
-              </ElAutocomplete>
+              </ElSelectV2>
             </ElFormItem>
             <ElFormItem v-if="isResourcePoolMode" label="通知状态" prop="status">
               <ElSwitch
@@ -129,7 +131,6 @@
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import {
-  ElAutocomplete,
   ElButton,
   ElDescriptions,
   ElDescriptionsItem,
@@ -139,6 +140,7 @@ import {
   ElInput,
   ElOption,
   ElSelect,
+  ElSelectV2,
   ElSwitch
 } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
@@ -197,6 +199,8 @@ const tokenInput = ref('')
 const resourcePoolFormRef = ref<FormInstance>()
 const receiverSuggestionRequestId = ref(0)
 let receiverSuggestionTimer: ReturnType<typeof setTimeout> | null = null
+const receiverLoading = ref(false)
+const receiverOptions = ref<ReceiverSuggestionItem[]>([])
 const resourcePoolForm = ref({
   token: '',
   chat_id: '',
@@ -223,6 +227,7 @@ interface ReceiverSuggestionItem {
   title: string
   subtitle: string
   kind: string
+  label?: string
 }
 
 const getNotifyStatusLabel = (status?: number) => NOTIFY_STATUS_LABEL_MAP[status || 1] || '启用'
@@ -264,6 +269,7 @@ const toUserSuggestion = (user: UserItemV1): ReceiverSuggestionItem | null => {
 
   return {
     value: String(id),
+    label: user.tg_user_name || user.tg_first_name || user.username || `TG用户 ${id}`,
     title: user.tg_user_name || user.tg_first_name || user.username || `TG用户 ${id}`,
     subtitle: `ID: ${id}`,
     kind: '个人'
@@ -278,6 +284,7 @@ const toChatSuggestion = (chat: MessageChatItem): ReceiverSuggestionItem | null 
 
   return {
     value: String(id),
+    label: chat.name || `聊天 ${id}`,
     title: chat.name || `聊天 ${id}`,
     subtitle: `ID: ${id}`,
     kind: getChatTypeText(chat.type, '聊天')
@@ -300,6 +307,7 @@ const ensureCurrentValueSuggestion = (
   return [
     {
       value: trimmedValue,
+      label: trimmedValue,
       title: trimmedValue,
       subtitle: '当前配置 / 手动输入',
       kind: 'ID'
@@ -332,10 +340,7 @@ const mergeSuggestions = (
   return ensureCurrentValueSuggestion(Array.from(suggestionMap.values()), currentValue)
 }
 
-const queryReceiverSuggestions = (
-  queryString: string,
-  cb: (suggestions: ReceiverSuggestionItem[]) => void
-) => {
+const fetchReceiverSuggestions = async (queryString: string) => {
   const keyword = queryString.trim()
   const requestId = receiverSuggestionRequestId.value + 1
   receiverSuggestionRequestId.value = requestId
@@ -344,49 +349,63 @@ const queryReceiverSuggestions = (
     clearTimeout(receiverSuggestionTimer)
   }
 
-  receiverSuggestionTimer = setTimeout(() => {
-    Promise.all([
-      v1GetChatList({
-        current_page: 1,
-        page_size: RECEIVER_SUGGESTION_PAGE_SIZE,
-        keyword: keyword || undefined
-      }),
-      v1GetUserList({
-        current_page: 1,
-        page_size: RECEIVER_SUGGESTION_PAGE_SIZE,
-        keyword: keyword || undefined,
-        origin: 1
-      })
-    ])
-      .then(([chatRes, userRes]) => {
-        if (requestId !== receiverSuggestionRequestId.value) {
-          return
-        }
+  receiverLoading.value = true
 
-        const suggestions = mergeSuggestions(
-          userRes?.data?.list || [],
-          chatRes?.data?.list || [],
-          resourcePoolForm.value.chat_id
-        )
-        cb(suggestions)
-      })
-      .catch(() => {
-        if (requestId !== receiverSuggestionRequestId.value) {
-          return
-        }
+  return new Promise<void>((resolve) => {
+    receiverSuggestionTimer = setTimeout(() => {
+      Promise.all([
+        v1GetChatList({
+          current_page: 1,
+          page_size: RECEIVER_SUGGESTION_PAGE_SIZE,
+          keyword: keyword || undefined
+        }),
+        v1GetUserList({
+          current_page: 1,
+          page_size: RECEIVER_SUGGESTION_PAGE_SIZE,
+          keyword: keyword || undefined,
+          origin: 1
+        })
+      ])
+        .then(([chatRes, userRes]) => {
+          if (requestId !== receiverSuggestionRequestId.value) {
+            return
+          }
 
-        cb(ensureCurrentValueSuggestion([], resourcePoolForm.value.chat_id))
-      })
-      .finally(() => {
-        if (requestId === receiverSuggestionRequestId.value) {
-          receiverSuggestionTimer = null
-        }
-      })
-  }, RECEIVER_SUGGESTION_DEBOUNCE)
+          receiverOptions.value = mergeSuggestions(
+            userRes?.data?.list || [],
+            chatRes?.data?.list || [],
+            resourcePoolForm.value.chat_id
+          )
+        })
+        .catch(() => {
+          if (requestId !== receiverSuggestionRequestId.value) {
+            return
+          }
+
+          receiverOptions.value = ensureCurrentValueSuggestion([], resourcePoolForm.value.chat_id)
+        })
+        .finally(() => {
+          if (requestId === receiverSuggestionRequestId.value) {
+            receiverSuggestionTimer = null
+            receiverLoading.value = false
+          }
+          resolve()
+        })
+    }, RECEIVER_SUGGESTION_DEBOUNCE)
+  })
 }
 
-const handleReceiverSelect = (item: ReceiverSuggestionItem) => {
-  resourcePoolForm.value.chat_id = item.value
+const handleReceiverSearch = (queryString: string) => {
+  void fetchReceiverSuggestions(queryString)
+}
+
+const handleReceiverVisibleChange = (visible: boolean) => {
+  if (!visible) return
+  void fetchReceiverSuggestions(resourcePoolForm.value.chat_id || '')
+}
+
+const handleReceiverChange = (value: string | number | undefined) => {
+  resourcePoolForm.value.chat_id = value === undefined || value === null ? '' : String(value)
 }
 
 const fetchNotifyBot = async () => {
@@ -503,11 +522,13 @@ const handleClose = () => {
 
 watch(
   () => props.visible,
-  (val) => {
+  async (val) => {
     if (val) {
       agentBotInfo.value = null
       resourcePoolBotInfo.value = null
       assetBotInfo.value = null
+      receiverOptions.value = []
+      receiverLoading.value = false
       tokenInput.value = ''
       resourcePoolForm.value = {
         token: '',
@@ -515,7 +536,11 @@ watch(
         interval: 30,
         status: 1
       }
-      fetchNotifyBot()
+      await fetchNotifyBot()
+
+      if (isConfigMode.value) {
+        await fetchReceiverSuggestions(resourcePoolForm.value.chat_id || '')
+      }
     }
   }
 )
