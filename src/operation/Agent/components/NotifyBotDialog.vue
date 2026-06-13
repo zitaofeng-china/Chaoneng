@@ -128,7 +128,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import {
   ElButton,
@@ -197,9 +197,8 @@ const resourcePoolBotInfo = ref<ResourcePoolNotifyData | null>(null)
 const assetBotInfo = ref<AssetNotifyData | null>(null)
 const tokenInput = ref('')
 const resourcePoolFormRef = ref<FormInstance>()
-const receiverSuggestionRequestId = ref(0)
-let receiverSuggestionTimer: ReturnType<typeof setTimeout> | null = null
 const receiverLoading = ref(false)
+const receiverAllOptions = ref<ReceiverSuggestionItem[]>([])
 const receiverOptions = ref<ReceiverSuggestionItem[]>([])
 const resourcePoolForm = ref({
   token: '',
@@ -207,8 +206,7 @@ const resourcePoolForm = ref({
   interval: 30,
   status: 1
 })
-const RECEIVER_SUGGESTION_PAGE_SIZE = 10
-const RECEIVER_SUGGESTION_DEBOUNCE = 1000
+const RECEIVER_SUGGESTION_PAGE_SIZE = 200
 const NOTIFY_STATUS_LABEL_MAP: Record<number, string> = {
   1: '启用',
   2: '禁用'
@@ -340,68 +338,59 @@ const mergeSuggestions = (
   return ensureCurrentValueSuggestion(Array.from(suggestionMap.values()), currentValue)
 }
 
-const fetchReceiverSuggestions = async (queryString: string) => {
-  const keyword = queryString.trim()
-  const requestId = receiverSuggestionRequestId.value + 1
-  receiverSuggestionRequestId.value = requestId
+const filterReceiverOptions = (queryString: string) => {
+  const keyword = queryString.trim().toLowerCase()
+  const source = receiverAllOptions.value
+  const filtered = !keyword
+    ? source
+    : source.filter((item) => {
+        const searchText =
+          `${item.value} ${item.label || ''} ${item.title} ${item.subtitle} ${item.kind}`
+            .toLowerCase()
+            .trim()
+        return searchText.includes(keyword)
+      })
 
-  if (receiverSuggestionTimer) {
-    clearTimeout(receiverSuggestionTimer)
-  }
+  receiverOptions.value = ensureCurrentValueSuggestion(filtered, resourcePoolForm.value.chat_id)
+}
 
+const fetchReceiverSuggestions = async () => {
   receiverLoading.value = true
 
-  return new Promise<void>((resolve) => {
-    receiverSuggestionTimer = setTimeout(() => {
-      Promise.all([
-        v1GetChatList({
-          current_page: 1,
-          page_size: RECEIVER_SUGGESTION_PAGE_SIZE,
-          keyword: keyword || undefined
-        }),
-        v1GetUserList({
-          current_page: 1,
-          page_size: RECEIVER_SUGGESTION_PAGE_SIZE,
-          keyword: keyword || undefined,
-          origin: 1
-        })
-      ])
-        .then(([chatRes, userRes]) => {
-          if (requestId !== receiverSuggestionRequestId.value) {
-            return
-          }
+  try {
+    const [chatRes, userRes] = await Promise.all([
+      v1GetChatList({
+        current_page: 1,
+        page_size: RECEIVER_SUGGESTION_PAGE_SIZE
+      }),
+      v1GetUserList({
+        current_page: 1,
+        page_size: RECEIVER_SUGGESTION_PAGE_SIZE,
+        origin: 1
+      })
+    ])
 
-          receiverOptions.value = mergeSuggestions(
-            userRes?.data?.list || [],
-            chatRes?.data?.list || [],
-            resourcePoolForm.value.chat_id
-          )
-        })
-        .catch(() => {
-          if (requestId !== receiverSuggestionRequestId.value) {
-            return
-          }
-
-          receiverOptions.value = ensureCurrentValueSuggestion([], resourcePoolForm.value.chat_id)
-        })
-        .finally(() => {
-          if (requestId === receiverSuggestionRequestId.value) {
-            receiverSuggestionTimer = null
-            receiverLoading.value = false
-          }
-          resolve()
-        })
-    }, RECEIVER_SUGGESTION_DEBOUNCE)
-  })
+    receiverAllOptions.value = mergeSuggestions(
+      userRes?.data?.list || [],
+      chatRes?.data?.list || [],
+      resourcePoolForm.value.chat_id
+    )
+    filterReceiverOptions(resourcePoolForm.value.chat_id || '')
+  } catch {
+    receiverAllOptions.value = ensureCurrentValueSuggestion([], resourcePoolForm.value.chat_id)
+    receiverOptions.value = [...receiverAllOptions.value]
+  } finally {
+    receiverLoading.value = false
+  }
 }
 
 const handleReceiverSearch = (queryString: string) => {
-  void fetchReceiverSuggestions(queryString)
+  filterReceiverOptions(queryString)
 }
 
 const handleReceiverVisibleChange = (visible: boolean) => {
   if (!visible) return
-  void fetchReceiverSuggestions(resourcePoolForm.value.chat_id || '')
+  filterReceiverOptions(resourcePoolForm.value.chat_id || '')
 }
 
 const handleReceiverChange = (value: string | number | undefined) => {
@@ -527,6 +516,7 @@ watch(
       agentBotInfo.value = null
       resourcePoolBotInfo.value = null
       assetBotInfo.value = null
+      receiverAllOptions.value = []
       receiverOptions.value = []
       receiverLoading.value = false
       tokenInput.value = ''
@@ -539,17 +529,11 @@ watch(
       await fetchNotifyBot()
 
       if (isConfigMode.value) {
-        await fetchReceiverSuggestions(resourcePoolForm.value.chat_id || '')
+        await fetchReceiverSuggestions()
       }
     }
   }
 )
-
-onBeforeUnmount(() => {
-  if (receiverSuggestionTimer) {
-    clearTimeout(receiverSuggestionTimer)
-  }
-})
 </script>
 
 <style scoped>
