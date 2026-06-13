@@ -24,15 +24,6 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           }
         },
         {
-          path: 'user_statistics_report',
-          alias: '/data_statistics/user_statistics_report',
-          component: () => import('@/operation/DataStatistics/UserStatisticsReport/index.vue'),
-          name: 'UserStatisticsReport',
-          meta: {
-            title: '人数统计报表'
-          }
-        },
-        {
           path: 'exchange_rate',
           alias: '/exchange_rate/index',
           component: () => import('@/operation/DataStatistics/ExchangeRateIndex/index.vue'),
@@ -48,6 +39,24 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           name: 'Announcement',
           meta: {
             title: '现金池管理'
+          }
+        },
+        {
+          path: 'user_statistics_report',
+          alias: '/data_statistics/user_statistics_report',
+          component: () => import('@/operation/DataStatistics/UserStatisticsReport/index.vue'),
+          name: 'UserStatisticsReport',
+          meta: {
+            title: '人数统计报表'
+          }
+        },
+        {
+          path: 'order_type_statistics',
+          alias: '/data_statistics/order_type_statistics',
+          component: () => import('@/operation/DataStatistics/OrderTypeStatistics/index.vue'),
+          name: 'OrderTypeStatistics',
+          meta: {
+            title: '订单类型统计'
           }
         }
       ]
