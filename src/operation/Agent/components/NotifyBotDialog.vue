@@ -31,7 +31,7 @@
         <ElDescriptionsItem label="更新时间">
           {{ currentBotInfo.updated_at ? formatTableDateTime(currentBotInfo.updated_at) : '-' }}
         </ElDescriptionsItem>
-        <ElDescriptionsItem v-if="isResourcePoolMode || isAssetMode" label="接收消息ID">
+        <ElDescriptionsItem v-if="isResourcePoolMode || isAssetMode" label="接收消息对象ID">
           {{ resourcePoolForm.chat_id || '-' }}
         </ElDescriptionsItem>
         <ElDescriptionsItem v-if="isResourcePoolMode" label="通知状态">
@@ -68,7 +68,7 @@
                 :options="receiverOptions"
                 filterable
                 clearable
-                placeholder="请输入接收消息ID（频道/群组/个人）"
+                placeholder="请输入接收消息对象ID（频道/群组/个人）"
                 style="width: 100%"
                 :loading="receiverLoading"
                 :remote-method="handleReceiverSearch"
@@ -81,7 +81,10 @@
                       <span class="receiver-suggestion__tag">{{ item.kind }}</span>
                       <span class="receiver-suggestion__name">{{ item.title }}</span>
                     </div>
-                    <div class="receiver-suggestion__meta">{{ item.subtitle }}</div>
+                    <div class="receiver-suggestion__meta">
+                      <span>{{ item.subtitle }}</span>
+                      <span v-if="item.extra">{{ item.extra }}</span>
+                    </div>
                   </div>
                 </template>
               </ElSelectV2>
@@ -225,6 +228,7 @@ interface ReceiverSuggestionItem {
   title: string
   subtitle: string
   kind: string
+  extra?: string
   label?: string
 }
 
@@ -242,7 +246,7 @@ const resourcePoolRules: FormRules = {
     {
       validator: (_rule, value: string, callback) => {
         if (!/^-?\d+$/.test(String(value || '').trim())) {
-          callback(new Error('接收消息ID必须为整数'))
+          callback(new Error('接收消息对象ID必须为整数'))
           return
         }
         callback()
@@ -267,9 +271,10 @@ const toUserSuggestion = (user: UserItemV1): ReceiverSuggestionItem | null => {
 
   return {
     value: String(id),
-    label: user.tg_user_name || user.tg_first_name || user.username || `TG用户 ${id}`,
+    label: String(id),
     title: user.tg_user_name || user.tg_first_name || user.username || `TG用户 ${id}`,
-    subtitle: `ID: ${id}`,
+    subtitle: `对象ID: ${id}`,
+    extra: `用户名: ${user.tg_user_name || user.tg_first_name || user.username || '-'}`,
     kind: '个人'
   }
 }
@@ -282,9 +287,10 @@ const toChatSuggestion = (chat: MessageChatItem): ReceiverSuggestionItem | null 
 
   return {
     value: String(id),
-    label: chat.name || `聊天 ${id}`,
+    label: String(id),
     title: chat.name || `聊天 ${id}`,
-    subtitle: `ID: ${id}`,
+    subtitle: `对象ID: ${id}`,
+    extra: `会话名称: ${chat.name || '-'}`,
     kind: getChatTypeText(chat.type, '聊天')
   }
 }
@@ -307,7 +313,8 @@ const ensureCurrentValueSuggestion = (
       value: trimmedValue,
       label: trimmedValue,
       title: trimmedValue,
-      subtitle: '当前配置 / 手动输入',
+      subtitle: `对象ID: ${trimmedValue}`,
+      extra: '当前配置 / 手动输入',
       kind: 'ID'
     },
     ...suggestions
@@ -625,6 +632,9 @@ watch(
 }
 
 .receiver-suggestion__meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
   font-size: 12px;
   color: #909399;
 }
