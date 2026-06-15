@@ -1,0 +1,597 @@
+<template>
+  <div>
+    <Form labelPosition="top" :schema="priceSchema" @register="formRegister" :gridColumns="2" />
+  </div>
+</template>
+
+<script setup lang="tsx">
+import { reactive, computed } from 'vue'
+import { Form, FormSchema } from '@/components/Form'
+import { useForm } from '@/hooks/web/useForm'
+
+const props = defineProps({
+  costPrices: {
+    type: Object,
+    default: () => ({})
+  },
+  showBandwidthCost: {
+    type: Boolean,
+    default: false
+  }
+})
+
+const computedCostPrices = computed(() => props.costPrices || {})
+const shouldShowBandwidthCost = computed(() => props.showBandwidthCost)
+
+const { formRegister, formMethods } = useForm()
+
+const formatCostValue = (value: any) => {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return 'N/A'
+  return Number.isInteger(num) ? String(num) : num.toFixed(2).replace(/\.?0+$/, '')
+}
+
+const getCombinedCostText = (energyCostKey: string, bandwidthCostKey = 'bandwidth') => {
+  const energyCost = computedCostPrices.value[energyCostKey]
+  const bandwidthCost = computedCostPrices.value[bandwidthCostKey]
+
+  if (!shouldShowBandwidthCost.value) {
+    return energyCost === undefined
+      ? '能量成本价: N/A TRX'
+      : `能量成本价: ${formatCostValue(energyCost)} TRX`
+  }
+
+  if (energyCost === undefined || bandwidthCost === undefined) {
+    return '能量成本价: N/A + 带宽成本价: N/A = N/A TRX'
+  }
+
+  const total = Number(energyCost) + Number(bandwidthCost)
+  return `能量成本价: ${formatCostValue(energyCost)} + 带宽成本价: ${formatCostValue(
+    bandwidthCost
+  )} = ${formatCostValue(total)} TRX`
+}
+
+// 创建成本价验证器（仅提示，不阻止提交）
+const createCostPriceValidator = (costPriceKey: string, _fieldName: string) => {
+  return {
+    validator: (_rule: any, value: number, callback: any) => {
+      // 始终通过验证，不阻止提交
+      void computedCostPrices.value[costPriceKey]
+      callback()
+    },
+    trigger: ['blur', 'change']
+  }
+}
+
+// 价格配置表单 - 整合所有价格配置,统一使用后端字段名
+const priceSchema = reactive<FormSchema[]>([
+  // 闪租能量
+  {
+    field: 'divider_flash_energy',
+    component: 'Divider' as const,
+    label: '闪租能量',
+    colProps: { span: 24 }
+  },
+  {
+    field: 'flash',
+    component: 'InputNumber' as const,
+    label: '闪租能量',
+    componentProps: {
+      placeholder: '请输入闪租能量价格',
+      min: 0,
+      precision: 1
+    },
+    formItemProps: {
+      rules: [
+        { required: true, message: '闪租能量是必填项' },
+        createCostPriceValidator('flash', '闪租能量价格')
+      ],
+      slots: {
+        label: () => {
+          const costPrice = computedCostPrices.value.flash
+          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
+          return (
+            <>
+              闪租能量 <small style="color: #909399; font-size: 10px;">（{costText}）</small>
+            </>
+          )
+        }
+      }
+    }
+  },
+
+  // 时间能量
+  {
+    field: 'divider_time_energy',
+    component: 'Divider' as const,
+    label: '时间能量',
+    colProps: { span: 24 }
+  },
+  {
+    field: 'time_1h',
+    component: 'InputNumber' as const,
+    label: '1小时租赁',
+    componentProps: {
+      placeholder: '请输入1小时租赁价格',
+      min: 0,
+      precision: 1
+    },
+    formItemProps: {
+      rules: [
+        { required: true, message: '1小时租赁不能为空' },
+        createCostPriceValidator('time_1h', '1小时租赁价格')
+      ],
+      slots: {
+        label: () => {
+          const costPrice = computedCostPrices.value.time_1h
+          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
+          return (
+            <>
+              1小时租赁 <small style="color: #909399; font-size: 10px;">（{costText}）</small>
+            </>
+          )
+        }
+      }
+    }
+  },
+  {
+    field: 'time_1d',
+    component: 'InputNumber' as const,
+    label: '1天租赁',
+    componentProps: {
+      placeholder: '请输入1天租赁价格',
+      min: 0,
+      precision: 1
+    },
+    formItemProps: {
+      rules: [
+        { required: true, message: '1天租赁不能为空' },
+        createCostPriceValidator('time_1d', '1天租赁价格')
+      ],
+      slots: {
+        label: () => {
+          const costPrice = computedCostPrices.value.time_1d
+          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
+          return (
+            <>
+              1天租赁 <small style="color: #909399; font-size: 10px;">（{costText}）</small>
+            </>
+          )
+        }
+      }
+    }
+  },
+  {
+    field: 'time_3d',
+    component: 'InputNumber' as const,
+    label: '3天租赁',
+    componentProps: {
+      placeholder: '请输入3天租赁价格',
+      min: 0,
+      precision: 1
+    },
+    formItemProps: {
+      rules: [
+        { required: true, message: '3天租赁不能为空' },
+        createCostPriceValidator('time_3d', '3天租赁价格')
+      ],
+      slots: {
+        label: () => {
+          const costPrice = computedCostPrices.value.time_3d
+          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
+          return (
+            <>
+              3天租赁 <small style="color: #909399; font-size: 10px;">（{costText}）</small>
+            </>
+          )
+        }
+      }
+    }
+  },
+  {
+    field: 'time_7d',
+    component: 'InputNumber' as const,
+    label: '7天租赁',
+    componentProps: {
+      placeholder: '请输入7天租赁价格',
+      min: 0,
+      precision: 1
+    },
+    formItemProps: {
+      rules: [
+        { required: true, message: '7天租赁不能为空' },
+        createCostPriceValidator('time_7d', '7天租赁价格')
+      ],
+      slots: {
+        label: () => {
+          const costPrice = computedCostPrices.value.time_7d
+          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
+          return (
+            <>
+              7天租赁 <small style="color: #909399; font-size: 10px;">（{costText}）</small>
+            </>
+          )
+        }
+      }
+    }
+  },
+  {
+    field: 'time_15d',
+    component: 'InputNumber' as const,
+    label: '15天租赁',
+    componentProps: {
+      placeholder: '请输入15天租赁价格',
+      min: 0,
+      precision: 1
+    },
+    formItemProps: {
+      rules: [
+        { required: true, message: '15天租赁不能为空' },
+        createCostPriceValidator('time_15d', '15天租赁价格')
+      ],
+      slots: {
+        label: () => {
+          const costPrice = computedCostPrices.value.time_15d
+          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
+          return (
+            <>
+              15天租赁 <small style="color: #909399; font-size: 10px;">（{costText}）</small>
+            </>
+          )
+        }
+      }
+    }
+  },
+  {
+    field: 'time_30d',
+    component: 'InputNumber' as const,
+    label: '30天租赁',
+    componentProps: {
+      placeholder: '请输入30天租赁价格',
+      min: 0,
+      precision: 1
+    },
+    formItemProps: {
+      rules: [
+        { required: true, message: '30天租赁不能为空' },
+        createCostPriceValidator('time_30d', '30天租赁价格')
+      ],
+      slots: {
+        label: () => {
+          const costPrice = computedCostPrices.value.time_30d
+          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
+          return (
+            <>
+              30天租赁 <small style="color: #909399; font-size: 10px;">（{costText}）</small>
+            </>
+          )
+        }
+      }
+    }
+  },
+
+  // 笔数能量
+  {
+    field: 'divider_count_energy',
+    component: 'Divider' as const,
+    label: '笔数能量',
+    colProps: { span: 24 }
+  },
+  {
+    field: 'stroke',
+    component: 'InputNumber' as const,
+    label: '[1笔]能量TRX',
+    componentProps: {
+      placeholder: '请输入TRX价格',
+      min: 0,
+      precision: 2
+    },
+    formItemProps: {
+      rules: [
+        { required: true, message: '能量TRX是必填项' },
+        createCostPriceValidator('stroke', '能量TRX价格')
+      ],
+      slots: {
+        label: () => {
+          const costPrice = computedCostPrices.value.stroke
+          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
+          return (
+            <>
+              [1笔]能量TRX <small style="color: #909399; font-size: 10px;">（{costText}）</small>
+            </>
+          )
+        }
+      }
+    }
+  },
+  {
+    field: 'stroke_usdt',
+    component: 'InputNumber' as const,
+    label: {
+      text: '[1笔]能量USDT',
+      tips: '只支持保留一位小数'
+    },
+    componentProps: {
+      placeholder: '请输入USDT价格',
+      min: 0,
+      precision: 1
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '能量USDT是必填项' }]
+    }
+  },
+
+  // 智能托管
+  {
+    field: 'divider_managed_mode',
+    component: 'Divider' as const,
+    label: '智能托管',
+    colProps: { span: 24 }
+  },
+  {
+    field: 'hosting_65k',
+    component: 'InputNumber' as const,
+    label: '65000能量',
+    componentProps: {
+      placeholder: '请输入65000能量价格',
+      min: 0,
+      precision: 2
+    },
+    formItemProps: {
+      rules: [
+        { required: true, message: '65000能量是必填项' },
+        createCostPriceValidator('hosting_65k', '65000能量价格')
+      ],
+      slots: {
+        label: () => {
+          const costText = getCombinedCostText('hosting_65k')
+          return (
+            <>
+              65000能量 <small style="color: #909399; font-size: 10px;">（{costText}）</small>
+            </>
+          )
+        }
+      }
+    }
+  },
+  {
+    field: 'hosting_131k',
+    component: 'InputNumber' as const,
+    label: '131000能量',
+    componentProps: {
+      placeholder: '请输入131000能量价格',
+      min: 0,
+      precision: 2
+    },
+    formItemProps: {
+      rules: [
+        { required: true, message: '131000能量是必填项' },
+        createCostPriceValidator('hosting_131k', '131000能量价格')
+      ],
+      slots: {
+        label: () => {
+          const costText = getCombinedCostText('hosting_131k')
+          return (
+            <>
+              131000能量 <small style="color: #909399; font-size: 10px;">（{costText}）</small>
+            </>
+          )
+        }
+      }
+    }
+  },
+
+  // 批量下单
+  {
+    field: 'divider_batch_order',
+    component: 'Divider' as const,
+    label: '批量下单',
+    colProps: { span: 24 }
+  },
+  {
+    field: 'batch_flash',
+    component: 'InputNumber' as const,
+    label: '能量单价',
+    componentProps: {
+      placeholder: '请输入能量单价',
+      min: 0,
+      precision: 2
+    },
+    formItemProps: {
+      rules: [
+        { required: true, message: '能量单价是必填项' },
+        createCostPriceValidator('batch_flash', '能量单价')
+      ],
+      slots: {
+        label: () => {
+          const costText = getCombinedCostText('batch_flash')
+          return (
+            <>
+              能量单价 <small style="color: #909399; font-size: 10px;">（{costText}）</small>
+            </>
+          )
+        }
+      }
+    }
+  },
+  {
+    field: 'active',
+    component: 'InputNumber' as const,
+    label: '激活地址单价',
+    componentProps: {
+      placeholder: '请输入激活地址单价',
+      precision: 2
+    },
+    formItemProps: {
+      rules: [
+        { required: true, message: '激活地址单价是必填项' },
+        createCostPriceValidator('active', '激活地址单价')
+      ],
+      slots: {
+        label: () => {
+          const costPrice = computedCostPrices.value.active
+          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
+          return (
+            <>
+              激活地址单价 <small style="color: #909399; font-size: 10px;">（{costText}）</small>
+            </>
+          )
+        }
+      }
+    }
+  },
+
+  // 速充配置
+  {
+    field: 'divider_quick_charge',
+    component: 'Divider' as const,
+    label: '速充配置',
+    colProps: { span: 24 }
+  },
+  {
+    field: 'charge',
+    component: 'InputNumber' as const,
+    label: '速充',
+    componentProps: {
+      placeholder: '请输入速充价格',
+      min: 0,
+      precision: 2
+    },
+    formItemProps: {
+      rules: [
+        { required: true, message: '速充价格是必填项' },
+        createCostPriceValidator('charge', '速充价格')
+      ],
+      slots: {
+        label: () => {
+          const costPrice = computedCostPrices.value.charge
+          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX/SUM` : '成本价: N/A'
+          return (
+            <>
+              速充
+              <small style="color: #909399; font-size: 10px;">（{costText}）</small>
+            </>
+          )
+        }
+      }
+    }
+  },
+
+  // 闪兑配置
+  {
+    field: 'divider_flash_exchange',
+    component: 'Divider' as const,
+    label: '闪兑配置',
+    colProps: { span: 24 }
+  },
+  {
+    field: 'min_trx_balance',
+    component: 'InputNumber' as const,
+    label: {
+      text: '最低账号余额（TRX）',
+      tips: '当您的账号余额低于此值，兑换将会失效。请设置合理的值避免影响其他业务'
+    },
+    componentProps: {
+      placeholder: '请输入最低余额',
+      min: 0,
+      precision: 2
+    }
+  },
+  {
+    field: 'trx_2_usdt',
+    component: 'InputNumber' as const,
+    label: {
+      text: 'TRX兑USDT利润（百分比）',
+      tips: '例如，输入15，就是15%'
+    },
+    componentProps: {
+      placeholder: '请输入利润金额',
+      min: 0,
+      precision: 2
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '利润金额是必填项' }]
+    }
+  },
+  {
+    field: 'max_trx_2_usdt',
+    component: 'InputNumber' as const,
+    label: {
+      text: 'TRX兑USDT可兑换上限',
+      tips: '单次可兑换TRX上限(TRX兑换USDT)'
+    },
+    componentProps: {
+      placeholder: '请输入兑换上限',
+      min: 0,
+      precision: 2
+    }
+  },
+  {
+    field: 'usdt_2_trx',
+    component: 'InputNumber' as const,
+    label: {
+      text: 'USDT兑TRX利润（百分比）',
+      tips: '例如，输入15，就是15%'
+    },
+    componentProps: {
+      placeholder: '请输入利润金额',
+      min: 0,
+      precision: 2
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '利润金额是必填项' }]
+    }
+  },
+  {
+    field: 'max_usdt_2_trx',
+    component: 'InputNumber' as const,
+    label: {
+      text: 'USDT兑TRX可兑换上限',
+      tips: '单次可兑换USDT上限(USDT兑换TRX)'
+    },
+    componentProps: {
+      placeholder: '请输入兑换上限',
+      min: 0,
+      precision: 2
+    }
+  }
+
+  // 福利板块 - 已迁移至运营端营销管理
+  // {
+  //   field: 'divider_welfare',
+  //   component: 'Divider' as const,
+  //   label: '福利板块',
+  //   colProps: { span: 24 }
+  // },
+  // {
+  //   field: 'weal',
+  //   component: 'InputNumber' as const,
+  //   label: '福利能量（TRX）',
+  //   componentProps: {
+  //     placeholder: '请输入福利能量价格',
+  //     min: 0,
+  //     precision: 2
+  //   },
+  //   formItemProps: {
+  //     rules: [
+  //       { required: true, message: '福利能量是必填项' }
+  //     ],
+  //     slots: {
+  //       label: () => {
+  //         const costPrice = computedCostPrices.value.weal
+  //         const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
+  //         return (
+  //           <>
+  //             福利能量（TRX） <small style="color: #909399; font-size: 10px;">（{costText}）</small>
+  //           </>
+  //         )
+  //       }
+  //     }
+  //   }
+  // }
+])
+
+defineExpose({
+  formMethods
+})
+</script>
