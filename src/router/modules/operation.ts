@@ -60,15 +60,6 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           }
         },
         {
-          path: 'energy_statistics_report',
-          alias: '/data_statistics/energy_statistics_report',
-          component: () => import('@/operation/DataStatistics/EnergyStatisticsReport/index.vue'),
-          name: 'EnergyStatisticsReport',
-          meta: {
-            title: '能量统计报表'
-          }
-        },
-        {
           path: 'sale_by_time_report',
           alias: '/data_statistics/sale_by_time_report',
           component: () => import('@/operation/DataStatistics/SaleByTimeReport/index.vue'),

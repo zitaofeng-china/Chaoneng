@@ -6,7 +6,9 @@
 
 - `DataStatistics`:
   - `src/operation/DataStatistics/Analysis`
+  - `src/operation/DataStatistics/OrderTypeStatistics`
   - `src/operation/DataStatistics/UserStatisticsReport`
+  - `src/operation/DataStatistics/EnergyStatisticsReport`
   - `src/operation/DataStatistics/SaleByTimeReport`
   - `src/operation/DataStatistics/ExchangeRateIndex`
   - `src/operation/DataStatistics/Announcement`
@@ -31,7 +33,9 @@
 - `DataStatistics` 主路由对应权限名仍为 `DataStatistics`，展示名为“数据分析”。
 - `DataStatistics` 子路由权限名：
   - `Analysis`
+  - `OrderTypeStatistics`
   - `UserStatisticsReport`
+  - `EnergyStatisticsReport`
   - `SaleByTimeReport`
   - `ExchangeRateIndex`
   - `Announcement`

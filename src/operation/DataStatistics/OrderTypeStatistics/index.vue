@@ -14,6 +14,7 @@
                 start-placeholder="开始日期"
                 end-placeholder="结束日期"
                 value-format="YYYY-MM-DD"
+                :clearable="false"
               />
             </div>
           </div>
@@ -57,6 +58,7 @@
             </table>
 
             <ElTable
+              ref="reportTableRef"
               :data="sortedReportRows"
               border
               class="report-table"
@@ -142,6 +144,12 @@ import type { TableColumnCtx } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import {
+  getOrderTypeStatisticsReport,
+  type OrderTypeStatisticsDetailItem,
+  type OrderTypeStatisticsParams,
+  type OrderTypeStatisticsSummary
+} from '@/api/opertion/DataStatistics/OrderTypeStatistics'
 
 type DateRangeValue = [string, string]
 type SortOrder = 'ascending' | 'descending' | null
@@ -184,10 +192,110 @@ interface SummaryTotals {
   welfareRatio: number
 }
 
+const SORT_FIELD_MAP: Record<Exclude<SortableField, 'welfareRatio'>, string> = {
+  flashOrderCount: 'flash_energy',
+  strokeOrderCount: 'stroke_energy',
+  hostedOrderCount: 'hosting',
+  welfareOrderCount: 'weal_energy',
+  batchOrderCount: 'batch_energy',
+  activationOrderCount: 'batch_active',
+  totalOrderCount: 'total'
+}
+
 const createDefaultRange = (): DateRangeValue => {
   const endDate = dayjs().format('YYYY-MM-DD')
   const startDate = dayjs().subtract(6, 'day').format('YYYY-MM-DD')
   return [startDate, endDate]
+}
+
+const toNumber = (value: number | string | undefined) => {
+  const numberValue = Number(value ?? 0)
+  return Number.isFinite(numberValue) ? numberValue : 0
+}
+
+const toSecondRange = ([startDate, endDate]: DateRangeValue) => {
+  return {
+    start_time: String(dayjs(startDate).startOf('day').unix()),
+    end_time: String(dayjs(endDate).endOf('day').unix())
+  }
+}
+
+const formatDateLabel = (date: string) => {
+  const parsed = dayjs(date)
+  return parsed.isValid() ? parsed.format('M月D日') : date
+}
+
+const createEmptySummary = (): SummaryTotals => ({
+  flashOrderCount: 0,
+  strokeOrderCount: 0,
+  hostedOrderCount: 0,
+  welfareOrderCount: 0,
+  batchOrderCount: 0,
+  activationOrderCount: 0,
+  totalOrderCount: 0,
+  welfareRatio: 0
+})
+
+const normalizeSummary = (summary?: OrderTypeStatisticsSummary): SummaryTotals => {
+  const flashOrderCount = toNumber(summary?.flash_energy)
+  const strokeOrderCount = toNumber(summary?.stroke_energy)
+  const hostedOrderCount = toNumber(summary?.hosting)
+  const welfareOrderCount = toNumber(summary?.weal_energy)
+  const batchOrderCount = toNumber(summary?.batch_energy)
+  const activationOrderCount = toNumber(summary?.batch_active)
+  const totalOrderCount =
+    summary?.total === undefined
+      ? flashOrderCount +
+        strokeOrderCount +
+        hostedOrderCount +
+        welfareOrderCount +
+        batchOrderCount +
+        activationOrderCount
+      : toNumber(summary.total)
+
+  return {
+    flashOrderCount,
+    strokeOrderCount,
+    hostedOrderCount,
+    welfareOrderCount,
+    batchOrderCount,
+    activationOrderCount,
+    totalOrderCount,
+    welfareRatio: totalOrderCount > 0 ? welfareOrderCount / totalOrderCount : 0
+  }
+}
+
+const normalizeRow = (row: OrderTypeStatisticsDetailItem): ReportRow => {
+  const flashOrderCount = toNumber(row.flash_energy)
+  const strokeOrderCount = toNumber(row.stroke_energy)
+  const hostedOrderCount = toNumber(row.hosting)
+  const welfareOrderCount = toNumber(row.weal_energy)
+  const batchOrderCount = toNumber(row.batch_energy)
+  const activationOrderCount = toNumber(row.batch_active)
+  const totalOrderCount =
+    row.total === undefined
+      ? flashOrderCount +
+        strokeOrderCount +
+        hostedOrderCount +
+        welfareOrderCount +
+        batchOrderCount +
+        activationOrderCount
+      : toNumber(row.total)
+  const welfareRatio = totalOrderCount > 0 ? welfareOrderCount / totalOrderCount : 0
+
+  return {
+    date: row.date,
+    dateLabel: formatDateLabel(row.date),
+    flashOrderCount,
+    strokeOrderCount,
+    hostedOrderCount,
+    welfareOrderCount,
+    batchOrderCount,
+    activationOrderCount,
+    totalOrderCount,
+    welfareRatio,
+    welfareRatioText: formatPercent(welfareRatio)
+  }
 }
 
 const loading = ref(false)
@@ -197,6 +305,8 @@ const searchForm = reactive<SearchFormState>({
 })
 const activeRange = ref<DateRangeValue>([...defaultRange] as DateRangeValue)
 const reportRows = ref<ReportRow[]>([])
+const reportTableRef = ref<ComponentRef<typeof ElTable>>()
+const summaryTotals = ref<SummaryTotals>(createEmptySummary())
 const sortState = reactive<{
   prop: SortableField | ''
   order: SortOrder
@@ -205,8 +315,8 @@ const sortState = reactive<{
   order: null
 })
 
-const formatCount = (value: number) => {
-  return value.toLocaleString('zh-CN')
+const formatCount = (value: number | string | undefined) => {
+  return toNumber(value).toLocaleString('zh-CN')
 }
 
 const formatPercent = (value: number) => {
@@ -228,88 +338,16 @@ const bodyCellStyle = (): CSSProperties => {
   }
 }
 
-const createMockRows = (range: DateRangeValue): ReportRow[] => {
-  const [startDate, endDate] = range
-  const start = dayjs(startDate)
-  const end = dayjs(endDate)
-
-  if (!start.isValid() || !end.isValid() || start.isAfter(end)) {
-    return []
-  }
-
-  const dayCount = Math.min(end.diff(start, 'day') + 1, 31)
-
-  return Array.from({ length: dayCount }, (_, index) => {
-    const current = end.subtract(index, 'day')
-    const seed = current.date() + current.month() * 3 + current.day()
-    const flashOrderCount = 560 + ((seed * 7) % 95)
-    const strokeOrderCount = 4 + (seed % 4)
-    const hostedOrderCount = 3 + (seed % 3)
-    const welfareOrderCount = 24 + (seed % 9)
-    const batchOrderCount = 48 + ((seed * 5) % 18)
-    const activationOrderCount = 46 + ((seed * 3) % 17)
-    const totalOrderCount =
-      flashOrderCount +
-      strokeOrderCount +
-      hostedOrderCount +
-      welfareOrderCount +
-      batchOrderCount +
-      activationOrderCount
-    const welfareRatio = totalOrderCount > 0 ? welfareOrderCount / totalOrderCount : 0
-
-    return {
-      date: current.format('YYYY-MM-DD'),
-      dateLabel: current.format('M月D日'),
-      flashOrderCount,
-      strokeOrderCount,
-      hostedOrderCount,
-      welfareOrderCount,
-      batchOrderCount,
-      activationOrderCount,
-      totalOrderCount,
-      welfareRatio,
-      welfareRatioText: formatPercent(welfareRatio)
-    }
-  })
-}
-
-const summaryTotals = computed<SummaryTotals>(() => {
-  const totals = reportRows.value.reduce<SummaryTotals>(
-    (accumulator, row) => {
-      accumulator.flashOrderCount += row.flashOrderCount
-      accumulator.strokeOrderCount += row.strokeOrderCount
-      accumulator.hostedOrderCount += row.hostedOrderCount
-      accumulator.welfareOrderCount += row.welfareOrderCount
-      accumulator.batchOrderCount += row.batchOrderCount
-      accumulator.activationOrderCount += row.activationOrderCount
-      accumulator.totalOrderCount += row.totalOrderCount
-      return accumulator
-    },
-    {
-      flashOrderCount: 0,
-      strokeOrderCount: 0,
-      hostedOrderCount: 0,
-      welfareOrderCount: 0,
-      batchOrderCount: 0,
-      activationOrderCount: 0,
-      totalOrderCount: 0,
-      welfareRatio: 0
-    }
-  )
-
-  totals.welfareRatio =
-    totals.totalOrderCount > 0 ? totals.welfareOrderCount / totals.totalOrderCount : 0
-
-  return totals
-})
-
 const sortedReportRows = computed(() => {
-  const rows = [...reportRows.value]
-
   if (!sortState.prop || !sortState.order) {
-    return rows
+    return reportRows.value
   }
 
+  if (sortState.prop !== 'welfareRatio') {
+    return reportRows.value
+  }
+
+  const rows = [...reportRows.value]
   const factor = sortState.order === 'ascending' ? 1 : -1
 
   rows.sort((left, right) => {
@@ -326,13 +364,33 @@ const sortedReportRows = computed(() => {
   return rows
 })
 
+const buildParams = (range: DateRangeValue): OrderTypeStatisticsParams => {
+  const params: OrderTypeStatisticsParams = toSecondRange(range)
+
+  if (sortState.prop && sortState.order && sortState.prop !== 'welfareRatio') {
+    params.order = `${SORT_FIELD_MAP[sortState.prop]} ${sortState.order === 'ascending' ? 'ASC' : 'DESC'}`
+  }
+
+  return params
+}
+
 const loadData = async (range: DateRangeValue) => {
   loading.value = true
 
   try {
-    reportRows.value = createMockRows(range)
+    const res = await getOrderTypeStatisticsReport(buildParams(range))
+    if (res.code !== '000000' || !res.data) {
+      summaryTotals.value = createEmptySummary()
+      reportRows.value = []
+      handleErrorMessage(new Error(res.msg || '接口返回异常'), '获取订单类型统计失败')
+      return
+    }
+
+    summaryTotals.value = normalizeSummary(res.data.summary)
+    reportRows.value = Array.isArray(res.data.detail) ? res.data.detail.map(normalizeRow) : []
     activeRange.value = [...range] as DateRangeValue
   } catch (error) {
+    summaryTotals.value = createEmptySummary()
     reportRows.value = []
     handleErrorMessage(error, '获取订单类型统计失败')
   } finally {
@@ -350,6 +408,9 @@ const handleSearch = async () => {
 }
 
 const handleReset = async () => {
+  sortState.prop = ''
+  sortState.order = null
+  reportTableRef.value?.clearSort()
   searchForm.dateRange = [...defaultRange] as DateRangeValue
   await loadData(defaultRange)
 }
@@ -372,7 +433,7 @@ const handleExport = () => {
       总计: summaryTotals.value.totalOrderCount,
       福利占比: formatPercent(summaryTotals.value.welfareRatio)
     },
-    ...reportRows.value.map((row) => ({
+    ...sortedReportRows.value.map((row) => ({
       日期: row.dateLabel,
       闪租: row.flashOrderCount,
       按笔数: row.strokeOrderCount,
@@ -392,12 +453,12 @@ const handleExport = () => {
   handleSuccessMessage('导出成功')
 }
 
-const handleSortChange = ({
+const handleSortChange = async ({
   prop,
   order
 }: {
   column: TableColumnCtx<ReportRow>
-  prop: keyof ReportRow
+  prop: keyof ReportRow | null
   order: SortOrder
 }) => {
   if (
@@ -417,6 +478,10 @@ const handleSortChange = ({
 
   sortState.prop = prop
   sortState.order = order
+
+  if (prop !== 'welfareRatio') {
+    await loadData(activeRange.value)
+  }
 }
 
 onMounted(async () => {
