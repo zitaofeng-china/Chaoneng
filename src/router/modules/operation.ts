@@ -58,6 +58,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           meta: {
             title: '订单类型统计'
           }
+        },
+        {
+          path: 'sale_by_time_report',
+          alias: '/data_statistics/sale_by_time_report',
+          component: () => import('@/operation/DataStatistics/SaleByTimeReport/index.vue'),
+          name: 'SaleByTimeReport',
+          meta: {
+            title: '按时间销售报表'
+          }
         }
       ]
     },

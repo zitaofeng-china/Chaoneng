@@ -57,42 +57,75 @@
             </table>
 
             <ElTable
-              :data="reportRows"
+              :data="sortedReportRows"
               border
               class="report-table"
               empty-text="暂无数据"
               :header-cell-style="headerCellStyle"
               :cell-style="bodyCellStyle"
+              @sort-change="handleSortChange"
             >
               <ElTableColumn prop="dateLabel" label="日期" min-width="120" align="center" />
-              <ElTableColumn prop="flashOrderCount" label="闪租" min-width="110" align="center" />
+              <ElTableColumn
+                prop="flashOrderCount"
+                label="闪租"
+                min-width="110"
+                align="center"
+                sortable="custom"
+              />
               <ElTableColumn
                 prop="strokeOrderCount"
                 label="按笔数"
                 min-width="110"
                 align="center"
+                sortable="custom"
               />
-              <ElTableColumn prop="hostedOrderCount" label="托管" min-width="110" align="center" />
-              <ElTableColumn prop="welfareOrderCount" label="福利" min-width="110" align="center" />
+              <ElTableColumn
+                prop="hostedOrderCount"
+                label="托管"
+                min-width="110"
+                align="center"
+                sortable="custom"
+              />
+              <ElTableColumn
+                prop="welfareOrderCount"
+                label="福利"
+                min-width="110"
+                align="center"
+                sortable="custom"
+              />
               <ElTableColumn
                 prop="batchOrderCount"
                 label="批量下单"
                 min-width="120"
                 align="center"
+                sortable="custom"
               />
               <ElTableColumn
                 prop="activationOrderCount"
                 label="激活"
                 min-width="110"
                 align="center"
+                sortable="custom"
               />
-              <ElTableColumn prop="totalOrderCount" label="总计" min-width="110" align="center" />
               <ElTableColumn
-                prop="welfareRatioText"
+                prop="totalOrderCount"
+                label="总计"
+                min-width="110"
+                align="center"
+                sortable="custom"
+              />
+              <ElTableColumn
+                prop="welfareRatio"
                 label="福利占比"
                 min-width="120"
                 align="center"
-              />
+                sortable="custom"
+              >
+                <template #default="{ row }">
+                  {{ row.welfareRatioText }}
+                </template>
+              </ElTableColumn>
             </ElTable>
           </div>
         </div>
@@ -105,11 +138,22 @@
 import { computed, onMounted, reactive, ref, type CSSProperties } from 'vue'
 import dayjs from 'dayjs'
 import { ElButton, ElDatePicker, ElTable, ElTableColumn } from 'element-plus'
+import type { TableColumnCtx } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 type DateRangeValue = [string, string]
+type SortOrder = 'ascending' | 'descending' | null
+type SortableField =
+  | 'flashOrderCount'
+  | 'strokeOrderCount'
+  | 'hostedOrderCount'
+  | 'welfareOrderCount'
+  | 'batchOrderCount'
+  | 'activationOrderCount'
+  | 'totalOrderCount'
+  | 'welfareRatio'
 
 interface SearchFormState {
   dateRange: DateRangeValue
@@ -153,6 +197,13 @@ const searchForm = reactive<SearchFormState>({
 })
 const activeRange = ref<DateRangeValue>([...defaultRange] as DateRangeValue)
 const reportRows = ref<ReportRow[]>([])
+const sortState = reactive<{
+  prop: SortableField | ''
+  order: SortOrder
+}>({
+  prop: '',
+  order: null
+})
 
 const formatCount = (value: number) => {
   return value.toLocaleString('zh-CN')
@@ -252,6 +303,29 @@ const summaryTotals = computed<SummaryTotals>(() => {
   return totals
 })
 
+const sortedReportRows = computed(() => {
+  const rows = [...reportRows.value]
+
+  if (!sortState.prop || !sortState.order) {
+    return rows
+  }
+
+  const factor = sortState.order === 'ascending' ? 1 : -1
+
+  rows.sort((left, right) => {
+    const leftValue = left[sortState.prop]
+    const rightValue = right[sortState.prop]
+
+    if (leftValue === rightValue) {
+      return right.date.localeCompare(left.date)
+    }
+
+    return (leftValue - rightValue) * factor
+  })
+
+  return rows
+})
+
 const loadData = async (range: DateRangeValue) => {
   loading.value = true
 
@@ -316,6 +390,33 @@ const handleExport = () => {
     `订单类型统计_${dayjs(activeRange.value[0]).format('YYYYMMDD')}_${dayjs(activeRange.value[1]).format('YYYYMMDD')}`
   )
   handleSuccessMessage('导出成功')
+}
+
+const handleSortChange = ({
+  prop,
+  order
+}: {
+  column: TableColumnCtx<ReportRow>
+  prop: keyof ReportRow
+  order: SortOrder
+}) => {
+  if (
+    prop !== 'flashOrderCount' &&
+    prop !== 'strokeOrderCount' &&
+    prop !== 'hostedOrderCount' &&
+    prop !== 'welfareOrderCount' &&
+    prop !== 'batchOrderCount' &&
+    prop !== 'activationOrderCount' &&
+    prop !== 'totalOrderCount' &&
+    prop !== 'welfareRatio'
+  ) {
+    sortState.prop = ''
+    sortState.order = null
+    return
+  }
+
+  sortState.prop = prop
+  sortState.order = order
 }
 
 onMounted(async () => {

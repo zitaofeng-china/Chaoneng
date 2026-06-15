@@ -56,10 +56,6 @@
             </ElSelect>
           </ElFormItem>
 
-          <div class="section-divider">
-            <span class="section-title">{{ visibilitySectionTitle }}</span>
-          </div>
-
           <ElFormItem label="可见范围" prop="visibility_scope">
             <ElRadioGroup v-model="formData.visibility_scope">
               <ElRadio :value="VISIBLE_SCOPE_ALL">默认全部</ElRadio>
@@ -201,11 +197,6 @@ const formData = reactive<MenuFormValues>({
 })
 
 const showVisibleAgentSelect = computed(() => formData.visibility_scope === VISIBLE_SCOPE_PARTIAL)
-
-const visibilitySectionTitle = computed(() => {
-  const menuName = formData.menu_name?.trim()
-  return menuName ? `菜单可见权限配置-${menuName}` : '菜单可见权限配置'
-})
 
 const formRules: FormRules<MenuFormValues> = {
   menu_name: [{ required: true, message: '菜单名称不能为空', trigger: 'blur' }],
@@ -609,19 +600,6 @@ const handleStatusChange = async (row: BotMenuItem) => {
 .menu-form :deep(.el-form-item__label) {
   padding-bottom: 6px;
   font-weight: 500;
-}
-
-.section-divider {
-  position: relative;
-  padding-top: 16px;
-  margin: 8px 0 18px;
-  border-top: 1px solid var(--el-border-color-lighter);
-}
-
-.section-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--el-text-color-regular);
 }
 
 .w-full {

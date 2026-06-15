@@ -7,6 +7,7 @@
 - `DataStatistics`:
   - `src/operation/DataStatistics/Analysis`
   - `src/operation/DataStatistics/UserStatisticsReport`
+  - `src/operation/DataStatistics/SaleByTimeReport`
   - `src/operation/DataStatistics/ExchangeRateIndex`
   - `src/operation/DataStatistics/Announcement`
 - `OperationCenter`:
@@ -31,6 +32,7 @@
 - `DataStatistics` 子路由权限名：
   - `Analysis`
   - `UserStatisticsReport`
+  - `SaleByTimeReport`
   - `ExchangeRateIndex`
   - `Announcement`
 - `SystemConfig` 主路由当前只对应一个子路由权限：

@@ -14,29 +14,32 @@
               />
             </div>
 
-            <div class="filter-item filter-item-month">
-              <span class="filter-label">统计月份：</span>
-              <ElSelect v-model="searchForm.month" class="month-select">
-                <ElOption
-                  v-for="option in monthOptions"
-                  :key="option.value"
-                  :label="option.label"
-                  :value="option.value"
-                />
-              </ElSelect>
+            <div class="filter-item filter-item-date">
+              <span class="filter-label">统计日期：</span>
+              <ElDatePicker
+                v-model="searchForm.date"
+                class="date-picker"
+                type="date"
+                value-format="YYYY-MM-DD"
+                :clearable="false"
+                :editable="false"
+                placeholder="请选择日期"
+              />
             </div>
-          </div>
 
-          <div class="toolbar-actions">
-            <ElButton @click="handleSearch">搜索</ElButton>
-            <ElButton @click="handleReset">重置</ElButton>
-            <ElButton type="warning" @click="handleExport">导出表格</ElButton>
+            <div class="toolbar-actions">
+              <ElButton @click="handleSearch">搜索</ElButton>
+              <ElButton @click="handleReset">重置</ElButton>
+              <ElButton type="warning" @click="handleExport">导出表格</ElButton>
+            </div>
           </div>
         </div>
 
         <div class="report-table-card">
           <div class="report-summary-bar">
-            <div class="summary-cell summary-cell-label">合计：</div>
+            <div class="summary-cell summary-cell-label">
+              合计：{{ formatCount(summaryGrandTotal) }}
+            </div>
             <div class="summary-cell">{{ formatCount(summaryTotals.todayNew) }}</div>
             <div class="summary-cell">{{ formatCount(summaryTotals.yesterdayNew) }}</div>
             <div class="summary-cell">{{ formatCount(summaryTotals.currentMonthNew) }}</div>
@@ -111,15 +114,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch, type CSSProperties } from 'vue'
 import dayjs from 'dayjs'
-import {
-  ElButton,
-  ElInput,
-  ElOption,
-  ElPagination,
-  ElSelect,
-  ElTable,
-  ElTableColumn
-} from 'element-plus'
+import { ElButton, ElDatePicker, ElInput, ElPagination, ElTable, ElTableColumn } from 'element-plus'
 import type { TableColumnCtx } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { simpleExportToExcel } from '@/utils/excel'
@@ -127,18 +122,14 @@ import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const DEFAULT_SORT_PROP: SortableField = 'currentMonthNew'
 const DEFAULT_SORT_ORDER: SortOrder = 'descending'
+const DEFAULT_DATE = dayjs().format('YYYY-MM-DD')
 
 type SortableField = 'todayNew' | 'yesterdayNew' | 'currentMonthNew' | 'lastMonthNew'
 type SortOrder = 'ascending' | 'descending' | null
 
-interface MonthOption {
-  label: string
-  value: string
-}
-
 interface SearchFormState {
   keyword: string
-  month: string
+  date: string
 }
 
 interface ReportRow {
@@ -157,30 +148,15 @@ interface SummaryTotals {
   yesterdayNew: number
 }
 
-const createMonthOptions = (count = 12): MonthOption[] => {
-  const currentMonth = dayjs().startOf('month')
-  return Array.from({ length: count }, (_, index) => {
-    const month = currentMonth.subtract(index, 'month')
-    return {
-      label: month.format('YYYY年M月'),
-      value: month.format('YYYY-MM')
-    }
-  })
-}
-
-const monthOptions = createMonthOptions()
-const defaultMonth = monthOptions[0]?.value || dayjs().format('YYYY-MM')
-
 const loading = ref(false)
 const reportRows = ref<ReportRow[]>([])
-const loadedMonth = ref(defaultMonth)
 const searchForm = reactive<SearchFormState>({
   keyword: '',
-  month: defaultMonth
+  date: DEFAULT_DATE
 })
 const activeFilters = reactive<SearchFormState>({
   keyword: '',
-  month: defaultMonth
+  date: DEFAULT_DATE
 })
 const pagination = reactive({
   currentPage: 1,
@@ -194,8 +170,8 @@ const sortState = reactive<{
   prop: DEFAULT_SORT_PROP
 })
 
-const createMockReportRows = (monthValue: string): ReportRow[] => {
-  const monthSeed = dayjs(`${monthValue}-01`).month() + 1
+const createMockReportRows = (selectedDate: string): ReportRow[] => {
+  const dateSeed = dayjs(selectedDate).date() + dayjs(selectedDate).month() * 2
   const baseRows: ReportRow[] = [
     {
       botId: '8643088561',
@@ -236,51 +212,11 @@ const createMockReportRows = (monthValue: string): ReportRow[] => {
       yesterdayNew: 13,
       currentMonthNew: 77,
       lastMonthNew: 49
-    },
-    {
-      botId: '8643088566',
-      botUsername: 'service_matrix_bot',
-      todayNew: 28,
-      yesterdayNew: 23,
-      currentMonthNew: 109,
-      lastMonthNew: 82
-    },
-    {
-      botId: '8643088567',
-      botUsername: 'finance_notice_bot',
-      todayNew: 14,
-      yesterdayNew: 20,
-      currentMonthNew: 66,
-      lastMonthNew: 47
-    },
-    {
-      botId: '8643088568',
-      botUsername: 'global_market_bot',
-      todayNew: 35,
-      yesterdayNew: 30,
-      currentMonthNew: 120,
-      lastMonthNew: 93
-    },
-    {
-      botId: '8643088569',
-      botUsername: 'quickcharge_sync_bot',
-      todayNew: 19,
-      yesterdayNew: 21,
-      currentMonthNew: 91,
-      lastMonthNew: 58
-    },
-    {
-      botId: '8643088570',
-      botUsername: 'agent_growth_lab_bot',
-      todayNew: 22,
-      yesterdayNew: 25,
-      currentMonthNew: 101,
-      lastMonthNew: 76
     }
   ]
 
   return baseRows.map((row, index) => {
-    const offset = (monthSeed + index) % 5
+    const offset = (dateSeed + index) % 5
     return {
       ...row,
       todayNew: row.todayNew + offset,
@@ -347,6 +283,15 @@ const summaryTotals = computed<SummaryTotals>(() => {
   )
 })
 
+const summaryGrandTotal = computed(() => {
+  return (
+    summaryTotals.value.todayNew +
+    summaryTotals.value.yesterdayNew +
+    summaryTotals.value.currentMonthNew +
+    summaryTotals.value.lastMonthNew
+  )
+})
+
 const headerCellStyle = (): CSSProperties => {
   return {
     background: '#f5f7fa',
@@ -372,15 +317,11 @@ const syncCurrentPage = () => {
   }
 }
 
-const loadData = async (monthValue: string) => {
+const loadData = async (selectedDate: string) => {
   loading.value = true
 
   try {
-    reportRows.value = createMockReportRows(monthValue)
-    loadedMonth.value = monthValue
-  } catch (error) {
-    reportRows.value = []
-    handleErrorMessage(error, '获取人数统计报表失败')
+    reportRows.value = createMockReportRows(selectedDate)
   } finally {
     loading.value = false
   }
@@ -388,24 +329,21 @@ const loadData = async (monthValue: string) => {
 
 const handleSearch = async () => {
   activeFilters.keyword = searchForm.keyword.trim()
-  activeFilters.month = searchForm.month
+  activeFilters.date = searchForm.date
   pagination.currentPage = 1
-
-  if (loadedMonth.value !== activeFilters.month) {
-    await loadData(activeFilters.month)
-  }
+  await loadData(activeFilters.date)
 }
 
 const handleReset = async () => {
   searchForm.keyword = ''
-  searchForm.month = defaultMonth
+  searchForm.date = DEFAULT_DATE
   activeFilters.keyword = ''
-  activeFilters.month = defaultMonth
+  activeFilters.date = DEFAULT_DATE
   pagination.currentPage = 1
   pagination.pageSize = 10
   sortState.prop = DEFAULT_SORT_PROP
   sortState.order = DEFAULT_SORT_ORDER
-  await loadData(defaultMonth)
+  await loadData(DEFAULT_DATE)
 }
 
 const handleExport = () => {
@@ -433,7 +371,10 @@ const handleExport = () => {
     }))
   ]
 
-  simpleExportToExcel(exportRows, `人数统计报表_${dayjs(activeFilters.month).format('YYYY年MM月')}`)
+  simpleExportToExcel(
+    exportRows,
+    `人数统计报表_${dayjs(activeFilters.date).format('YYYY年MM月DD日')}`
+  )
   handleSuccessMessage('导出成功')
 }
 
@@ -476,7 +417,7 @@ watch(
 )
 
 onMounted(async () => {
-  await loadData(defaultMonth)
+  await loadData(DEFAULT_DATE)
 })
 </script>
 
@@ -489,8 +430,6 @@ onMounted(async () => {
 
 .report-toolbar {
   display: flex;
-  gap: 16px;
-  justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -512,8 +451,8 @@ onMounted(async () => {
   width: 220px;
 }
 
-.month-select {
-  width: 140px;
+.date-picker {
+  width: 160px;
 }
 
 .filter-label {
@@ -537,20 +476,19 @@ onMounted(async () => {
 
 .report-summary-bar {
   display: grid;
-  grid-template-columns:
-    minmax(160px, 160fr)
-    minmax(180px, 180fr)
-    repeat(4, minmax(140px, 140fr));
+  grid-template-columns: 17.7778% 20% repeat(4, 15.5556%);
   background: #fff5e6;
   border-bottom: 1px solid #ebeef5;
 }
 
 .summary-cell {
+  min-width: 0;
   padding: 14px 16px;
   font-size: 15px;
   font-weight: 600;
   color: #303133;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .summary-cell-label {
@@ -582,16 +520,18 @@ onMounted(async () => {
     flex-direction: column;
   }
 
+  .toolbar-filters {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .report-summary-bar {
-    grid-template-columns:
-      minmax(160px, 160fr)
-      minmax(180px, 180fr)
-      repeat(4, minmax(140px, 140fr));
+    min-width: 900px;
     overflow-x: auto;
   }
 
   .summary-cell-label {
-    min-width: 90px;
+    min-width: 0;
   }
 }
 </style>
