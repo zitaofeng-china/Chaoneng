@@ -10,7 +10,10 @@ import { useAppStore } from '@/store/modules/app'
 import { useDesign } from '@/hooks/web/useDesign'
 import { Icon } from '@/components/Icon'
 import WebhookFormModal from './WebhookFormModal.vue'
-import { getCustomerServiceListApi, getUserCustomerServiceListApi } from '@/api/customer_service'
+import {
+  getCustomerServiceListApi,
+  getUserCustomerServiceListApi
+} from '@/api/common/customer_service'
 import { ElMessage } from 'element-plus'
 import { BaseButton } from '@/components/Button'
 import { isManagementSystem } from '@/utils/system'

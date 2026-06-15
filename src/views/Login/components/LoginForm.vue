@@ -4,7 +4,7 @@ import { Form, FormSchema } from '@/components/Form'
 import { useI18n } from '@/hooks/web/useI18n'
 import { ElCheckbox, ElLink, ElTabs, ElTabPane } from 'element-plus'
 import { useForm } from '@/hooks/web/useForm'
-import { getTestRoleApi, getAdminRoleApi } from '@/api/login'
+import { getTestRoleApi, getAdminRoleApi } from '@/api/common/login'
 import { useAppStore } from '@/store/modules/app'
 import { usePermissionStore } from '@/store/modules/permission'
 import { useRouter } from 'vue-router'
@@ -21,7 +21,7 @@ import {
   sendEmailCodeApi,
   getCaptchaApi,
   getUserInfoApi
-} from '@/api/login'
+} from '@/api/common/login'
 import { ElMessage } from 'element-plus'
 import { routePreloader } from '@/utils/preloadRoutes'
 

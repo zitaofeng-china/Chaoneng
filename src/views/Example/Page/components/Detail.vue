@@ -1,6 +1,6 @@
 <script setup lang="tsx">
 import { PropType, reactive } from 'vue'
-import type { TableData } from '@/api/table/types'
+import type { TableData } from '@/api/common/table/types'
 import { Descriptions, DescriptionsSchema } from '@/components/Descriptions'
 import { useI18n } from '@/hooks/web/useI18n'
 import { ElTag } from 'element-plus'

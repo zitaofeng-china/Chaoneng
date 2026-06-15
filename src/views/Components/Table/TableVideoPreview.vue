@@ -2,8 +2,8 @@
 import { ContentWrap } from '@/components/ContentWrap'
 import { useI18n } from '@/hooks/web/useI18n'
 import { Table, TableColumn } from '@/components/Table'
-import { getTableListApi } from '@/api/table'
-import { TableData } from '@/api/table/types'
+import { getTableListApi } from '@/api/common/table'
+import { TableData } from '@/api/common/table/types'
 import { ref } from 'vue'
 
 interface Params {

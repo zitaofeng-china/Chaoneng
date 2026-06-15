@@ -15,8 +15,8 @@ import {
   getDynamicApi,
   getTeamApi,
   getRadarApi
-} from '@/api/dashboard/workplace'
-import type { WorkplaceTotal, Project, Dynamic, Team } from '@/api/dashboard/workplace/types'
+} from '@/api/common/dashboard/workplace'
+import type { WorkplaceTotal, Project, Dynamic, Team } from '@/api/common/dashboard/workplace/types'
 import { set } from 'lodash-es'
 
 const loading = ref(true)

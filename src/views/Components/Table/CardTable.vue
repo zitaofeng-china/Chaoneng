@@ -2,7 +2,7 @@
 import { ContentWrap } from '@/components/ContentWrap'
 import { useI18n } from '@/hooks/web/useI18n'
 import { Table } from '@/components/Table'
-import { getCardTableListApi } from '@/api/table'
+import { getCardTableListApi } from '@/api/common/table'
 import { ref } from 'vue'
 import { ElLink, ElDivider } from 'element-plus'
 

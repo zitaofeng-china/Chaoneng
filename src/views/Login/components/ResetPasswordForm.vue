@@ -7,7 +7,7 @@ import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
 import { BaseButton } from '@/components/Button'
 import { useRouter } from 'vue-router'
-import { changePasswordApi, sendPhoneCodeApi, sendEmailCodeApi } from '@/api/login'
+import { changePasswordApi, sendPhoneCodeApi, sendEmailCodeApi } from '@/api/common/login'
 
 defineOptions({
   name: 'ResetPasswordForm'

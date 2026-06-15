@@ -4,7 +4,7 @@ import { ContentDetailWrap } from '@/components/ContentDetailWrap'
 import { ref, unref } from 'vue'
 import { useI18n } from '@/hooks/web/useI18n'
 import { useRouter } from 'vue-router'
-import { saveTableApi } from '@/api/table'
+import { saveTableApi } from '@/api/common/table'
 import { useEventBus } from '@/hooks/event/useEventBus'
 
 const { emit } = useEventBus()

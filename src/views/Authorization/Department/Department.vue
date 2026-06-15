@@ -10,8 +10,8 @@ import {
   getDepartmentTableApi,
   saveDepartmentApi,
   deleteDepartmentApi
-} from '@/api/department'
-import type { DepartmentItem } from '@/api/department/types'
+} from '@/api/common/department'
+import type { DepartmentItem } from '@/api/common/department/types'
 import { useTable } from '@/hooks/web/useTable'
 import { ref, unref, reactive } from 'vue'
 import Write from './components/Write.vue'

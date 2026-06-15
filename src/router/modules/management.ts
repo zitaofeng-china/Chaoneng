@@ -19,7 +19,7 @@ const managementRoutes: AppRouteRecordRaw[] = [
     children: [
       {
         path: 'bot_list',
-        component: () => import('@/views/Bot_manage/bot_list/index.vue'),
+        component: () => import('@/management/BotManage/BotList/index.vue'),
         name: 'BotList',
         meta: {
           title: '机器人列表'
@@ -27,7 +27,7 @@ const managementRoutes: AppRouteRecordRaw[] = [
       },
       {
         path: 'reply_list',
-        component: () => import('@/views/Bot_manage/reply_list/index.vue'),
+        component: () => import('@/management/BotManage/ReplyList/index.vue'),
         name: 'ReplyList',
         meta: {
           title: '关键词回复'
@@ -47,7 +47,7 @@ const managementRoutes: AppRouteRecordRaw[] = [
     children: [
       {
         path: 'index',
-        component: () => import('@/views/HostedList/index.vue'),
+        component: () => import('@/management/Hosted/HostedList/index.vue'),
         name: 'HostedList',
         meta: {
           title: '托管列表'
@@ -67,7 +67,7 @@ const managementRoutes: AppRouteRecordRaw[] = [
     children: [
       {
         path: 'index',
-        component: () => import('@/views/BlackList/index.vue'),
+        component: () => import('@/management/Black/BlackList/index.vue'),
         name: 'BlackList',
         meta: {
           title: '黑名单列表'
@@ -87,7 +87,7 @@ const managementRoutes: AppRouteRecordRaw[] = [
     children: [
       {
         path: 'user_list',
-        component: () => import('@/views/UserGroup/user_list/index.vue'),
+        component: () => import('@/management/UserGroup/UserList/index.vue'),
         name: 'UserList',
         meta: {
           title: '用户列表'
@@ -95,7 +95,7 @@ const managementRoutes: AppRouteRecordRaw[] = [
       },
       {
         path: 'message_list',
-        component: () => import('@/views/UserGroup/message_list/index.vue'),
+        component: () => import('@/management/UserGroup/MessageList/index.vue'),
         name: 'MessageList',
         meta: {
           title: '消息列表'
@@ -103,7 +103,7 @@ const managementRoutes: AppRouteRecordRaw[] = [
       },
       {
         path: 'invite_list',
-        component: () => import('@/views/UserGroup/invite_list/index.vue'),
+        component: () => import('@/management/UserGroup/InviteList/index.vue'),
         name: 'InviteList',
         meta: {
           title: '邀请列表'
@@ -111,7 +111,7 @@ const managementRoutes: AppRouteRecordRaw[] = [
       },
       {
         path: 'group_list',
-        component: () => import('@/operation/Marketing/GroupList/index.vue'),
+        component: () => import('@/management/UserGroup/GroupList/index.vue'),
         name: 'GroupList',
         meta: {
           title: '聊天列表'
@@ -131,7 +131,7 @@ const managementRoutes: AppRouteRecordRaw[] = [
     children: [
       {
         path: 'recharge_order',
-        component: () => import('@/views/OrderManage/recharge_order/index.vue'),
+        component: () => import('@/management/OrderManage/RechargeOrder/index.vue'),
         name: 'RechargeOrder',
         meta: {
           title: '充值订单'
@@ -139,7 +139,7 @@ const managementRoutes: AppRouteRecordRaw[] = [
       },
       {
         path: 'energy_order',
-        component: () => import('@/views/OrderManage/energy_order/index.vue'),
+        component: () => import('@/management/OrderManage/EnergyOrder/index.vue'),
         name: 'EnergyOrder',
         meta: {
           title: '能量订单'
@@ -147,7 +147,7 @@ const managementRoutes: AppRouteRecordRaw[] = [
       },
       {
         path: 'exchange_order',
-        component: () => import('@/views/OrderManage/exchange_order/index.vue'),
+        component: () => import('@/management/OrderManage/ExchangeOrder/index.vue'),
         name: 'ExchangeOrder',
         meta: {
           title: '兑换订单'
@@ -155,7 +155,7 @@ const managementRoutes: AppRouteRecordRaw[] = [
       },
       {
         path: 'quick_charge_order',
-        component: () => import('@/views/OrderManage/quick_charge_order/index.vue'),
+        component: () => import('@/management/OrderManage/QuickChargeOrder/index.vue'),
         name: 'QuickChargeOrderManage',
         meta: {
           title: '速充订单'
@@ -175,7 +175,7 @@ const managementRoutes: AppRouteRecordRaw[] = [
     children: [
       {
         path: 'account_list',
-        component: () => import('@/views/AccountManage/account_list/index.vue'),
+        component: () => import('@/management/AccountManage/AccountList/index.vue'),
         name: 'AccountList',
         meta: {
           title: '账户信息'

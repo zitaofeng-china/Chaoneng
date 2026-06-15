@@ -7,7 +7,12 @@ import { ElInput, FormRules, ElTabs, ElTabPane } from 'element-plus'
 import { useValidator } from '@/hooks/web/useValidator'
 import { BaseButton } from '@/components/Button'
 import { IAgree } from '@/components/IAgree'
-import { phoneRegisterApi, emailRegisterApi, sendPhoneCodeApi, sendEmailCodeApi } from '@/api/login'
+import {
+  phoneRegisterApi,
+  emailRegisterApi,
+  sendPhoneCodeApi,
+  sendEmailCodeApi
+} from '@/api/common/login'
 import { ElMessage } from 'element-plus'
 
 const emit = defineEmits(['to-login'])

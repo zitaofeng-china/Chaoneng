@@ -8,7 +8,7 @@ import {
   getUserAccessSourceApi,
   getWeeklyUserActivityApi,
   getMonthlySalesApi
-} from '@/api/dashboard/analysis'
+} from '@/api/common/dashboard/analysis'
 import { set } from 'lodash-es'
 import { EChartsOption } from 'echarts'
 import { useI18n } from '@/hooks/web/useI18n'
