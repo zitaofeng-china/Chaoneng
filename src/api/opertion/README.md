@@ -35,12 +35,12 @@
 - 当前系统配置主路由只保留：
   - `ResourcePool` -> `src/api/opertion/SystemConfig/ResourcePool`
 
-## 共享接口位置
+## 公共接口归属
 
-- `src/api/opertion/common`:
-  - 跨多个运营端主路由复用的接口，如消息、菜单、用户等。
-- 各主路由下的 `common`:
-  - 仅在该主路由内部复用的接口；若长期为空，应清理。
+公共 API 的统一规则见 `src/api/README.md`。
+
+- 运营端多个主路由复用的接口放到 `src/api/opertion/common`。
+- 仅某个运营端主路由内部复用的接口放到 `src/api/opertion/<MainRoute>/common`。
 
 ## 规整规则
 
