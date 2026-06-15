@@ -77,9 +77,10 @@
               >
                 <template #default="{ item }">
                   <div class="receiver-suggestion">
-                    <div class="receiver-suggestion__title">
-                      <span class="receiver-suggestion__tag">{{ item.kind }}</span>
-                      <span class="receiver-suggestion__name">{{ item.title }}</span>
+                    <div class="receiver-suggestion__label">
+                      {{
+                        item.label || buildReceiverDisplayLabel(item.kind, item.title, item.value)
+                      }}
                     </div>
                     <div class="receiver-suggestion__meta">
                       <span>{{ item.subtitle }}</span>
@@ -363,7 +364,7 @@ const filterReceiverOptions = (queryString: string) => {
     ? source
     : source.filter((item) => {
         const searchText =
-          `${item.value} ${item.label || ''} ${item.title} ${item.subtitle} ${item.kind}`
+          `${item.value} ${item.label || ''} ${item.title} ${item.subtitle} ${item.kind} ${item.extra || ''}`
             .toLowerCase()
             .trim()
         return searchText.includes(keyword)
@@ -623,20 +624,9 @@ watch(
   padding: 2px 0;
 }
 
-.receiver-suggestion__title {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.receiver-suggestion__tag {
-  flex-shrink: 0;
-  min-width: 40px;
-  color: #409eff;
-}
-
-.receiver-suggestion__name {
+.receiver-suggestion__label {
   overflow: hidden;
+  font-weight: 500;
   color: #303133;
   text-overflow: ellipsis;
   white-space: nowrap;
