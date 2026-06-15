@@ -41,7 +41,7 @@
               </colgroup>
               <thead>
                 <tr class="summary-row">
-                  <td> {{ summaryRangeText }} 数据汇总 </td>
+                  <td>数据汇总</td>
                   <td>{{ formatCount(summaryTotals.flash_energy) }}</td>
                   <td>{{ formatCount(summaryTotals.stroke_energy) }}</td>
                   <td>{{ formatCount(summaryTotals.hosting) }}</td>
@@ -239,10 +239,6 @@ const sortState = reactive<{
   order: 'DESC'
 })
 
-const summaryRangeText = computed(() => {
-  return `${dayjs(activeRange.value[0]).format('YYYY/MM/DD')}-${dayjs(activeRange.value[1]).format('YYYY/MM/DD')}`
-})
-
 const summaryWelfareRatio = computed(() => {
   const total = toNumber(summaryTotals.value.total)
   const wealEnergy = toNumber(summaryTotals.value.weal_energy)
@@ -342,7 +338,7 @@ const handleExport = () => {
 
   const exportRows = [
     {
-      日期: `${summaryRangeText.value} 数据汇总`,
+      日期: '数据汇总',
       闪租: toNumber(summaryTotals.value.flash_energy),
       按笔数: toNumber(summaryTotals.value.stroke_energy),
       托管: toNumber(summaryTotals.value.hosting),

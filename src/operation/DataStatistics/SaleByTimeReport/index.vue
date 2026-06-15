@@ -416,7 +416,7 @@ onMounted(async () => {
 
 .report-summary-table {
   width: 1352px;
-  background: #ffe1b8;
+  background: #ffe4bd;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -451,10 +451,10 @@ onMounted(async () => {
   padding: 0 12px;
   font-size: 15px;
   font-weight: 600;
-  color: #2c2c2c;
+  color: #111827;
   text-align: center;
   vertical-align: middle;
-  border-right: 1px solid rgb(255 255 255 / 24%);
+  border-right: 1px solid #f5d6aa;
 }
 
 .summary-cell-label {

@@ -47,11 +47,12 @@
           </div>
 
           <ElTable
-            :data="pagedRows"
+            :data="reportRows"
             border
             stripe
             class="report-table"
             empty-text="暂无数据"
+            :default-sort="{ prop: DEFAULT_SORT_PROP, order: DEFAULT_SORT_ORDER }"
             :header-cell-style="headerCellStyle"
             :cell-style="bodyCellStyle"
             @sort-change="handleSortChange"
@@ -90,8 +91,7 @@
 
           <div class="report-pagination">
             <div class="pagination-total">
-              共 {{ filteredRows.length }} 条记录 第 {{ pagination.currentPage }} /
-              {{ totalPages }} 页
+              共 {{ totalCount }} 条记录 第 {{ pagination.currentPage }} / {{ totalPages }} 页
             </div>
 
             <ElPagination
@@ -99,7 +99,7 @@
               v-model:page-size="pagination.pageSize"
               background
               layout="prev, pager, next, sizes, jumper"
-              :total="filteredRows.length"
+              :total="totalCount"
               :page-sizes="[10, 20, 50, 100]"
               @size-change="handleSizeChange"
               @current-change="handleCurrentChange"
@@ -112,13 +112,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch, type CSSProperties } from 'vue'
+import { computed, onMounted, reactive, ref, type CSSProperties } from 'vue'
 import dayjs from 'dayjs'
 import { ElButton, ElDatePicker, ElInput, ElPagination, ElTable, ElTableColumn } from 'element-plus'
 import type { TableColumnCtx } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import {
+  getUserStatisticsReport,
+  type UserStatisticsDetailItem,
+  type UserStatisticsReportData,
+  type UserStatisticsReportParams,
+  type UserStatisticsSummary
+} from '@/api/opertion/DataStatistics/UserStatisticsReport'
 
 const DEFAULT_SORT_PROP: SortableField = 'currentMonthNew'
 const DEFAULT_SORT_ORDER: SortOrder = 'descending'
@@ -145,11 +152,68 @@ interface SummaryTotals {
   currentMonthNew: number
   lastMonthNew: number
   todayNew: number
+  total: number
   yesterdayNew: number
+}
+
+const SORT_FIELD_MAP: Record<SortableField, string> = {
+  currentMonthNew: 'growth_user_month',
+  lastMonthNew: 'growth_user_last_month',
+  todayNew: 'growth_user_today',
+  yesterdayNew: 'growth_user_yesterday'
+}
+
+const toNumber = (value: number | string | undefined) => {
+  const numberValue = Number(value ?? 0)
+  return Number.isFinite(numberValue) ? numberValue : 0
+}
+
+const createEmptySummary = (): SummaryTotals => ({
+  currentMonthNew: 0,
+  lastMonthNew: 0,
+  todayNew: 0,
+  total: 0,
+  yesterdayNew: 0
+})
+
+const normalizeSummary = (summary?: UserStatisticsSummary): SummaryTotals => {
+  const todayNew = toNumber(summary?.growth_user_today)
+  const yesterdayNew = toNumber(summary?.growth_user_yesterday)
+  const currentMonthNew = toNumber(summary?.growth_user_month)
+  const lastMonthNew = toNumber(summary?.growth_user_last_month)
+  const fallbackTotal = todayNew + yesterdayNew + currentMonthNew + lastMonthNew
+
+  return {
+    currentMonthNew,
+    lastMonthNew,
+    todayNew,
+    total:
+      summary?.growth_user_total === undefined
+        ? fallbackTotal
+        : toNumber(summary.growth_user_total),
+    yesterdayNew
+  }
+}
+
+const normalizeRow = (row: UserStatisticsDetailItem): ReportRow => {
+  return {
+    botId: String(row.bot_id ?? ''),
+    botUsername: row.bot_name || '-',
+    currentMonthNew: toNumber(row.growth_user_month),
+    lastMonthNew: toNumber(row.growth_user_last_month),
+    todayNew: toNumber(row.growth_user_today),
+    yesterdayNew: toNumber(row.growth_user_yesterday)
+  }
+}
+
+const getDetailList = (data: UserStatisticsReportData) => {
+  return Array.isArray(data.detail) ? data.detail : data.list || []
 }
 
 const loading = ref(false)
 const reportRows = ref<ReportRow[]>([])
+const totalCount = ref(0)
+const summaryTotals = ref<SummaryTotals>(createEmptySummary())
 const searchForm = reactive<SearchFormState>({
   keyword: '',
   date: DEFAULT_DATE
@@ -170,126 +234,12 @@ const sortState = reactive<{
   prop: DEFAULT_SORT_PROP
 })
 
-const createMockReportRows = (selectedDate: string): ReportRow[] => {
-  const dateSeed = dayjs(selectedDate).date() + dayjs(selectedDate).month() * 2
-  const baseRows: ReportRow[] = [
-    {
-      botId: '8643088561',
-      botUsername: 'chaonengbendi_bot',
-      todayNew: 6,
-      yesterdayNew: 4,
-      currentMonthNew: 30,
-      lastMonthNew: 60
-    },
-    {
-      botId: '8643088562',
-      botUsername: 'chaonengvip_bot',
-      todayNew: 12,
-      yesterdayNew: 18,
-      currentMonthNew: 68,
-      lastMonthNew: 42
-    },
-    {
-      botId: '8643088563',
-      botUsername: 'energy_dispatch_bot',
-      todayNew: 24,
-      yesterdayNew: 16,
-      currentMonthNew: 88,
-      lastMonthNew: 53
-    },
-    {
-      botId: '8643088564',
-      botUsername: 'flashswap_center_bot',
-      todayNew: 31,
-      yesterdayNew: 29,
-      currentMonthNew: 96,
-      lastMonthNew: 71
-    },
-    {
-      botId: '8643088565',
-      botUsername: 'hosted_growth_bot',
-      todayNew: 17,
-      yesterdayNew: 13,
-      currentMonthNew: 77,
-      lastMonthNew: 49
-    }
-  ]
-
-  return baseRows.map((row, index) => {
-    const offset = (dateSeed + index) % 5
-    return {
-      ...row,
-      todayNew: row.todayNew + offset,
-      yesterdayNew: row.yesterdayNew + (offset % 3),
-      currentMonthNew: row.currentMonthNew + offset * 4,
-      lastMonthNew: row.lastMonthNew + offset * 3
-    }
-  })
-}
-
-const filteredRows = computed<ReportRow[]>(() => {
-  const keyword = activeFilters.keyword.trim().toLowerCase()
-  const rows = keyword
-    ? reportRows.value.filter((row) => {
-        return (
-          row.botId.toLowerCase().includes(keyword) ||
-          row.botUsername.toLowerCase().includes(keyword)
-        )
-      })
-    : reportRows.value
-
-  const sortedRows = [...rows]
-  const { order, prop } = sortState
-
-  sortedRows.sort((left, right) => {
-    const leftValue = left[prop]
-    const rightValue = right[prop]
-
-    if (leftValue === rightValue) {
-      return left.botId.localeCompare(right.botId)
-    }
-
-    const factor = order === 'ascending' ? 1 : -1
-    return (leftValue - rightValue) * factor
-  })
-
-  return sortedRows
-})
-
 const totalPages = computed(() => {
-  return Math.max(1, Math.ceil(filteredRows.value.length / pagination.pageSize))
-})
-
-const pagedRows = computed(() => {
-  const start = (pagination.currentPage - 1) * pagination.pageSize
-  return filteredRows.value.slice(start, start + pagination.pageSize)
-})
-
-const summaryTotals = computed<SummaryTotals>(() => {
-  return filteredRows.value.reduce<SummaryTotals>(
-    (totals, row) => {
-      totals.todayNew += row.todayNew
-      totals.yesterdayNew += row.yesterdayNew
-      totals.currentMonthNew += row.currentMonthNew
-      totals.lastMonthNew += row.lastMonthNew
-      return totals
-    },
-    {
-      todayNew: 0,
-      yesterdayNew: 0,
-      currentMonthNew: 0,
-      lastMonthNew: 0
-    }
-  )
+  return Math.max(1, Math.ceil(totalCount.value / pagination.pageSize))
 })
 
 const summaryGrandTotal = computed(() => {
-  return (
-    summaryTotals.value.todayNew +
-    summaryTotals.value.yesterdayNew +
-    summaryTotals.value.currentMonthNew +
-    summaryTotals.value.lastMonthNew
-  )
+  return summaryTotals.value.total
 })
 
 const headerCellStyle = (): CSSProperties => {
@@ -308,20 +258,50 @@ const bodyCellStyle = (): CSSProperties => {
 }
 
 const formatCount = (value: number) => {
-  return value.toLocaleString('zh-CN')
+  return toNumber(value).toLocaleString('zh-CN')
 }
 
-const syncCurrentPage = () => {
-  if (pagination.currentPage > totalPages.value) {
-    pagination.currentPage = totalPages.value
+const buildParams = (): UserStatisticsReportParams => {
+  const params: UserStatisticsReportParams = {
+    current_page: pagination.currentPage,
+    page_size: pagination.pageSize
   }
+
+  if (activeFilters.keyword) {
+    params.keyword = activeFilters.keyword
+  }
+
+  if (sortState.prop && sortState.order) {
+    params.order = `${SORT_FIELD_MAP[sortState.prop]} ${sortState.order === 'ascending' ? 'ASC' : 'DESC'}`
+  }
+
+  return params
 }
 
-const loadData = async (selectedDate: string) => {
+const resetReportState = () => {
+  reportRows.value = []
+  totalCount.value = 0
+  summaryTotals.value = createEmptySummary()
+}
+
+const loadData = async () => {
   loading.value = true
 
   try {
-    reportRows.value = createMockReportRows(selectedDate)
+    const res = await getUserStatisticsReport(buildParams())
+    if (res.code !== '000000' || !res.data) {
+      resetReportState()
+      handleErrorMessage(new Error(res.msg || '接口返回异常'), '获取人数统计报表失败')
+      return
+    }
+
+    const detail = getDetailList(res.data)
+    reportRows.value = detail.map(normalizeRow)
+    summaryTotals.value = normalizeSummary(res.data.summary)
+    totalCount.value = toNumber(res.data.pager?.total ?? res.data.total ?? detail.length)
+  } catch (error) {
+    resetReportState()
+    handleErrorMessage(error, '获取人数统计报表失败')
   } finally {
     loading.value = false
   }
@@ -331,7 +311,7 @@ const handleSearch = async () => {
   activeFilters.keyword = searchForm.keyword.trim()
   activeFilters.date = searchForm.date
   pagination.currentPage = 1
-  await loadData(activeFilters.date)
+  await loadData()
 }
 
 const handleReset = async () => {
@@ -343,42 +323,60 @@ const handleReset = async () => {
   pagination.pageSize = 10
   sortState.prop = DEFAULT_SORT_PROP
   sortState.order = DEFAULT_SORT_ORDER
-  await loadData(DEFAULT_DATE)
+  await loadData()
 }
 
-const handleExport = () => {
-  if (filteredRows.value.length === 0) {
+const handleExport = async () => {
+  if (totalCount.value === 0) {
     handleErrorMessage('暂无可导出的数据', '导出失败')
     return
   }
 
-  const exportRows = [
-    {
-      机器人ID: '合计',
-      机器人用户名: '-',
-      今日新增: summaryTotals.value.todayNew,
-      昨日新增: summaryTotals.value.yesterdayNew,
-      本月新增: summaryTotals.value.currentMonthNew,
-      上月新增: summaryTotals.value.lastMonthNew
-    },
-    ...filteredRows.value.map((row) => ({
-      机器人ID: row.botId,
-      机器人用户名: row.botUsername || '-',
-      今日新增: row.todayNew,
-      昨日新增: row.yesterdayNew,
-      本月新增: row.currentMonthNew,
-      上月新增: row.lastMonthNew
-    }))
-  ]
+  try {
+    const res = await getUserStatisticsReport({
+      ...buildParams(),
+      current_page: -1,
+      page_size: -1
+    })
 
-  simpleExportToExcel(
-    exportRows,
-    `人数统计报表_${dayjs(activeFilters.date).format('YYYY年MM月DD日')}`
-  )
-  handleSuccessMessage('导出成功')
+    if (res.code !== '000000' || !res.data) {
+      handleErrorMessage(new Error(res.msg || '接口返回异常'), '导出失败')
+      return
+    }
+
+    const exportSummary = normalizeSummary(res.data.summary)
+    const exportRows = [
+      {
+        机器人ID: '合计',
+        机器人用户名: '-',
+        今日新增: exportSummary.todayNew,
+        昨日新增: exportSummary.yesterdayNew,
+        本月新增: exportSummary.currentMonthNew,
+        上月新增: exportSummary.lastMonthNew
+      },
+      ...getDetailList(res.data)
+        .map(normalizeRow)
+        .map((row) => ({
+          机器人ID: row.botId,
+          机器人用户名: row.botUsername || '-',
+          今日新增: row.todayNew,
+          昨日新增: row.yesterdayNew,
+          本月新增: row.currentMonthNew,
+          上月新增: row.lastMonthNew
+        }))
+    ]
+
+    simpleExportToExcel(
+      exportRows,
+      `人数统计报表_${dayjs(activeFilters.date).format('YYYY年MM月DD日')}`
+    )
+    handleSuccessMessage('导出成功')
+  } catch (error) {
+    handleErrorMessage(error, '导出失败')
+  }
 }
 
-const handleSortChange = ({
+const handleSortChange = async ({
   order,
   prop
 }: {
@@ -398,26 +396,22 @@ const handleSortChange = ({
   sortState.prop = prop
   sortState.order = order || DEFAULT_SORT_ORDER
   pagination.currentPage = 1
+  await loadData()
 }
 
-const handleCurrentChange = (page: number) => {
+const handleCurrentChange = async (page: number) => {
   pagination.currentPage = page
+  await loadData()
 }
 
-const handleSizeChange = (size: number) => {
+const handleSizeChange = async (size: number) => {
   pagination.pageSize = size
   pagination.currentPage = 1
+  await loadData()
 }
 
-watch(
-  () => [filteredRows.value.length, pagination.pageSize],
-  () => {
-    syncCurrentPage()
-  }
-)
-
 onMounted(async () => {
-  await loadData(DEFAULT_DATE)
+  await loadData()
 })
 </script>
 
@@ -477,8 +471,8 @@ onMounted(async () => {
 .report-summary-bar {
   display: grid;
   grid-template-columns: 17.7778% 20% repeat(4, 15.5556%);
-  background: #fff5e6;
-  border-bottom: 1px solid #ebeef5;
+  background: #ffe4bd;
+  border-bottom: 1px solid #f5d6aa;
 }
 
 .summary-cell {
@@ -486,14 +480,19 @@ onMounted(async () => {
   padding: 14px 16px;
   font-size: 15px;
   font-weight: 600;
-  color: #303133;
+  color: #111827;
   text-align: center;
+  border-right: 1px solid #f5d6aa;
   box-sizing: border-box;
 }
 
 .summary-cell-label {
   grid-column: 1 / span 2;
   text-align: left;
+}
+
+.report-summary-bar .summary-cell:last-child {
+  border-right: none;
 }
 
 .report-table :deep(.el-table__cell) {
