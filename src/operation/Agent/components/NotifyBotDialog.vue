@@ -232,6 +232,9 @@ interface ReceiverSuggestionItem {
   label?: string
 }
 
+const buildReceiverDisplayLabel = (kind: string, title: string, id: string | number) =>
+  `${kind} ${title}（${id}）`
+
 const getNotifyStatusLabel = (status?: number) => NOTIFY_STATUS_LABEL_MAP[status || 1] || '启用'
 const getIntervalLabel = (interval?: number) =>
   INTERVAL_LABEL_MAP[interval || 30] || `每${interval || 30}分钟`
@@ -271,7 +274,11 @@ const toUserSuggestion = (user: UserItemV1): ReceiverSuggestionItem | null => {
 
   return {
     value: String(id),
-    label: String(id),
+    label: buildReceiverDisplayLabel(
+      '个人',
+      user.tg_user_name || user.tg_first_name || user.username || `TG用户 ${id}`,
+      id
+    ),
     title: user.tg_user_name || user.tg_first_name || user.username || `TG用户 ${id}`,
     subtitle: `对象ID: ${id}`,
     extra: `用户名: ${user.tg_user_name || user.tg_first_name || user.username || '-'}`,
@@ -287,7 +294,11 @@ const toChatSuggestion = (chat: MessageChatItem): ReceiverSuggestionItem | null 
 
   return {
     value: String(id),
-    label: String(id),
+    label: buildReceiverDisplayLabel(
+      getChatTypeText(chat.type, '聊天'),
+      chat.name || `聊天 ${id}`,
+      id
+    ),
     title: chat.name || `聊天 ${id}`,
     subtitle: `对象ID: ${id}`,
     extra: `会话名称: ${chat.name || '-'}`,
@@ -311,7 +322,7 @@ const ensureCurrentValueSuggestion = (
   return [
     {
       value: trimmedValue,
-      label: trimmedValue,
+      label: `ID（${trimmedValue}）`,
       title: trimmedValue,
       subtitle: `对象ID: ${trimmedValue}`,
       extra: '当前配置 / 手动输入',
