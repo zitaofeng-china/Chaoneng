@@ -7,7 +7,7 @@ export interface UserStatisticsReportParams {
 
 export interface UserStatisticsSummary {
   growth_user_last_month?: number | string
-  growth_user_month?: number | string
+  growth_user_this_month?: number | string
   growth_user_today?: number | string
   growth_user_total?: number | string
   growth_user_yesterday?: number | string

@@ -14,19 +14,6 @@
               />
             </div>
 
-            <div class="filter-item filter-item-date">
-              <span class="filter-label">统计日期：</span>
-              <ElDatePicker
-                v-model="searchForm.date"
-                class="date-picker"
-                type="date"
-                value-format="YYYY-MM-DD"
-                :clearable="false"
-                :editable="false"
-                placeholder="请选择日期"
-              />
-            </div>
-
             <div class="toolbar-actions">
               <ElButton @click="handleSearch">搜索</ElButton>
               <ElButton @click="handleReset">重置</ElButton>
@@ -47,18 +34,19 @@
           </div>
 
           <ElTable
+            ref="tableRef"
             :data="reportRows"
             border
             stripe
             class="report-table"
             empty-text="暂无数据"
-            :default-sort="{ prop: DEFAULT_SORT_PROP, order: DEFAULT_SORT_ORDER }"
             :header-cell-style="headerCellStyle"
             :cell-style="bodyCellStyle"
             @sort-change="handleSortChange"
           >
             <ElTableColumn prop="botId" label="机器人ID" min-width="160" />
             <ElTableColumn prop="botUsername" label="机器人用户名" min-width="180" />
+            <ElTableColumn prop="agentName" label="归属代理" min-width="160" />
             <ElTableColumn
               prop="todayNew"
               label="今日新增"
@@ -112,10 +100,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, type CSSProperties } from 'vue'
-import dayjs from 'dayjs'
-import { ElButton, ElDatePicker, ElInput, ElPagination, ElTable, ElTableColumn } from 'element-plus'
-import type { TableColumnCtx } from 'element-plus'
+import { computed, nextTick, onMounted, reactive, ref, type CSSProperties } from 'vue'
+import { ElButton, ElInput, ElPagination, ElTable, ElTableColumn } from 'element-plus'
+import type { TableColumnCtx, TableInstance } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
@@ -127,19 +114,17 @@ import {
   type UserStatisticsSummary
 } from '@/api/opertion/DataStatistics/UserStatisticsReport'
 
-const DEFAULT_SORT_PROP: SortableField = 'currentMonthNew'
-const DEFAULT_SORT_ORDER: SortOrder = 'descending'
-const DEFAULT_DATE = dayjs().format('YYYY-MM-DD')
+const DEFAULT_ORDER = 'created_at DESC'
 
 type SortableField = 'todayNew' | 'yesterdayNew' | 'currentMonthNew' | 'lastMonthNew'
 type SortOrder = 'ascending' | 'descending' | null
 
 interface SearchFormState {
   keyword: string
-  date: string
 }
 
 interface ReportRow {
+  agentName: string
   botId: string
   botUsername: string
   currentMonthNew: number
@@ -157,7 +142,7 @@ interface SummaryTotals {
 }
 
 const SORT_FIELD_MAP: Record<SortableField, string> = {
-  currentMonthNew: 'growth_user_month',
+  currentMonthNew: 'growth_user_this_month',
   lastMonthNew: 'growth_user_last_month',
   todayNew: 'growth_user_today',
   yesterdayNew: 'growth_user_yesterday'
@@ -179,7 +164,7 @@ const createEmptySummary = (): SummaryTotals => ({
 const normalizeSummary = (summary?: UserStatisticsSummary): SummaryTotals => {
   const todayNew = toNumber(summary?.growth_user_today)
   const yesterdayNew = toNumber(summary?.growth_user_yesterday)
-  const currentMonthNew = toNumber(summary?.growth_user_month)
+  const currentMonthNew = toNumber(summary?.growth_user_this_month)
   const lastMonthNew = toNumber(summary?.growth_user_last_month)
   const fallbackTotal = todayNew + yesterdayNew + currentMonthNew + lastMonthNew
 
@@ -197,9 +182,10 @@ const normalizeSummary = (summary?: UserStatisticsSummary): SummaryTotals => {
 
 const normalizeRow = (row: UserStatisticsDetailItem): ReportRow => {
   return {
+    agentName: row.agent_name || '-',
     botId: String(row.bot_id ?? ''),
     botUsername: row.bot_name || '-',
-    currentMonthNew: toNumber(row.growth_user_month),
+    currentMonthNew: toNumber(row.growth_user_this_month),
     lastMonthNew: toNumber(row.growth_user_last_month),
     todayNew: toNumber(row.growth_user_today),
     yesterdayNew: toNumber(row.growth_user_yesterday)
@@ -214,13 +200,13 @@ const loading = ref(false)
 const reportRows = ref<ReportRow[]>([])
 const totalCount = ref(0)
 const summaryTotals = ref<SummaryTotals>(createEmptySummary())
+const tableRef = ref<TableInstance>()
+const isClearingSort = ref(false)
 const searchForm = reactive<SearchFormState>({
-  keyword: '',
-  date: DEFAULT_DATE
+  keyword: ''
 })
 const activeFilters = reactive<SearchFormState>({
-  keyword: '',
-  date: DEFAULT_DATE
+  keyword: ''
 })
 const pagination = reactive({
   currentPage: 1,
@@ -228,10 +214,10 @@ const pagination = reactive({
 })
 const sortState = reactive<{
   order: SortOrder
-  prop: SortableField
+  prop: SortableField | null
 }>({
-  order: DEFAULT_SORT_ORDER,
-  prop: DEFAULT_SORT_PROP
+  order: null,
+  prop: null
 })
 
 const totalPages = computed(() => {
@@ -271,9 +257,10 @@ const buildParams = (): UserStatisticsReportParams => {
     params.keyword = activeFilters.keyword
   }
 
-  if (sortState.prop && sortState.order) {
-    params.order = `${SORT_FIELD_MAP[sortState.prop]} ${sortState.order === 'ascending' ? 'ASC' : 'DESC'}`
-  }
+  params.order =
+    sortState.prop && sortState.order
+      ? `${SORT_FIELD_MAP[sortState.prop]} ${sortState.order === 'ascending' ? 'ASC' : 'DESC'}`
+      : DEFAULT_ORDER
 
   return params
 }
@@ -309,20 +296,21 @@ const loadData = async () => {
 
 const handleSearch = async () => {
   activeFilters.keyword = searchForm.keyword.trim()
-  activeFilters.date = searchForm.date
   pagination.currentPage = 1
   await loadData()
 }
 
 const handleReset = async () => {
   searchForm.keyword = ''
-  searchForm.date = DEFAULT_DATE
   activeFilters.keyword = ''
-  activeFilters.date = DEFAULT_DATE
   pagination.currentPage = 1
   pagination.pageSize = 10
-  sortState.prop = DEFAULT_SORT_PROP
-  sortState.order = DEFAULT_SORT_ORDER
+  sortState.prop = null
+  sortState.order = null
+  isClearingSort.value = true
+  tableRef.value?.clearSort()
+  await nextTick()
+  isClearingSort.value = false
   await loadData()
 }
 
@@ -335,8 +323,8 @@ const handleExport = async () => {
   try {
     const res = await getUserStatisticsReport({
       ...buildParams(),
-      current_page: -1,
-      page_size: -1
+      current_page: 1,
+      page_size: totalCount.value
     })
 
     if (res.code !== '000000' || !res.data) {
@@ -349,6 +337,7 @@ const handleExport = async () => {
       {
         机器人ID: '合计',
         机器人用户名: '-',
+        归属代理: '-',
         今日新增: exportSummary.todayNew,
         昨日新增: exportSummary.yesterdayNew,
         本月新增: exportSummary.currentMonthNew,
@@ -359,6 +348,7 @@ const handleExport = async () => {
         .map((row) => ({
           机器人ID: row.botId,
           机器人用户名: row.botUsername || '-',
+          归属代理: row.agentName || '-',
           今日新增: row.todayNew,
           昨日新增: row.yesterdayNew,
           本月新增: row.currentMonthNew,
@@ -366,10 +356,7 @@ const handleExport = async () => {
         }))
     ]
 
-    simpleExportToExcel(
-      exportRows,
-      `人数统计报表_${dayjs(activeFilters.date).format('YYYY年MM月DD日')}`
-    )
+    simpleExportToExcel(exportRows, '人数统计报表')
     handleSuccessMessage('导出成功')
   } catch (error) {
     handleErrorMessage(error, '导出失败')
@@ -380,21 +367,27 @@ const handleSortChange = async ({
   order,
   prop
 }: {
-  column: TableColumnCtx<ReportRow>
+  column: TableColumnCtx<ReportRow> | null
   order: SortOrder
-  prop: keyof ReportRow
+  prop: keyof ReportRow | null
 }) => {
+  if (isClearingSort.value) {
+    return
+  }
+
   if (
     prop !== 'todayNew' &&
     prop !== 'yesterdayNew' &&
     prop !== 'currentMonthNew' &&
     prop !== 'lastMonthNew'
   ) {
+    sortState.prop = null
+    sortState.order = null
     return
   }
 
   sortState.prop = prop
-  sortState.order = order || DEFAULT_SORT_ORDER
+  sortState.order = order
   pagination.currentPage = 1
   await loadData()
 }
@@ -445,10 +438,6 @@ onMounted(async () => {
   width: 220px;
 }
 
-.date-picker {
-  width: 160px;
-}
-
 .filter-label {
   flex-shrink: 0;
   font-size: 14px;
@@ -470,7 +459,7 @@ onMounted(async () => {
 
 .report-summary-bar {
   display: grid;
-  grid-template-columns: 17.7778% 20% repeat(4, 15.5556%);
+  grid-template-columns: 14% 17% 17% repeat(4, 13%);
   background: #ffe4bd;
   border-bottom: 1px solid #f5d6aa;
 }
@@ -487,7 +476,7 @@ onMounted(async () => {
 }
 
 .summary-cell-label {
-  grid-column: 1 / span 2;
+  grid-column: 1 / span 3;
   text-align: left;
 }
 
@@ -525,7 +514,7 @@ onMounted(async () => {
   }
 
   .report-summary-bar {
-    min-width: 900px;
+    min-width: 1060px;
     overflow-x: auto;
   }
 
