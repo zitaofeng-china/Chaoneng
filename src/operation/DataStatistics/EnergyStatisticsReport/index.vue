@@ -137,6 +137,7 @@ import {
 type DateRangeValue = [string, string]
 type SortOrder = 'ASC' | 'DESC'
 type SortableField = 'total' | 'welfareRatio'
+const DEFAULT_ORDER = 'created_at DESC'
 
 interface SearchFormState {
   dateRange: DateRangeValue
@@ -233,10 +234,10 @@ const reportRows = ref<ReportRow[]>([])
 const summaryTotals = ref<Required<EnergyStatisticsSummary>>(createEmptySummary())
 const sortState = reactive<{
   prop: SortableField | ''
-  order: SortOrder
+  order: SortOrder | ''
 }>({
   prop: '',
-  order: 'DESC'
+  order: ''
 })
 
 const summaryWelfareRatio = computed(() => {
@@ -271,9 +272,7 @@ const formatPercent = (value: number) => {
 const buildParams = (range: DateRangeValue): EnergyStatisticsReportParams => {
   const params: EnergyStatisticsReportParams = toSecondRange(range)
 
-  if (sortState.prop === 'total') {
-    params.order = `${sortState.prop} ${sortState.order}`
-  }
+  params.order = sortState.prop === 'total' ? `${sortState.prop} ${sortState.order}` : DEFAULT_ORDER
 
   return params
 }
@@ -312,7 +311,7 @@ const handleSearch = async () => {
 
 const handleReset = async () => {
   sortState.prop = ''
-  sortState.order = 'DESC'
+  sortState.order = ''
   searchForm.dateRange = [...defaultRange] as DateRangeValue
   await loadData(defaultRange)
 }

@@ -201,6 +201,7 @@ const SORT_FIELD_MAP: Record<Exclude<SortableField, 'welfareRatio'>, string> = {
   activationOrderCount: 'batch_active',
   totalOrderCount: 'total'
 }
+const DEFAULT_ORDER = 'created_at DESC'
 
 const createDefaultRange = (): DateRangeValue => {
   const endDate = dayjs().format('YYYY-MM-DD')
@@ -367,9 +368,10 @@ const sortedReportRows = computed(() => {
 const buildParams = (range: DateRangeValue): OrderTypeStatisticsParams => {
   const params: OrderTypeStatisticsParams = toSecondRange(range)
 
-  if (sortState.prop && sortState.order && sortState.prop !== 'welfareRatio') {
-    params.order = `${SORT_FIELD_MAP[sortState.prop]} ${sortState.order === 'ascending' ? 'ASC' : 'DESC'}`
-  }
+  params.order =
+    sortState.prop && sortState.order && sortState.prop !== 'welfareRatio'
+      ? `${SORT_FIELD_MAP[sortState.prop]} ${sortState.order === 'ascending' ? 'ASC' : 'DESC'}`
+      : DEFAULT_ORDER
 
   return params
 }
