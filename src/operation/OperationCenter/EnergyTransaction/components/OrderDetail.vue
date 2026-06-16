@@ -19,15 +19,6 @@
       >
         <ResourceDetails :order-data="currentOrder" />
       </ElTabPane>
-
-      <!-- 激活详情标签页 - 只有当 activations 数组存在且有数据时才显示 -->
-      <ElTabPane
-        label="激活详情"
-        name="activations"
-        v-if="currentOrder && currentOrder.activations && currentOrder.activations.length > 0"
-      >
-        <ActivationDetails :order-data="currentOrder" />
-      </ElTabPane>
     </ElTabs>
     <template #footer>
       <div class="flex justify-end">
@@ -42,7 +33,11 @@ import { ref, computed, defineAsyncComponent, h } from 'vue'
 import { ElButton, ElTag, ElMessage, ElTabs, ElTabPane } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { formatToWan } from '@/utils'
-import { getEnergyOrderKindTagType, getEnergyOrderKindText } from '@/utils/energyOrder'
+import {
+  EnergyOrderKind,
+  getEnergyOrderKindTagType,
+  getEnergyOrderKindText
+} from '@/utils/energyOrder'
 import { getStatusText, getStatusType } from '@/utils/orderStatus'
 import {
   v2GetOrderDetail,
@@ -55,7 +50,6 @@ import { handleErrorMessage } from '@/utils/messageHelper'
 import { renderNullableText } from '@/operation/OperationCenter/utils/displayText'
 
 const ResourceDetails = defineAsyncComponent(() => import('./details/ResourceDetails.vue'))
-const ActivationDetails = defineAsyncComponent(() => import('./details/ActivationDetails.vue'))
 
 const visible = ref(false)
 const currentOrder = ref<V2OrderDetailResponse | null>(null)
@@ -178,13 +172,31 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
 
 const getEnergyRentText = (data?: V2OrderDetailResponse | null) => {
   if (!data) return '-'
-  if (data.kind === 5 || data.kind === 20) return '长期有效'
+  if (data.kind === EnergyOrderKind.COUNT_ENERGY || data.kind === EnergyOrderKind.AUTO_HOSTING)
+    return '长期有效'
 
   const firstResource = data.resources?.[0]
   if (!firstResource?.expirated_at || !firstResource?.delegated_at) return '-'
 
-  const expTime = new Date(firstResource.expirated_at).getTime()
-  const delTime = new Date(firstResource.delegated_at).getTime()
+  const normalizeToMs = (value: string | number | null | undefined) => {
+    if (value === undefined || value === null || value === '') return Number.NaN
+
+    if (typeof value === 'number') {
+      return String(Math.abs(Math.trunc(value))).length <= 10 ? value * 1000 : value
+    }
+
+    const trimmedValue = value.trim()
+    if (!trimmedValue) return Number.NaN
+    if (/^\d+$/.test(trimmedValue)) {
+      const numericValue = Number(trimmedValue)
+      return trimmedValue.length <= 10 ? numericValue * 1000 : numericValue
+    }
+
+    return new Date(trimmedValue).getTime()
+  }
+
+  const expTime = normalizeToMs(firstResource.expirated_at)
+  const delTime = normalizeToMs(firstResource.delegated_at)
   if (Number.isNaN(expTime) || Number.isNaN(delTime) || expTime <= delTime) return '-'
 
   const diffMs = expTime - delTime

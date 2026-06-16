@@ -5,6 +5,7 @@ import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
+import { EnergyOrderKind } from '@/utils/energyOrder'
 import {
   formatEnergyAmount,
   getResourceTypeTagType,
@@ -24,6 +25,10 @@ const props = withDefaults(defineProps<{ orderData: V2OrderDetailResponse | null
 })
 
 type ResourceTableSlot = TableSlot<V2OrderResource>
+const isActivationOrder = computed(
+  () => Number(props.orderData?.kind) === EnergyOrderKind.BATCH_ACTIVE
+)
+const isBatchOrder = computed(() => Number(props.orderData?.kind) === EnergyOrderKind.BATCH_ENERGY)
 
 const summarySchema = computed((): DescriptionsSchema[] => {
   const baseSchema: DescriptionsSchema[] = [
@@ -51,42 +56,46 @@ const summarySchema = computed((): DescriptionsSchema[] => {
   return baseSchema
 })
 
-const resourceTableSchema = computed((): TableColumn[] => [
-  {
-    field: 'code',
-    label: '类型',
-    align: 'center',
-    width: 100,
-    slots: {
-      default: ({ row }: ResourceTableSlot) => {
-        const text = getResourceTypeText(row.code)
-        const tagType = getResourceTypeTagType(row.code)
-        return h(ElTag, { type: tagType, size: 'small' }, () => text)
-      }
+const typeColumn: TableColumn = {
+  field: 'code',
+  label: '类型',
+  align: 'center',
+  width: 100,
+  slots: {
+    default: ({ row }: ResourceTableSlot) => {
+      const text = getResourceTypeText(row.code)
+      const tagType = getResourceTypeTagType(row.code)
+      return h(ElTag, { type: tagType, size: 'small' }, () => text)
     }
-  },
-  {
-    field: 'amount',
-    label: '数量',
-    align: 'center',
-    width: 120,
-    formatter: (row: V2OrderResource) => formatEnergyAmount(row.amount, '0')
-  },
-  {
-    field: 'target',
-    label: '接收地址',
-    minWidth: 180,
-    showOverflowTooltip: false
-  },
+  }
+}
+
+const amountColumn: TableColumn = {
+  field: 'amount',
+  label: '数量',
+  align: 'center',
+  width: 120,
+  formatter: (row: V2OrderResource) => formatEnergyAmount(row.amount, '0')
+}
+
+const targetColumn: TableColumn = {
+  field: 'target',
+  label: '接收地址',
+  minWidth: 180,
+  showOverflowTooltip: false
+}
+
+const baseColumns: TableColumn[] = [typeColumn, amountColumn, targetColumn]
+const activationBaseColumns: TableColumn[] = [targetColumn, amountColumn]
+
+const lifecycleColumns: TableColumn[] = [
   {
     field: 'delegated_txid',
     label: '发送hash',
     width: 120,
     align: 'center',
     slots: {
-      default: ({ row }: ResourceTableSlot) => {
-        return renderTronscanTransactionLink(row.delegated_txid)
-      }
+      default: ({ row }: ResourceTableSlot) => renderTronscanTransactionLink(row.delegated_txid)
     }
   },
   {
@@ -95,9 +104,7 @@ const resourceTableSchema = computed((): TableColumn[] => [
     width: 120,
     align: 'center',
     slots: {
-      default: ({ row }: ResourceTableSlot) => {
-        return renderTronscanTransactionLink(row.recycled_txid)
-      }
+      default: ({ row }: ResourceTableSlot) => renderTronscanTransactionLink(row.recycled_txid)
     }
   },
   {
@@ -112,7 +119,44 @@ const resourceTableSchema = computed((): TableColumn[] => [
     width: 160,
     formatter: (row: V2OrderResource) => formatTableDateTime(row.recycled_at)
   }
-])
+]
+
+const activationColumns: TableColumn[] = [
+  {
+    field: 'actived_txid',
+    label: '激活hash',
+    width: 120,
+    align: 'center',
+    slots: {
+      default: ({ row }: ResourceTableSlot) => renderTronscanTransactionLink(row.actived_txid)
+    }
+  },
+  {
+    field: 'actived_at',
+    label: '激活时间',
+    width: 160,
+    formatter: (row: V2OrderResource) => formatTableDateTime(row.actived_at)
+  }
+]
+
+const resourceTableSchema = computed((): TableColumn[] => {
+  if (isActivationOrder.value) {
+    return [...activationBaseColumns, ...activationColumns]
+  }
+
+  if (isBatchOrder.value) {
+    return [
+      ...baseColumns,
+      lifecycleColumns[0],
+      lifecycleColumns[1],
+      ...activationColumns,
+      lifecycleColumns[2],
+      lifecycleColumns[3]
+    ]
+  }
+
+  return [...baseColumns, ...lifecycleColumns]
+})
 
 const fullResourceList = computed<V2OrderResource[]>(() => {
   return props.orderData?.resources || []

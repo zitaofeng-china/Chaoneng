@@ -46,18 +46,18 @@ export interface QuickChargeResource {
   code: number
   source: string
   balance: number
-  expirated_at: string
+  expirated_at: string | number | null
   used_txid: string
   delegated_txid: string
-  delegated_at: string
+  delegated_at: string | number | null
   recycled_txid: string
-  recycled_at: string
+  recycled_at: string | number | null
 }
 
 export interface QuickChargeActivation {
   target: string
   actived_txid: string
-  actived_at: string
+  actived_at: string | number | null
 }
 
 export interface QuickChargeOrderDetail extends Recordable {
