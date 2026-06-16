@@ -38,7 +38,6 @@
                 <col style="width: 164px" />
                 <col style="width: 164px" />
                 <col style="width: 118px" />
-                <col style="width: 118px" />
                 <col style="width: 136px" />
               </colgroup>
               <tbody>
@@ -49,9 +48,6 @@
                   <td class="summary-cell">{{ formatCount(summaryOrderMetrics.hostedAmount) }}</td>
                   <td class="summary-cell">{{ formatCount(summaryOrderMetrics.welfareAmount) }}</td>
                   <td class="summary-cell">{{ formatCount(summaryOrderMetrics.batchAmount) }}</td>
-                  <td class="summary-cell">{{
-                    formatCount(summaryOrderMetrics.activationAmount)
-                  }}</td>
                   <td class="summary-cell summary-cell-tail" colspan="2">
                     订单：{{ formatCount(summaryOrderTotal) }} 能量：{{
                       formatEnergySummary(summaryEnergyTotal)
@@ -71,7 +67,6 @@
                 <col style="width: 164px" />
                 <col style="width: 164px" />
                 <col style="width: 118px" />
-                <col style="width: 118px" />
                 <col style="width: 136px" />
               </colgroup>
               <thead>
@@ -83,7 +78,6 @@
                   <th>托管</th>
                   <th>福利</th>
                   <th>批量下单</th>
-                  <th>激活</th>
                   <th>总计</th>
                   <th>福利占比</th>
                 </tr>
@@ -100,7 +94,6 @@
                   <td>{{ formatCount(row.hostedAmount) }}</td>
                   <td>{{ formatCount(row.welfareAmount) }}</td>
                   <td>{{ formatCount(row.batchAmount) }}</td>
-                  <td>{{ formatCount(row.activationAmount) }}</td>
                   <td>{{ formatCount(row.totalAmount) }}</td>
                   <td>{{ row.ratioText }}</td>
                 </tr>
@@ -114,12 +107,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, type CSSProperties } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import dayjs from 'dayjs'
 import { ElButton, ElDatePicker } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import {
+  getSaleByTimeReport,
+  type SaleByTimeReportParams,
+  type SaleByTimeReportSummaryItem
+} from '@/api/opertion/DataStatistics/SaleByTimeReport'
 
 type DateRangeValue = [string, string]
 type ReportTypeKey = 'order' | 'energy'
@@ -135,7 +133,6 @@ interface ReportMetrics {
   hostedAmount: number
   welfareAmount: number
   batchAmount: number
-  activationAmount: number
 }
 
 interface ReportRow extends ReportMetrics {
@@ -153,6 +150,18 @@ const createDefaultRange = (): DateRangeValue => {
   return [startDate, endDate]
 }
 
+const toNumber = (value: number | string | undefined) => {
+  const numberValue = Number(value ?? 0)
+  return Number.isFinite(numberValue) ? numberValue : 0
+}
+
+const toSecondRange = ([startDate, endDate]: DateRangeValue) => {
+  return {
+    start_time: String(dayjs(startDate).startOf('day').unix()),
+    end_time: String(dayjs(endDate).endOf('day').unix())
+  }
+}
+
 const loading = ref(false)
 const defaultRange = createDefaultRange()
 const searchForm = reactive<SearchFormState>({
@@ -161,8 +170,8 @@ const searchForm = reactive<SearchFormState>({
 const activeRange = ref<DateRangeValue>([...defaultRange] as DateRangeValue)
 const reportRows = ref<ReportRow[]>([])
 
-const formatCount = (value: number) => {
-  return value.toLocaleString('zh-CN')
+const formatCount = (value: number | string | undefined) => {
+  return toNumber(value).toLocaleString('zh-CN')
 }
 
 const formatEnergySummary = (value: number) => {
@@ -173,68 +182,101 @@ const formatPercent = (value: number) => {
   return `${(value * 100).toFixed(1)}%`
 }
 
-const createOrderMetrics = (seed: number, categorySeed: number): ReportMetrics => {
-  return {
-    flashAmount: 520 + ((seed * 13 + categorySeed * 17) % 140),
-    strokeAmount: 4 + ((seed + categorySeed) % 4),
-    hostedAmount: 4 + ((seed * 2 + categorySeed) % 3),
-    welfareAmount: 26 + ((seed * 3 + categorySeed) % 9),
-    batchAmount: 52 + ((seed * 5 + categorySeed * 2) % 18),
-    activationAmount: 48 + ((seed * 7 + categorySeed * 3) % 18)
-  }
-}
-
-const createEnergyMetrics = (seed: number, categorySeed: number): ReportMetrics => {
-  return {
-    flashAmount: 32000000 + ((seed * 237841 + categorySeed * 910003) % 9000000),
-    strokeAmount: 450000 + ((seed * 6101 + categorySeed * 713) % 650000),
-    hostedAmount: 5200000 + ((seed * 81031 + categorySeed * 29011) % 4600000),
-    welfareAmount: 1900000 + ((seed * 50123 + categorySeed * 10391) % 2300000),
-    batchAmount: 12800000 + ((seed * 171113 + categorySeed * 61103) % 12000000),
-    activationAmount: (seed + categorySeed) % 2 === 0 ? 0 : 120000 + ((seed * 3107) % 520000)
-  }
-}
-
 const buildReportRow = (
   typeKey: ReportTypeKey,
   categoryKey: ReportCategoryKey,
-  metrics: ReportMetrics
+  metrics: ReportMetrics,
+  totalAmount?: number
 ): ReportRow => {
-  const totalAmount =
+  const metricsTotal =
     metrics.flashAmount +
     metrics.strokeAmount +
     metrics.hostedAmount +
     metrics.welfareAmount +
-    metrics.batchAmount +
-    metrics.activationAmount
+    metrics.batchAmount
   return {
     typeKey,
     typeLabel: typeKey === 'order' ? '订单数' : '能量数',
     categoryKey,
     categoryLabel: categoryKey === 'agent' ? '代理' : '自营',
     ...metrics,
-    totalAmount,
+    totalAmount: totalAmount ?? metricsTotal,
     ratioText: '0.0%'
   }
 }
 
-const createMockRows = (range: DateRangeValue): ReportRow[] => {
-  const [startDate, endDate] = range
-  const start = dayjs(startDate)
-  const end = dayjs(endDate)
-
-  if (!start.isValid() || !end.isValid() || start.isAfter(end)) {
-    return []
+const normalizeReportRow = (
+  typeKey: ReportTypeKey,
+  categoryKey: ReportCategoryKey,
+  item: SaleByTimeReportSummaryItem = {}
+): ReportRow => {
+  const metrics: ReportMetrics = {
+    flashAmount: toNumber(item.flash_energy),
+    strokeAmount: toNumber(item.stroke_energy),
+    hostedAmount: toNumber(item.hosting),
+    welfareAmount: toNumber(item.weal_energy),
+    batchAmount: toNumber(item.batch_energy)
   }
+  const fallbackTotal =
+    metrics.flashAmount +
+    metrics.strokeAmount +
+    metrics.hostedAmount +
+    metrics.welfareAmount +
+    metrics.batchAmount +
+    toNumber(item.batch_active)
 
-  const duration = end.diff(start, 'day') + 1
-  const seed = start.date() + end.date() + duration * 11 + start.month() * 5
+  return buildReportRow(
+    typeKey,
+    categoryKey,
+    metrics,
+    item.total === undefined ? fallbackTotal : toNumber(item.total)
+  )
+}
+
+const mergeSummaryItems = (items: SaleByTimeReportSummaryItem[]): SaleByTimeReportSummaryItem => {
+  return items.reduce<SaleByTimeReportSummaryItem>((totals, item) => {
+    const merged: SaleByTimeReportSummaryItem = {
+      batch_active: toNumber(totals.batch_active) + toNumber(item.batch_active),
+      batch_energy: toNumber(totals.batch_energy) + toNumber(item.batch_energy),
+      flash_energy: toNumber(totals.flash_energy) + toNumber(item.flash_energy),
+      hosting: toNumber(totals.hosting) + toNumber(item.hosting),
+      stroke_energy: toNumber(totals.stroke_energy) + toNumber(item.stroke_energy),
+      time_energy: toNumber(totals.time_energy) + toNumber(item.time_energy),
+      weal_energy: toNumber(totals.weal_energy) + toNumber(item.weal_energy)
+    }
+
+    if (totals.total !== undefined || item.total !== undefined) {
+      merged.total = toNumber(totals.total) + toNumber(item.total)
+    }
+
+    return merged
+  }, {})
+}
+
+const groupSummaryItems = (items: SaleByTimeReportSummaryItem[] = []) => {
+  return {
+    agent: mergeSummaryItems(
+      items.filter((item) => {
+        const level = toNumber(item.level)
+        return level === 1 || level === 2 || level === 3
+      })
+    ),
+    self: mergeSummaryItems(items.filter((item) => toNumber(item.level) === 8))
+  }
+}
+
+const normalizeReportRows = (
+  orderRows: SaleByTimeReportSummaryItem[] = [],
+  energyRows: SaleByTimeReportSummaryItem[] = []
+): ReportRow[] => {
+  const groupedOrderRows = groupSummaryItems(orderRows)
+  const groupedEnergyRows = groupSummaryItems(energyRows)
 
   return [
-    buildReportRow('order', 'agent', createOrderMetrics(seed, 1)),
-    buildReportRow('order', 'self', createOrderMetrics(seed, 2)),
-    buildReportRow('energy', 'agent', createEnergyMetrics(seed, 3)),
-    buildReportRow('energy', 'self', createEnergyMetrics(seed, 4))
+    normalizeReportRow('order', 'agent', groupedOrderRows.agent),
+    normalizeReportRow('order', 'self', groupedOrderRows.self),
+    normalizeReportRow('energy', 'agent', groupedEnergyRows.agent),
+    normalizeReportRow('energy', 'self', groupedEnergyRows.self)
   ]
 }
 
@@ -254,7 +296,6 @@ const sumMetrics = (rows: ReportRow[]): ReportMetrics => {
       totals.hostedAmount += row.hostedAmount
       totals.welfareAmount += row.welfareAmount
       totals.batchAmount += row.batchAmount
-      totals.activationAmount += row.activationAmount
       return totals
     },
     {
@@ -262,8 +303,7 @@ const sumMetrics = (rows: ReportRow[]): ReportMetrics => {
       strokeAmount: 0,
       hostedAmount: 0,
       welfareAmount: 0,
-      batchAmount: 0,
-      activationAmount: 0
+      batchAmount: 0
     }
   )
 }
@@ -295,11 +335,22 @@ const reportRowsWithRatio = computed<ReportRow[]>(() => {
   })
 })
 
+const buildParams = (range: DateRangeValue): SaleByTimeReportParams => {
+  return toSecondRange(range)
+}
+
 const loadData = async (range: DateRangeValue) => {
   loading.value = true
 
   try {
-    reportRows.value = createMockRows(range)
+    const res = await getSaleByTimeReport(buildParams(range))
+    if (res.code !== '000000' || !res.data) {
+      reportRows.value = []
+      handleErrorMessage(new Error(res.msg || '接口返回异常'), '获取按时间销售报表失败')
+      return
+    }
+
+    reportRows.value = normalizeReportRows(res.data.order, res.data.energy)
     activeRange.value = [...range] as DateRangeValue
   } catch (error) {
     reportRows.value = []
@@ -338,7 +389,6 @@ const handleExport = () => {
       托管: summaryOrderMetrics.value.hostedAmount,
       福利: summaryOrderMetrics.value.welfareAmount,
       批量下单: summaryOrderMetrics.value.batchAmount,
-      激活: summaryOrderMetrics.value.activationAmount,
       总计: `订单 ${summaryOrderTotal.value} / 能量 ${formatEnergySummary(summaryEnergyTotal.value)}`,
       福利占比: '-'
     },
@@ -350,7 +400,6 @@ const handleExport = () => {
       托管: row.hostedAmount,
       福利: row.welfareAmount,
       批量下单: row.batchAmount,
-      激活: row.activationAmount,
       总计: row.totalAmount,
       福利占比: row.ratioText
     }))
@@ -415,18 +464,18 @@ onMounted(async () => {
 }
 
 .report-summary-table {
-  width: 1352px;
+  width: 1234px;
   background: #ffe4bd;
   border-collapse: collapse;
   table-layout: fixed;
 }
 
 .report-table {
-  width: 1352px;
+  width: 1234px;
 }
 
 .report-detail-table {
-  width: 1352px;
+  width: 1234px;
   border-collapse: collapse;
   table-layout: fixed;
 }
