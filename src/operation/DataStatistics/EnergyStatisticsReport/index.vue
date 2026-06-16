@@ -52,11 +52,101 @@
                 </tr>
                 <tr class="header-row">
                   <th>日期</th>
-                  <th>闪租</th>
-                  <th>按笔数</th>
-                  <th>托管</th>
-                  <th>福利</th>
-                  <th>批量下单</th>
+                  <th>
+                    <button type="button" class="sort-header" @click="handleSort('flash_energy')">
+                      闪租
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active: sortState.prop === 'flash_energy' && sortState.order === 'ASC'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active: sortState.prop === 'flash_energy' && sortState.order === 'DESC'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" class="sort-header" @click="handleSort('stroke_energy')">
+                      按笔数
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active: sortState.prop === 'stroke_energy' && sortState.order === 'ASC'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active: sortState.prop === 'stroke_energy' && sortState.order === 'DESC'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" class="sort-header" @click="handleSort('hosting')">
+                      托管
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active: sortState.prop === 'hosting' && sortState.order === 'ASC'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active: sortState.prop === 'hosting' && sortState.order === 'DESC'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" class="sort-header" @click="handleSort('weal_energy')">
+                      福利
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active: sortState.prop === 'weal_energy' && sortState.order === 'ASC'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active: sortState.prop === 'weal_energy' && sortState.order === 'DESC'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" class="sort-header" @click="handleSort('batch_energy')">
+                      批量下单
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active: sortState.prop === 'batch_energy' && sortState.order === 'ASC'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active: sortState.prop === 'batch_energy' && sortState.order === 'DESC'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                  </th>
                   <th>
                     <button type="button" class="sort-header" @click="handleSort('total')">
                       总计
@@ -125,6 +215,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import dayjs from 'dayjs'
 import { ElButton, ElDatePicker } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
+import { formatStatsDateLabel } from '@/utils/statsDate'
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import {
@@ -136,9 +227,25 @@ import {
 
 type DateRangeValue = [string, string]
 type SortOrder = 'ASC' | 'DESC'
-type SortableField = 'total' | 'welfareRatio'
-const DEFAULT_ORDER = 'created_at DESC'
+type SortableField =
+  | 'flash_energy'
+  | 'stroke_energy'
+  | 'hosting'
+  | 'weal_energy'
+  | 'batch_energy'
+  | 'total'
+  | 'welfareRatio'
 
+const SORT_FIELD_MAP: Record<SortableField, string> = {
+  flash_energy: 'flash_energy',
+  stroke_energy: 'stroke_energy',
+  hosting: 'hosting',
+  weal_energy: 'weal_energy',
+  batch_energy: 'batch_energy',
+  total: 'total',
+  welfareRatio: 'welfare_ratio'
+}
+const DEFAULT_ORDER = 'date DESC'
 interface SearchFormState {
   dateRange: DateRangeValue
 }
@@ -171,11 +278,6 @@ const toSecondRange = ([startDate, endDate]: DateRangeValue) => {
     start_time: String(dayjs(startDate).startOf('day').unix()),
     end_time: String(dayjs(endDate).endOf('day').unix())
   }
-}
-
-const formatDateLabel = (date: string) => {
-  const parsed = dayjs(date)
-  return parsed.isValid() ? parsed.format('M月D日') : date
 }
 
 const createEmptySummary = (): Required<EnergyStatisticsSummary> => ({
@@ -213,7 +315,7 @@ const normalizeRow = (row: EnergyStatisticsDetailItem): ReportRow => {
 
   return {
     date: row.date,
-    dateLabel: formatDateLabel(row.date),
+    dateLabel: formatStatsDateLabel(row.date),
     flash_energy: flashEnergy,
     stroke_energy: strokeEnergy,
     hosting,
@@ -247,7 +349,7 @@ const summaryWelfareRatio = computed(() => {
 })
 
 const displayedRows = computed(() => {
-  if (sortState.prop !== 'welfareRatio') {
+  if (sortState.prop !== 'welfareRatio' || !sortState.order) {
     return reportRows.value
   }
 
@@ -272,7 +374,10 @@ const formatPercent = (value: number) => {
 const buildParams = (range: DateRangeValue): EnergyStatisticsReportParams => {
   const params: EnergyStatisticsReportParams = toSecondRange(range)
 
-  params.order = sortState.prop === 'total' ? `${sortState.prop} ${sortState.order}` : DEFAULT_ORDER
+  params.order =
+    sortState.prop && sortState.order && sortState.prop !== 'welfareRatio'
+      ? `${SORT_FIELD_MAP[sortState.prop]} ${sortState.order}`
+      : DEFAULT_ORDER
 
   return params
 }
@@ -324,7 +429,7 @@ const handleSort = async (field: SortableField) => {
     sortState.order = 'DESC'
   }
 
-  if (field === 'total') {
+  if (field !== 'welfareRatio') {
     await loadData(activeRange.value)
   }
 }

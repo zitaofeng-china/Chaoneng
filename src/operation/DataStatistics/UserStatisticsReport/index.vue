@@ -114,8 +114,6 @@ import {
   type UserStatisticsSummary
 } from '@/api/opertion/DataStatistics/UserStatisticsReport'
 
-const DEFAULT_ORDER = 'created_at DESC'
-
 type SortableField = 'todayNew' | 'yesterdayNew' | 'currentMonthNew' | 'lastMonthNew'
 type SortOrder = 'ascending' | 'descending' | null
 
@@ -257,10 +255,9 @@ const buildParams = (): UserStatisticsReportParams => {
     params.keyword = activeFilters.keyword
   }
 
-  params.order =
-    sortState.prop && sortState.order
-      ? `${SORT_FIELD_MAP[sortState.prop]} ${sortState.order === 'ascending' ? 'ASC' : 'DESC'}`
-      : DEFAULT_ORDER
+  if (sortState.prop && sortState.order) {
+    params.order = `${SORT_FIELD_MAP[sortState.prop]} ${sortState.order === 'ascending' ? 'ASC' : 'DESC'}`
+  }
 
   return params
 }

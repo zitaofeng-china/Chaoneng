@@ -28,35 +28,6 @@
 
         <div class="report-table-card">
           <div class="report-table-scroll">
-            <table class="report-summary-table">
-              <colgroup>
-                <col style="width: 80px" />
-                <col style="width: 84px" />
-                <col style="width: 160px" />
-                <col style="width: 164px" />
-                <col style="width: 164px" />
-                <col style="width: 164px" />
-                <col style="width: 164px" />
-                <col style="width: 118px" />
-                <col style="width: 136px" />
-              </colgroup>
-              <tbody>
-                <tr>
-                  <td class="summary-cell summary-cell-label" colspan="2"> 数据统计 </td>
-                  <td class="summary-cell">{{ formatCount(summaryOrderMetrics.flashAmount) }}</td>
-                  <td class="summary-cell">{{ formatCount(summaryOrderMetrics.strokeAmount) }}</td>
-                  <td class="summary-cell">{{ formatCount(summaryOrderMetrics.hostedAmount) }}</td>
-                  <td class="summary-cell">{{ formatCount(summaryOrderMetrics.welfareAmount) }}</td>
-                  <td class="summary-cell">{{ formatCount(summaryOrderMetrics.batchAmount) }}</td>
-                  <td class="summary-cell summary-cell-tail" colspan="2">
-                    订单：{{ formatCount(summaryOrderTotal) }} 能量：{{
-                      formatEnergySummary(summaryEnergyTotal)
-                    }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
             <table class="report-detail-table">
               <colgroup>
                 <col style="width: 80px" />
@@ -83,19 +54,58 @@
                 </tr>
               </thead>
               <tbody>
-                <tr
-                  v-for="(row, index) in reportRowsWithRatio"
-                  :key="`${row.typeKey}-${row.categoryKey}`"
-                >
-                  <td v-if="index === 0 || index === 2" :rowspan="2">{{ row.typeLabel }}</td>
-                  <td>{{ row.categoryLabel }}</td>
-                  <td>{{ formatCount(row.flashAmount) }}</td>
-                  <td>{{ formatCount(row.strokeAmount) }}</td>
-                  <td>{{ formatCount(row.hostedAmount) }}</td>
-                  <td>{{ formatCount(row.welfareAmount) }}</td>
-                  <td>{{ formatCount(row.batchAmount) }}</td>
-                  <td>{{ formatCount(row.totalAmount) }}</td>
-                  <td>{{ row.ratioText }}</td>
+                <template v-if="reportRowsWithRatio.length > 0">
+                  <tr
+                    v-for="(row, index) in orderRowsWithRatio"
+                    :key="`${row.typeKey}-${row.categoryKey}`"
+                  >
+                    <td v-if="index === 0" :rowspan="3">{{ row.typeLabel }}</td>
+                    <td>{{ row.categoryLabel }}</td>
+                    <td>{{ formatCount(row.flashAmount) }}</td>
+                    <td>{{ formatCount(row.strokeAmount) }}</td>
+                    <td>{{ formatCount(row.hostedAmount) }}</td>
+                    <td>{{ formatCount(row.welfareAmount) }}</td>
+                    <td>{{ formatCount(row.batchAmount) }}</td>
+                    <td>{{ formatCount(row.totalAmount) }}</td>
+                    <td>{{ row.ratioText }}</td>
+                  </tr>
+                  <tr class="summary-row-inline">
+                    <td>汇总</td>
+                    <td>{{ formatCount(summaryOrderMetrics.flashAmount) }}</td>
+                    <td>{{ formatCount(summaryOrderMetrics.strokeAmount) }}</td>
+                    <td>{{ formatCount(summaryOrderMetrics.hostedAmount) }}</td>
+                    <td>{{ formatCount(summaryOrderMetrics.welfareAmount) }}</td>
+                    <td>{{ formatCount(summaryOrderMetrics.batchAmount) }}</td>
+                    <td>{{ formatCount(summaryOrderTotal) }}</td>
+                    <td>{{ formatPercent(summaryOrderRatio) }}</td>
+                  </tr>
+                  <tr
+                    v-for="(row, index) in energyRowsWithRatio"
+                    :key="`${row.typeKey}-${row.categoryKey}`"
+                  >
+                    <td v-if="index === 0" :rowspan="3">{{ row.typeLabel }}</td>
+                    <td>{{ row.categoryLabel }}</td>
+                    <td>{{ formatCount(row.flashAmount) }}</td>
+                    <td>{{ formatCount(row.strokeAmount) }}</td>
+                    <td>{{ formatCount(row.hostedAmount) }}</td>
+                    <td>{{ formatCount(row.welfareAmount) }}</td>
+                    <td>{{ formatCount(row.batchAmount) }}</td>
+                    <td>{{ formatCount(row.totalAmount) }}</td>
+                    <td>{{ row.ratioText }}</td>
+                  </tr>
+                  <tr class="summary-row-inline">
+                    <td>汇总</td>
+                    <td>{{ formatCount(summaryEnergyMetrics.flashAmount) }}</td>
+                    <td>{{ formatCount(summaryEnergyMetrics.strokeAmount) }}</td>
+                    <td>{{ formatCount(summaryEnergyMetrics.hostedAmount) }}</td>
+                    <td>{{ formatCount(summaryEnergyMetrics.welfareAmount) }}</td>
+                    <td>{{ formatCount(summaryEnergyMetrics.batchAmount) }}</td>
+                    <td>{{ formatCount(summaryEnergyTotal) }}</td>
+                    <td>{{ formatPercent(summaryEnergyRatio) }}</td>
+                  </tr>
+                </template>
+                <tr v-else>
+                  <td colspan="9">暂无数据</td>
                 </tr>
               </tbody>
             </table>
@@ -109,6 +119,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import dayjs from 'dayjs'
+import * as XLSX from 'xlsx'
 import { ElButton, ElDatePicker } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { simpleExportToExcel } from '@/utils/excel'
@@ -172,10 +183,6 @@ const reportRows = ref<ReportRow[]>([])
 
 const formatCount = (value: number | string | undefined) => {
   return toNumber(value).toLocaleString('zh-CN')
-}
-
-const formatEnergySummary = (value: number) => {
-  return `${(value / 10000).toFixed(2)}w`
 }
 
 const formatPercent = (value: number) => {
@@ -312,12 +319,36 @@ const summaryOrderMetrics = computed(() => {
   return sumMetrics(summaryOrderRows.value)
 })
 
+const summaryEnergyMetrics = computed(() => {
+  return sumMetrics(summaryEnergyRows.value)
+})
+
 const summaryOrderTotal = computed(() => {
   return summaryOrderRows.value.reduce((total, row) => total + row.totalAmount, 0)
 })
 
 const summaryEnergyTotal = computed(() => {
   return summaryEnergyRows.value.reduce((total, row) => total + row.totalAmount, 0)
+})
+
+const summaryOrderRatio = computed(() => {
+  return summaryOrderTotal.value > 0
+    ? summaryOrderMetrics.value.welfareAmount / summaryOrderTotal.value
+    : 0
+})
+
+const summaryEnergyRatio = computed(() => {
+  return summaryEnergyTotal.value > 0
+    ? summaryEnergyMetrics.value.welfareAmount / summaryEnergyTotal.value
+    : 0
+})
+
+const orderRowsWithRatio = computed(() => {
+  return reportRowsWithRatio.value.filter((row) => row.typeKey === 'order')
+})
+
+const energyRowsWithRatio = computed(() => {
+  return reportRowsWithRatio.value.filter((row) => row.typeKey === 'energy')
 })
 
 const reportRowsWithRatio = computed<ReportRow[]>(() => {
@@ -382,17 +413,39 @@ const handleExport = () => {
 
   const exportRows = [
     {
-      类型: '数据统计',
-      类别: '-',
+      类型: '订单数',
+      类别: '汇总',
       闪租: summaryOrderMetrics.value.flashAmount,
       按笔数: summaryOrderMetrics.value.strokeAmount,
       托管: summaryOrderMetrics.value.hostedAmount,
       福利: summaryOrderMetrics.value.welfareAmount,
       批量下单: summaryOrderMetrics.value.batchAmount,
-      总计: `订单 ${summaryOrderTotal.value} / 能量 ${formatEnergySummary(summaryEnergyTotal.value)}`,
-      福利占比: '-'
+      总计: summaryOrderTotal.value,
+      福利占比: formatPercent(summaryOrderRatio.value)
     },
-    ...reportRowsWithRatio.value.map((row) => ({
+    ...orderRowsWithRatio.value.map((row) => ({
+      类型: row.typeLabel,
+      类别: row.categoryLabel,
+      闪租: row.flashAmount,
+      按笔数: row.strokeAmount,
+      托管: row.hostedAmount,
+      福利: row.welfareAmount,
+      批量下单: row.batchAmount,
+      总计: row.totalAmount,
+      福利占比: row.ratioText
+    })),
+    {
+      类型: '能量数',
+      类别: '汇总',
+      闪租: summaryEnergyMetrics.value.flashAmount,
+      按笔数: summaryEnergyMetrics.value.strokeAmount,
+      托管: summaryEnergyMetrics.value.hostedAmount,
+      福利: summaryEnergyMetrics.value.welfareAmount,
+      批量下单: summaryEnergyMetrics.value.batchAmount,
+      总计: summaryEnergyTotal.value,
+      福利占比: formatPercent(summaryEnergyRatio.value)
+    },
+    ...energyRowsWithRatio.value.map((row) => ({
       类型: row.typeLabel,
       类别: row.categoryLabel,
       闪租: row.flashAmount,
@@ -407,7 +460,49 @@ const handleExport = () => {
 
   simpleExportToExcel(
     exportRows,
-    `按时间销售报表_${dayjs(activeRange.value[0]).format('YYYYMMDD')}_${dayjs(activeRange.value[1]).format('YYYYMMDD')}`
+    `按时间销售报表_${dayjs(activeRange.value[0]).format('YYYYMMDD')}_${dayjs(activeRange.value[1]).format('YYYYMMDD')}`,
+    {
+      merges: [
+        { s: { r: 1, c: 0 }, e: { r: 3, c: 0 } },
+        { s: { r: 4, c: 0 }, e: { r: 6, c: 0 } }
+      ],
+      transformWorksheet: (worksheet) => {
+        const rangeRef = worksheet['!ref']
+        if (!rangeRef) return
+
+        const range = XLSX.utils.decode_range(rangeRef)
+        for (let row = range.s.r; row <= range.e.r; row += 1) {
+          for (let col = range.s.c; col <= range.e.c; col += 1) {
+            const cellAddress = XLSX.utils.encode_cell({ r: row, c: col })
+            const cell = worksheet[cellAddress]
+            if (!cell) continue
+
+            cell.s = {
+              ...(cell.s || {}),
+              alignment: {
+                ...((cell.s as { alignment?: Record<string, unknown> } | undefined)?.alignment ||
+                  {}),
+                horizontal: 'center'
+              }
+            }
+          }
+        }
+
+        ;['A2', 'A5'].forEach((cellAddress) => {
+          const cell = worksheet[cellAddress]
+          if (!cell) return
+
+          cell.s = {
+            ...(cell.s || {}),
+            alignment: {
+              ...((cell.s as { alignment?: Record<string, unknown> } | undefined)?.alignment || {}),
+              horizontal: 'center',
+              vertical: 'center'
+            }
+          }
+        })
+      }
+    }
   )
   handleSuccessMessage('导出成功')
 }
@@ -463,19 +558,9 @@ onMounted(async () => {
   overflow-x: auto;
 }
 
-.report-summary-table {
-  width: 1234px;
-  background: #ffe4bd;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-
-.report-table {
-  width: 1234px;
-}
-
 .report-detail-table {
-  width: 1234px;
+  width: 100%;
+  min-width: 1234px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -495,43 +580,9 @@ onMounted(async () => {
   background: #f7f7f7;
 }
 
-.summary-cell {
-  height: 50px;
-  padding: 0 12px;
-  font-size: 15px;
+.summary-row-inline td {
   font-weight: 600;
-  color: #111827;
-  text-align: center;
-  vertical-align: middle;
-  border-right: 1px solid #f5d6aa;
-}
-
-.summary-cell-label {
-  padding-left: 20px;
-  text-align: left;
-}
-
-.summary-cell-tail {
-  padding-right: 20px;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.report-summary-table .summary-cell:last-child {
-  border-right: none;
-}
-
-.report-table :deep(.el-table__cell) {
-  height: 48px;
-}
-
-.report-table :deep(.el-table__inner-wrapper::before) {
-  display: none;
-}
-
-.report-table :deep(.el-table__header-wrapper th),
-.report-table :deep(.el-table__body-wrapper td) {
-  padding: 0;
+  background: #f5f7fa;
 }
 
 @media (width <= 900px) {

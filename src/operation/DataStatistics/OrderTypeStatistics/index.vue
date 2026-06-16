@@ -142,6 +142,7 @@ import dayjs from 'dayjs'
 import { ElButton, ElDatePicker, ElTable, ElTableColumn } from 'element-plus'
 import type { TableColumnCtx } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
+import { formatStatsDateLabel } from '@/utils/statsDate'
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import {
@@ -201,7 +202,7 @@ const SORT_FIELD_MAP: Record<Exclude<SortableField, 'welfareRatio'>, string> = {
   activationOrderCount: 'batch_active',
   totalOrderCount: 'total'
 }
-const DEFAULT_ORDER = 'created_at DESC'
+const DEFAULT_ORDER = 'date DESC'
 
 const createDefaultRange = (): DateRangeValue => {
   const endDate = dayjs().format('YYYY-MM-DD')
@@ -219,11 +220,6 @@ const toSecondRange = ([startDate, endDate]: DateRangeValue) => {
     start_time: String(dayjs(startDate).startOf('day').unix()),
     end_time: String(dayjs(endDate).endOf('day').unix())
   }
-}
-
-const formatDateLabel = (date: string) => {
-  const parsed = dayjs(date)
-  return parsed.isValid() ? parsed.format('M月D日') : date
 }
 
 const createEmptySummary = (): SummaryTotals => ({
@@ -286,7 +282,7 @@ const normalizeRow = (row: OrderTypeStatisticsDetailItem): ReportRow => {
 
   return {
     date: row.date,
-    dateLabel: formatDateLabel(row.date),
+    dateLabel: formatStatsDateLabel(row.date),
     flashOrderCount,
     strokeOrderCount,
     hostedOrderCount,

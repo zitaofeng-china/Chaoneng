@@ -49,14 +49,14 @@
                   <th colspan="2">能量数占比</th>
                 </tr>
                 <tr class="sub-header-row">
-                  <th class="order-count-header">转账</th>
-                  <th class="order-count-header">非转账</th>
-                  <th class="ratio-header">转账</th>
-                  <th class="ratio-header">非转账</th>
                   <th>转账</th>
                   <th>非转账</th>
-                  <th class="ratio-header">转账</th>
-                  <th class="ratio-header">非转账</th>
+                  <th>转账</th>
+                  <th>非转账</th>
+                  <th>转账</th>
+                  <th>非转账</th>
+                  <th>转账</th>
+                  <th>非转账</th>
                 </tr>
               </thead>
               <tbody>
@@ -90,6 +90,7 @@ import { ElButton, ElDatePicker } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { formatStatsDateLabel } from '@/utils/statsDate'
 import {
   getPaymentStatisticsReport,
   type PaymentStatisticsItem,
@@ -97,6 +98,7 @@ import {
 } from '@/api/opertion/DataStatistics/PaymentStatisticsReport'
 
 type DateRangeValue = [string, string]
+const DEFAULT_ORDER = 'date DESC'
 
 interface SearchFormState {
   dateRange: DateRangeValue
@@ -133,11 +135,6 @@ const toSecondRange = ([startDate, endDate]: DateRangeValue) => {
   }
 }
 
-const formatDateLabel = (date: string) => {
-  const parsed = dayjs(date)
-  return parsed.isValid() ? parsed.format('M月D日') : date || '-'
-}
-
 const createRatio = (value: number, total: number) => {
   return total > 0 ? value / total : 0
 }
@@ -153,7 +150,7 @@ const normalizeRow = (item: PaymentStatisticsItem): ReportRow => {
 
   return {
     date,
-    dateLabel: formatDateLabel(date),
+    dateLabel: formatStatsDateLabel(date),
     energyBalanceRatio: createRatio(energyByBalance, energyTotal),
     energyByBalance,
     energyByWallet,
@@ -182,7 +179,10 @@ const formatPercent = (value: number) => {
 }
 
 const buildParams = (range: DateRangeValue): PaymentStatisticsReportParams => {
-  return toSecondRange(range)
+  return {
+    ...toSecondRange(range),
+    order: DEFAULT_ORDER
+  }
 }
 
 const loadData = async (range: DateRangeValue) => {
@@ -318,14 +318,6 @@ onMounted(async () => {
   font-weight: 600;
   color: #303133;
   background: #f7f7f7;
-}
-
-.payment-report-table .sub-header-row .order-count-header {
-  background: #9bd47f;
-}
-
-.payment-report-table .sub-header-row .ratio-header {
-  background: #ffe4bd;
 }
 
 .empty-cell {
