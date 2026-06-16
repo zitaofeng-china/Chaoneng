@@ -76,6 +76,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           meta: {
             title: '按时间销售报表'
           }
+        },
+        {
+          path: 'payment_statistics_report',
+          alias: '/data_statistics/payment_statistics_report',
+          component: () => import('@/operation/DataStatistics/PaymentStatisticsReport/index.vue'),
+          name: 'PaymentStatisticsReport',
+          meta: {
+            title: '支付统计报表'
+          }
         }
       ]
     },
