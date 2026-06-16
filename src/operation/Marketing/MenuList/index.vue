@@ -164,18 +164,6 @@ interface MenuFormValues {
 
 type MenuTableSlot = TableSlot<BotMenuItem>
 type AgentOption = SelectOption<number>
-type MenuPayload = AddBotMenuParams & {
-  visibility_scope?: number
-  agent_ids?: number[]
-}
-type UpdateMenuPayload = BatchUpdateBotMenuParams & {
-  menus: Array<
-    BatchUpdateBotMenuParams['menus'][number] & {
-      visibility_scope?: number
-      agent_ids?: number[]
-    }
-  >
-}
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const formRef = ref<FormInstance>()
@@ -233,9 +221,11 @@ const resetFormData = () => {
 }
 
 const hydrateVisibilityFields = (row?: Partial<Record<string, unknown>>) => {
+  const rawWhitelist = row?.whitelist
   const rawAgentIds = row?.agent_ids
-  const normalizedAgentIds = Array.isArray(rawAgentIds)
-    ? rawAgentIds.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0)
+  const sourceIds = Array.isArray(rawWhitelist) ? rawWhitelist : rawAgentIds
+  const normalizedAgentIds = Array.isArray(sourceIds)
+    ? sourceIds.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0)
     : []
 
   const rawVisibilityScope = Number(row?.visibility_scope)
@@ -264,6 +254,7 @@ const ensureSelectedAgentOptions = (selectedIds: number[]) => {
 }
 
 type MenuDialogRow = Partial<BotMenuItem> & {
+  whitelist?: unknown
   visibility_scope?: unknown
   agent_ids?: unknown
 }
@@ -311,14 +302,12 @@ const openDialog = async (title: string, row?: MenuDialogRow) => {
 const buildVisibilityPayload = () => {
   if (formData.visibility_scope !== VISIBLE_SCOPE_PARTIAL) {
     return {
-      visibility_scope: VISIBLE_SCOPE_ALL,
-      agent_ids: [] as number[]
+      whitelist: [] as number[]
     }
   }
 
   return {
-    visibility_scope: VISIBLE_SCOPE_PARTIAL,
-    agent_ids: [...formData.agent_ids]
+    whitelist: [...formData.agent_ids]
   }
 }
 
@@ -499,7 +488,7 @@ const handleSubmit = async () => {
     const visibilityPayload = buildVisibilityPayload()
 
     if (formData.id) {
-      const updateParams: UpdateMenuPayload = {
+      const updateParams: BatchUpdateBotMenuParams = {
         bot_id: 0,
         menus: [
           {
@@ -512,17 +501,17 @@ const handleSubmit = async () => {
         ]
       }
 
-      await batchUpdateBotMenu(updateParams as BatchUpdateBotMenuParams)
+      await batchUpdateBotMenu(updateParams)
       ElMessage.success('更新成功')
     } else {
-      const addParams: MenuPayload = {
+      const addParams: AddBotMenuParams = {
         menu_name: formData.menu_name,
         order_num: formData.order_num,
         status: formData.status,
         ...visibilityPayload
       }
 
-      await addBotMenu(addParams as AddBotMenuParams)
+      await addBotMenu(addParams)
       ElMessage.success('添加成功')
     }
 
@@ -573,7 +562,10 @@ const handleStatusChange = async (row: BotMenuItem) => {
           id: row.id,
           menu_name: row.menu_name,
           order_num: row.order_num,
-          status: row.status
+          status: row.status,
+          whitelist: Array.isArray(row.whitelist)
+            ? row.whitelist.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0)
+            : []
         }
       ]
     }

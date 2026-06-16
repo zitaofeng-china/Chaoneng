@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx'
+import * as XLSX from 'xlsx-js-style'
 import { ElMessage } from 'element-plus'
 
 /**
@@ -17,6 +17,8 @@ export interface ExportExcelOptions {
   sheetName?: string // 工作表名称，默认为 'Sheet1'
   columnWidths?: ColumnWidth[] // 列宽配置数组
   autoWidth?: boolean // 是否自动计算列宽，默认 true
+  merges?: XLSX.Range[] // 合并单元格配置
+  transformWorksheet?: (worksheet: XLSX.WorkSheet, headers: string[]) => void // 工作表二次处理
 }
 
 /**
@@ -54,7 +56,15 @@ function calculateColumnWidths(data: any[], headers: string[]): ColumnWidth[] {
  * @param options 导出配置
  */
 export function exportToExcel(options: ExportExcelOptions): void {
-  const { data, filename, sheetName = 'Sheet1', columnWidths, autoWidth = true } = options
+  const {
+    data,
+    filename,
+    sheetName = 'Sheet1',
+    columnWidths,
+    autoWidth = true,
+    merges,
+    transformWorksheet
+  } = options
 
   if (!data || data.length === 0) {
     ElMessage.warning('导出数据为空')
@@ -74,6 +84,12 @@ export function exportToExcel(options: ExportExcelOptions): void {
     worksheet['!cols'] = calculateColumnWidths(data, headers)
   }
 
+  if (merges && merges.length > 0) {
+    worksheet['!merges'] = merges
+  }
+
+  transformWorksheet?.(worksheet, headers)
+
   // 创建工作簿
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
@@ -87,10 +103,15 @@ export function exportToExcel(options: ExportExcelOptions): void {
  * @param data 数据数组
  * @param filename 文件名
  */
-export function simpleExportToExcel(data: any[], filename: string): void {
+export function simpleExportToExcel(
+  data: any[],
+  filename: string,
+  options?: Omit<ExportExcelOptions, 'data' | 'filename'>
+): void {
   exportToExcel({
     data,
     filename,
-    autoWidth: true
+    autoWidth: true,
+    ...options
   })
 }
