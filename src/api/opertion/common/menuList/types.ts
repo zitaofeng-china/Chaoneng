@@ -15,6 +15,7 @@ export interface BotMenuItem {
   menu_name: string
   order_num: number
   status: number // 1=启用, 2=禁用
+  whitelist?: number[]
 }
 
 /**
@@ -41,6 +42,7 @@ export interface AddBotMenuParams {
   menu_name: string
   order_num: number
   status: number // 1=启用, 2=禁用
+  whitelist?: number[]
 }
 
 /**
@@ -51,6 +53,7 @@ export interface UpdateBotMenuItemParams {
   menu_name: string
   order_num: number
   status: number
+  whitelist?: number[]
 }
 
 /**

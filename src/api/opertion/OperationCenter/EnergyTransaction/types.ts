@@ -80,51 +80,62 @@ export interface V2EnergyListResponse {
 export interface V2OrderSummary {
   order_id: string // 订单ID
   gift_bandwidth: boolean // 是否赠送带宽
+  duration?: number // 时长（秒）
   active_count: number // 激活数量
   energy_count: number // 数量
   used_count: number // 已使用数量
+  fee?: string | number // 手续费
+  cost?: string | number // 成本
+  profit?: string | number // 利润
 }
+
+export type V2OrderDateTimeValue = string | number | null
 
 /**
  * 订单资源详情
  */
 export interface V2OrderResource {
   id: number // 资源ID
-  created_at: string // 创建时间（ISO时间格式字符串）
-  updated_at: string // 更新时间（ISO时间格式字符串）
+  created_at: V2OrderDateTimeValue // 创建时间
+  updated_at: V2OrderDateTimeValue // 更新时间
   order_id: string // 订单ID
   amount: number // 数量
   target: string // 目标地址
   code: number // 状态码
   source: string // 来源地址
   balance: number // 余额
-  expirated_at: string // 过期时间（ISO时间格式字符串）
+  expirated_at: V2OrderDateTimeValue // 过期时间
   used_txid: string // 使用交易ID
+  actived_txid?: string // 激活交易ID
+  actived_at?: V2OrderDateTimeValue // 激活时间
   delegated_txid: string // 委托交易ID
-  delegated_at: string // 委托时间（ISO时间格式字符串）
+  delegated_at: V2OrderDateTimeValue // 委托时间
   recycled_txid: string // 回收交易ID
-  recycled_at: string // 回收时间（ISO时间格式字符串）
+  recycled_at: V2OrderDateTimeValue // 回收时间
 }
 
 /**
  * 订单详情响应
- * data 对象包含所有订单字段 + summary + resources + activations + exchange + transactions
+ * data 对象包含所有订单字段 + summary + resources + exchange + transactions
+ * 当前接口的激活信息主要挂在 resources[].actived_txid / resources[].actived_at 上
+ * activations 字段保留为兼容历史页面的可选字段
  */
 export interface V2OrderDetailResponse {
   id: string // 订单ID
-  created_at: string // 创建时间（ISO时间格式字符串）
-  updated_at: string // 更新时间（ISO时间格式字符串）
-  paid_at: string // 支付时间（ISO时间格式字符串）
+  created_at: V2OrderDateTimeValue // 创建时间
+  updated_at: V2OrderDateTimeValue // 更新时间
+  paid_at: V2OrderDateTimeValue // 支付时间
   kind: number // 类型
   status: number // 状态
   user_id: number // 用户ID
   agent_id: number // 代理ID
   bot_id: number // 机器人ID
-  amount: number // 金额
+  amount: string | number | null // 金额
   coin: string // 币种
   receive_address: string // 接收地址
   pay_id: string // 支付ID
-  cost: number // 成本
+  cost: string | number | null // 成本
+  fee?: string | number | null // 手续费
   describe: string // 描述
   agent_name: string // 代理名称
   bot_first_name: string // 机器人名字
@@ -133,7 +144,7 @@ export interface V2OrderDetailResponse {
   tg_first_name: string // TG名字
   summary: V2OrderSummary // 订单汇总信息
   resources: V2OrderResource[] // 订单资源列表
-  activations?: V2OrderActivation[] // 激活记录列表（可选，用于激活类型订单）
+  activations?: V2OrderActivation[] // 激活记录列表（兼容旧页面）
   exchange?: V2OrderExchange // 兑换信息（可选，用于兑换类型订单）
   deliver_transaction?: V2Transaction // 发放交易信息（可选）
   pay_transaction?: V2Transaction // 支付交易信息（可选）
@@ -146,10 +157,10 @@ export interface V2OrderActivation {
   id: number // 激活记录ID
   order_id: string // 订单ID
   target: string // 目标地址
-  actived_at: string // 激活时间（ISO时间格式字符串）
+  actived_at: V2OrderDateTimeValue // 激活时间
   actived_txid: string // 激活交易ID
-  created_at: string // 创建时间（ISO时间格式字符串）
-  updated_at: string // 更新时间（ISO时间格式字符串）
+  created_at: V2OrderDateTimeValue // 创建时间
+  updated_at: V2OrderDateTimeValue // 更新时间
 }
 
 /**
