@@ -127,11 +127,14 @@ const buildSchema = (type: number | string | undefined): FormSchema[] => {
     }
   }
 
+  const shouldShowLimit = formMode.value === 'add' || isThresholdPoolKind(numericType)
+
   let specificSchema: FormSchema[] = []
-  if (isThresholdPoolKind(numericType)) {
-    specificSchema = energyPoolSchema
-  } else if (isReceivePoolKind(numericType)) {
-    specificSchema = permissionNameSchema
+  if (shouldShowLimit) {
+    specificSchema = [...specificSchema, ...energyPoolSchema]
+  }
+  if (isReceivePoolKind(numericType)) {
+    specificSchema = [...specificSchema, ...permissionNameSchema]
   }
 
   return [configSchema, ...baseSchema, ...specificSchema]
@@ -188,7 +191,7 @@ const open = async (params: OpenParams) => {
     limit: undefined,
     permission_name: undefined
   }
-  if (isThresholdPoolKind(initialConfigType)) {
+  if (formMode.value === 'add' || isThresholdPoolKind(initialConfigType)) {
     valuesToSet.limit = currentData.value.limit ?? undefined
   }
   if (isReceivePoolKind(initialConfigType)) {
