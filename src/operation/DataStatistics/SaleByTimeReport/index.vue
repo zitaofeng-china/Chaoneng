@@ -29,17 +29,6 @@
         <div class="report-table-card">
           <div class="report-table-scroll">
             <table class="report-detail-table">
-              <colgroup>
-                <col style="width: 80px" />
-                <col style="width: 84px" />
-                <col style="width: 160px" />
-                <col style="width: 164px" />
-                <col style="width: 164px" />
-                <col style="width: 164px" />
-                <col style="width: 164px" />
-                <col style="width: 118px" />
-                <col style="width: 136px" />
-              </colgroup>
               <thead>
                 <tr>
                   <th>类型</th>
@@ -119,10 +108,9 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import dayjs from 'dayjs'
-import * as XLSX from 'xlsx'
 import { ElButton, ElDatePicker } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
-import { simpleExportToExcel } from '@/utils/excel'
+import { exportStyledAoaToExcel } from '@/utils/excel'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import {
   getSaleByTimeReport,
@@ -412,106 +400,89 @@ const handleExport = () => {
   }
 
   const exportRows = [
-    ...orderRowsWithRatio.value.map((row) => ({
-      类型: row.typeLabel,
-      类别: row.categoryLabel,
-      闪租: row.flashAmount,
-      按笔数: row.strokeAmount,
-      托管: row.hostedAmount,
-      福利: row.welfareAmount,
-      批量下单: row.batchAmount,
-      总计: row.totalAmount,
-      福利占比: row.ratioText
-    })),
-    {
-      类型: '订单数',
-      类别: '汇总',
-      闪租: summaryOrderMetrics.value.flashAmount,
-      按笔数: summaryOrderMetrics.value.strokeAmount,
-      托管: summaryOrderMetrics.value.hostedAmount,
-      福利: summaryOrderMetrics.value.welfareAmount,
-      批量下单: summaryOrderMetrics.value.batchAmount,
-      总计: summaryOrderTotal.value,
-      福利占比: formatPercent(summaryOrderRatio.value)
-    },
-    ...energyRowsWithRatio.value.map((row) => ({
-      类型: row.typeLabel,
-      类别: row.categoryLabel,
-      闪租: row.flashAmount,
-      按笔数: row.strokeAmount,
-      托管: row.hostedAmount,
-      福利: row.welfareAmount,
-      批量下单: row.batchAmount,
-      总计: row.totalAmount,
-      福利占比: row.ratioText
-    })),
-    {
-      类型: '能量数',
-      类别: '汇总',
-      闪租: summaryEnergyMetrics.value.flashAmount,
-      按笔数: summaryEnergyMetrics.value.strokeAmount,
-      托管: summaryEnergyMetrics.value.hostedAmount,
-      福利: summaryEnergyMetrics.value.welfareAmount,
-      批量下单: summaryEnergyMetrics.value.batchAmount,
-      总计: summaryEnergyTotal.value,
-      福利占比: formatPercent(summaryEnergyRatio.value)
-    }
+    ['类型', '类别', '闪租', '按笔数', '托管', '福利', '批量下单', '总计', '福利占比'],
+    ...orderRowsWithRatio.value.map((row) => [
+      row.typeLabel,
+      row.categoryLabel,
+      row.flashAmount,
+      row.strokeAmount,
+      row.hostedAmount,
+      row.welfareAmount,
+      row.batchAmount,
+      row.totalAmount,
+      row.ratioText
+    ]),
+    [
+      '订单数',
+      '汇总',
+      summaryOrderMetrics.value.flashAmount,
+      summaryOrderMetrics.value.strokeAmount,
+      summaryOrderMetrics.value.hostedAmount,
+      summaryOrderMetrics.value.welfareAmount,
+      summaryOrderMetrics.value.batchAmount,
+      summaryOrderTotal.value,
+      formatPercent(summaryOrderRatio.value)
+    ],
+    ...energyRowsWithRatio.value.map((row) => [
+      row.typeLabel,
+      row.categoryLabel,
+      row.flashAmount,
+      row.strokeAmount,
+      row.hostedAmount,
+      row.welfareAmount,
+      row.batchAmount,
+      row.totalAmount,
+      row.ratioText
+    ]),
+    [
+      '能量数',
+      '汇总',
+      summaryEnergyMetrics.value.flashAmount,
+      summaryEnergyMetrics.value.strokeAmount,
+      summaryEnergyMetrics.value.hostedAmount,
+      summaryEnergyMetrics.value.welfareAmount,
+      summaryEnergyMetrics.value.batchAmount,
+      summaryEnergyTotal.value,
+      formatPercent(summaryEnergyRatio.value)
+    ]
   ]
 
-  simpleExportToExcel(
-    exportRows,
-    `按时间销售报表_${dayjs(activeRange.value[0]).format('YYYYMMDD')}_${dayjs(activeRange.value[1]).format('YYYYMMDD')}`,
-    {
-      merges: [
-        { s: { r: 1, c: 0 }, e: { r: 3, c: 0 } },
-        { s: { r: 4, c: 0 }, e: { r: 6, c: 0 } }
-      ],
-      transformWorksheet: (worksheet) => {
-        const rangeRef = worksheet['!ref']
-        if (!rangeRef) return
+  exportStyledAoaToExcel({
+    data: exportRows,
+    filename: `按时间销售报表_${dayjs(activeRange.value[0]).format('YYYYMMDD')}_${dayjs(activeRange.value[1]).format('YYYYMMDD')}`,
+    sheetName: '按时间销售报表',
+    columnWidths: [
+      { wpx: 90 },
+      { wpx: 90 },
+      { wpx: 110 },
+      { wpx: 110 },
+      { wpx: 110 },
+      { wpx: 110 },
+      { wpx: 110 },
+      { wpx: 100 },
+      { wpx: 100 }
+    ],
+    rowHeights: [{ hpx: 36 }, ...exportRows.slice(1).map(() => ({ hpx: 32 }))],
+    merges: [
+      { s: { r: 1, c: 0 }, e: { r: 2, c: 0 } },
+      { s: { r: 4, c: 0 }, e: { r: 5, c: 0 } }
+    ],
+    highlightRows: [3, 6],
+    transformWorksheet: (worksheet) => {
+      ;['A2', 'A5'].forEach((cellAddress) => {
+        const cell = worksheet[cellAddress]
+        if (!cell) return
 
-        const range = XLSX.utils.decode_range(rangeRef)
-        const cellBorder = {
-          top: { style: 'thin', color: { rgb: 'D9E2EF' } },
-          right: { style: 'thin', color: { rgb: 'D9E2EF' } },
-          bottom: { style: 'thin', color: { rgb: 'D9E2EF' } },
-          left: { style: 'thin', color: { rgb: 'D9E2EF' } }
-        }
-
-        for (let row = range.s.r; row <= range.e.r; row += 1) {
-          for (let col = range.s.c; col <= range.e.c; col += 1) {
-            const cellAddress = XLSX.utils.encode_cell({ r: row, c: col })
-            const cell = worksheet[cellAddress]
-            if (!cell) continue
-
-            cell.s = {
-              ...(cell.s || {}),
-              border: cellBorder,
-              alignment: {
-                ...((cell.s as { alignment?: Record<string, unknown> } | undefined)?.alignment ||
-                  {}),
-                horizontal: 'center'
-              }
-            }
+        cell.s = {
+          ...(cell.s || {}),
+          alignment: {
+            horizontal: 'center',
+            vertical: 'center'
           }
         }
-
-        ;['A2', 'A5'].forEach((cellAddress) => {
-          const cell = worksheet[cellAddress]
-          if (!cell) return
-
-          cell.s = {
-            ...(cell.s || {}),
-            alignment: {
-              ...((cell.s as { alignment?: Record<string, unknown> } | undefined)?.alignment || {}),
-              horizontal: 'center',
-              vertical: 'center'
-            }
-          }
-        })
-      }
+      })
     }
-  )
+  })
   handleSuccessMessage('导出成功')
 }
 
@@ -567,17 +538,18 @@ onMounted(async () => {
 }
 
 .report-detail-table {
-  width: 100%;
-  min-width: 1234px;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .report-detail-table th,
 .report-detail-table td {
   height: 48px;
-  padding: 0 12px;
+  padding: 0 8px;
   text-align: center;
+  white-space: nowrap;
   vertical-align: middle;
   border: 1px solid #ebeef5;
 }

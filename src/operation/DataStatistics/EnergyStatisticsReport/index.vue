@@ -29,16 +29,6 @@
         <div class="report-table-card">
           <div class="report-table-scroll">
             <table class="energy-report-table">
-              <colgroup>
-                <col style="width: 150px" />
-                <col style="width: 150px" />
-                <col style="width: 130px" />
-                <col style="width: 150px" />
-                <col style="width: 150px" />
-                <col style="width: 126px" />
-                <col style="width: 202px" />
-                <col style="width: 118px" />
-              </colgroup>
               <thead>
                 <tr class="summary-row">
                   <td>数据汇总</td>
@@ -198,7 +188,7 @@ import dayjs from 'dayjs'
 import { ElButton, ElDatePicker } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { formatStatsDateLabel } from '@/utils/statsDate'
-import { simpleExportToExcel } from '@/utils/excel'
+import { exportStyledAoaToExcel } from '@/utils/excel'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import {
   getEnergyStatisticsReport,
@@ -406,32 +396,46 @@ const handleExport = () => {
   }
 
   const exportRows = [
-    {
-      日期: '数据汇总',
-      闪租: toNumber(summaryTotals.value.flash_energy),
-      按笔数: toNumber(summaryTotals.value.stroke_energy),
-      托管: toNumber(summaryTotals.value.hosting),
-      福利: toNumber(summaryTotals.value.weal_energy),
-      批量下单: toNumber(summaryTotals.value.batch_energy),
-      总计: toNumber(summaryTotals.value.total),
-      福利占比: formatPercent(summaryWelfareRatio.value)
-    },
-    ...displayedRows.value.map((row) => ({
-      日期: row.dateLabel,
-      闪租: row.flash_energy,
-      按笔数: row.stroke_energy,
-      托管: row.hosting,
-      福利: row.weal_energy,
-      批量下单: row.batch_energy,
-      总计: row.total,
-      福利占比: formatPercent(row.welfareRatio)
-    }))
+    ['日期', '闪租', '按笔数', '托管', '福利', '批量下单', '总计', '福利占比'],
+    [
+      '数据汇总',
+      toNumber(summaryTotals.value.flash_energy),
+      toNumber(summaryTotals.value.stroke_energy),
+      toNumber(summaryTotals.value.hosting),
+      toNumber(summaryTotals.value.weal_energy),
+      toNumber(summaryTotals.value.batch_energy),
+      toNumber(summaryTotals.value.total),
+      formatPercent(summaryWelfareRatio.value)
+    ],
+    ...displayedRows.value.map((row) => [
+      row.dateLabel,
+      row.flash_energy,
+      row.stroke_energy,
+      row.hosting,
+      row.weal_energy,
+      row.batch_energy,
+      row.total,
+      formatPercent(row.welfareRatio)
+    ])
   ]
 
-  simpleExportToExcel(
-    exportRows,
-    `能量统计报表_${dayjs(activeRange.value[0]).format('YYYYMMDD')}_${dayjs(activeRange.value[1]).format('YYYYMMDD')}`
-  )
+  exportStyledAoaToExcel({
+    data: exportRows,
+    filename: `能量统计报表_${dayjs(activeRange.value[0]).format('YYYYMMDD')}_${dayjs(activeRange.value[1]).format('YYYYMMDD')}`,
+    sheetName: '能量统计报表',
+    columnWidths: [
+      { wpx: 110 },
+      { wpx: 90 },
+      { wpx: 90 },
+      { wpx: 90 },
+      { wpx: 90 },
+      { wpx: 100 },
+      { wpx: 100 },
+      { wpx: 100 }
+    ],
+    rowHeights: [{ hpx: 36 }, ...exportRows.slice(1).map(() => ({ hpx: 32 }))],
+    highlightRows: [1]
+  })
   handleSuccessMessage('导出成功')
 }
 
@@ -487,19 +491,20 @@ onMounted(async () => {
 }
 
 .energy-report-table {
-  width: 1176px;
+  width: max-content;
   min-width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .energy-report-table th,
 .energy-report-table td {
   height: 46px;
-  padding: 0 12px;
+  padding: 0 8px;
   font-size: 14px;
   color: #1f2d3d;
   text-align: center;
+  white-space: nowrap;
   vertical-align: middle;
   border: 1px solid #dcdfe6;
 }
