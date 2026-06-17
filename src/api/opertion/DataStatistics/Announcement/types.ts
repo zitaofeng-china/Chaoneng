@@ -21,7 +21,7 @@ export interface AssetNotifyData {
 
 /** 更新资产通知配置参数 */
 export interface UpdateAssetNotifyParams {
-  chat_id: number | string
+  chat_id: number
   first_name?: string
   id?: number
   interval: number

@@ -81,7 +81,7 @@ export interface ResourcePoolNotifyData {
  * PUT /v1/pool/notify
  */
 export interface UpdateResourcePoolNotifyParams {
-  chat_id: number | string
+  chat_id: number
   first_name?: string
   id?: number
   status?: number
