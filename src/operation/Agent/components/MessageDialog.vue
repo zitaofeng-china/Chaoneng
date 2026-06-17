@@ -825,7 +825,6 @@ const handleConfirmSend = async (buttonLayout?: number[][]) => {
       bot_ids: botIds,
       content: formData.value.content,
       delete_sent: formData.value.delete_sent ? 1 : 2,
-      chat_ids: [],
       files: uploadedFiles.length > 0 ? uploadedFiles : [],
       inner_buttons: innerButtons.length > 0 ? innerButtons : [],
       period: formData.value.enable_period

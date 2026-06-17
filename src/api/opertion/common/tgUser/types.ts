@@ -158,7 +158,7 @@ export interface SendGroupMessageParamsV1 {
   content: string // 消息内容（必填）
   delete_sent: number // 删除上次发送的信息 1-删除 2-不删除（必填）
   files: string[] // 文件URL数组（必填，可以为空数组）
-  chat_ids: number[] // 聊天/群组ID数组（必填，可以为空数组）
+  chat_ids?: number[] // 聊天/群组ID数组（有选择时传递）
   inner_buttons: number[][] // 内联按钮二维布局（必填，可以为空数组）
   period: number // 间隔发送周期，以小时为最小单位，为0表示只发一次（必填）
   send_at: number // 发送时间（必填，Unix 时间戳-秒）
