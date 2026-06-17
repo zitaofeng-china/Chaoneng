@@ -59,7 +59,7 @@
 
             <ElTable
               ref="reportTableRef"
-              :data="sortedReportRows"
+              :data="reportRows"
               border
               class="report-table"
               empty-text="暂无数据"
@@ -117,13 +117,7 @@
                 align="center"
                 sortable="custom"
               />
-              <ElTableColumn
-                prop="welfareRatio"
-                label="福利占比"
-                min-width="120"
-                align="center"
-                sortable="custom"
-              >
+              <ElTableColumn prop="welfareRatio" label="福利占比" min-width="120" align="center">
                 <template #default="{ row }">
                   {{ row.welfareRatioText }}
                 </template>
@@ -137,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, type CSSProperties } from 'vue'
+import { onMounted, reactive, ref, type CSSProperties } from 'vue'
 import dayjs from 'dayjs'
 import { ElButton, ElDatePicker, ElTable, ElTableColumn } from 'element-plus'
 import type { TableColumnCtx } from 'element-plus'
@@ -162,7 +156,6 @@ type SortableField =
   | 'batchOrderCount'
   | 'activationOrderCount'
   | 'totalOrderCount'
-  | 'welfareRatio'
 
 interface SearchFormState {
   dateRange: DateRangeValue
@@ -193,7 +186,7 @@ interface SummaryTotals {
   welfareRatio: number
 }
 
-const SORT_FIELD_MAP: Record<Exclude<SortableField, 'welfareRatio'>, string> = {
+const SORT_FIELD_MAP: Record<SortableField, string> = {
   flashOrderCount: 'flash_energy',
   strokeOrderCount: 'stroke_energy',
   hostedOrderCount: 'hosting',
@@ -335,37 +328,11 @@ const bodyCellStyle = (): CSSProperties => {
   }
 }
 
-const sortedReportRows = computed(() => {
-  if (!sortState.prop || !sortState.order) {
-    return reportRows.value
-  }
-
-  if (sortState.prop !== 'welfareRatio') {
-    return reportRows.value
-  }
-
-  const rows = [...reportRows.value]
-  const factor = sortState.order === 'ascending' ? 1 : -1
-
-  rows.sort((left, right) => {
-    const leftValue = left[sortState.prop]
-    const rightValue = right[sortState.prop]
-
-    if (leftValue === rightValue) {
-      return right.date.localeCompare(left.date)
-    }
-
-    return (leftValue - rightValue) * factor
-  })
-
-  return rows
-})
-
 const buildParams = (range: DateRangeValue): OrderTypeStatisticsParams => {
   const params: OrderTypeStatisticsParams = toSecondRange(range)
 
   params.order =
-    sortState.prop && sortState.order && sortState.prop !== 'welfareRatio'
+    sortState.prop && sortState.order
       ? `${SORT_FIELD_MAP[sortState.prop]} ${sortState.order === 'ascending' ? 'ASC' : 'DESC'}`
       : DEFAULT_ORDER
 
@@ -431,7 +398,7 @@ const handleExport = () => {
       总计: summaryTotals.value.totalOrderCount,
       福利占比: formatPercent(summaryTotals.value.welfareRatio)
     },
-    ...sortedReportRows.value.map((row) => ({
+    ...reportRows.value.map((row) => ({
       日期: row.dateLabel,
       闪租: row.flashOrderCount,
       按笔数: row.strokeOrderCount,
@@ -466,8 +433,7 @@ const handleSortChange = async ({
     prop !== 'welfareOrderCount' &&
     prop !== 'batchOrderCount' &&
     prop !== 'activationOrderCount' &&
-    prop !== 'totalOrderCount' &&
-    prop !== 'welfareRatio'
+    prop !== 'totalOrderCount'
   ) {
     sortState.prop = ''
     sortState.order = null
@@ -476,10 +442,7 @@ const handleSortChange = async ({
 
   sortState.prop = prop
   sortState.order = order
-
-  if (prop !== 'welfareRatio') {
-    await loadData(activeRange.value)
-  }
+  await loadData(activeRange.value)
 }
 
 onMounted(async () => {
