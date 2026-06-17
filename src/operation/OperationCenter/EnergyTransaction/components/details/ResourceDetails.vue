@@ -153,9 +153,10 @@ const resourceTableSchema = computed((): TableColumn[] => {
       ...baseColumns,
       lifecycleColumns[0],
       lifecycleColumns[1],
-      ...activationColumns,
+      activationColumns[0],
       lifecycleColumns[2],
-      lifecycleColumns[3]
+      lifecycleColumns[3],
+      activationColumns[1]
     ]
   }
 

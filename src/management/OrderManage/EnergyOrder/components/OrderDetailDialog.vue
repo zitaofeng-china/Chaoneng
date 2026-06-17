@@ -245,9 +245,16 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
     },
     {
       field: 'energy_amount',
-      label: '能量数',
+      label: (() => {
+        const kind = Number(orderDetail.value?.kind)
+        return kind === 7 || kind === 9 ? '带宽数' : '能量数'
+      })(),
       slots: {
-        default: (data: any) => h('span', {}, formatEnergyNum(data.energy_amount))
+        default: (data: any) => {
+          const value =
+            data?.resources?.[0]?.amount ?? data?.summary?.energy_count ?? data.energy_amount
+          return h('span', {}, formatEnergyNum(value))
+        }
       }
     },
     {

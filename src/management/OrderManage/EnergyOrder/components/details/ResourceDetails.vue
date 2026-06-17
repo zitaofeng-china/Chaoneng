@@ -5,7 +5,13 @@ import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
-import { formatToDateTime } from '@/utils/dateUtil'
+import { formatTableDateTime } from '@/utils/tableHelpers'
+import {
+  EnergyOrderKind,
+  formatEnergyAmount,
+  getResourceTypeTagType,
+  getResourceTypeText
+} from '@/utils/energyOrder'
 
 const props = defineProps({
   orderData: {
@@ -18,8 +24,17 @@ const props = defineProps({
 const currentPage = ref(1)
 const pageSize = ref(10)
 
+const isActivationOrder = computed(
+  () => Number(props.orderData?.kind) === EnergyOrderKind.BATCH_ACTIVE
+)
+const isBatchOrder = computed(() => Number(props.orderData?.kind) === EnergyOrderKind.BATCH_ENERGY)
+
 // 汇总信息 schema
 const summarySchema = computed((): DescriptionsSchema[] => {
+  if (isActivationOrder.value) {
+    return []
+  }
+
   const baseSchema: DescriptionsSchema[] = [
     {
       field: 'summary.energy_count',
@@ -44,72 +59,68 @@ const summarySchema = computed((): DescriptionsSchema[] => {
   return baseSchema
 })
 
-// 资源列表表格列
-const resourceTableSchema = computed((): TableColumn[] => [
-  {
-    field: 'code',
-    label: '类型',
-    align: 'center',
-    width: 100,
-    slots: {
-      default: ({ row }) => {
-        const typeMap: Record<number, string> = {
-          1: '能量',
-          0: '带宽'
-        }
-        const typeColorMap: Record<number, 'success' | 'warning' | 'info' | 'danger' | 'primary'> =
+const renderTronscanLink = (txid?: string | number | null) => {
+  const normalizedTxid = String(txid ?? '').trim()
+  if (!normalizedTxid) return h('span', '-')
+
+  return h(
+    ElTooltip,
+    {
+      content: normalizedTxid,
+      placement: 'top'
+    },
+    {
+      default: () =>
+        h(
+          'a',
           {
-            1: 'primary',
-            0: 'success'
-          }
-        const type = Number(row.code)
-        const text = typeMap[type] || '未知'
-        const tagType = typeColorMap[type] || 'info'
-        return h(ElTag, { type: tagType, size: 'small' }, () => text)
-      }
+            href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${normalizedTxid}`,
+            target: '_blank',
+            style: 'color: #409eff; cursor: pointer; text-decoration: none;'
+          },
+          '点击跳转'
+        )
     }
-  },
-  {
-    field: 'amount',
-    label: '数量',
-    align: 'center',
-    width: 120,
-    formatter: (row) => (row.amount ? row.amount.toLocaleString() : '0')
-  },
-  {
-    field: 'target',
-    label: '接收地址',
-    minWidth: 180,
-    showOverflowTooltip: false
-  },
+  )
+}
+
+const typeColumn: TableColumn = {
+  field: 'code',
+  label: '类型',
+  align: 'center',
+  width: 100,
+  slots: {
+    default: ({ row }) => {
+      const text = getResourceTypeText(row.code)
+      const tagType = getResourceTypeTagType(row.code)
+      return h(ElTag, { type: tagType, size: 'small' }, () => text)
+    }
+  }
+}
+
+const amountColumn: TableColumn = {
+  field: 'amount',
+  label: '数量',
+  align: 'center',
+  width: 120,
+  formatter: (row) => formatEnergyAmount(row.amount, '0')
+}
+
+const targetColumn: TableColumn = {
+  field: 'target',
+  label: '接收地址',
+  minWidth: 180,
+  showOverflowTooltip: false
+}
+
+const lifecycleColumns: TableColumn[] = [
   {
     field: 'delegated_txid',
     label: '发送hash',
     width: 120,
     align: 'center',
     slots: {
-      default: ({ row }) => {
-        if (!row.delegated_txid) return h('span', '-')
-        return h(
-          ElTooltip,
-          {
-            content: row.delegated_txid,
-            placement: 'top'
-          },
-          {
-            default: () =>
-              h(
-                'a',
-                {
-                  href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${row.delegated_txid}`,
-                  target: '_blank',
-                  style: 'color: #409eff; cursor: pointer; text-decoration: none;'
-                },
-                '点击跳转'
-              )
-          }
-        )
-      }
+      default: ({ row }) => renderTronscanLink(row.delegated_txid)
     }
   },
   {
@@ -118,45 +129,64 @@ const resourceTableSchema = computed((): TableColumn[] => [
     width: 120,
     align: 'center',
     slots: {
-      default: ({ row }) => {
-        if (!row.recycled_txid) return h('span', '-')
-        return h(
-          ElTooltip,
-          {
-            content: row.recycled_txid,
-            placement: 'top'
-          },
-          {
-            default: () =>
-              h(
-                'a',
-                {
-                  href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${row.recycled_txid}`,
-                  target: '_blank',
-                  style: 'color: #409eff; cursor: pointer; text-decoration: none;'
-                },
-                '点击跳转'
-              )
-          }
-        )
-      }
+      default: ({ row }) => renderTronscanLink(row.recycled_txid)
     }
   },
   {
     field: 'delegated_at',
     label: '发放时间',
     width: 160,
-    formatter: (row) =>
-      row.delegated_at ? formatToDateTime(new Date(row.delegated_at).getTime()) : '-'
+    formatter: (row) => formatTableDateTime(row.delegated_at)
   },
   {
     field: 'recycled_at',
     label: '回收时间',
     width: 160,
-    formatter: (row) =>
-      row.recycled_at ? formatToDateTime(new Date(row.recycled_at).getTime()) : '-'
+    formatter: (row) => formatTableDateTime(row.recycled_at)
   }
-])
+]
+
+const activationColumns: TableColumn[] = [
+  {
+    field: 'actived_txid',
+    label: '激活hash',
+    width: 120,
+    align: 'center',
+    slots: {
+      default: ({ row }) => renderTronscanLink(row.actived_txid)
+    }
+  },
+  {
+    field: 'actived_at',
+    label: '激活时间',
+    width: 160,
+    formatter: (row) => formatTableDateTime(row.actived_at)
+  }
+]
+
+const baseColumns: TableColumn[] = [typeColumn, amountColumn, targetColumn]
+const activationBaseColumns: TableColumn[] = [targetColumn]
+
+// 代理端批量下单和激活订单的资源详情列与运营端保持一致
+const resourceTableSchema = computed((): TableColumn[] => {
+  if (isActivationOrder.value) {
+    return [...activationBaseColumns, ...activationColumns]
+  }
+
+  if (isBatchOrder.value) {
+    return [
+      ...baseColumns,
+      lifecycleColumns[0],
+      lifecycleColumns[1],
+      activationColumns[0],
+      lifecycleColumns[2],
+      lifecycleColumns[3],
+      activationColumns[1]
+    ]
+  }
+
+  return [...baseColumns, ...lifecycleColumns]
+})
 
 // 获取资源列表数据（完整列表）
 const fullResourceList = computed(() => {
@@ -189,10 +219,16 @@ const handleSizeChange = (size: number) => {
 <template>
   <div v-if="orderData">
     <!-- 汇总信息 -->
-    <Descriptions :schema="summarySchema" :data="orderData" :column="2" border />
+    <Descriptions
+      v-if="summarySchema.length > 0"
+      :schema="summarySchema"
+      :data="orderData"
+      :column="2"
+      border
+    />
 
     <!-- 资源列表 -->
-    <div class="mt-20px">
+    <div :class="{ 'mt-20px': summarySchema.length > 0 }">
       <Table
         :columns="resourceTableSchema"
         :data="paginatedResourceList"

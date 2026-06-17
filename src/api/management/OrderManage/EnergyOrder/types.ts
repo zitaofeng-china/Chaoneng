@@ -103,6 +103,8 @@ export interface ResourceDetail {
   balance: number // 余额
   expirated_at: number // 过期时间（Unix时间戳-秒）
   used_txid: string // 使用交易hash
+  actived_txid?: string // 激活交易hash（批量下单/激活订单）
+  actived_at?: number | null // 激活时间（Unix时间戳-秒，可为null）
   delegated_txid: string // 委托交易hash
   delegated_at: number // 委托时间（Unix时间戳-秒）
   recycled_txid: string // 回收交易hash
