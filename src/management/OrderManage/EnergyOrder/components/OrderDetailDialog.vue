@@ -298,19 +298,19 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
       }
     },
     {
-      field: 'updated_at',
-      label: '完成时间',
-      slots: {
-        default: (data: any) =>
-          h('span', {}, data.updated_at ? formatToDateTime(data.updated_at) : '-')
-      }
-    },
-    {
       field: 'recycle_time',
       label: '回收时间',
       slots: {
         default: (data: any) =>
           h('span', {}, data.recycle_time ? formatToDateTime(data.recycle_time) : '-')
+      }
+    },
+    {
+      field: 'updated_at',
+      label: '完成时间',
+      slots: {
+        default: (data: any) =>
+          h('span', {}, data.updated_at ? formatToDateTime(data.updated_at) : '-')
       }
     },
     { field: 'describe', label: '描述' }

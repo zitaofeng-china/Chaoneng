@@ -137,14 +137,6 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
     slots: { default: (data: V2OrderDetailResponse) => renderNullableText(getEnergyRentText(data)) }
   },
   {
-    label: '回收时间',
-    field: 'resources',
-    slots: {
-      default: (data: V2OrderDetailResponse) =>
-        renderNullableText(formatTableDateTime(data?.resources?.[0]?.recycled_at))
-    }
-  },
-  {
     label: '创建时间',
     field: 'created_at',
     slots: {
@@ -153,19 +145,27 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
     }
   },
   {
-    label: '完成时间',
-    field: 'updated_at',
-    slots: {
-      default: (data: V2OrderDetailResponse) =>
-        renderNullableText(formatTableDateTime(data?.updated_at))
-    }
-  },
-  {
     label: '支付时间',
     field: 'paid_at',
     slots: {
       default: (data: V2OrderDetailResponse) =>
         renderNullableText(formatTableDateTime(data?.paid_at))
+    }
+  },
+  {
+    label: '回收时间',
+    field: 'resources',
+    slots: {
+      default: (data: V2OrderDetailResponse) =>
+        renderNullableText(formatTableDateTime(data?.resources?.[0]?.recycled_at))
+    }
+  },
+  {
+    label: '完成时间',
+    field: 'updated_at',
+    slots: {
+      default: (data: V2OrderDetailResponse) =>
+        renderNullableText(formatTableDateTime(data?.updated_at))
     }
   }
 ])
