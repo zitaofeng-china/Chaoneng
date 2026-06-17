@@ -46,6 +46,13 @@ import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/u
 const formRef = ref()
 const searchTableRef = ref()
 
+const formatPoolAmount = (value) => {
+  if (value === undefined || value === null || value === '') return '-'
+
+  const numericValue = Number(value)
+  return Number.isFinite(numericValue) ? Math.floor(numericValue) : value
+}
+
 const resourceTypeMap = {
   1: 'TRX池子',
   2: 'USDT池子',
@@ -83,19 +90,16 @@ const columns = ref<TableColumn[]>([
     label: '可用数量/阈值',
     minWidth: '180px',
     formatter: (row) => {
-      const amount = row.amount ?? '-'
-      const limit = row.limit == 0 ? '-' : row.limit
-      const displayValue = row.kind === 3 ? `${amount} / ${limit}` : `${amount}`
+      const amount = formatPoolAmount(row.amount)
+      const limit =
+        row.limit === undefined || row.limit === null || row.limit === '' ? 0 : row.limit
+      const displayValue = `${amount} / ${limit}`
 
-      if (row.kind === 3) {
-        return (
-          <span onDblclick={() => handleEditThreshold(row)} style={{ cursor: 'pointer' }}>
-            {displayValue}
-          </span>
-        )
-      } else {
-        return <span>{displayValue}</span>
-      }
+      return (
+        <span onDblclick={() => handleEditThreshold(row)} style={{ cursor: 'pointer' }}>
+          {displayValue}
+        </span>
+      )
     }
   },
   {
@@ -358,16 +362,15 @@ const handleSuccess = () => {
 }
 
 const handleEditThreshold = async (row) => {
-  if (row.kind !== 3) return
-
   try {
+    const currentThreshold = Number(row.limit) || 0
     const { value } = await ElMessageBox.prompt(
       '请输入新的阈值 (输入0或留空表示不设阈值)',
       '编辑阈值',
       {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
-        inputValue: row.limit === 0 ? '' : String(row.limit),
+        inputValue: currentThreshold === 0 ? '' : String(currentThreshold),
         inputPattern: /^\d*$/,
         inputErrorMessage: '请输入有效的非负整数'
       }
@@ -379,7 +382,7 @@ const handleEditThreshold = async (row) => {
 
     const newThreshold = value === '' ? 0 : parseInt(value, 10)
 
-    if (newThreshold === row.limit) {
+    if (newThreshold === currentThreshold) {
       ElMessage.info('阈值未改变')
       return
     }
