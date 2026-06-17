@@ -31,6 +31,10 @@ const isActivationOrder = computed(
 const isBatchOrder = computed(() => Number(props.orderData?.kind) === EnergyOrderKind.BATCH_ENERGY)
 
 const summarySchema = computed((): DescriptionsSchema[] => {
+  if (isActivationOrder.value) {
+    return []
+  }
+
   const baseSchema: DescriptionsSchema[] = [
     {
       field: 'summary.energy_count',
@@ -86,7 +90,7 @@ const targetColumn: TableColumn = {
 }
 
 const baseColumns: TableColumn[] = [typeColumn, amountColumn, targetColumn]
-const activationBaseColumns: TableColumn[] = [targetColumn, amountColumn]
+const activationBaseColumns: TableColumn[] = [targetColumn]
 
 const lifecycleColumns: TableColumn[] = [
   {
@@ -174,9 +178,15 @@ const {
 
 <template>
   <div v-if="orderData">
-    <Descriptions :schema="summarySchema" :data="orderData" :column="2" border />
+    <Descriptions
+      v-if="summarySchema.length > 0"
+      :schema="summarySchema"
+      :data="orderData"
+      :column="2"
+      border
+    />
 
-    <div class="mt-20px">
+    <div :class="{ 'mt-20px': summarySchema.length > 0 }">
       <Table
         :columns="resourceTableSchema"
         :data="paginatedResourceList"

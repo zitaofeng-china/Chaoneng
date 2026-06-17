@@ -412,6 +412,17 @@ const handleExport = () => {
   }
 
   const exportRows = [
+    ...orderRowsWithRatio.value.map((row) => ({
+      类型: row.typeLabel,
+      类别: row.categoryLabel,
+      闪租: row.flashAmount,
+      按笔数: row.strokeAmount,
+      托管: row.hostedAmount,
+      福利: row.welfareAmount,
+      批量下单: row.batchAmount,
+      总计: row.totalAmount,
+      福利占比: row.ratioText
+    })),
     {
       类型: '订单数',
       类别: '汇总',
@@ -423,7 +434,7 @@ const handleExport = () => {
       总计: summaryOrderTotal.value,
       福利占比: formatPercent(summaryOrderRatio.value)
     },
-    ...orderRowsWithRatio.value.map((row) => ({
+    ...energyRowsWithRatio.value.map((row) => ({
       类型: row.typeLabel,
       类别: row.categoryLabel,
       闪租: row.flashAmount,
@@ -444,18 +455,7 @@ const handleExport = () => {
       批量下单: summaryEnergyMetrics.value.batchAmount,
       总计: summaryEnergyTotal.value,
       福利占比: formatPercent(summaryEnergyRatio.value)
-    },
-    ...energyRowsWithRatio.value.map((row) => ({
-      类型: row.typeLabel,
-      类别: row.categoryLabel,
-      闪租: row.flashAmount,
-      按笔数: row.strokeAmount,
-      托管: row.hostedAmount,
-      福利: row.welfareAmount,
-      批量下单: row.batchAmount,
-      总计: row.totalAmount,
-      福利占比: row.ratioText
-    }))
+    }
   ]
 
   simpleExportToExcel(
@@ -471,6 +471,13 @@ const handleExport = () => {
         if (!rangeRef) return
 
         const range = XLSX.utils.decode_range(rangeRef)
+        const cellBorder = {
+          top: { style: 'thin', color: { rgb: 'D9E2EF' } },
+          right: { style: 'thin', color: { rgb: 'D9E2EF' } },
+          bottom: { style: 'thin', color: { rgb: 'D9E2EF' } },
+          left: { style: 'thin', color: { rgb: 'D9E2EF' } }
+        }
+
         for (let row = range.s.r; row <= range.e.r; row += 1) {
           for (let col = range.s.c; col <= range.e.c; col += 1) {
             const cellAddress = XLSX.utils.encode_cell({ r: row, c: col })
@@ -479,6 +486,7 @@ const handleExport = () => {
 
             cell.s = {
               ...(cell.s || {}),
+              border: cellBorder,
               alignment: {
                 ...((cell.s as { alignment?: Record<string, unknown> } | undefined)?.alignment ||
                   {}),
