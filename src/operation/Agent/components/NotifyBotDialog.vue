@@ -214,11 +214,11 @@ const resourcePoolRules: FormRules = {
       validator: (_rule, value, callback) => {
         const chatId = String(value || '').trim()
         if (!chatId) {
-          callback(new Error('请输入接收消息对象ID'))
+          callback(new Error('请输入接收消息对象ID，只可以输入数字'))
           return
         }
         if (!CHAT_ID_PATTERN.test(chatId)) {
-          callback(new Error('接收消息对象ID只能输入数字，可在开头输入负号'))
+          callback(new Error('接收消息对象ID只可以输入数字，可在开头输入负号'))
           return
         }
         if (!Number.isSafeInteger(Number(chatId))) {
