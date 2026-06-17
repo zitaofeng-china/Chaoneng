@@ -1,21 +1,15 @@
 import request from '@/axios'
-import type {
-  AutoManageAddressListParams,
-  AutoManageAddressItem,
-  HostingListParamsV1,
-  HostingListResponseV1,
-  RemoveHostingParamsV1
-} from './types'
+import type { HostingListParamsV1, HostingListResponseV1, RemoveHostingParamsV1 } from './types'
 
 // 导出类型定义
 export * from './types'
 
-// ========== 新接口 v1 ==========
+// ========== 托管地址接口 v1 ==========
 
 const BASE_URL = '/v1/hosting/'
 
 /**
- * 获取托管列表 - 新接口 v1
+ * 获取托管列表
  * GET /v1/hosting/list
  */
 export const v1GetHostingList = (
@@ -28,7 +22,7 @@ export const v1GetHostingList = (
 }
 
 /**
- * 删除托管地址 - 新接口 v1
+ * 删除托管地址
  * POST /v1/hosting/remove
  */
 export const v1RemoveHosting = (data: RemoveHostingParamsV1): Promise<IResponse> => {
@@ -37,24 +31,3 @@ export const v1RemoveHosting = (data: RemoveHostingParamsV1): Promise<IResponse>
     data
   })
 }
-
-// ========== 旧接口 ==========
-
-// 获取tg用户智能托管地址列表
-export const getAutoManageAddressListApi = (params: AutoManageAddressListParams) => {
-  return request.get<{ list: AutoManageAddressItem[]; totalCount: number }>({
-    url: '/v1/bot/tg_user/auto_manage/list',
-    params
-  })
-}
-
-// 取消智能托管地址
-export const deleteAutoManageAddressApi = (id: number) => {
-  return request.post<boolean>({
-    // 假设返回boolean表示成功与否
-    url: '/v1/bot/tg_user/auto_manage/delete',
-    data: { id } // 通常POST删除会将ID放在body中
-  })
-}
-
-// getBotOptionsForHostedListApi function removed as it's no longer used.

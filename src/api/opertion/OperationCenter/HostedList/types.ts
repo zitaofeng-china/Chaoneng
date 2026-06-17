@@ -36,19 +36,23 @@ export interface HostingItemV2 {
   agent_name: string // 代理名称
   bot_id: number // 机器人ID
   bot_name: string // 机器人名称
-  created_at: string // 创建时间
+  count?: number // 当日已用次数
+  created_at: number | string // 创建时间（Unix 时间戳或日期字符串）
+  email?: string // 用户邮箱
   id: number // 托管ID
   order_id: string // 订单ID
-  updated_at: string // 更新时间
+  updated_at: number | string // 更新时间（Unix 时间戳或日期字符串）
   user_id: number // 用户ID
   tg_user_name: string // 用户名
   username?: string // 用户账号
-  email?: string // 用户邮箱
   origin?: number // 来源（1=机器人，2=H5）
   kind?: number // 托管类型（20=托管，21=托管速充）
   status?: number // 状态（1=启用，2=禁用）
   minimum?: number | string // 最小值
   maximum?: number | string // 最大值
+  threshold?: number // 阈值
+  today_count?: number // 今日使用次数
+  total?: number // 总次数
 }
 
 /**

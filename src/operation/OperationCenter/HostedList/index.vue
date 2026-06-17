@@ -58,12 +58,12 @@ type HostingSearchParams = Omit<HostingListParamsV2, 'bot_id' | 'origin' | 'kind
 
 const HOSTING_TYPE_OPTIONS = withAllOption([
   { label: '托管速充', value: 21 },
-  { label: '托管', value: 20 }
+  { label: '托管能量', value: 20 }
 ])
 
 const HOSTING_TYPE_MAP: Record<number, string> = {
   21: '托管速充',
-  20: '托管'
+  20: '托管能量'
 }
 
 const HOSTING_STATUS_OPTIONS = withAllOption([
@@ -195,6 +195,12 @@ const columns = computed(() => {
       label: '最大值',
       width: 120,
       formatter: (row: HostingItemV2) => row.maximum ?? '-'
+    },
+    {
+      field: 'threshold',
+      label: '阈值',
+      width: 120,
+      formatter: (row: HostingItemV2) => row.threshold ?? '-'
     },
     {
       field: 'created_at',
