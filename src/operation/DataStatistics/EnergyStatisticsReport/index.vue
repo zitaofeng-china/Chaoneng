@@ -166,25 +166,7 @@
                       </span>
                     </button>
                   </th>
-                  <th>
-                    <button type="button" class="sort-header" @click="handleSort('welfareRatio')">
-                      福利占比
-                      <span class="sort-icon" aria-hidden="true">
-                        <i
-                          class="sort-caret sort-caret-up"
-                          :class="{
-                            active: sortState.prop === 'welfareRatio' && sortState.order === 'ASC'
-                          }"
-                        ></i>
-                        <i
-                          class="sort-caret sort-caret-down"
-                          :class="{
-                            active: sortState.prop === 'welfareRatio' && sortState.order === 'DESC'
-                          }"
-                        ></i>
-                      </span>
-                    </button>
-                  </th>
+                  <th> 福利占比 </th>
                 </tr>
               </thead>
               <tbody>
@@ -234,7 +216,6 @@ type SortableField =
   | 'weal_energy'
   | 'batch_energy'
   | 'total'
-  | 'welfareRatio'
 
 const SORT_FIELD_MAP: Record<SortableField, string> = {
   flash_energy: 'flash_energy',
@@ -242,8 +223,7 @@ const SORT_FIELD_MAP: Record<SortableField, string> = {
   hosting: 'hosting',
   weal_energy: 'weal_energy',
   batch_energy: 'batch_energy',
-  total: 'total',
-  welfareRatio: 'welfare_ratio'
+  total: 'total'
 }
 const DEFAULT_ORDER = 'date DESC'
 interface SearchFormState {
@@ -348,20 +328,7 @@ const summaryWelfareRatio = computed(() => {
   return total > 0 ? wealEnergy / total : 0
 })
 
-const displayedRows = computed(() => {
-  if (sortState.prop !== 'welfareRatio' || !sortState.order) {
-    return reportRows.value
-  }
-
-  const direction = sortState.order === 'ASC' ? 1 : -1
-  return [...reportRows.value].sort((left, right) => {
-    if (left.welfareRatio === right.welfareRatio) {
-      return right.date.localeCompare(left.date)
-    }
-
-    return (left.welfareRatio - right.welfareRatio) * direction
-  })
-})
+const displayedRows = computed(() => reportRows.value)
 
 const formatCount = (value: number | string | undefined) => {
   return toNumber(value).toLocaleString('zh-CN')
@@ -375,7 +342,7 @@ const buildParams = (range: DateRangeValue): EnergyStatisticsReportParams => {
   const params: EnergyStatisticsReportParams = toSecondRange(range)
 
   params.order =
-    sortState.prop && sortState.order && sortState.prop !== 'welfareRatio'
+    sortState.prop && sortState.order
       ? `${SORT_FIELD_MAP[sortState.prop]} ${sortState.order}`
       : DEFAULT_ORDER
 
@@ -429,9 +396,7 @@ const handleSort = async (field: SortableField) => {
     sortState.order = 'DESC'
   }
 
-  if (field !== 'welfareRatio') {
-    await loadData(activeRange.value)
-  }
+  await loadData(activeRange.value)
 }
 
 const handleExport = () => {
