@@ -66,8 +66,11 @@
               <ElInput
                 v-model="resourcePoolForm.chat_id"
                 clearable
+                inputmode="numeric"
+                pattern="-?[0-9]*"
                 placeholder="请输入接收消息对象ID"
                 style="width: 100%"
+                @input="handleChatIdInput"
               />
             </ElFormItem>
             <ElFormItem v-if="isResourcePoolMode" label="通知状态" prop="status">
@@ -183,6 +186,7 @@ const resourcePoolForm = ref({
   interval: 30,
   status: 1
 })
+const CHAT_ID_PATTERN = /^-?\d+$/
 const NOTIFY_STATUS_LABEL_MAP: Record<number, string> = {
   1: '启用',
   2: '禁用'
@@ -205,7 +209,27 @@ const getNotifyStatusClass = (status?: number) =>
 
 const resourcePoolRules: FormRules = {
   token: [{ required: true, message: '请输入机器人 Token', trigger: 'blur' }],
-  chat_id: [{ required: true, message: '请输入接收消息对象ID', trigger: 'blur' }]
+  chat_id: [
+    {
+      validator: (_rule, value, callback) => {
+        const chatId = String(value || '').trim()
+        if (!chatId) {
+          callback(new Error('请输入接收消息对象ID'))
+          return
+        }
+        if (!CHAT_ID_PATTERN.test(chatId)) {
+          callback(new Error('接收消息对象ID只能输入数字，可在开头输入负号'))
+          return
+        }
+        if (!Number.isSafeInteger(Number(chatId))) {
+          callback(new Error('接收消息对象ID超出有效数字范围'))
+          return
+        }
+        callback()
+      },
+      trigger: ['blur', 'change']
+    }
+  ]
 }
 const currentBotInfo = computed(() => {
   if (isResourcePoolMode.value) return resourcePoolBotInfo.value
@@ -279,6 +303,19 @@ const copyToken = () => {
   handleSuccessMessage('Token 已复制')
 }
 
+const normalizeChatIdInput = (value: string | number) => {
+  const text = String(value || '')
+  const sign = text.trimStart().startsWith('-') ? '-' : ''
+  const digits = text.replace(/\D/g, '')
+  return `${sign}${digits}`
+}
+
+const handleChatIdInput = (value: string) => {
+  resourcePoolForm.value.chat_id = normalizeChatIdInput(value)
+}
+
+const getChatIdNumber = () => Number(resourcePoolForm.value.chat_id.trim())
+
 const handleSave = async () => {
   submitting.value = true
   try {
@@ -288,7 +325,7 @@ const handleSave = async () => {
 
       await updateResourcePoolNotify({
         token: resourcePoolForm.value.token.trim(),
-        chat_id: resourcePoolForm.value.chat_id.trim(),
+        chat_id: getChatIdNumber(),
         status: Number(resourcePoolForm.value.status) === 2 ? 2 : 1
       })
       handleSuccessMessage('通知配置保存成功')
@@ -298,7 +335,7 @@ const handleSave = async () => {
 
       await updateAssetNotify({
         token: resourcePoolForm.value.token.trim(),
-        chat_id: resourcePoolForm.value.chat_id.trim(),
+        chat_id: getChatIdNumber(),
         interval: Number(resourcePoolForm.value.interval) || 30
       })
       handleSuccessMessage('通知配置保存成功')
