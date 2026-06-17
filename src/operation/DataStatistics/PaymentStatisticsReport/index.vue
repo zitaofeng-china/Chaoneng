@@ -29,17 +29,6 @@
         <div class="report-table-card">
           <div class="report-table-scroll">
             <table class="payment-report-table">
-              <colgroup>
-                <col style="width: 160px" />
-                <col style="width: 120px" />
-                <col style="width: 120px" />
-                <col style="width: 120px" />
-                <col style="width: 120px" />
-                <col style="width: 120px" />
-                <col style="width: 120px" />
-                <col style="width: 120px" />
-                <col style="width: 120px" />
-              </colgroup>
               <thead>
                 <tr class="group-header-row">
                   <th rowspan="2">日期</th>
@@ -86,9 +75,9 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import dayjs from 'dayjs'
+import * as XLSX from 'xlsx-js-style'
 import { ElButton, ElDatePicker } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
-import { simpleExportToExcel } from '@/utils/excel'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import { formatStatsDateLabel } from '@/utils/statsDate'
 import {
@@ -116,6 +105,19 @@ interface ReportRow {
   orderByWallet: number
   orderWalletRatio: number
 }
+
+const EXPORT_HEADER_ROWS = [
+  ['日期', '订单数', '', '订单数占比', '', '能量数', '', '能量数占比', ''],
+  ['', '转账', '非转账', '转账', '非转账', '转账', '非转账', '转账', '非转账']
+]
+
+const EXPORT_MERGES: XLSX.Range[] = [
+  { s: { r: 0, c: 0 }, e: { r: 1, c: 0 } },
+  { s: { r: 0, c: 1 }, e: { r: 0, c: 2 } },
+  { s: { r: 0, c: 3 }, e: { r: 0, c: 4 } },
+  { s: { r: 0, c: 5 }, e: { r: 0, c: 6 } },
+  { s: { r: 0, c: 7 }, e: { r: 0, c: 8 } }
+]
 
 const createDefaultRange = (): DateRangeValue => {
   const endDate = dayjs().format('YYYY-MM-DD')
@@ -178,6 +180,79 @@ const formatPercent = (value: number) => {
   return `${(value * 100).toFixed(2)}%`
 }
 
+const exportPaymentStatisticsReport = (rows: ReportRow[], filename: string) => {
+  const sheetData = [
+    ...EXPORT_HEADER_ROWS,
+    ...rows.map((row) => [
+      row.dateLabel,
+      formatCount(row.orderByWallet),
+      formatCount(row.orderByBalance),
+      formatPercent(row.orderWalletRatio),
+      formatPercent(row.orderBalanceRatio),
+      formatCount(row.energyByWallet),
+      formatCount(row.energyByBalance),
+      formatPercent(row.energyWalletRatio),
+      formatPercent(row.energyBalanceRatio)
+    ])
+  ]
+  const worksheet = XLSX.utils.aoa_to_sheet(sheetData)
+  const rangeRef = worksheet['!ref']
+
+  worksheet['!merges'] = EXPORT_MERGES
+  worksheet['!cols'] = [
+    { wpx: 160 },
+    { wpx: 120 },
+    { wpx: 120 },
+    { wpx: 120 },
+    { wpx: 120 },
+    { wpx: 120 },
+    { wpx: 120 },
+    { wpx: 120 },
+    { wpx: 120 }
+  ]
+  worksheet['!rows'] = [{ hpx: 36 }, { hpx: 34 }, ...rows.map(() => ({ hpx: 32 }))]
+
+  if (rangeRef) {
+    const range = XLSX.utils.decode_range(rangeRef)
+    const border = {
+      top: { style: 'thin', color: { rgb: '000000' } },
+      right: { style: 'thin', color: { rgb: '000000' } },
+      bottom: { style: 'thin', color: { rgb: '000000' } },
+      left: { style: 'thin', color: { rgb: '000000' } }
+    }
+
+    for (let rowIndex = range.s.r; rowIndex <= range.e.r; rowIndex += 1) {
+      for (let colIndex = range.s.c; colIndex <= range.e.c; colIndex += 1) {
+        const cellAddress = XLSX.utils.encode_cell({ r: rowIndex, c: colIndex })
+        const cell = worksheet[cellAddress]
+        if (!cell) continue
+
+        const isHeaderRow = rowIndex <= 1
+        cell.s = {
+          ...(cell.s || {}),
+          alignment: {
+            horizontal: 'center',
+            vertical: 'center'
+          },
+          border,
+          fill: {
+            fgColor: { rgb: isHeaderRow ? 'F7F7F7' : 'FFFFFF' }
+          },
+          font: {
+            bold: isHeaderRow,
+            color: { rgb: isHeaderRow ? '303133' : '1F2D3D' },
+            sz: 12
+          }
+        }
+      }
+    }
+  }
+
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, '支付统计报表')
+  XLSX.writeFile(workbook, `${filename}.xlsx`)
+}
+
 const buildParams = (range: DateRangeValue): PaymentStatisticsReportParams => {
   return {
     ...toSecondRange(range),
@@ -226,20 +301,8 @@ const handleExport = () => {
     return
   }
 
-  const exportRows = reportRows.value.map((row) => ({
-    日期: row.dateLabel,
-    订单数_转账: row.orderByWallet,
-    订单数_非转账: row.orderByBalance,
-    订单数占比_转账: formatPercent(row.orderWalletRatio),
-    订单数占比_非转账: formatPercent(row.orderBalanceRatio),
-    能量数_转账: row.energyByWallet,
-    能量数_非转账: row.energyByBalance,
-    能量数占比_转账: formatPercent(row.energyWalletRatio),
-    能量数占比_非转账: formatPercent(row.energyBalanceRatio)
-  }))
-
-  simpleExportToExcel(
-    exportRows,
+  exportPaymentStatisticsReport(
+    reportRows.value,
     `支付统计报表_${dayjs(activeRange.value[0]).format('YYYYMMDD')}_${dayjs(activeRange.value[1]).format('YYYYMMDD')}`
   )
   handleSuccessMessage('导出成功')
@@ -297,19 +360,20 @@ onMounted(async () => {
 }
 
 .payment-report-table {
-  width: 1120px;
+  width: max-content;
   min-width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .payment-report-table th,
 .payment-report-table td {
   height: 42px;
-  padding: 0 12px;
+  padding: 0 8px;
   font-size: 14px;
   color: #1f2d3d;
   text-align: center;
+  white-space: nowrap;
   vertical-align: middle;
   border: 1px solid #dcdfe6;
 }
