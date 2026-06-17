@@ -28,101 +28,230 @@
 
         <div class="report-table-card">
           <div class="report-table-scroll">
-            <table class="report-summary-table">
-              <colgroup>
-                <col style="width: 120px" />
-                <col style="width: 110px" />
-                <col style="width: 110px" />
-                <col style="width: 110px" />
-                <col style="width: 110px" />
-                <col style="width: 120px" />
-                <col style="width: 110px" />
-                <col style="width: 110px" />
-                <col style="width: 120px" />
-              </colgroup>
+            <table class="report-table">
+              <thead>
+                <tr class="summary-row">
+                  <td>汇总</td>
+                  <td>{{ formatCount(summaryTotals.flashOrderCount) }}</td>
+                  <td>{{ formatCount(summaryTotals.strokeOrderCount) }}</td>
+                  <td>{{ formatCount(summaryTotals.hostedOrderCount) }}</td>
+                  <td>{{ formatCount(summaryTotals.welfareOrderCount) }}</td>
+                  <td>{{ formatCount(summaryTotals.batchOrderCount) }}</td>
+                  <td>{{ formatCount(summaryTotals.activationOrderCount) }}</td>
+                  <td>{{ formatCount(summaryTotals.totalOrderCount) }}</td>
+                  <td>{{ formatPercent(summaryTotals.welfareRatio) }}</td>
+                </tr>
+                <tr class="header-row">
+                  <th>日期</th>
+                  <th>
+                    <button
+                      type="button"
+                      class="sort-header"
+                      @click="handleSort('flashOrderCount')"
+                    >
+                      闪租
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active:
+                              sortState.prop === 'flashOrderCount' &&
+                              sortState.order === 'ascending'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active:
+                              sortState.prop === 'flashOrderCount' &&
+                              sortState.order === 'descending'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      class="sort-header"
+                      @click="handleSort('strokeOrderCount')"
+                    >
+                      按笔数
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active:
+                              sortState.prop === 'strokeOrderCount' &&
+                              sortState.order === 'ascending'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active:
+                              sortState.prop === 'strokeOrderCount' &&
+                              sortState.order === 'descending'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      class="sort-header"
+                      @click="handleSort('hostedOrderCount')"
+                    >
+                      托管
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active:
+                              sortState.prop === 'hostedOrderCount' &&
+                              sortState.order === 'ascending'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active:
+                              sortState.prop === 'hostedOrderCount' &&
+                              sortState.order === 'descending'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      class="sort-header"
+                      @click="handleSort('welfareOrderCount')"
+                    >
+                      福利
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active:
+                              sortState.prop === 'welfareOrderCount' &&
+                              sortState.order === 'ascending'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active:
+                              sortState.prop === 'welfareOrderCount' &&
+                              sortState.order === 'descending'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      class="sort-header"
+                      @click="handleSort('batchOrderCount')"
+                    >
+                      批量下单
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active:
+                              sortState.prop === 'batchOrderCount' &&
+                              sortState.order === 'ascending'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active:
+                              sortState.prop === 'batchOrderCount' &&
+                              sortState.order === 'descending'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      class="sort-header"
+                      @click="handleSort('activationOrderCount')"
+                    >
+                      激活
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active:
+                              sortState.prop === 'activationOrderCount' &&
+                              sortState.order === 'ascending'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active:
+                              sortState.prop === 'activationOrderCount' &&
+                              sortState.order === 'descending'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      class="sort-header"
+                      @click="handleSort('totalOrderCount')"
+                    >
+                      总计
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active:
+                              sortState.prop === 'totalOrderCount' &&
+                              sortState.order === 'ascending'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active:
+                              sortState.prop === 'totalOrderCount' &&
+                              sortState.order === 'descending'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                  </th>
+                  <th>福利占比</th>
+                </tr>
+              </thead>
               <tbody>
-                <tr>
-                  <td class="summary-cell summary-cell-label">汇总</td>
-                  <td class="summary-cell">{{ formatCount(summaryTotals.flashOrderCount) }}</td>
-                  <td class="summary-cell">{{ formatCount(summaryTotals.strokeOrderCount) }}</td>
-                  <td class="summary-cell">{{ formatCount(summaryTotals.hostedOrderCount) }}</td>
-                  <td class="summary-cell">{{ formatCount(summaryTotals.welfareOrderCount) }}</td>
-                  <td class="summary-cell">{{ formatCount(summaryTotals.batchOrderCount) }}</td>
-                  <td class="summary-cell">
-                    {{ formatCount(summaryTotals.activationOrderCount) }}
-                  </td>
-                  <td class="summary-cell">{{ formatCount(summaryTotals.totalOrderCount) }}</td>
-                  <td class="summary-cell">{{ formatPercent(summaryTotals.welfareRatio) }}</td>
+                <tr v-if="reportRows.length === 0">
+                  <td colspan="9" class="empty-cell">暂无数据</td>
+                </tr>
+                <tr v-for="row in reportRows" :key="row.date">
+                  <td>{{ row.dateLabel }}</td>
+                  <td>{{ formatCount(row.flashOrderCount) }}</td>
+                  <td>{{ formatCount(row.strokeOrderCount) }}</td>
+                  <td>{{ formatCount(row.hostedOrderCount) }}</td>
+                  <td>{{ formatCount(row.welfareOrderCount) }}</td>
+                  <td>{{ formatCount(row.batchOrderCount) }}</td>
+                  <td>{{ formatCount(row.activationOrderCount) }}</td>
+                  <td>{{ formatCount(row.totalOrderCount) }}</td>
+                  <td>{{ row.welfareRatioText }}</td>
                 </tr>
               </tbody>
             </table>
-
-            <ElTable
-              ref="reportTableRef"
-              :data="reportRows"
-              border
-              class="report-table"
-              empty-text="暂无数据"
-              :header-cell-style="headerCellStyle"
-              :cell-style="bodyCellStyle"
-              @sort-change="handleSortChange"
-            >
-              <ElTableColumn prop="dateLabel" label="日期" min-width="120" align="center" />
-              <ElTableColumn
-                prop="flashOrderCount"
-                label="闪租"
-                min-width="110"
-                align="center"
-                sortable="custom"
-              />
-              <ElTableColumn
-                prop="strokeOrderCount"
-                label="按笔数"
-                min-width="110"
-                align="center"
-                sortable="custom"
-              />
-              <ElTableColumn
-                prop="hostedOrderCount"
-                label="托管"
-                min-width="110"
-                align="center"
-                sortable="custom"
-              />
-              <ElTableColumn
-                prop="welfareOrderCount"
-                label="福利"
-                min-width="110"
-                align="center"
-                sortable="custom"
-              />
-              <ElTableColumn
-                prop="batchOrderCount"
-                label="批量下单"
-                min-width="120"
-                align="center"
-                sortable="custom"
-              />
-              <ElTableColumn
-                prop="activationOrderCount"
-                label="激活"
-                min-width="110"
-                align="center"
-                sortable="custom"
-              />
-              <ElTableColumn
-                prop="totalOrderCount"
-                label="总计"
-                min-width="110"
-                align="center"
-                sortable="custom"
-              />
-              <ElTableColumn prop="welfareRatio" label="福利占比" min-width="120" align="center">
-                <template #default="{ row }">
-                  {{ row.welfareRatioText }}
-                </template>
-              </ElTableColumn>
-            </ElTable>
           </div>
         </div>
       </div>
@@ -131,13 +260,12 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref, type CSSProperties } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import dayjs from 'dayjs'
-import { ElButton, ElDatePicker, ElTable, ElTableColumn } from 'element-plus'
-import type { TableColumnCtx } from 'element-plus'
+import { ElButton, ElDatePicker } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { formatStatsDateLabel } from '@/utils/statsDate'
-import { simpleExportToExcel } from '@/utils/excel'
+import { exportStyledAoaToExcel } from '@/utils/excel'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import {
   getOrderTypeStatisticsReport,
@@ -295,7 +423,6 @@ const searchForm = reactive<SearchFormState>({
 })
 const activeRange = ref<DateRangeValue>([...defaultRange] as DateRangeValue)
 const reportRows = ref<ReportRow[]>([])
-const reportTableRef = ref<ComponentRef<typeof ElTable>>()
 const summaryTotals = ref<SummaryTotals>(createEmptySummary())
 const sortState = reactive<{
   prop: SortableField | ''
@@ -311,21 +438,6 @@ const formatCount = (value: number | string | undefined) => {
 
 const formatPercent = (value: number) => {
   return `${(value * 100).toFixed(2)}%`
-}
-
-const headerCellStyle = (): CSSProperties => {
-  return {
-    background: '#f7f7f7',
-    color: '#303133',
-    fontWeight: '600',
-    textAlign: 'center'
-  }
-}
-
-const bodyCellStyle = (): CSSProperties => {
-  return {
-    textAlign: 'center'
-  }
 }
 
 const buildParams = (range: DateRangeValue): OrderTypeStatisticsParams => {
@@ -375,7 +487,6 @@ const handleSearch = async () => {
 const handleReset = async () => {
   sortState.prop = ''
   sortState.order = null
-  reportTableRef.value?.clearSort()
   searchForm.dateRange = [...defaultRange] as DateRangeValue
   await loadData(defaultRange)
 }
@@ -387,61 +498,69 @@ const handleExport = () => {
   }
 
   const exportRows = [
-    {
-      日期: '汇总',
-      闪租: summaryTotals.value.flashOrderCount,
-      按笔数: summaryTotals.value.strokeOrderCount,
-      托管: summaryTotals.value.hostedOrderCount,
-      福利: summaryTotals.value.welfareOrderCount,
-      批量下单: summaryTotals.value.batchOrderCount,
-      激活: summaryTotals.value.activationOrderCount,
-      总计: summaryTotals.value.totalOrderCount,
-      福利占比: formatPercent(summaryTotals.value.welfareRatio)
-    },
-    ...reportRows.value.map((row) => ({
-      日期: row.dateLabel,
-      闪租: row.flashOrderCount,
-      按笔数: row.strokeOrderCount,
-      托管: row.hostedOrderCount,
-      福利: row.welfareOrderCount,
-      批量下单: row.batchOrderCount,
-      激活: row.activationOrderCount,
-      总计: row.totalOrderCount,
-      福利占比: row.welfareRatioText
-    }))
+    ['日期', '闪租', '按笔数', '托管', '福利', '批量下单', '激活', '总计', '福利占比'],
+    [
+      '汇总',
+      summaryTotals.value.flashOrderCount,
+      summaryTotals.value.strokeOrderCount,
+      summaryTotals.value.hostedOrderCount,
+      summaryTotals.value.welfareOrderCount,
+      summaryTotals.value.batchOrderCount,
+      summaryTotals.value.activationOrderCount,
+      summaryTotals.value.totalOrderCount,
+      formatPercent(summaryTotals.value.welfareRatio)
+    ],
+    ...reportRows.value.map((row) => [
+      row.dateLabel,
+      row.flashOrderCount,
+      row.strokeOrderCount,
+      row.hostedOrderCount,
+      row.welfareOrderCount,
+      row.batchOrderCount,
+      row.activationOrderCount,
+      row.totalOrderCount,
+      row.welfareRatioText
+    ])
   ]
 
-  simpleExportToExcel(
-    exportRows,
-    `订单类型统计_${dayjs(activeRange.value[0]).format('YYYYMMDD')}_${dayjs(activeRange.value[1]).format('YYYYMMDD')}`
-  )
+  exportStyledAoaToExcel({
+    data: exportRows,
+    filename: `订单类型统计_${dayjs(activeRange.value[0]).format('YYYYMMDD')}_${dayjs(activeRange.value[1]).format('YYYYMMDD')}`,
+    sheetName: '订单类型统计',
+    columnWidths: [
+      { wpx: 110 },
+      { wpx: 90 },
+      { wpx: 90 },
+      { wpx: 90 },
+      { wpx: 90 },
+      { wpx: 100 },
+      { wpx: 90 },
+      { wpx: 90 },
+      { wpx: 100 }
+    ],
+    rowHeights: [{ hpx: 36 }, ...exportRows.slice(1).map(() => ({ hpx: 32 }))],
+    highlightRows: [1]
+  })
   handleSuccessMessage('导出成功')
 }
 
-const handleSortChange = async ({
-  prop,
-  order
-}: {
-  column: TableColumnCtx<ReportRow>
-  prop: keyof ReportRow | null
-  order: SortOrder
-}) => {
-  if (
-    prop !== 'flashOrderCount' &&
-    prop !== 'strokeOrderCount' &&
-    prop !== 'hostedOrderCount' &&
-    prop !== 'welfareOrderCount' &&
-    prop !== 'batchOrderCount' &&
-    prop !== 'activationOrderCount' &&
-    prop !== 'totalOrderCount'
-  ) {
-    sortState.prop = ''
-    sortState.order = null
-    return
+const handleSort = async (field: SortableField) => {
+  if (sortState.prop === field) {
+    sortState.order =
+      sortState.order === 'ascending'
+        ? 'descending'
+        : sortState.order === 'descending'
+          ? null
+          : 'ascending'
+  } else {
+    sortState.prop = field
+    sortState.order = 'descending'
   }
 
-  sortState.prop = prop
-  sortState.order = order
+  if (!sortState.order) {
+    sortState.prop = ''
+  }
+
   await loadData(activeRange.value)
 }
 
@@ -496,40 +615,89 @@ onMounted(async () => {
   overflow-x: auto;
 }
 
-.report-summary-table {
-  width: 100%;
-  min-width: 1020px;
-  background: #ffe4bd;
+.report-table {
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
-.summary-cell {
+.report-table th,
+.report-table td {
   height: 48px;
-  padding: 0 12px;
+  padding: 0 8px;
+  font-size: 14px;
+  color: #1f2d3d;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  border: 1px solid #dcdfe6;
+}
+
+.report-table .summary-row td {
   font-size: 15px;
   font-weight: 600;
   color: #111827;
-  text-align: center;
-  vertical-align: middle;
-  border-right: 1px solid #f5d6aa;
+  background: #ffe4bd;
+  border-color: #f5d6aa;
 }
 
-.report-summary-table .summary-cell:last-child {
-  border-right: none;
+.report-table .header-row th {
+  font-weight: 600;
+  color: #303133;
+  background: #f7f7f7;
 }
 
-.report-table :deep(.el-table__cell) {
-  height: 48px;
-}
-
-.report-table :deep(.el-table__inner-wrapper::before) {
-  display: none;
-}
-
-.report-table :deep(.el-table__header-wrapper th),
-.report-table :deep(.el-table__body-wrapper td) {
+.sort-header {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 30px;
   padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.sort-icon {
+  position: relative;
+  width: 14px;
+  height: 14px;
+}
+
+.sort-caret {
+  position: absolute;
+  left: 3px;
+  width: 0;
+  height: 0;
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+}
+
+.sort-caret-up {
+  top: 1px;
+  border-bottom: 5px solid #c0c4cc;
+}
+
+.sort-caret-down {
+  bottom: 1px;
+  border-top: 5px solid #c0c4cc;
+}
+
+.sort-caret-up.active {
+  border-bottom-color: #409eff;
+}
+
+.sort-caret-down.active {
+  border-top-color: #409eff;
+}
+
+.empty-cell {
+  color: #909399;
 }
 
 @media (width <= 900px) {

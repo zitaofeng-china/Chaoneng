@@ -23,59 +23,129 @@
         </div>
 
         <div class="report-table-card">
-          <div class="report-summary-bar">
-            <div class="summary-cell summary-cell-label">
-              合计：{{ formatCount(summaryGrandTotal) }}
-            </div>
-            <div class="summary-cell">{{ formatCount(summaryTotals.todayNew) }}</div>
-            <div class="summary-cell">{{ formatCount(summaryTotals.yesterdayNew) }}</div>
-            <div class="summary-cell">{{ formatCount(summaryTotals.currentMonthNew) }}</div>
-            <div class="summary-cell">{{ formatCount(summaryTotals.lastMonthNew) }}</div>
+          <div class="report-table-scroll">
+            <table class="report-table">
+              <thead>
+                <tr class="summary-row">
+                  <td colspan="3" class="summary-label"
+                    >合计：{{ formatCount(summaryGrandTotal) }}</td
+                  >
+                  <td>{{ formatCount(summaryTotals.todayNew) }}</td>
+                  <td>{{ formatCount(summaryTotals.yesterdayNew) }}</td>
+                  <td>{{ formatCount(summaryTotals.currentMonthNew) }}</td>
+                  <td>{{ formatCount(summaryTotals.lastMonthNew) }}</td>
+                </tr>
+                <tr class="header-row">
+                  <th>机器人ID</th>
+                  <th>机器人用户名</th>
+                  <th>归属代理</th>
+                  <th>
+                    <button type="button" class="sort-header" @click="handleSort('todayNew')">
+                      今日新增
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active: sortState.prop === 'todayNew' && sortState.order === 'ascending'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active:
+                              sortState.prop === 'todayNew' && sortState.order === 'descending'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" class="sort-header" @click="handleSort('yesterdayNew')">
+                      昨日新增
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active:
+                              sortState.prop === 'yesterdayNew' && sortState.order === 'ascending'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active:
+                              sortState.prop === 'yesterdayNew' && sortState.order === 'descending'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      class="sort-header"
+                      @click="handleSort('currentMonthNew')"
+                    >
+                      本月新增
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active:
+                              sortState.prop === 'currentMonthNew' &&
+                              sortState.order === 'ascending'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active:
+                              sortState.prop === 'currentMonthNew' &&
+                              sortState.order === 'descending'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" class="sort-header" @click="handleSort('lastMonthNew')">
+                      上月新增
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active:
+                              sortState.prop === 'lastMonthNew' && sortState.order === 'ascending'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active:
+                              sortState.prop === 'lastMonthNew' && sortState.order === 'descending'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="reportRows.length === 0">
+                  <td colspan="7" class="empty-cell">暂无数据</td>
+                </tr>
+                <tr v-for="row in reportRows" :key="row.botId">
+                  <td>{{ row.botId }}</td>
+                  <td>{{ row.botUsername }}</td>
+                  <td>{{ row.agentName }}</td>
+                  <td>{{ formatCount(row.todayNew) }}</td>
+                  <td>{{ formatCount(row.yesterdayNew) }}</td>
+                  <td>{{ formatCount(row.currentMonthNew) }}</td>
+                  <td>{{ formatCount(row.lastMonthNew) }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-
-          <ElTable
-            ref="tableRef"
-            :data="reportRows"
-            border
-            stripe
-            class="report-table"
-            empty-text="暂无数据"
-            :header-cell-style="headerCellStyle"
-            :cell-style="bodyCellStyle"
-            @sort-change="handleSortChange"
-          >
-            <ElTableColumn prop="botId" label="机器人ID" min-width="160" />
-            <ElTableColumn prop="botUsername" label="机器人用户名" min-width="180" />
-            <ElTableColumn prop="agentName" label="归属代理" min-width="160" />
-            <ElTableColumn
-              prop="todayNew"
-              label="今日新增"
-              min-width="140"
-              sortable="custom"
-              align="center"
-            />
-            <ElTableColumn
-              prop="yesterdayNew"
-              label="昨日新增"
-              min-width="140"
-              sortable="custom"
-              align="center"
-            />
-            <ElTableColumn
-              prop="currentMonthNew"
-              label="本月新增"
-              min-width="140"
-              sortable="custom"
-              align="center"
-            />
-            <ElTableColumn
-              prop="lastMonthNew"
-              label="上月新增"
-              min-width="140"
-              sortable="custom"
-              align="center"
-            />
-          </ElTable>
 
           <div class="report-pagination">
             <div class="pagination-total">
@@ -100,11 +170,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref, type CSSProperties } from 'vue'
-import { ElButton, ElInput, ElPagination, ElTable, ElTableColumn } from 'element-plus'
-import type { TableColumnCtx, TableInstance } from 'element-plus'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { ElButton, ElInput, ElPagination } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
-import { simpleExportToExcel } from '@/utils/excel'
+import { exportStyledAoaToExcel } from '@/utils/excel'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import {
   getUserStatisticsReport,
@@ -198,8 +267,6 @@ const loading = ref(false)
 const reportRows = ref<ReportRow[]>([])
 const totalCount = ref(0)
 const summaryTotals = ref<SummaryTotals>(createEmptySummary())
-const tableRef = ref<TableInstance>()
-const isClearingSort = ref(false)
 const searchForm = reactive<SearchFormState>({
   keyword: ''
 })
@@ -225,21 +292,6 @@ const totalPages = computed(() => {
 const summaryGrandTotal = computed(() => {
   return summaryTotals.value.total
 })
-
-const headerCellStyle = (): CSSProperties => {
-  return {
-    background: '#f5f7fa',
-    color: '#303133',
-    fontWeight: '600',
-    textAlign: 'center'
-  }
-}
-
-const bodyCellStyle = (): CSSProperties => {
-  return {
-    textAlign: 'center'
-  }
-}
 
 const formatCount = (value: number) => {
   return toNumber(value).toLocaleString('zh-CN')
@@ -304,10 +356,6 @@ const handleReset = async () => {
   pagination.pageSize = 10
   sortState.prop = null
   sortState.order = null
-  isClearingSort.value = true
-  tableRef.value?.clearSort()
-  await nextTick()
-  isClearingSort.value = false
   await loadData()
 }
 
@@ -331,60 +379,69 @@ const handleExport = async () => {
 
     const exportSummary = normalizeSummary(res.data.summary)
     const exportRows = [
-      {
-        机器人ID: '合计',
-        机器人用户名: '-',
-        归属代理: '-',
-        今日新增: exportSummary.todayNew,
-        昨日新增: exportSummary.yesterdayNew,
-        本月新增: exportSummary.currentMonthNew,
-        上月新增: exportSummary.lastMonthNew
-      },
-      ...getDetailList(res.data)
-        .map(normalizeRow)
-        .map((row) => ({
-          机器人ID: row.botId,
-          机器人用户名: row.botUsername || '-',
-          归属代理: row.agentName || '-',
-          今日新增: row.todayNew,
-          昨日新增: row.yesterdayNew,
-          本月新增: row.currentMonthNew,
-          上月新增: row.lastMonthNew
-        }))
+      ['机器人ID', '机器人用户名', '归属代理', '今日新增', '昨日新增', '本月新增', '上月新增'],
+      [
+        '合计',
+        '-',
+        '-',
+        exportSummary.todayNew,
+        exportSummary.yesterdayNew,
+        exportSummary.currentMonthNew,
+        exportSummary.lastMonthNew
+      ],
+      ...getDetailList(res.data).map((item) => {
+        const row = normalizeRow(item)
+        return [
+          row.botId,
+          row.botUsername || '-',
+          row.agentName || '-',
+          row.todayNew,
+          row.yesterdayNew,
+          row.currentMonthNew,
+          row.lastMonthNew
+        ]
+      })
     ]
 
-    simpleExportToExcel(exportRows, '人数统计报表')
+    exportStyledAoaToExcel({
+      data: exportRows,
+      filename: '人数统计报表',
+      sheetName: '人数统计报表',
+      columnWidths: [
+        { wpx: 120 },
+        { wpx: 160 },
+        { wpx: 140 },
+        { wpx: 100 },
+        { wpx: 100 },
+        { wpx: 100 },
+        { wpx: 100 }
+      ],
+      rowHeights: [{ hpx: 36 }, ...exportRows.slice(1).map(() => ({ hpx: 32 }))],
+      highlightRows: [1]
+    })
     handleSuccessMessage('导出成功')
   } catch (error) {
     handleErrorMessage(error, '导出失败')
   }
 }
 
-const handleSortChange = async ({
-  order,
-  prop
-}: {
-  column: TableColumnCtx<ReportRow> | null
-  order: SortOrder
-  prop: keyof ReportRow | null
-}) => {
-  if (isClearingSort.value) {
-    return
+const handleSort = async (field: SortableField) => {
+  if (sortState.prop === field) {
+    sortState.order =
+      sortState.order === 'ascending'
+        ? 'descending'
+        : sortState.order === 'descending'
+          ? null
+          : 'ascending'
+  } else {
+    sortState.prop = field
+    sortState.order = 'descending'
   }
 
-  if (
-    prop !== 'todayNew' &&
-    prop !== 'yesterdayNew' &&
-    prop !== 'currentMonthNew' &&
-    prop !== 'lastMonthNew'
-  ) {
+  if (!sortState.order) {
     sortState.prop = null
-    sortState.order = null
-    return
   }
 
-  sortState.prop = prop
-  sortState.order = order
   pagination.currentPage = 1
   await loadData()
 }
@@ -454,35 +511,100 @@ onMounted(async () => {
   border-radius: 6px;
 }
 
-.report-summary-bar {
-  display: grid;
-  grid-template-columns: 14% 17% 17% repeat(4, 13%);
-  background: #ffe4bd;
-  border-bottom: 1px solid #f5d6aa;
+.report-table-scroll {
+  overflow-x: auto;
 }
 
-.summary-cell {
-  min-width: 0;
-  padding: 14px 16px;
+.report-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.report-table th,
+.report-table td {
+  height: 44px;
+  padding: 0 8px;
+  font-size: 14px;
+  color: #1f2d3d;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  border: 1px solid #dcdfe6;
+}
+
+.report-table .summary-row td {
+  height: 48px;
   font-size: 15px;
   font-weight: 600;
   color: #111827;
-  text-align: center;
-  border-right: 1px solid #f5d6aa;
-  box-sizing: border-box;
+  background: #ffe4bd;
+  border-color: #f5d6aa;
 }
 
-.summary-cell-label {
-  grid-column: 1 / span 3;
+.report-table .summary-row .summary-label {
+  padding-left: 12px;
   text-align: left;
 }
 
-.report-summary-bar .summary-cell:last-child {
-  border-right: none;
+.report-table .header-row th {
+  height: 48px;
+  font-weight: 600;
+  color: #303133;
+  background: #f5f7fa;
 }
 
-.report-table :deep(.el-table__cell) {
-  height: 48px;
+.sort-header {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 30px;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.sort-icon {
+  position: relative;
+  width: 14px;
+  height: 14px;
+}
+
+.sort-caret {
+  position: absolute;
+  left: 3px;
+  width: 0;
+  height: 0;
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+}
+
+.sort-caret-up {
+  top: 1px;
+  border-bottom: 5px solid #c0c4cc;
+}
+
+.sort-caret-down {
+  bottom: 1px;
+  border-top: 5px solid #c0c4cc;
+}
+
+.sort-caret-up.active {
+  border-bottom-color: #409eff;
+}
+
+.sort-caret-down.active {
+  border-top-color: #409eff;
+}
+
+.empty-cell {
+  color: #909399;
 }
 
 .report-pagination {
@@ -490,7 +612,7 @@ onMounted(async () => {
   gap: 16px;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 16px;
+  padding: 14px 12px;
 }
 
 .pagination-total {
@@ -508,15 +630,6 @@ onMounted(async () => {
   .toolbar-filters {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .report-summary-bar {
-    min-width: 1060px;
-    overflow-x: auto;
-  }
-
-  .summary-cell-label {
-    min-width: 0;
   }
 }
 </style>
