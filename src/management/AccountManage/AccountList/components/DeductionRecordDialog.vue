@@ -249,16 +249,18 @@ const getList = async (params: any = {}) => {
       }
 
       // 映射字段：新接口 → 旧字段格式
-      const mappedList = (res.data.list || []).map((item) => ({
-        order_num: item.order_id,
-        order_type: item.kind,
-        bot_name: item.bot_name || '-',
-        amount: item.amount,
-        unit: item.coin,
-        after_amount: item.balance,
-        create_time: item.created_at * 1000, // 秒转毫秒
-        describe: item.describe
-      }))
+      const mappedList = (res.data.list || [])
+        .map((item) => ({
+          order_num: item.order_id,
+          order_type: item.kind,
+          bot_name: item.bot_name || '-',
+          amount: item.amount,
+          unit: item.coin,
+          after_amount: item.balance,
+          create_time: item.created_at * 1000, // 秒转毫秒
+          describe: item.describe
+        }))
+        .sort((a, b) => Number(b.create_time || 0) - Number(a.create_time || 0))
 
       const total = res.data.pager?.total || 0
 

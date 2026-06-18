@@ -73,16 +73,18 @@ const { tableRegister, tableState, tableMethods } = useTable({
       }
 
       // 映射字段：新接口 → 旧字段格式
-      const mappedList = (res.data?.list || []).map((item) => ({
-        user_id: item.agent_id,
-        username: item.agent_name || accountName.value, // 如果 agent_name 为空，使用传入的 accountName
-        account_name: item.agent_name || accountName.value,
-        after_amount: item.balance,
-        amount: item.amount,
-        unit: item.coin,
-        create_time: item.created_at * 1000, // 秒转毫秒
-        describe: item.describe
-      }))
+      const mappedList = (res.data?.list || [])
+        .map((item) => ({
+          user_id: item.agent_id,
+          username: item.agent_name || accountName.value, // 如果 agent_name 为空，使用传入的 accountName
+          account_name: item.agent_name || accountName.value,
+          after_amount: item.balance,
+          amount: item.amount,
+          unit: item.coin,
+          create_time: item.created_at * 1000, // 秒转毫秒
+          describe: item.describe
+        }))
+        .sort((a, b) => Number(b.create_time || 0) - Number(a.create_time || 0))
 
       const total = res.data?.pager?.total || 0
 
