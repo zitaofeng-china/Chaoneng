@@ -54,6 +54,7 @@ import { BOT_STATUS_MAP, BOT_STATUS_OPTIONS } from '../constants'
 const route = useRoute()
 const router = useRouter()
 const searchTableRef = ref<SearchTableExpose | null>(null)
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 type AgentBotSearchParams = Omit<AgentBotQueryParams, 'status'> & {
   status?: number | ''
@@ -88,7 +89,7 @@ const buildAgentBotParams = (
 
   if (params.keyword) apiParams.keyword = params.keyword
   if (params.status !== undefined && params.status !== '') apiParams.status = Number(params.status)
-  if (params.order) apiParams.order = params.order
+  apiParams.order = params.order || DEFAULT_CREATED_AT_ORDER
 
   return apiParams
 }

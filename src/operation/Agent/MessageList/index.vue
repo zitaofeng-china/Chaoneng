@@ -236,6 +236,7 @@ type MessageSearchParams = Omit<MassSendListParamsV1, 'bot_id' | 'kind'> & {
   bot_id?: number | string
   kind?: number | string
 }
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 const buildMessageListParams = (params: MessageSearchParams = {}): MassSendListParamsV1 => {
   const queryParams: MassSendListParamsV1 = {
@@ -248,7 +249,7 @@ const buildMessageListParams = (params: MessageSearchParams = {}): MassSendListP
   if (hasSearchValue(params.kind) && (Number(params.kind) === 1 || Number(params.kind) === 2)) {
     queryParams.kind = Number(params.kind)
   }
-  if (params.order) queryParams.order = params.order
+  queryParams.order = params.order || DEFAULT_CREATED_AT_ORDER
 
   return queryParams
 }

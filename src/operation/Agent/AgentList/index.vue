@@ -143,6 +143,7 @@ const notifyBotDialogVisible = ref(false)
 // 代理统计数据
 const agentStats = ref<AgentStats | null>(null)
 const agentTotal = ref(0)
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 // 批量修改状态
 const isBatchEditMode = ref(false)
@@ -234,7 +235,7 @@ const buildAgentListParams = (
   if (params.keyword) apiParams.keyword = params.keyword
   if (hasSearchValue(params.status)) apiParams.status = params.status
   if (hasSearchValue(params.price_id)) apiParams.price_id = params.price_id
-  if (params.order) apiParams.order = params.order
+  apiParams.order = params.order || DEFAULT_CREATED_AT_ORDER
 
   return {
     ...apiParams,

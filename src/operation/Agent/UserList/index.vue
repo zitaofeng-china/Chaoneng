@@ -129,6 +129,7 @@ const isBotListLoaded = ref(false)
 const botOptions = ref<BotOption[]>(withAllOption<string>([]))
 const botMap = ref<Map<number, MessageBotItem>>(new Map())
 const searchTableRef = ref<SearchTableExpose | null>(null)
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 const buildUserListParams = (params: UserSearchParams = {}, pageSize?: number): UserListParams => {
   const apiParams: UserListParams = {
@@ -138,7 +139,7 @@ const buildUserListParams = (params: UserSearchParams = {}, pageSize?: number): 
   if (params.keyword) apiParams.keyword = params.keyword
   if (hasSearchValue(params.bot_id)) apiParams.bot_id = Number(params.bot_id)
   if (hasSearchValue(params.origin)) apiParams.origin = Number(params.origin)
-  if (params.order) apiParams.order = params.order
+  apiParams.order = params.order || DEFAULT_CREATED_AT_ORDER
 
   return {
     ...apiParams,

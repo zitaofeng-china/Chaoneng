@@ -69,7 +69,7 @@ const buildAgentBillParams = (
 
   if (params.keyword) apiParams.keyword = params.keyword
   if (hasSearchValue(params.kind)) apiParams.kinds = [Number(params.kind)]
-  if (params.order) apiParams.order = params.order
+  apiParams.order = params.order || AGENT_LEDGER_EXPORT_ORDER
 
   Object.assign(apiParams, dateRangeToSeconds(params.dateRange))
 

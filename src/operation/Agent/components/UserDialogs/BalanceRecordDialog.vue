@@ -122,7 +122,9 @@ const fetchData = async () => {
   loading.value = true
   try {
     const res = await v1GetUserBillList(buildQueryParams())
-    recordList.value = res.data?.list || []
+    recordList.value = [...(res.data?.list || [])].sort(
+      (a, b) => Number(b.created_at || 0) - Number(a.created_at || 0)
+    )
     pagination.total = res.data?.pager?.total || 0
   } catch (error) {
     handleErrorMessage(error, '获取余额日志失败')

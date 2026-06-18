@@ -53,6 +53,7 @@ type InviteTableSlot = TableSlot<InviteRecordItem>
 
 const isBotListLoaded = ref(false)
 const botOptions = ref<BotOption[]>(withAllOption<string>([]))
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 const buildInviteListParams = (params: InviteSearchParams = {}): InviteListQueryParams => {
   const apiParams: InviteListQueryParams = {
@@ -62,7 +63,7 @@ const buildInviteListParams = (params: InviteSearchParams = {}): InviteListQuery
   if (params.keyword) apiParams.keyword = params.keyword
   if (hasSearchValue(params.bot_id)) apiParams.bot_id = Number(params.bot_id)
   if (hasSearchValue(params.status)) apiParams.status = Number(params.status)
-  if (params.order) apiParams.order = params.order
+  apiParams.order = params.order || DEFAULT_CREATED_AT_ORDER
 
   return apiParams
 }
