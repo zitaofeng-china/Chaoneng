@@ -92,6 +92,7 @@ import type { ExchangeOrderListParamsV1 } from '@/api/management/OrderManage/Exc
 // const { t } = useI18n()
 const router = useRouter()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 // 订单详情相关
 const dialogVisible = ref(false)
@@ -565,6 +566,8 @@ const buildExchangeOrderListParams = (
       const mappedField = fieldMapping[field] || field
       adaptedParams.order = `${mappedField} ${direction}`
     }
+  } else {
+    adaptedParams.order = DEFAULT_CREATED_AT_ORDER
   }
 
   Object.assign(adaptedParams, dateRangeToSeconds(params.dateRange))

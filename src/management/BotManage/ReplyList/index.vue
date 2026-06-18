@@ -69,6 +69,7 @@ import { Dialog } from '@/components/Dialog'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const replyFormDialogRef = ref<InstanceType<typeof ReplyFormDialog> | null>(null)
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 const dialogVisible = ref(false)
 const isEditMode = ref(false)
@@ -233,9 +234,7 @@ const fetchReplyList = async (params: any) => {
       queryParams.status = params.status
     }
 
-    if (params.order) {
-      queryParams.order = params.order
-    }
+    queryParams.order = params.order || DEFAULT_CREATED_AT_ORDER
 
     const res = await v1GetReplyList(queryParams)
 

@@ -100,6 +100,7 @@ const botPrice = ref<any>(null)
 const totalCount = ref(0)
 const dialogVisible = ref(false)
 const dialogType = ref<'add' | 'edit'>('add')
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 // 表格列配置
 const columns = [
@@ -444,7 +445,7 @@ const fetchBotList = async (params: any) => {
     if (params.keyword) apiParams.keyword = params.keyword
     if (params.agent_name) apiParams.agent_name = params.agent_name
     if (params.status !== undefined && params.status !== '') apiParams.status = params.status
-    if (params.order) apiParams.order = params.order
+    apiParams.order = params.order || DEFAULT_CREATED_AT_ORDER
 
     const response = await v1GetBotList(apiParams)
 

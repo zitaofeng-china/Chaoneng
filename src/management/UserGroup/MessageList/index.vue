@@ -232,6 +232,7 @@ import type { MessagePreviewData } from '../UserList/components/MessageDialog/co
 
 // SearchTable 引用
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 // 机器人下拉选项
 const botOptions = ref<Array<{ label: string; value: number }>>([{ label: '全部', value: 0 }])
@@ -756,9 +757,7 @@ const fetchMessageList = async (params: any) => {
     }
 
     // 处理排序参数
-    if (params.order) {
-      queryParams.order = params.order
-    }
+    queryParams.order = params.order || DEFAULT_CREATED_AT_ORDER
 
     const response = await v1GetMassSendList(queryParams)
 

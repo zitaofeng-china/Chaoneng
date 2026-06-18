@@ -199,7 +199,9 @@ const fetchData = async () => {
         // 更好的方案是后端支持 change_type 筛选
       }
 
-      recordList.value = list
+      recordList.value = list.sort(
+        (a: any, b: any) => Number(b.created_at || 0) - Number(a.created_at || 0)
+      )
       pagination.total = res.data.pager?.total || 0
     } else {
       recordList.value = []

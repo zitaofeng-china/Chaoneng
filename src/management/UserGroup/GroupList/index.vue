@@ -77,6 +77,7 @@ interface GroupMessageDraft {
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const broadcastUpdatingMap = reactive<Record<string, boolean>>({})
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 const botList = ref<BotOption[]>([])
 
@@ -306,7 +307,7 @@ const buildChatListParams = (params: ChatSearchParams = {}): ChatListParams => {
 
   Object.assign(apiParams, dateRangeToSeconds(params.date_range))
 
-  if (hasSearchValue(params.order)) apiParams.order = String(params.order)
+  apiParams.order = hasSearchValue(params.order) ? String(params.order) : DEFAULT_CREATED_AT_ORDER
 
   return apiParams
 }

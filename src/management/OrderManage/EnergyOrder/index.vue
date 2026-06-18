@@ -63,6 +63,7 @@ const totalCount = ref(0)
 const orderDialogVisible = ref(false)
 const selectedOrderDetail = ref<any>(null)
 const currentSearchParams = ref({})
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 // 当前选择的来源
 const selectedSource = ref<string>('')
@@ -472,9 +473,7 @@ const fetchEnergyOrderList = async (params: any) => {
     if (params.payment_address) adaptedParams.energy_address = params.payment_address
 
     // 处理排序参数
-    if (params.order) {
-      adaptedParams.order = params.order
-    }
+    adaptedParams.order = params.order || DEFAULT_CREATED_AT_ORDER
 
     // 处理时间范围（转换为秒级Unix时间戳字符串）
     if (params.dateRange && params.dateRange.length === 2) {

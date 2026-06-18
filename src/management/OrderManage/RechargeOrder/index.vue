@@ -63,6 +63,7 @@ import { dateRangeToSeconds, exportTableData } from '@/utils/tableHelpers'
 
 const router = useRouter()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 // 当前选择的来源
 const selectedSource = ref<number | string>('')
@@ -572,6 +573,8 @@ const fetchRechargeOrderList = async (params: any) => {
       const [field, direction] = params.order.split(' ')
       const mappedField = fieldMap[field] || field
       adaptedParams.order = `${mappedField} ${direction}`
+    } else {
+      adaptedParams.order = DEFAULT_CREATED_AT_ORDER
     }
 
     // 处理时间范围（转换为秒数）

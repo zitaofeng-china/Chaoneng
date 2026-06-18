@@ -43,6 +43,7 @@ import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/u
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const currentRowForDelete = ref<HostingItemV1 | null>(null)
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 type HostingSearchParams = Omit<HostingListParamsV1, 'bot_id' | 'origin' | 'kind' | 'status'> & {
   bot_id?: number | string
@@ -84,7 +85,7 @@ const buildHostingListParams = (params: HostingSearchParams = {}): HostingListPa
   if (params.kind !== undefined && params.kind !== '') queryParams.kind = Number(params.kind)
   if (params.status !== undefined && params.status !== '')
     queryParams.status = Number(params.status)
-  if (params.order) queryParams.order = params.order
+  queryParams.order = params.order || DEFAULT_CREATED_AT_ORDER
 
   return queryParams
 }

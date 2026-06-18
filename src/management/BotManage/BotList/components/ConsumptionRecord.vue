@@ -103,7 +103,9 @@ const getList = async () => {
     })
 
     if (res.code === '000000' && res.data) {
-      dataList.value = res.data.list || []
+      dataList.value = [...(res.data.list || [])].sort(
+        (a, b) => Number(b.created_at || 0) - Number(a.created_at || 0)
+      )
       total.value = res.data.pager?.total || 0
     }
   } catch (error) {

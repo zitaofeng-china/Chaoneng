@@ -54,6 +54,7 @@ import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/u
 
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const currentRowForDelete = ref<BlackListItemV1 | null>(null)
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 const dialogVisible = ref(false)
 const newAddressForm = reactive({
@@ -148,6 +149,8 @@ const fetchBlackListData = async (params: {
         const mappedField = fieldMapping[field] || field
         queryParams.order = `${mappedField} ${direction}`
       }
+    } else {
+      queryParams.order = DEFAULT_CREATED_AT_ORDER
     }
 
     const res = await v1GetBlackList(queryParams)

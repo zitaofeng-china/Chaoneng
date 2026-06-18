@@ -81,6 +81,7 @@ import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const route = useRoute()
 const router = useRouter()
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 const isBotListLoaded = ref(false)
 const botOptions = ref<{ label: string; value: string }[]>([{ label: '全部', value: '' }])
@@ -326,9 +327,7 @@ const fetchAccountList = async (params: any) => {
       page_size: Number(params.page_size) || 10
     }
 
-    if (params.order) {
-      queryParams.order = params.order
-    }
+    queryParams.order = params.order || DEFAULT_CREATED_AT_ORDER
 
     if (params.bot_id !== undefined && params.bot_id !== '') {
       queryParams.bot_id = Number(params.bot_id)
