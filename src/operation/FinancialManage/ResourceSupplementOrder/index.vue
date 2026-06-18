@@ -7,10 +7,12 @@
         :search-schema="searchSchema"
         :fetch-data-api="fetchChargeLogListApi"
         :showAddButton="false"
+        :default-params="defaultParams"
         :search-props="{
           layout: 'inline',
           buttonPosition: 'center'
         }"
+        :table-props="tableProps"
       >
         <template #searchButtons>
           <BaseButton type="primary" @click="handleExport">
@@ -67,6 +69,16 @@ type ChargeLogSearchParams = Omit<ChargeLogParams, 'status'> & {
 type ChargeLogTableSlot = TableSlot<ChargeLogItem>
 
 const searchTableRef = ref<SearchTableExpose>()
+const DEFAULT_ORDER = 'created_at DESC'
+const defaultParams = {
+  order: DEFAULT_ORDER
+}
+const tableProps = {
+  defaultSort: {
+    prop: 'created_at',
+    order: 'descending'
+  }
+}
 
 const getTargetValue = (row: ChargeLogItem) => row.target || row.target_pool || '-'
 const getVaultValue = (row: ChargeLogItem) => row.vault || row.finance_address || '-'

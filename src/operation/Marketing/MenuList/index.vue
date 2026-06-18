@@ -404,7 +404,7 @@ const fetchMenuList = async (params: Partial<GetBotMenuListParams> = {}) => {
 
     if (response.code === '000000' && response.data) {
       const list = Array.isArray(response.data) ? response.data : []
-      list.sort((a, b) => b.order_num - a.order_num)
+      list.sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0))
       handleListMessage(list, hasSearchValue(params.status), '菜单')
 
       return {

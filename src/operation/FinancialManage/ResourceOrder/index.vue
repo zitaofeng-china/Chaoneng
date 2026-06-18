@@ -64,6 +64,7 @@ import {
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const settlementRecordDialogRef = ref<InstanceType<typeof SettlementRecordDialog> | null>(null)
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 type ResourceOrderTableSlot = TableSlot<V2ResourceOrderItem>
 type ResourceOrderSearchParams = V2ResourceOrderListParams & Recordable
@@ -244,7 +245,7 @@ const buildResourceOrderListParams = (
   if (hasSearchValue(params.kind)) apiParams.kind = Number(params.kind)
   if (hasSearchValue(params.status)) apiParams.status = Number(params.status)
   if (hasSearchValue(params.bot_id)) apiParams.bot_id = Number(params.bot_id)
-  if (hasSearchValue(params.order)) apiParams.order = String(params.order)
+  apiParams.order = hasSearchValue(params.order) ? String(params.order) : DEFAULT_CREATED_AT_ORDER
 
   return apiParams
 }

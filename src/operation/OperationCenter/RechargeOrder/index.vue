@@ -80,6 +80,7 @@ import { RECHARGE_COIN_OPTIONS } from './constants'
 const router = useRouter()
 const route = useRoute()
 const searchTableRef = ref<SearchTableExpose | null>(null)
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 type DepositSearchParams = Omit<V2DepositListParams, 'origin' | 'status'> & {
   origin?: number | string
@@ -113,7 +114,7 @@ const buildDepositListParams = (
   if (params.coin) adaptedParams.coin = params.coin
   if (params.receive_address) adaptedParams.receive_address = params.receive_address
   if (params.pay_address) adaptedParams.pay_address = params.pay_address
-  if (params.order) adaptedParams.order = params.order
+  adaptedParams.order = params.order || DEFAULT_CREATED_AT_ORDER
   if (params.start_time) adaptedParams.start_time = params.start_time.toString()
   if (params.end_time) adaptedParams.end_time = params.end_time.toString()
 

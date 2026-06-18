@@ -64,6 +64,7 @@ import {
 const formRef = ref<InstanceType<typeof ResourcePoolAccountForm>>()
 const searchTableRef = ref<InstanceType<typeof SearchTable>>()
 const notifyBotDialogVisible = ref(false)
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 type ResourcePoolSearchParams = Omit<V2PoolListParams, 'kind' | 'status'> & {
   kind?: number | string
@@ -229,10 +230,7 @@ const getResourcePoolData = async (params: ResourcePoolSearchParams = {}) => {
       apiParams.status = Number(params.status)
     }
 
-    const backendOrder = buildBackendOrder(params.order)
-    if (backendOrder) {
-      apiParams.order = backendOrder
-    }
+    apiParams.order = buildBackendOrder(params.order) || DEFAULT_CREATED_AT_ORDER
 
     const response = await v2GetPoolList(apiParams)
 

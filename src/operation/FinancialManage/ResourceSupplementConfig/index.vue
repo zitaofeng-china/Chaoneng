@@ -130,6 +130,7 @@ const formRef = ref<FormInstance>()
 const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit'>('add')
 const editingRowId = ref<number | null>(null)
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 const createDefaultTaskForm = (): ChargeTaskParams => ({
   origin: '',
@@ -256,7 +257,7 @@ const buildChargeListParams = (params: ChargeSearchParams = {}): ChargeListParam
   if (hasSearchValue(params.keyword)) apiParams.keyword = String(params.keyword).trim()
   if (hasSearchValue(params.kind)) apiParams.kind = String(params.kind)
   if (hasSearchValue(params.status)) apiParams.status = Number(params.status)
-  if (hasSearchValue(params.order)) apiParams.order = String(params.order)
+  apiParams.order = hasSearchValue(params.order) ? String(params.order) : DEFAULT_CREATED_AT_ORDER
 
   return apiParams
 }

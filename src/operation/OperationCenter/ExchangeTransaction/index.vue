@@ -68,6 +68,7 @@ type ExchangeSearchParams = V2ExchangeListParams & {
   dateRange?: DateRangeValue
 }
 type ExchangeTableSlot = TableSlot<V2ExchangeItem>
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 const getDefaultOutCoin = (inCoin?: string) => {
   const upperInCoin = inCoin?.toUpperCase()
@@ -100,7 +101,7 @@ const buildExchangeListParams = (
   if (params.keyword) apiParams.keyword = params.keyword
   if (params.coin) apiParams.coin = params.coin
   if (hasSearchValue(params.status)) apiParams.status = params.status
-  if (params.order) apiParams.order = params.order
+  apiParams.order = params.order || DEFAULT_CREATED_AT_ORDER
 
   return apiParams
 }

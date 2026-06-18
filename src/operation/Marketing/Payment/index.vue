@@ -199,6 +199,7 @@ const addressDialogVisible = ref(false)
 const addressDialogMode = ref<'add' | 'edit'>('add')
 const currentAddress = ref<V2AddressItem | null>(null)
 const addressFormRef = ref<FormInstance>()
+const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 type AgentOption = SelectOption<number>
 type BotOption = SelectOption<number> & { agent_id: number }
 
@@ -528,7 +529,7 @@ const fetchData = async (params: AddressSearchParams = {}) => {
       processedParams.keyword = params.keyword.replace(/\s*[\(（].*$/g, '').trim()
     }
     if (hasSearchValue(params.kind)) processedParams.kind = Number(params.kind)
-    if (params.order) processedParams.order = params.order
+    processedParams.order = params.order || DEFAULT_CREATED_AT_ORDER
 
     const res = await v2GetAddressList(processedParams)
     const data = res.data || {}
