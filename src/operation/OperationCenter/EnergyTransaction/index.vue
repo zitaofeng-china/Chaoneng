@@ -75,6 +75,7 @@ const selectedSource = ref<number | string>('')
 const totalCount = ref(0)
 const stoppingOrders = ref<Set<string>>(new Set())
 const stoppedOrders = ref<Set<string>>(new Set())
+const DEFAULT_ORDER = 'created_at DESC'
 
 const columns = computed(() => [...getFilteredColumns(selectedSource.value), actionColumn])
 
@@ -194,8 +195,7 @@ const fetchDataWrapper = async (
       ...buildEnergyListParams(params)
     }
 
-    const order = buildBackendOrder(params.order)
-    if (order) apiParams.order = order
+    apiParams.order = buildBackendOrder(params.order) || DEFAULT_ORDER
 
     const response = await v2GetEnergyList(apiParams)
 
