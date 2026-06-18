@@ -71,6 +71,7 @@ import {
 } from './constants'
 
 const QUICK_CHARGE_ORDER_KINDS = [15, 21]
+const DEFAULT_START_TIME_ORDER = 'delegated_at DESC'
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const orderDetailRef = ref<InstanceType<typeof OrderDetail> | null>(null)
@@ -218,8 +219,7 @@ const buildQuickChargeListParams = (params: QuickChargeSearchParams): EnergyList
     apiParams.status = Number(params.status)
   }
 
-  const order = buildBackendOrder(params.order)
-  if (order) apiParams.order = order
+  apiParams.order = buildBackendOrder(params.order) || DEFAULT_START_TIME_ORDER
 
   return apiParams
 }
