@@ -251,7 +251,6 @@ const fetchAccountList = async (params: any) => {
 
     if (response && response.data) {
       userData.value = response.data
-      console.log('获取到的账户信息:', userData.value)
     } else {
       ElMessage.warning('获取账户信息失败，返回数据为空')
       userData.value = {}

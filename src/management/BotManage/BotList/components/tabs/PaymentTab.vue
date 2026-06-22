@@ -214,7 +214,6 @@ const fetchWealAddresses = async (params: any) => {
       total: data.pager?.total || 0
     }
   } catch (error) {
-    console.error('获取福利地址列表失败:', error)
     return { list: [], total: 0 }
   }
 }
