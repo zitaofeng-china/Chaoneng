@@ -74,6 +74,14 @@ const getResourceOrderKindText = (kind: number) => {
   return RESOURCE_ORDER_KIND_MAP[kind] || getEnergyOrderKindText(kind) || String(kind || '-')
 }
 
+const formatTrxStake = (balance: number | null | undefined) => {
+  if (balance == null) return '-'
+  return (balance / 1_000_000).toLocaleString('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+}
+
 const columns: TableColumn[] = [
   {
     field: 'id',
@@ -118,12 +126,9 @@ const columns: TableColumn[] = [
   },
   {
     field: 'balance',
-    label: '余额',
+    label: 'TRX质押',
     width: 140,
-    formatter: (row: V2ResourceOrderItem) => {
-      if (!row.balance) return '-'
-      return row.balance.toLocaleString()
-    }
+    formatter: (row: V2ResourceOrderItem) => formatTrxStake(row.balance)
   },
   {
     field: 'profit_sum',
@@ -329,7 +334,7 @@ const handleExport = async () => {
         目标地址: item.target || '-',
         接收地址: item.receiver || '-',
         数量: item.amount ?? '-',
-        余额: item.balance ? item.balance.toLocaleString() : '-',
+        TRX质押: formatTrxStake(item.balance),
         累计利润: item.profit_sum || '-',
         订单状态: getStatusLabel(RESOURCE_ORDER_STATUS_MAP, item.status),
         备注: item.describe || '-',
