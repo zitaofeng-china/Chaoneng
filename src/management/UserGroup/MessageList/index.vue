@@ -229,6 +229,7 @@ import AdvancedSettingsDialog from './components/AdvancedSettingsDialog.vue'
 import VideoPreviewDialog from '../UserList/components/MessageDialog/components/VideoPreviewDialog.vue'
 import MessagePreviewDialog from '../UserList/components/MessageDialog/components/MessagePreviewDialog.vue'
 import type { MessagePreviewData } from '../UserList/components/MessageDialog/components/MessagePreviewDialog.vue'
+import { handleErrorMessage } from '@/utils/messageHelper'
 
 // SearchTable 引用
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -284,7 +285,7 @@ const initBotList = async () => {
       updateBotOptions(newOptions)
     }
   } catch (error) {
-    console.error('获取机器人列表失败:', error)
+    handleErrorMessage(error, '获取机器人列表失败')
   }
 }
 
@@ -423,7 +424,6 @@ const handleResend = async (row: any) => {
     resendPreviewData.value = previewData
     resendPreviewVisible.value = true
   } catch (error: any) {
-    console.error('打开重发预览失败:', error)
     ElMessage.error('打开预览失败')
   }
 }
@@ -460,7 +460,6 @@ const handleConfirmResend = async () => {
       ElMessage.error((res as any).msg || '重发失败')
     }
   } catch (error: any) {
-    console.error('重发失败:', error)
     ElMessage.error(error.message || '重发失败')
   } finally {
     resending.value = false
@@ -485,7 +484,6 @@ const handleDelete = async (row: any) => {
     }
   } catch (error: any) {
     if (error !== 'cancel') {
-      console.error('删除失败:', error)
       ElMessage.error(error.message || '删除失败')
     }
   }
@@ -770,7 +768,6 @@ const fetchMessageList = async (params: any) => {
 
     return { list: [], total: 0 }
   } catch (error) {
-    console.error('获取消息列表失败:', error)
     ElMessage.error('获取消息列表失败')
     return { list: [], total: 0 }
   }
