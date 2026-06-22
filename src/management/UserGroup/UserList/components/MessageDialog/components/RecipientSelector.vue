@@ -134,7 +134,6 @@ const fetchBotUsers = async (botId: number | string) => {
       ElMessage.warning('获取用户列表失败')
     }
   } catch (error) {
-    console.error('获取用户列表失败:', error)
     userOptions.value = []
     ElMessage.error('获取用户列表失败')
   } finally {

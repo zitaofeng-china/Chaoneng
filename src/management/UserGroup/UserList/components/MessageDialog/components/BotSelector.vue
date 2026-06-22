@@ -67,13 +67,6 @@ const validationRules = computed(() => {
     {
       required: true,
       validator: (_rule: any, value: any, callback: any) => {
-        console.log(
-          'BotSelector validation - value:',
-          value,
-          'type:',
-          Array.isArray(value) ? 'array' : typeof value
-        )
-
         // 如果是数组，检查数组长度
         if (Array.isArray(value)) {
           if (value.length === 0) {
