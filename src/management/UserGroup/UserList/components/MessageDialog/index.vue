@@ -775,7 +775,6 @@ const handleConfirmSend = async (buttonLayout?: number[][]) => {
               return
             }
           } catch (error: any) {
-            console.error('文件上传错误:', error)
             ElMessage.error(`文件 ${fileItem.name} 上传失败: ${error?.message || '请重试'}`)
             submitting.value = false
             return
