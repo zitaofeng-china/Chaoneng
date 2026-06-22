@@ -399,7 +399,7 @@ const fetchGroupList = async (botId?: number | string) => {
     }
   } catch (error: any) {
     groupList.value = []
-    console.error('获取聊天列表失败:', error)
+    ElMessage.error(error?.msg || '获取聊天列表失败')
   } finally {
     groupListLoading.value = false
   }
@@ -639,7 +639,6 @@ const fetchMenuList = async () => {
     }
   } catch (error: any) {
     menuList.value = []
-    console.error('获取内联菜单失败:', error)
     ElMessage.error('获取内联菜单失败: ' + (error?.msg || '未知错误'))
   }
 }
@@ -873,7 +872,6 @@ const handleConfirmSend = async (buttonLayout?: number[][]) => {
     showMessagePreview.value = false
     dialogVisible.value = false
   } catch (error: any) {
-    console.error('发送消息请求失败:', error)
     const errorMsg = error?.response?.data?.msg || error?.message || '发送消息请求失败，请重试'
     ElMessage.error(errorMsg)
   } finally {
