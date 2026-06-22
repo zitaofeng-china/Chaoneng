@@ -208,7 +208,6 @@ const fetchData = async () => {
       pagination.total = 0
     }
   } catch (error) {
-    console.error('Error fetching balance records (global handler should show message):', error)
     recordList.value = []
     pagination.total = 0
   } finally {

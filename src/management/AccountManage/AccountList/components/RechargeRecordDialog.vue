@@ -98,7 +98,6 @@ const { tableRegister, tableState, tableMethods } = useTable({
         total: total
       }
     } catch (error) {
-      console.error('获取充值记录失败:', error)
       ElMessage.error('获取充值记录失败，请稍后重试')
       return { list: [], total: 0 }
     }
