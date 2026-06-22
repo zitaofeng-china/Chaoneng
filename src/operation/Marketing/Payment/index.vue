@@ -581,7 +581,7 @@ const getBotList = async (agentId?: number | string) => {
 
 // 刷新表格方法
 const reloadTable = () => {
-  searchTableRef.value?.reload() // 调用 SearchTable 的 reload
+  return searchTableRef.value?.reload() // 调用 SearchTable 的 reload
 }
 
 // 新增地址

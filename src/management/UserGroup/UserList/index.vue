@@ -6,9 +6,9 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchAccountList"
+        :default-params="initialSearchParams"
         :showAddButton="false"
         ref="searchTableRef"
-        @ready="onSearchTableReady"
         :table-props="{
           rowKey: 'id',
           highlightCurrentRow: false,
@@ -63,6 +63,7 @@ import { formatToDateTime } from '@/utils/dateUtil'
 import { ElMessage, ElLink } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
+import type { SearchTableExpose } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import type { FormSchema } from '@/components/Form'
@@ -75,13 +76,27 @@ import { useRoute, useRouter } from 'vue-router'
 import RechargeDialog from './components/RechargeDialog.vue'
 import BalanceRecordDialog from './components/BalanceRecordDialog.vue'
 import ChangePasswordDialog from './components/ChangePasswordDialog.vue'
-import { useSearchTable } from '@/hooks/web/useSearchTable'
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const route = useRoute()
 const router = useRouter()
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
+const initialSearchParams = (() => {
+  const params: Recordable = {}
+
+  if (route.query.bot_id) {
+    params.bot_id = String(route.query.bot_id)
+  }
+
+  if (route.query.keyword) {
+    params.keyword = String(route.query.keyword)
+  } else if (route.query.tg_id) {
+    params.keyword = String(route.query.tg_id)
+  }
+
+  return params
+})()
 
 const isBotListLoaded = ref(false)
 const botOptions = ref<{ label: string; value: string }[]>([{ label: '全部', value: '' }])
@@ -124,6 +139,7 @@ const balanceRecordDialogVisible = ref(false)
 const changePasswordDialogVisible = ref(false)
 const rechargeDialogVisible = ref(false)
 const selectedSource = ref<number | string>('')
+const searchTableRef = ref<SearchTableExpose | null>(null)
 
 // 表格列配置
 const columns = computed(() => {
@@ -367,13 +383,6 @@ const fetchAccountList = async (params: any) => {
   }
 }
 
-const { searchTableRef } = useSearchTable({
-  searchSchema: searchSchema.value,
-  tableColumns: columns.value,
-  fetchDataApi: fetchAccountList,
-  immediate: false
-})
-
 const openBotList = (botId: number) => {
   router.push({
     path: '/bot_manage/bot_list',
@@ -465,26 +474,8 @@ const handleExport = async () => {
   }
 }
 
-function onSearchTableReady(instance: any) {
-  const query = route.query
-  if (!query.bot_id && !query.tg_id) {
-    instance.reload()
-  }
-}
-
 onMounted(async () => {
   await fetchBotList()
-  const query = route.query
-  if (query.bot_id) {
-    const botId = botOptions.value.find((opt) => opt.value === String(query.bot_id))?.value
-    if (botId !== undefined) {
-      searchTableRef.value?.setSearchParams({ bot_id: botId })
-      searchTableRef.value?.reload()
-    }
-  } else if (query.tg_id) {
-    searchTableRef.value?.setSearchParams({ tg_id: String(query.tg_id) })
-    searchTableRef.value?.reload()
-  }
 })
 </script>
 

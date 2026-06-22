@@ -269,7 +269,7 @@ const handleNotifyConfig = () => {
 }
 
 const reloadTable = () => {
-  searchTableRef.value?.reload()
+  return searchTableRef.value?.reload()
 }
 
 const handleStatusChangeAttempt = async (row: V2PoolItem, newValue: number) => {

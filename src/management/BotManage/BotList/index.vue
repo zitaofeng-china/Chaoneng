@@ -5,6 +5,7 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchBotList"
+        :default-params="initialSearchParams"
         :fetch-del-api="fetchBotDelete"
         :action-column="actionColumn"
         :table-props="{
@@ -55,6 +56,7 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
 import { SearchTable } from '@/components/SearchTable'
+import type { SearchTableExpose } from '@/components/SearchTable'
 import { useForm } from '@/hooks/web/useForm'
 import { useI18n } from '@/hooks/web/useI18n'
 import { useValidator } from '@/hooks/web/useValidator'
@@ -73,25 +75,16 @@ import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute, useRouter } from 'vue-router'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
-interface SearchTableInstance {
-  reload: () => Promise<void>
-  reset: () => Promise<any>
-  search: () => Promise<any>
-  delete: (row: any) => Promise<boolean>
-  currentRow: any
-  tableMethods: any
-  searchMethods: any
-  tableState: any
-  searchParams: any
-  setSearchParams: (params: any) => any
-}
-
 const route = useRoute()
 const router = useRouter()
+const initialSearchParams = (() => {
+  const keyword = (route.query.tg_bot_id as string) || (route.query.name as string)
+  return keyword ? { keyword } : {}
+})()
 const { t } = useI18n()
 const { required } = useValidator()
 
-const searchTableRef = ref<SearchTableInstance | null>(null)
+const searchTableRef = ref<SearchTableExpose | null>(null)
 const consumptionRecordRef = ref()
 const renewBotRef = ref()
 const botConfigRef = ref()
@@ -522,16 +515,5 @@ const handleUserCountClick = (botId: number | string) => {
 
 onMounted(async () => {
   await getBotPrice()
-  const query = route?.query || {}
-
-  setTimeout(() => {
-    if (searchTableRef.value) {
-      const keyword = (query.tg_bot_id as string) || (query.name as string)
-      if (keyword) {
-        searchTableRef.value.setSearchParams({ keyword })
-      }
-      searchTableRef.value.reload()
-    }
-  }, 100)
 })
 </script>

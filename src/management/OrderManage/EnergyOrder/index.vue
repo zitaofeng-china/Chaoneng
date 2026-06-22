@@ -6,6 +6,7 @@
         :search-schema="searchSchema"
         :action-column="actionColumn"
         :fetch-data-api="fetchEnergyOrderList"
+        :default-params="initialSearchParams"
         :showAddButton="false"
         :pagination="{
           total: totalCount
@@ -28,7 +29,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, onMounted, h, computed } from 'vue'
+import { ref, h, computed } from 'vue'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute, useRouter } from 'vue-router'
 import { ElTag, ElLink } from 'element-plus'
@@ -58,12 +59,18 @@ const isEmpty = (value: any): boolean => {
 }
 
 const router = useRouter()
+const route = useRoute()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const totalCount = ref(0)
 const orderDialogVisible = ref(false)
 const selectedOrderDetail = ref<any>(null)
 const currentSearchParams = ref({})
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
+const initialSearchParams = route.query.order_id
+  ? {
+      order_id: String(route.query.order_id)
+    }
+  : {}
 
 // 当前选择的来源
 const selectedSource = ref<string>('')
@@ -288,13 +295,6 @@ const columns = computed<TableColumn[]>(() => {
     return selectedSource.value !== col.hideWhen
   })
 
-  console.log(
-    '[能量订单 columns] 过滤后的列数:',
-    filteredCols.length,
-    '来源:',
-    selectedSource.value
-  )
-
   return filteredCols
 })
 
@@ -448,12 +448,6 @@ const fetchEnergyOrderList = async (params: any) => {
   try {
     // 更新选中的来源，用于控制列的显示/隐藏
     selectedSource.value = params.origin || ''
-    console.log(
-      '[fetchEnergyOrderList] selectedSource:',
-      selectedSource.value,
-      'params.origin:',
-      params.origin
-    )
 
     // 直接使用API字段，减少映射
     const adaptedParams: any = {
@@ -480,8 +474,6 @@ const fetchEnergyOrderList = async (params: any) => {
       adaptedParams.start_time = Math.floor(params.dateRange[0] / 1000).toString()
       adaptedParams.end_time = Math.floor(params.dateRange[1] / 1000).toString()
     }
-
-    console.log('能量订单查询参数:', adaptedParams)
     const response = await v1GetEnergyOrderList(adaptedParams)
 
     // 映射返回数据字段 - 直接使用API原始字段，只做必要转换
@@ -664,19 +656,6 @@ const handleExport = async () => {
 const onSearch = (params: any) => {
   currentSearchParams.value = params
 }
-
-onMounted(() => {
-  const route = useRoute()
-  const query = route?.query || {}
-  setTimeout(() => {
-    if (searchTableRef.value) {
-      searchTableRef.value.setSearchParams({
-        order_id: query.order_id
-      })
-      searchTableRef.value.reload()
-    }
-  }, 100)
-})
 </script>
 
 <style scoped></style>

@@ -6,6 +6,7 @@
         :search-schema="searchSchema"
         :action-column="actionColumn"
         :fetch-data-api="fetchExchangeOrderList"
+        :default-params="initialSearchParams"
         :showAddButton="false"
         ref="searchTableRef"
         @search="onSearch"
@@ -62,7 +63,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, onMounted, h, computed } from 'vue'
+import { ref, h, computed } from 'vue'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { useRouter } from 'vue-router'
 import { ElButton, ElTag, ElMessage, ElTabs, ElTabPane, ElLink, ElEmpty } from 'element-plus'
@@ -91,8 +92,14 @@ import type { ExchangeOrderListParamsV1 } from '@/api/management/OrderManage/Exc
 
 // const { t } = useI18n()
 const router = useRouter()
+const route = useRouter().currentRoute.value
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
+const initialSearchParams = route.query.order_num
+  ? {
+      order_id: String(route.query.order_num)
+    }
+  : {}
 
 // 订单详情相关
 const dialogVisible = ref(false)
@@ -688,23 +695,7 @@ const handleExport = async () => {
 
 const onSearch = (params: any) => {
   // onSearch 事件会在用户点击搜索时触发，但参数已经在 fetchExchangeOrderList 中保存了
-  console.log('搜索参数:', params)
 }
-
-onMounted(() => {
-  // 从路由获取查询参数
-  const route = useRouter().currentRoute.value
-  const query = route.query
-  setTimeout(() => {
-    if (searchTableRef.value && query.order_num) {
-      searchTableRef.value.setSearchParams({
-        order_id: query.order_num
-      })
-      console.log('手动触发数据刷新')
-      searchTableRef.value.reload()
-    }
-  }, 100)
-})
 </script>
 
 <style scoped>

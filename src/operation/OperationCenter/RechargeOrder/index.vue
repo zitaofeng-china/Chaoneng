@@ -5,6 +5,7 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchRechargeOrderList"
+        :default-params="initialSearchParams"
         :showAddButton="false"
         ref="searchTableRef"
       >
@@ -42,7 +43,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, onMounted, h, computed } from 'vue'
+import { ref, h, computed } from 'vue'
 import { ElButton, ElTag, ElTabs, ElTabPane } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Dialog } from '@/components/Dialog'
@@ -80,6 +81,11 @@ import { RECHARGE_COIN_OPTIONS } from './constants'
 const router = useRouter()
 const route = useRoute()
 const searchTableRef = ref<SearchTableExpose | null>(null)
+const initialSearchParams = route.query.order_num
+  ? {
+      order_id: String(route.query.order_num)
+    }
+  : {}
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 type DepositSearchParams = Omit<V2DepositListParams, 'origin' | 'status'> & {
@@ -565,18 +571,6 @@ const handleExport = async () => {
     handleErrorMessage(error, '订单导出失败')
   }
 }
-
-onMounted(() => {
-  const query = route.query
-  setTimeout(() => {
-    if (searchTableRef.value) {
-      searchTableRef.value.setSearchParams({
-        order_id: query.order_num
-      })
-      searchTableRef.value.reload()
-    }
-  }, 100)
-})
 </script>
 
 <style scoped></style>

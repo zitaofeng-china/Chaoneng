@@ -106,7 +106,6 @@ const { tableRegister, tableState, tableMethods } = useTable({
 })
 
 const { loading, dataList, total, currentPage, pageSize } = tableState
-const { getList } = tableMethods
 
 const columns: TableColumn[] = [
   {
@@ -165,7 +164,7 @@ const open = (id: number, name?: string) => {
       if (currentPage.value !== 1) {
         currentPage.value = 1
       } else {
-        tableMethods.getList()
+        tableMethods.reload()
       }
     }
   }

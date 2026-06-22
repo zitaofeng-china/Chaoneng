@@ -5,6 +5,7 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchRechargeOrderList"
+        :default-params="initialSearchParams"
         :showAddButton="false"
         ref="searchTableRef"
         @search="onSearch"
@@ -44,7 +45,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, onMounted, h, computed } from 'vue'
+import { ref, h, computed } from 'vue'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { ElButton, ElTag, ElTabs, ElTabPane } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
@@ -62,8 +63,14 @@ import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/u
 import { dateRangeToSeconds, exportTableData } from '@/utils/tableHelpers'
 
 const router = useRouter()
+const route = useRoute()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
+const initialSearchParams = route.query.order_num
+  ? {
+      order_id: String(route.query.order_num)
+    }
+  : {}
 
 // 当前选择的来源
 const selectedSource = ref<number | string>('')
@@ -397,8 +404,6 @@ const columns = computed<TableColumn[]>(() => {
     return selectedSource.value !== col.hideWhen
   })
 
-  console.log('[columns] 过滤后的列数:', filteredCols.length, '来源:', selectedSource.value)
-
   return filteredCols
 })
 
@@ -536,12 +541,6 @@ const fetchRechargeOrderList = async (params: any) => {
   try {
     // 更新选中的来源，用于控制列的显示/隐藏
     selectedSource.value = params.source || ''
-    console.log(
-      '[fetchRechargeOrderList] selectedSource:',
-      selectedSource.value,
-      'params.source:',
-      params.source
-    )
 
     // 处理排序参数
     const adaptedParams: any = {}
@@ -618,7 +617,6 @@ const fetchRechargeOrderList = async (params: any) => {
 const handleViewDetail = async (row: any) => {
   try {
     const response = await v1GetDepositDetail(row.id)
-    console.log('response', response)
 
     const detail = response.data || {}
 
@@ -639,9 +637,6 @@ const handleViewDetail = async (row: any) => {
       pay_from: detail.pay_transaction?.from || '-', // 支付地址（发送方）
       pay_to: detail.pay_transaction?.to || '-' // 接收地址（接收方）
     }
-
-    console.log('orderDetail.value:', orderDetail.value)
-    console.log('rechargeDetail.value:', rechargeDetail.value)
 
     dialogVisible.value = true
     activeTab.value = 'order'
@@ -701,26 +696,9 @@ const handleExport = async () => {
 }
 
 const onSearch = (params: any) => {
-  console.log('搜索参数:', params)
   // 更新选中的来源，用于控制列的显示/隐藏
   selectedSource.value = params.source || ''
 }
-
-onMounted(() => {
-  const query = useRoute().query
-  // 只有当有 order_num 参数时才设置搜索参数并刷新
-  if (query.order_num) {
-    setTimeout(() => {
-      if (searchTableRef.value) {
-        searchTableRef.value.setSearchParams({
-          order_id: query.order_num
-        })
-        console.log('手动触发数据刷新')
-        searchTableRef.value.reload()
-      }
-    }, 100)
-  }
-})
 </script>
 
 <style scoped></style>

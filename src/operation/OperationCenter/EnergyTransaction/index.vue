@@ -5,6 +5,7 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchDataWrapper"
+        :default-params="initialSearchParams"
         :table-props="{
           rowKey: 'id',
           highlightCurrentRow: false,
@@ -21,7 +22,6 @@
         :pagination="{
           total: totalCount
         }"
-        @ready="onSearchTableReady"
       >
         <template #searchButtons>
           <BaseButton type="primary" @click="handleExport">
@@ -76,6 +76,9 @@ const totalCount = ref(0)
 const stoppingOrders = ref<Set<string>>(new Set())
 const stoppedOrders = ref<Set<string>>(new Set())
 const DEFAULT_ORDER = 'created_at DESC'
+const initialSearchParams: Partial<SearchFormParams> = route.query.query
+  ? { keyword: String(route.query.query) }
+  : {}
 
 const columns = computed(() => [...getFilteredColumns(selectedSource.value), actionColumn])
 
@@ -296,13 +299,5 @@ const handleDataLoaded = ({ success }: { success: boolean }) => {
 
 const handleLoadError = () => {
   handleErrorMessage('加载数据失败')
-}
-
-function onSearchTableReady(instance: SearchTableExpose) {
-  const query = route.query
-  if (query.query) {
-    instance.setSearchParams({ keyword: query.query })
-    instance.reload()
-  }
 }
 </script>

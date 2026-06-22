@@ -462,8 +462,8 @@ const handleInlineButton = () => {
   inlineButtonDialogVisible.value = true
 }
 
-const handleRefresh = () => {
-  searchTableRef.value?.reload()
+const handleRefresh = async () => {
+  await searchTableRef.value?.reload()
   ElMessage.success('刷新成功')
 }
 
@@ -473,7 +473,7 @@ const handleSubmit = async () => {
   try {
     await formRef.value.validate()
 
-    const currentList: BotMenuItem[] = searchTableRef.value?.tableState?.dataList?.value || []
+    const currentList = (searchTableRef.value?.getTableData() || []) as BotMenuItem[]
     const duplicated = currentList.find(
       (item) =>
         Number(item.order_num) === Number(formData.order_num) &&

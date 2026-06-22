@@ -94,7 +94,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, h, onMounted } from 'vue'
+import { reactive, ref, h } from 'vue'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -221,7 +221,7 @@ const fetchWealAddresses = async (params: any) => {
 
 // 刷新表格
 const reloadTable = () => {
-  searchTableRef.value?.reload()
+  return searchTableRef.value?.reload()
 }
 
 // 收款配置表单（移除福利地址字段）
@@ -378,16 +378,6 @@ const setBotId = (botId: number) => {
     reloadTable()
   }
 }
-
-// 组件挂载后设置初始 pageSize
-onMounted(() => {
-  // 等待 SearchTable 组件完全初始化
-  setTimeout(() => {
-    if (searchTableRef.value && (searchTableRef.value as any).tableState) {
-      ;(searchTableRef.value as any).tableState.pageSize.value = 4
-    }
-  }, 100)
-})
 
 // 打开批量删除对话框
 const handleBatchDeleteDialog = () => {

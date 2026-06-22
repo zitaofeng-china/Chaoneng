@@ -8,8 +8,7 @@
         :searchSchema="searchSchema"
         :fetchDataApi="getAgentBotList"
         :show-add-button="false"
-        :immediate="false"
-        @ready="onSearchTableReady"
+        :default-params="initialSearchParams"
       >
         <template #searchButtons>
           <BaseButton type="primary" @click="handleExport">
@@ -73,11 +72,6 @@ const initialSearchParams: AgentBotSearchParams = (() => {
   }
   return { status: 1 }
 })()
-
-function onSearchTableReady(instance: SearchTableExpose) {
-  instance.setSearchParams(initialSearchParams)
-  instance.reload()
-}
 
 const buildAgentBotParams = (
   params: AgentBotSearchParams = {},

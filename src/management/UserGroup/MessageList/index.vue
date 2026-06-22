@@ -305,9 +305,9 @@ const openMassSendDialog = () => {
 }
 
 // 消息发送成功处理
-const handleMessageSent = () => {
+const handleMessageSent = async () => {
   messageDialogVisible.value = false
-  searchTableRef.value?.reload()
+  await searchTableRef.value?.reload()
 }
 
 // 跳转到内联按钮管理页面
@@ -354,8 +354,8 @@ const handleEdit = (row: any) => {
 }
 
 // 高级设置成功回调
-const handleAdvancedSettingsSuccess = () => {
-  searchTableRef.value?.reload()
+const handleAdvancedSettingsSuccess = async () => {
+  await searchTableRef.value?.reload()
 }
 
 // 重发消息
@@ -453,9 +453,9 @@ const handleConfirmResend = async () => {
     })
 
     if (res.code === '000000') {
-      ElMessage.success('重发成功')
       resendPreviewVisible.value = false
-      searchTableRef.value?.reload()
+      await searchTableRef.value?.reload()
+      ElMessage.success('重发成功')
     } else {
       ElMessage.error((res as any).msg || '重发失败')
     }
@@ -478,8 +478,8 @@ const handleDelete = async (row: any) => {
 
     const res = await v1DeleteMassSend(row.id)
     if (res.code === '000000') {
+      await searchTableRef.value?.reload()
       ElMessage.success('删除成功')
-      searchTableRef.value?.reload()
     } else {
       ElMessage.error((res as any).msg || '删除失败')
     }

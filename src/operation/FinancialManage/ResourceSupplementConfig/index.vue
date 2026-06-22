@@ -71,9 +71,9 @@
         </ElForm>
 
         <template #footer>
-          <div class="dialog-footer">
-            <ElButton @click="dialogVisible = false">取消</ElButton>
+          <div class="dialog-footer" style="display: flex; justify-content: flex-end; gap: 8px">
             <ElButton type="primary" @click="handleSubmit">保存</ElButton>
+            <ElButton @click="dialogVisible = false">取消</ElButton>
           </div>
         </template>
       </Dialog>
@@ -356,7 +356,7 @@ const handleSubmit = async () => {
 }
 
 const reloadTable = () => {
-  searchTableRef.value?.reload()
+  return searchTableRef.value?.reload()
 }
 </script>
 

@@ -6,6 +6,7 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchDataWrapper"
+        :default-params="initialSearchParams"
         :table-props="{
           rowKey: 'id',
           highlightCurrentRow: false,
@@ -21,7 +22,6 @@
         }"
         @loaded="handleDataLoaded"
         @error="handleLoadError"
-        @ready="onSearchTableReady"
       >
         <template #searchButtons>
           <BaseButton type="primary" @click="handleExport">
@@ -41,10 +41,10 @@ import { onMounted, ref } from 'vue'
 import { ElLink, ElTag } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
+import type { SearchTableExpose } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import OrderDetail from './components/OrderDetail.vue'
-import type { SearchTableExpose } from '@/components/SearchTable'
 import { v1GetQuickChargeOrderList } from '@/api/management/OrderManage/QuickChargeOrder'
 import { v1GetMessageBotList, type MessageBotItem } from '@/api/management/common/message'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
@@ -83,6 +83,10 @@ const route = useRoute()
 const router = useRouter()
 const totalCount = ref(0)
 const botOptions = ref<SelectOption<number | string>[]>(withAllOption<number | string>([]))
+const initialSearchParams: Partial<QuickChargeSearchParams> = (() => {
+  const keyword = route.query.keyword || route.query.query || route.query.order_num
+  return keyword ? { keyword: String(keyword) } : {}
+})()
 
 type QuickChargeTableSlot = TableSlot<QuickChargeOrder>
 
@@ -370,14 +374,6 @@ const handleDataLoaded = ({ success }: { success: boolean }) => {
 
 const handleLoadError = () => {
   handleErrorMessage('加载速充订单失败')
-}
-
-const onSearchTableReady = (instance: SearchTableExpose) => {
-  const keyword = route.query.keyword || route.query.query || route.query.order_num
-  if (!keyword) return
-
-  instance.setSearchParams({ keyword })
-  instance.reload()
 }
 
 onMounted(() => {

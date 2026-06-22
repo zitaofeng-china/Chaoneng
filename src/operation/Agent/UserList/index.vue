@@ -6,10 +6,9 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchUserList"
+        :default-params="initialSearchParams"
         :showAddButton="false"
-        :immediate="false"
         ref="searchTableRef"
-        @ready="onSearchTableReady"
         :table-props="{
           rowKey: 'id',
           highlightCurrentRow: false,
@@ -99,6 +98,19 @@ import ChangePasswordDialog from '../components/UserDialogs/ChangePasswordDialog
 
 const route = useRoute()
 const router = useRouter()
+const initialSearchParams = (() => {
+  const params: UserSearchParams = {}
+
+  if (route.query.bot_id) {
+    params.bot_id = Number(route.query.bot_id)
+  }
+
+  if (route.query.keyword) {
+    params.keyword = String(route.query.keyword)
+  }
+
+  return params
+})()
 
 type UserSearchParams = Omit<UserListParams, 'start_time' | 'end_time' | 'origin'> & {
   origin?: number | string
@@ -167,10 +179,7 @@ const getRouteSearchParams = (): UserSearchParams => {
   const params: UserSearchParams = {}
 
   if (query.bot_id) {
-    const botId = botOptions.value.find((opt) => opt.value === String(query.bot_id))?.value
-    if (botId !== undefined) {
-      params.bot_id = Number(botId)
-    }
+    params.bot_id = Number(query.bot_id)
   }
 
   if (query.keyword) {
@@ -178,15 +187,6 @@ const getRouteSearchParams = (): UserSearchParams => {
   }
 
   return params
-}
-
-const applyRouteSearchParams = (instance: SearchTableExpose) => {
-  const params = getRouteSearchParams()
-
-  if (Object.keys(params).length > 0) {
-    instance.setSearchParams(params)
-  }
-  instance.reload()
 }
 
 // 获取机器人列表
@@ -464,10 +464,6 @@ const openBotList = (botId: number) => {
     path: '/agent/bot_list',
     query: { bot_id: botId }
   })
-}
-
-function onSearchTableReady(instance: SearchTableExpose) {
-  applyRouteSearchParams(instance)
 }
 
 // 发送消息
