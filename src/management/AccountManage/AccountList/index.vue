@@ -334,7 +334,6 @@ const debouncedApiCall = debounce(async () => {
     ElMessage.success('验证码已发送到邮箱')
     // 注意：倒计时已经在 handleClickSendCode 中启动了
   } catch (error) {
-    console.error('发送验证码失败:', error)
     ElMessage.error('发送验证码失败，请稍后重试')
     // API 请求失败时，重置倒计时状态，让用户可以重试
     resetCountdown()
@@ -448,7 +447,6 @@ const openRechargeDialog = async () => {
       ElMessage.error('获取充值地址失败')
     }
   } catch (error) {
-    console.error('获取充值地址失败:', error)
     ElMessage.error('获取充值地址失败，请稍后重试')
   }
 }
