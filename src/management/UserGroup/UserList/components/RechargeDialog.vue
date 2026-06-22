@@ -29,6 +29,7 @@ import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
 import { v1RechargeUser } from '@/api/management/common/tgUser'
 import type { RechargeUserParamsV1 } from '@/api/management/common/tgUser/types'
+import { handleErrorMessage } from '@/utils/messageHelper'
 
 const props = defineProps({
   visible: {
@@ -151,9 +152,7 @@ const initForm = () => {
         amount: '',
         describe: ''
       })
-      .catch((err) => {
-        console.error('设置表单值失败:', err)
-      })
+      .catch((err) => handleErrorMessage(err, '初始化充值表单失败'))
   }, 200)
 }
 
@@ -203,14 +202,12 @@ const handleRecharge = async () => {
       close()
       emit('success')
     } catch (error) {
-      console.error('充值失败:', error)
-      ElMessage.error('充值失败')
+      handleErrorMessage(error, '充值失败')
     } finally {
       submitting.value = false
     }
   } catch (error) {
-    console.error('表单操作失败:', error)
-    ElMessage.error('表单操作失败，请稍后再试')
+    handleErrorMessage(error, '表单操作失败，请稍后再试')
   }
 }
 
