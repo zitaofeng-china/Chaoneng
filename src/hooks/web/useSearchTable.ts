@@ -1,6 +1,6 @@
 import { useTable } from './useTable'
 import { useSearch } from './useSearch'
-import { ref, unref, onMounted, watch, computed } from 'vue'
+import { ref, unref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { FormSchema } from '@/components/Form'
 import { TableColumn } from '@/components/Table'
@@ -33,6 +33,7 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
   const currentRow = ref<Recordable | null>(null)
   const searchTableRef = vueRef<any>(null)
   const searchTableInstance = vueRef<any>(null)
+  const initialized = ref(false)
 
   // 注册追踪
   const searchRegistered = ref(false)
@@ -65,6 +66,9 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
 
   // 延迟初始化
   function tryInit() {
+    if (initialized.value) {
+      return
+    }
     // 如果没有搜索表单，只需要等待table注册
     const needsSearch = config.searchSchema && config.searchSchema.length > 0
     if (needsSearch) {
@@ -176,7 +180,7 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
       if (tableState.currentPage.value !== 1) {
         tableState.currentPage.value = 1
       } else {
-        await tableMethods.getList()
+        await tableMethods.reload()
       }
       return form
     } catch {
@@ -192,7 +196,7 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
       if (tableState.currentPage.value !== 1) {
         tableState.currentPage.value = 1
       } else {
-        await tableMethods.getList()
+        await tableMethods.reload()
       }
       return unref(searchParams)
     } catch {
@@ -202,7 +206,7 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
   }
 
   const loadData = () => {
-    return tableMethods.getList()
+    return tableMethods.reload()
   }
 
   const setupActionColumn = () => {
@@ -221,8 +225,12 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
     try {
       if (config.searchSchema && config.searchSchema.length > 0) {
         await searchMethods.setProps({ schema: config.searchSchema })
+        if (Object.keys(unref(searchParams)).length > 0) {
+          await searchMethods.setValues(unref(searchParams))
+        }
       }
       await tableMethods.setProps({ columns: setupActionColumn() })
+      initialized.value = true
       if (config.immediate !== false) {
         setTimeout(() => {
           loadData()

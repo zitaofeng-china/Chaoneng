@@ -1,5 +1,5 @@
 <template>
-  <div ref="containerRef" class="search-table-container">
+  <div class="search-table-container">
     <!-- 搜索表单 -->
     <Search
       v-if="searchSchema && searchSchema.length > 0"
@@ -48,6 +48,7 @@
       :scrollbar-always-on="true"
       @sort-change="handleSortChange"
       @selection-change="handleSelectionChange"
+      :wheel-scroll="wheelScroll"
       v-bind="tableProps"
     >
       <template v-for="item in slotKeys" :key="item" #[item]="data">
@@ -58,9 +59,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, useSlots, PropType, watch, unref } from 'vue'
+import { computed, onMounted, useSlots, PropType, watch, unref } from 'vue'
 import { useSearchTable } from '@/hooks/web/useSearchTable'
-import { useWheelHorizontalScroll } from '@/hooks/web/useWheelHorizontalScroll'
 import { Search } from '@/components/Search'
 import { Table } from '@/components/Table'
 import { BaseButton } from '@/components/Button'
@@ -140,14 +140,6 @@ const props = defineProps({
   }
 })
 
-// 容器引用（用于滚轮横向滚动）
-const containerRef = ref<HTMLElement | null>(null)
-
-// 启用滚轮横向滚动
-if (props.wheelScroll) {
-  useWheelHorizontalScroll(containerRef)
-}
-
 const emit = defineEmits([
   'add',
   'search',
@@ -194,12 +186,10 @@ if (props.pagination?.pageSize) {
 
 const handlePageChange = (page: number) => {
   tableState.currentPage.value = page
-  tableMethods.getList()
 }
 
 const handlePageSizeChange = (size: number) => {
   tableState.pageSize.value = size
-  tableMethods.getList()
 }
 
 // 搜索
@@ -268,7 +258,7 @@ onMounted(() => {
   // 触发ready事件，暴露核心方法
   emit('ready', {
     setSearchParams,
-    reload: tableMethods.getList,
+    reload: tableMethods.reload,
     search: handleSearch,
     reset: handleReset,
     delete: doDelete,
@@ -283,7 +273,7 @@ onMounted(() => {
 
 // 暴露方法
 defineExpose({
-  reload: tableMethods.getList,
+  reload: tableMethods.reload,
   reset: handleReset,
   search: handleSearch,
   delete: doDelete,
@@ -312,7 +302,7 @@ const handleSortChange = (data: { column: any; prop: string; order: string }) =>
   }
 
   // 重新加载数据
-  tableMethods.getList()
+  tableMethods.reload()
 }
 
 // 处理表格选择变化

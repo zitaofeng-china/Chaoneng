@@ -25,26 +25,27 @@ export const useTable = (config: UseTableConfig) => {
   const pageSize = ref(10)
   const total = ref(0)
   const dataList = ref<any[]>([])
-  let isPageSizeChange = false
+  let skipNextPageChangeRequest = false
 
   watch(
     () => currentPage.value,
     () => {
-      if (!isPageSizeChange) methods.getList()
-      isPageSizeChange = false
+      if (skipNextPageChangeRequest) {
+        skipNextPageChangeRequest = false
+        return
+      }
+      methods.getList()
     }
   )
 
   watch(
     () => pageSize.value,
     () => {
-      if (unref(currentPage) === 1) {
-        methods.getList()
-      } else {
+      if (unref(currentPage) !== 1) {
+        skipNextPageChangeRequest = true
         currentPage.value = 1
-        isPageSizeChange = true
-        methods.getList()
       }
+      methods.getList()
     }
   )
 
@@ -137,7 +138,11 @@ export const useTable = (config: UseTableConfig) => {
     },
 
     refresh: () => {
-      methods.getList()
+      return methods.getList()
+    },
+
+    reload: () => {
+      return methods.getList()
     },
 
     // 删除数据
@@ -164,7 +169,7 @@ export const useTable = (config: UseTableConfig) => {
               : unref(currentPage)
 
           currentPage.value = current
-          methods.getList()
+          return methods.reload()
         }
       })
     }
