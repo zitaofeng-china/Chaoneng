@@ -256,7 +256,6 @@ const fetchAccountList = async (params: any) => {
       userData.value = {}
     }
   } catch (error) {
-    console.error('获取账户信息失败:', error)
     ElMessage.error('获取账户信息失败')
     userData.value = {}
   } finally {

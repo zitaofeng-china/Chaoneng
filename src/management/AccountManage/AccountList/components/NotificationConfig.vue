@@ -126,7 +126,6 @@ const fetchNotifyBotName = async () => {
     const res = await v1GetNotifyBot()
     notifyBotName.value = res.data?.user_name || ''
   } catch (error) {
-    console.error('获取通知机器人名称失败:', error)
     notifyBotName.value = ''
   }
 }
@@ -200,7 +199,6 @@ const handleSave = async () => {
     Object.assign(originalData, form)
     emit('saved')
   } catch (error: any) {
-    console.error('保存代理消息提醒配置失败:', error)
     ElMessage.error(error?.msg || '保存失败')
   } finally {
     saving.value = false
