@@ -228,6 +228,17 @@ const createEmptySummary = (): SummaryTotals => ({
   yesterdayNew: 0
 })
 
+const normalizePager = (pager?: UserStatisticsReportData['pager']) => {
+  const currentPage = toNumber(pager?.current_page)
+  const pageSize = toNumber(pager?.page_size)
+
+  return {
+    currentPage: currentPage > 0 ? currentPage : 1,
+    pageSize: pageSize > 0 ? pageSize : 10,
+    total: toNumber(pager?.total)
+  }
+}
+
 const normalizeSummary = (summary?: UserStatisticsSummary): SummaryTotals => {
   const todayNew = toNumber(summary?.growth_user_today)
   const yesterdayNew = toNumber(summary?.growth_user_yesterday)
@@ -332,9 +343,12 @@ const loadData = async () => {
     }
 
     const detail = getDetailList(res.data)
+    const pager = normalizePager(res.data.pager)
     reportRows.value = detail.map(normalizeRow)
     summaryTotals.value = normalizeSummary(res.data.summary)
-    totalCount.value = toNumber(res.data.pager?.total ?? res.data.total ?? detail.length)
+    pagination.currentPage = pager.currentPage
+    pagination.pageSize = pager.pageSize
+    totalCount.value = pager.total || toNumber(res.data.total ?? detail.length)
   } catch (error) {
     resetReportState()
     handleErrorMessage(error, '获取人数统计报表失败')
