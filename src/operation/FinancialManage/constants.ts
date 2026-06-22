@@ -14,7 +14,9 @@ export const RESOURCE_SUPPLEMENT_SOURCE_OPTIONS = [
   { label: '带宽收购池 带宽', value: '带宽收购池 带宽' },
   { label: 'https://justlend.org 能量', value: 'https://justlend.org 能量' },
   { label: 'https://feee.io 带宽', value: 'https://feee.io 带宽' },
-  { label: 'https://trxfee.io 带宽', value: 'https://trxfee.io 带宽' }
+  { label: 'https://trxfee.io 带宽', value: 'https://trxfee.io 带宽' },
+  { label: 'Sohu 能量', value: 'Sohu 能量' },
+  { label: 'Sohu 带宽', value: 'Sohu 带宽' }
 ]
 
 export const RESOURCE_SUPPLEMENT_SOURCE_SEARCH_OPTIONS = withAllOption(
