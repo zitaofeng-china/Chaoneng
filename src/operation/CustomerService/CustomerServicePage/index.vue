@@ -39,7 +39,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, nextTick } from 'vue'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { Dialog } from '@/components/Dialog'
@@ -194,27 +194,29 @@ const handleAddCustomerService = async () => {
   isEdit.value = false
   currentEditData.value = null
   dialogVisible.value = true
-  setTimeout(async () => {
-    try {
-      const elForm = await formMethods.getElFormExpose()
-      elForm?.resetFields()
-      formMethods.setValues({ status: 1 })
-    } catch (e) {
-      handleErrorMessage(e, '重置表单失败')
-    }
-  }, 100)
+  await nextTick()
+  try {
+    const elForm = await formMethods.getElFormExpose()
+    elForm?.resetFields()
+    formMethods.setValues({ status: 1 })
+  } catch (e) {
+    handleErrorMessage(e, '重置表单失败')
+  }
 }
 
-const handleEditCustomerService = (row: CustomerServiceItem) => {
+const handleEditCustomerService = async (row: CustomerServiceItem) => {
   isEdit.value = true
   currentEditData.value = row
   dialogVisible.value = true
-  setTimeout(() => {
+  await nextTick()
+  try {
     formMethods.setValues({
       tg_name: row.tg_name,
       status: row.status
     })
-  }, 100)
+  } catch (e) {
+    handleErrorMessage(e, '回填表单失败')
+  }
 }
 
 const handleStatusChange = async (row: CustomerServiceItem, targetStatus: number) => {
@@ -232,8 +234,8 @@ const handleStatusChange = async (row: CustomerServiceItem, targetStatus: number
     }
 
     await updateCustomerServiceApi(updateData)
+    await searchTableRef.value?.reload()
     handleSuccessMessage(`${targetStatus === 1 ? '启用' : '禁用'}成功`)
-    searchTableRef.value?.reload()
   } catch (error) {
     if (error !== 'cancel') {
       handleErrorMessage(error, '操作失败')
@@ -268,6 +270,7 @@ const handleSubmit = async () => {
         status: formData.status
       }
       await updateCustomerServiceApi(updateData)
+      await searchTableRef.value?.reload()
       handleSuccessMessage('编辑成功')
     } else {
       const createData: CreateCustomerServiceParams = {
@@ -275,11 +278,11 @@ const handleSubmit = async () => {
         status: formData.status
       }
       await createCustomerServiceApi(createData)
+      await searchTableRef.value?.reload()
       handleSuccessMessage('新增成功')
     }
 
-    handleDialogClose()
-    searchTableRef.value?.reload()
+    await handleDialogClose()
   } catch (error) {
     handleErrorMessage(error, '操作失败')
   } finally {

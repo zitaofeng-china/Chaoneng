@@ -152,8 +152,8 @@ const handleAdd = () => {
   nextTick(() => writeRef.value?.open())
 }
 
-const handleSaveSuccess = () => {
-  getList()
+const handleSaveSuccess = async () => {
+  await getList()
 }
 
 const handleDelete = (row: RoleItem) => {
@@ -165,8 +165,8 @@ const handleDelete = (row: RoleItem) => {
     .then(async () => {
       try {
         await deleteRoleApiV2(row.id)
+        await getList()
         handleSuccessMessage('删除成功')
-        getList()
       } catch (error) {
         handleErrorMessage(error, '删除失败')
       }

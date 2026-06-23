@@ -150,8 +150,8 @@ const delData = async (row?: ManageUserItem) => {
         id: Number(row.id)
       }
       await deleteManageUserApiV2(payload)
+      await getList()
       handleSuccessMessage('删除成功')
-      getList()
     } catch (error) {
       handleErrorMessage(error, '删除失败')
     } finally {
@@ -195,8 +195,9 @@ const save = async () => {
         }
         await addManageUserApiV2(payload)
       }
-      handleSuccessMessage(actionType.value === 'edit' ? '编辑成功' : '添加成功')
       writeRef.value?.close()
+      await getList()
+      handleSuccessMessage(actionType.value === 'edit' ? '编辑成功' : '添加成功')
     } catch (error) {
       handleErrorMessage(error, actionType.value === 'edit' ? '编辑失败' : '添加失败')
     } finally {
@@ -251,7 +252,6 @@ onMounted(async () => {
       :dialog-title="dialogTitle"
       :save-loading="saveLoading"
       :action-type="actionType"
-      @closed="getList"
     >
       <template #footer>
         <BaseButton type="primary" :loading="saveLoading" @click="save">
