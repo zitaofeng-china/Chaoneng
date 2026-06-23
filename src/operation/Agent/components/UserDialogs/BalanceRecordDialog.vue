@@ -154,6 +154,7 @@ const handleCurrentPageChange = async (page: number) => {
 }
 
 const handlePageSizeChange = async (size: number) => {
+  if (loading.value) return
   pagination.pageSize = size
   pagination.currentPage = 1
   await fetchData()

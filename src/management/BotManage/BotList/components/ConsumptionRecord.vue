@@ -19,6 +19,7 @@ import { Dialog } from '@/components/Dialog'
 import { Table } from '@/components/Table'
 import { v1GetAgentBillList } from '@/api/management/BotManage/BotList'
 import { formatToDateTime } from '@/utils/dateUtil'
+import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 
 interface ConsumptionRecord {
   order_id: string
@@ -104,12 +105,17 @@ const getList = async () => {
     })
 
     if (res.code === '000000' && res.data) {
-      dataList.value = [...(res.data.list || [])].sort(
+      const list = [...(res.data.list || [])].sort(
         (a, b) => Number(b.created_at || 0) - Number(a.created_at || 0)
       )
+      dataList.value = list
       total.value = res.data.pager?.total || 0
+      handleListMessage(list, currentPage.value > 1, '消费记录')
     }
   } catch (error) {
+    handleErrorMessage(error, '获取消费记录失败')
+    dataList.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }

@@ -28,12 +28,13 @@
 
 <script setup lang="tsx">
 import { ref, computed, watch, unref } from 'vue'
-import { ElButton, ElTag, ElMessage } from 'element-plus'
+import { ElButton, ElTag } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { Table, TableColumn } from '@/components/Table'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { v1GetBillList } from '@/api/management/AccountManage/AccountList'
 import { useTable } from '@/hooks/web/useTable'
+import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 
 const props = defineProps({
   accountId: {
@@ -53,7 +54,7 @@ const { tableRegister, tableState, tableMethods } = useTable({
   immediate: false,
   fetchDataApi: async () => {
     if (!props.accountId) {
-      ElMessage.warning('账户ID不能为空')
+      handleErrorMessage(new Error('账户ID不能为空'), '账户ID不能为空')
       return { list: [], total: 0 }
     }
     try {
@@ -88,17 +89,14 @@ const { tableRegister, tableState, tableMethods } = useTable({
 
       const total = res.data?.pager?.total || 0
 
-      // 成功提示
-      if (mappedList.length === 0) {
-        ElMessage.info('暂无充值记录')
-      }
+      handleListMessage(mappedList, currentPage.value > 1, '充值记录')
 
       return {
         list: mappedList,
         total: total
       }
     } catch (error) {
-      ElMessage.error('获取充值记录失败，请稍后重试')
+      handleErrorMessage(error, '获取充值记录失败，请稍后重试')
       return { list: [], total: 0 }
     }
   }
