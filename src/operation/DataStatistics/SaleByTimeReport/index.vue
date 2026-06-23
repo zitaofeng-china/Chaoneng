@@ -113,17 +113,23 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { exportStyledAoaToExcel } from '@/utils/excel'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import {
+  buildStatsExportFilename,
+  createRecentDateRange,
+  isValidStatsDateRange,
+  toStatsSecondRange,
+  type StatsDateRangeValue
+} from '@/utils/statsReport'
+import {
   getSaleByTimeReport,
   type SaleByTimeReportParams,
   type SaleByTimeReportSummaryItem
 } from '@/api/opertion/DataStatistics/SaleByTimeReport'
 
-type DateRangeValue = [string, string]
 type ReportTypeKey = 'order' | 'energy'
 type ReportCategoryKey = 'agent' | 'self'
 
 interface SearchFormState {
-  dateRange: DateRangeValue
+  dateRange: StatsDateRangeValue
 }
 
 interface ReportMetrics {
@@ -143,30 +149,17 @@ interface ReportRow extends ReportMetrics {
   ratioText: string
 }
 
-const createDefaultRange = (): DateRangeValue => {
-  const endDate = dayjs().format('YYYY-MM-DD')
-  const startDate = dayjs().subtract(2, 'day').format('YYYY-MM-DD')
-  return [startDate, endDate]
-}
-
 const toNumber = (value: number | string | undefined) => {
   const numberValue = Number(value ?? 0)
   return Number.isFinite(numberValue) ? numberValue : 0
 }
 
-const toSecondRange = ([startDate, endDate]: DateRangeValue) => {
-  return {
-    start_time: String(dayjs(startDate).startOf('day').unix()),
-    end_time: String(dayjs(endDate).endOf('day').unix())
-  }
-}
-
 const loading = ref(false)
-const defaultRange = createDefaultRange()
+const defaultRange = createRecentDateRange(3)
 const searchForm = reactive<SearchFormState>({
-  dateRange: [...defaultRange] as DateRangeValue
+  dateRange: [...defaultRange] as StatsDateRangeValue
 })
-const activeRange = ref<DateRangeValue>([...defaultRange] as DateRangeValue)
+const activeRange = ref<StatsDateRangeValue>([...defaultRange] as StatsDateRangeValue)
 const reportRows = ref<ReportRow[]>([])
 
 const formatCount = (value: number | string | undefined) => {
@@ -354,11 +347,11 @@ const reportRowsWithRatio = computed<ReportRow[]>(() => {
   })
 })
 
-const buildParams = (range: DateRangeValue): SaleByTimeReportParams => {
-  return toSecondRange(range)
+const buildParams = (range: StatsDateRangeValue): SaleByTimeReportParams => {
+  return toStatsSecondRange(range)
 }
 
-const loadData = async (range: DateRangeValue) => {
+const loadData = async (range: StatsDateRangeValue) => {
   loading.value = true
 
   try {
@@ -370,7 +363,7 @@ const loadData = async (range: DateRangeValue) => {
     }
 
     reportRows.value = normalizeReportRows(res.data.order, res.data.energy)
-    activeRange.value = [...range] as DateRangeValue
+    activeRange.value = [...range] as StatsDateRangeValue
   } catch (error) {
     reportRows.value = []
     handleErrorMessage(error, '获取按时间销售报表失败')
@@ -380,7 +373,7 @@ const loadData = async (range: DateRangeValue) => {
 }
 
 const handleSearch = async () => {
-  if (!Array.isArray(searchForm.dateRange) || searchForm.dateRange.length !== 2) {
+  if (!isValidStatsDateRange(searchForm.dateRange)) {
     handleErrorMessage('请选择日期范围', '搜索失败')
     return
   }
@@ -389,7 +382,7 @@ const handleSearch = async () => {
 }
 
 const handleReset = async () => {
-  searchForm.dateRange = [...defaultRange] as DateRangeValue
+  searchForm.dateRange = [...defaultRange] as StatsDateRangeValue
   await loadData(defaultRange)
 }
 
@@ -449,7 +442,7 @@ const handleExport = () => {
 
   exportStyledAoaToExcel({
     data: exportRows,
-    filename: `按时间销售报表_${dayjs(activeRange.value[0]).format('YYYYMMDD')}_${dayjs(activeRange.value[1]).format('YYYYMMDD')}`,
+    filename: buildStatsExportFilename('按时间销售报表', activeRange.value),
     sheetName: '按时间销售报表',
     columnWidths: [
       { wpx: 90 },

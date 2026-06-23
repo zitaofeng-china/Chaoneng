@@ -191,13 +191,19 @@ import { formatStatsDateLabel } from '@/utils/statsDate'
 import { exportStyledAoaToExcel } from '@/utils/excel'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import {
+  buildStatsExportFilename,
+  createRecentDateRange,
+  isValidStatsDateRange,
+  toStatsSecondRange,
+  type StatsDateRangeValue
+} from '@/utils/statsReport'
+import {
   getEnergyStatisticsReport,
   type EnergyStatisticsDetailItem,
   type EnergyStatisticsReportParams,
   type EnergyStatisticsSummary
 } from '@/api/opertion/DataStatistics/EnergyStatisticsReport'
 
-type DateRangeValue = [string, string]
 type SortOrder = 'ASC' | 'DESC'
 type SortableField =
   | 'flash_energy'
@@ -217,7 +223,7 @@ const SORT_FIELD_MAP: Record<SortableField, string> = {
 }
 const DEFAULT_ORDER = 'date DESC'
 interface SearchFormState {
-  dateRange: DateRangeValue
+  dateRange: StatsDateRangeValue
 }
 
 interface ReportRow {
@@ -232,22 +238,9 @@ interface ReportRow {
   welfareRatio: number
 }
 
-const createDefaultRange = (): DateRangeValue => {
-  const endDate = dayjs().format('YYYY-MM-DD')
-  const startDate = dayjs().subtract(6, 'day').format('YYYY-MM-DD')
-  return [startDate, endDate]
-}
-
 const toNumber = (value: number | string | undefined) => {
   const numberValue = Number(value ?? 0)
   return Number.isFinite(numberValue) ? numberValue : 0
-}
-
-const toSecondRange = ([startDate, endDate]: DateRangeValue) => {
-  return {
-    start_time: String(dayjs(startDate).startOf('day').unix()),
-    end_time: String(dayjs(endDate).endOf('day').unix())
-  }
 }
 
 const createEmptySummary = (): Required<EnergyStatisticsSummary> => ({
@@ -297,11 +290,11 @@ const normalizeRow = (row: EnergyStatisticsDetailItem): ReportRow => {
 }
 
 const loading = ref(false)
-const defaultRange = createDefaultRange()
+const defaultRange = createRecentDateRange(7)
 const searchForm = reactive<SearchFormState>({
-  dateRange: [...defaultRange] as DateRangeValue
+  dateRange: [...defaultRange] as StatsDateRangeValue
 })
-const activeRange = ref<DateRangeValue>([...defaultRange] as DateRangeValue)
+const activeRange = ref<StatsDateRangeValue>([...defaultRange] as StatsDateRangeValue)
 const reportRows = ref<ReportRow[]>([])
 const summaryTotals = ref<Required<EnergyStatisticsSummary>>(createEmptySummary())
 const sortState = reactive<{
@@ -328,8 +321,8 @@ const formatPercent = (value: number) => {
   return `${(value * 100).toFixed(1)}%`
 }
 
-const buildParams = (range: DateRangeValue): EnergyStatisticsReportParams => {
-  const params: EnergyStatisticsReportParams = toSecondRange(range)
+const buildParams = (range: StatsDateRangeValue): EnergyStatisticsReportParams => {
+  const params: EnergyStatisticsReportParams = toStatsSecondRange(range)
 
   params.order =
     sortState.prop && sortState.order
@@ -339,7 +332,7 @@ const buildParams = (range: DateRangeValue): EnergyStatisticsReportParams => {
   return params
 }
 
-const loadData = async (range: DateRangeValue) => {
+const loadData = async (range: StatsDateRangeValue) => {
   loading.value = true
 
   try {
@@ -350,7 +343,7 @@ const loadData = async (range: DateRangeValue) => {
     }
 
     const data = res.data
-    activeRange.value = [...range] as DateRangeValue
+    activeRange.value = [...range] as StatsDateRangeValue
     summaryTotals.value = normalizeSummary(data.summary)
     reportRows.value = Array.isArray(data.detail) ? data.detail.map(normalizeRow) : []
   } catch (error) {
@@ -363,7 +356,7 @@ const loadData = async (range: DateRangeValue) => {
 }
 
 const handleSearch = async () => {
-  if (!Array.isArray(searchForm.dateRange) || searchForm.dateRange.length !== 2) {
+  if (!isValidStatsDateRange(searchForm.dateRange)) {
     handleErrorMessage('请选择日期范围', '搜索失败')
     return
   }
@@ -374,7 +367,7 @@ const handleSearch = async () => {
 const handleReset = async () => {
   sortState.prop = ''
   sortState.order = ''
-  searchForm.dateRange = [...defaultRange] as DateRangeValue
+  searchForm.dateRange = [...defaultRange] as StatsDateRangeValue
   await loadData(defaultRange)
 }
 
@@ -421,7 +414,7 @@ const handleExport = () => {
 
   exportStyledAoaToExcel({
     data: exportRows,
-    filename: `能量统计报表_${dayjs(activeRange.value[0]).format('YYYYMMDD')}_${dayjs(activeRange.value[1]).format('YYYYMMDD')}`,
+    filename: buildStatsExportFilename('能量统计报表', activeRange.value),
     sheetName: '能量统计报表',
     columnWidths: [
       { wpx: 110 },

@@ -81,16 +81,22 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import { formatStatsDateLabel } from '@/utils/statsDate'
 import {
+  buildStatsExportFilename,
+  createRecentDateRange,
+  isValidStatsDateRange,
+  toStatsSecondRange,
+  type StatsDateRangeValue
+} from '@/utils/statsReport'
+import {
   getPaymentStatisticsReport,
   type PaymentStatisticsItem,
   type PaymentStatisticsReportParams
 } from '@/api/opertion/DataStatistics/PaymentStatisticsReport'
 
-type DateRangeValue = [string, string]
 const DEFAULT_ORDER = 'date DESC'
 
 interface SearchFormState {
-  dateRange: DateRangeValue
+  dateRange: StatsDateRangeValue
 }
 
 interface ReportRow {
@@ -119,22 +125,9 @@ const EXPORT_MERGES: XLSX.Range[] = [
   { s: { r: 0, c: 7 }, e: { r: 0, c: 8 } }
 ]
 
-const createDefaultRange = (): DateRangeValue => {
-  const endDate = dayjs().format('YYYY-MM-DD')
-  const startDate = dayjs().subtract(6, 'day').format('YYYY-MM-DD')
-  return [startDate, endDate]
-}
-
 const toNumber = (value: number | string | undefined) => {
   const numberValue = Number(value ?? 0)
   return Number.isFinite(numberValue) ? numberValue : 0
-}
-
-const toSecondRange = ([startDate, endDate]: DateRangeValue) => {
-  return {
-    end_time: String(dayjs(endDate).endOf('day').unix()),
-    start_time: String(dayjs(startDate).startOf('day').unix())
-  }
 }
 
 const createRatio = (value: number, total: number) => {
@@ -165,11 +158,11 @@ const normalizeRow = (item: PaymentStatisticsItem): ReportRow => {
 }
 
 const loading = ref(false)
-const defaultRange = createDefaultRange()
-const activeRange = ref<DateRangeValue>([...defaultRange] as DateRangeValue)
+const defaultRange = createRecentDateRange(7)
+const activeRange = ref<StatsDateRangeValue>([...defaultRange] as StatsDateRangeValue)
 const reportRows = ref<ReportRow[]>([])
 const searchForm = reactive<SearchFormState>({
-  dateRange: [...defaultRange] as DateRangeValue
+  dateRange: [...defaultRange] as StatsDateRangeValue
 })
 
 const formatCount = (value: number | string | undefined) => {
@@ -253,14 +246,14 @@ const exportPaymentStatisticsReport = (rows: ReportRow[], filename: string) => {
   XLSX.writeFile(workbook, `${filename}.xlsx`)
 }
 
-const buildParams = (range: DateRangeValue): PaymentStatisticsReportParams => {
+const buildParams = (range: StatsDateRangeValue): PaymentStatisticsReportParams => {
   return {
-    ...toSecondRange(range),
+    ...toStatsSecondRange(range),
     order: DEFAULT_ORDER
   }
 }
 
-const loadData = async (range: DateRangeValue) => {
+const loadData = async (range: StatsDateRangeValue) => {
   loading.value = true
 
   try {
@@ -272,7 +265,7 @@ const loadData = async (range: DateRangeValue) => {
     }
 
     reportRows.value = Array.isArray(res.data) ? res.data.map(normalizeRow) : []
-    activeRange.value = [...range] as DateRangeValue
+    activeRange.value = [...range] as StatsDateRangeValue
   } catch (error) {
     reportRows.value = []
     handleErrorMessage(error, '获取支付统计报表失败')
@@ -282,7 +275,7 @@ const loadData = async (range: DateRangeValue) => {
 }
 
 const handleSearch = async () => {
-  if (!Array.isArray(searchForm.dateRange) || searchForm.dateRange.length !== 2) {
+  if (!isValidStatsDateRange(searchForm.dateRange)) {
     handleErrorMessage('请选择日期范围', '搜索失败')
     return
   }
@@ -291,7 +284,7 @@ const handleSearch = async () => {
 }
 
 const handleReset = async () => {
-  searchForm.dateRange = [...defaultRange] as DateRangeValue
+  searchForm.dateRange = [...defaultRange] as StatsDateRangeValue
   await loadData(defaultRange)
 }
 
@@ -303,7 +296,7 @@ const handleExport = () => {
 
   exportPaymentStatisticsReport(
     reportRows.value,
-    `支付统计报表_${dayjs(activeRange.value[0]).format('YYYYMMDD')}_${dayjs(activeRange.value[1]).format('YYYYMMDD')}`
+    buildStatsExportFilename('支付统计报表', activeRange.value)
   )
   handleSuccessMessage('导出成功')
 }
