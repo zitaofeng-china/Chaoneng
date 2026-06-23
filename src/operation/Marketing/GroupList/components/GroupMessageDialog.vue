@@ -217,6 +217,7 @@ import VideoPreviewDialog from '@/operation/components/MessageDialog/components/
 import MessagePreviewDialog from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
 import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
 import { getMessageFileType } from '@/operation/components/MessageDialog/utils'
+import { resolveMessageFilePreview } from '@/operation/components/MessageDialog/previewHelpers'
 import { getChatTypeText } from '@/operation/utils/chat'
 import type { MessagePreviewData } from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
 import type { SelectOption } from '@/utils/tableHelpers'
@@ -334,35 +335,22 @@ const { renderFormattingButtons } = useHtmlInsert(getContent, setContent, textar
 
 // 文件预览
 const handlePreview = (uploadFile: UploadUserFile) => {
-  const fileType = getMessageFileType(uploadFile)
-  previewFileType.value = fileType
+  const preview = resolveMessageFilePreview(uploadFile, videoPreviewUrl.value)
+  if (!preview) return
 
-  if (fileType === 'video') {
-    if (uploadFile.url) {
-      videoPreviewUrl.value = uploadFile.url
-      showVideoViewer.value = true
-    } else if (uploadFile.raw) {
-      if (videoPreviewUrl.value.startsWith('blob:')) {
-        URL.revokeObjectURL(videoPreviewUrl.value)
-      }
-      const objectURL = URL.createObjectURL(uploadFile.raw)
-      videoPreviewUrl.value = objectURL
-      showVideoViewer.value = true
-    } else {
-      ElMessage.warning('无法预览视频，缺少视频URL')
+  previewFileType.value = preview.fileType
+
+  if (preview.fileType === 'video') {
+    if (preview.revokePreviousVideoUrl && videoPreviewUrl.value.startsWith('blob:')) {
+      URL.revokeObjectURL(videoPreviewUrl.value)
     }
-  } else {
-    if (uploadFile.url) {
-      imageViewerSrcList.value = [uploadFile.url]
-      showImageViewer.value = true
-    } else if (uploadFile.raw) {
-      const objectURL = URL.createObjectURL(uploadFile.raw)
-      imageViewerSrcList.value = [objectURL]
-      showImageViewer.value = true
-    } else {
-      ElMessage.warning('无法预览文件，缺少文件URL')
-    }
+    videoPreviewUrl.value = preview.previewUrl
+    showVideoViewer.value = true
+    return
   }
+
+  imageViewerSrcList.value = [preview.previewUrl]
+  showImageViewer.value = true
 }
 
 // 文件选择变化
