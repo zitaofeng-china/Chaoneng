@@ -57,7 +57,7 @@
 
     <template #footer>
       <div class="flex justify-end">
-        <ElButton @click="handleClose">取消</ElButton>
+        <ElButton @click="handleClose" :disabled="submitLoading">取消</ElButton>
         <ElButton type="primary" :loading="submitLoading" @click="handleSubmit">确定</ElButton>
       </div>
     </template>
@@ -165,10 +165,13 @@ const handleModelUpdate = (value: boolean) => {
 }
 
 const handleClose = () => {
+  if (submitLoading.value) return
   emit('update:modelValue', false)
 }
 
 const handleSubmit = async () => {
+  if (submitLoading.value) return
+
   const valid = await elFormRef.value?.validate().catch(() => false)
   if (!valid) {
     ElMessage.error('表单验证失败，请检查填写内容')
@@ -217,7 +220,6 @@ const handleSubmit = async () => {
 
     emit('submitted', params)
   } catch (error) {
-    console.error('表单数据处理失败:', error)
     ElMessage.error('表单数据处理失败')
   } finally {
     submitLoading.value = false

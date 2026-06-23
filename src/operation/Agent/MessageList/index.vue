@@ -218,7 +218,7 @@ import MessageDialog from '../components/MessageDialog.vue'
 import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
 import AdvancedSettingsDialog from './components/AdvancedSettingsDialog.vue'
 import VideoPreviewDialog from '@/operation/components/MessageDialog/components/VideoPreviewDialog.vue'
-import { getErrorMessage, handleErrorMessage } from '@/utils/messageHelper'
+import { getErrorMessage, handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 import {
   createPageParams,
   formatTableDateTime,
@@ -651,15 +651,18 @@ const fetchMessageList = async (
     const response = await v1GetMassSendList(buildMessageListParams(params))
 
     if (response.code === '000000' && response.data) {
+      const list = response.data.list || []
+      const hasSearchCondition = [params.bot_id, params.kind].some(hasSearchValue)
+      handleListMessage(list, hasSearchCondition, '消息记录')
       return {
-        list: response.data.list || [],
+        list,
         total: response.data.pager?.total || 0
       }
     }
 
     return { list: [], total: 0 }
   } catch (error) {
-    ElMessage.error('获取消息列表失败')
+    handleErrorMessage(error, '获取消息列表失败')
     return { list: [], total: 0 }
   }
 }

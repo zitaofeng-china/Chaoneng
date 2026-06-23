@@ -98,7 +98,7 @@
       </ElRow>
     </ElForm>
     <template #footer>
-      <BaseButton @click="handleClose">取消</BaseButton>
+      <BaseButton @click="handleClose" :disabled="loading">取消</BaseButton>
       <BaseButton type="primary" @click="handleConfirm" :loading="loading">确定</BaseButton>
     </template>
   </Dialog>
@@ -122,7 +122,7 @@ import {
 import type { FormInstance, FormRules } from 'element-plus'
 import { v1UpdateGroupMessage } from '@/api/opertion/common/tgUser'
 import type { MassSendItemV1, UpdateGroupMessageParams } from '@/api/opertion/common/tgUser'
-import { getErrorMessage } from '@/utils/messageHelper'
+import { getErrorMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 interface Props {
   modelValue: boolean
@@ -232,12 +232,13 @@ watch(
 )
 
 const handleClose = () => {
+  if (loading.value) return
   dialogVisible.value = false
   formRef.value?.resetFields()
 }
 
 const handleConfirm = async () => {
-  if (!formRef.value) return
+  if (!formRef.value || loading.value) return
 
   try {
     await formRef.value.validate()
@@ -287,15 +288,15 @@ const handleConfirm = async () => {
     const res = await v1UpdateGroupMessage(params)
 
     if (res.code === '000000') {
-      ElMessage.success('更新成功')
+      handleSuccessMessage('更新成功')
       emit('success')
       handleClose()
     } else {
-      ElMessage.error(res.msg || '更新失败')
+      handleErrorMessage(new Error(res.msg || '更新失败'), '更新失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error(getErrorMessage(error))
+      handleErrorMessage(error, getErrorMessage(error))
     }
   } finally {
     loading.value = false

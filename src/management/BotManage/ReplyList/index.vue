@@ -83,6 +83,7 @@ const botInfoMap = ref<Map<number, { user_name: string; first_name: string }>>(n
 const fetchBotOptionsForPage = async () => {
   try {
     const res = await v1GetMessageBotList()
+    botInfoMap.value.clear()
     if (res.code === '000000' && res.data) {
       botOptionsForDialog.value = (res.data || []).map((bot: any) => {
         botInfoMap.value.set(bot.id, {
@@ -95,10 +96,11 @@ const fetchBotOptionsForPage = async () => {
         }
       })
     }
-    isBotlistLoaded.value = true
   } catch (error) {
     handleErrorMessage(error, '获取机器人列表失败')
     botOptionsForDialog.value = []
+  } finally {
+    isBotlistLoaded.value = true
   }
 }
 
