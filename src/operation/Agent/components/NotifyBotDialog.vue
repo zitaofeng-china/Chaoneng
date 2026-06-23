@@ -6,6 +6,21 @@
     :max-height="dialogMaxHeight"
   >
     <div v-loading="loading" class="notify-bot-body">
+      <ElForm v-if="showModeSelect" label-width="0" class="notify-bot-selector">
+        <ElFormItem>
+          <ElSelect
+            v-model="selectedMode"
+            placeholder="请选择通知机器人"
+            style="width: 100%"
+            :disabled="loading || submitting"
+          >
+            <ElOption label="资源池账户（通知配置）" value="resourcePool" />
+            <ElOption label="现金池管理（余额播报机器人）" value="asset" />
+            <ElOption label="代理信息（通知机器人）" value="agent" />
+          </ElSelect>
+        </ElFormItem>
+      </ElForm>
+
       <ElDescriptions v-if="currentBotInfo" :column="1" border label-width="110px">
         <ElDescriptionsItem label="机器人ID">{{ currentBotInfo.id || '-' }}</ElDescriptionsItem>
         <ElDescriptionsItem label="机器人用户名">{{
@@ -155,6 +170,7 @@ const props = defineProps<{
   visible: boolean
   mode?: 'agent' | 'resourcePool' | 'asset'
   title?: string
+  showModeSelect?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -167,12 +183,21 @@ const dialogVisible = computed({
   set: (val) => emit('update:visible', val)
 })
 
-const isConfigMode = computed(() => props.mode === 'resourcePool' || props.mode === 'asset')
-const isResourcePoolMode = computed(() => props.mode === 'resourcePool')
-const isAssetMode = computed(() => props.mode === 'asset')
+type NotifyBotMode = 'agent' | 'resourcePool' | 'asset'
+
+const selectedMode = ref<NotifyBotMode>(props.mode || 'agent')
+const showModeSelect = computed(() => !!props.showModeSelect)
+const effectiveMode = computed<NotifyBotMode>(() =>
+  showModeSelect.value ? selectedMode.value : props.mode || 'agent'
+)
+const isConfigMode = computed(() => effectiveMode.value === 'resourcePool' || effectiveMode.value === 'asset')
+const isResourcePoolMode = computed(() => effectiveMode.value === 'resourcePool')
+const isAssetMode = computed(() => effectiveMode.value === 'asset')
 const dialogTitle = computed(() => props.title || '通知机器人')
 const emptyDescription = computed(() => '暂无通知机器人')
-const dialogWidth = computed(() => (isResourcePoolMode.value ? '840px' : '680px'))
+const dialogWidth = computed(() =>
+  isResourcePoolMode.value && !showModeSelect.value ? '840px' : '680px'
+)
 const dialogMaxHeight = computed(() => 'auto')
 
 const loading = ref(false)
@@ -376,6 +401,7 @@ watch(
   () => props.visible,
   async (val) => {
     if (val) {
+      selectedMode.value = props.mode || 'agent'
       agentBotInfo.value = null
       resourcePoolBotInfo.value = null
       assetBotInfo.value = null
@@ -390,6 +416,25 @@ watch(
     }
   }
 )
+
+watch(
+  selectedMode,
+  async () => {
+    if (!props.visible || !showModeSelect.value) return
+
+    agentBotInfo.value = null
+    resourcePoolBotInfo.value = null
+    assetBotInfo.value = null
+    tokenInput.value = ''
+    resourcePoolForm.value = {
+      token: '',
+      chat_id: '',
+      interval: 30,
+      status: 1
+    }
+    await fetchNotifyBot()
+  }
+)
 </script>
 
 <style scoped>
@@ -399,6 +444,15 @@ watch(
 
 .notify-bot-body :deep(.el-descriptions__label) {
   white-space: nowrap;
+}
+
+.notify-bot-selector {
+  max-width: 360px;
+  margin-bottom: 12px;
+}
+
+.notify-bot-selector :deep(.el-form-item__content) {
+  margin-left: 0 !important;
 }
 
 .resource-pool-descriptions {

@@ -11,7 +11,8 @@ const { getPrefixCls } = useDesign()
 const prefixCls = getPrefixCls('locale-dropdown')
 
 defineProps({
-  color: propTypes.string.def('')
+  color: propTypes.string.def(''),
+  label: propTypes.string.def('')
 })
 
 const localeStore = useLocaleStore()
@@ -34,13 +35,10 @@ const setLang = (lang: LocaleType) => {
 
 <template>
   <ElDropdown :class="prefixCls" trigger="click" @command="setLang">
-    <Icon
-      :size="18"
-      icon="vi-ion:language-sharp"
-      class="cursor-pointer !p-0"
-      :class="$attrs.class"
-      :color="color"
-    />
+    <div class="top-tool-action" :class="$attrs.class">
+      <Icon :size="18" icon="vi-ion:language-sharp" class="cursor-pointer !p-0" :color="color" />
+      <span v-if="label" class="top-tool-action__label">{{ label }}</span>
+    </div>
     <template #dropdown>
       <ElDropdownMenu>
         <ElDropdownItem v-for="item in langMap" :key="item.lang" :command="item.lang">
@@ -50,3 +48,18 @@ const setLang = (lang: LocaleType) => {
     </template>
   </ElDropdown>
 </template>
+
+<style scoped>
+.top-tool-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.top-tool-action__label {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--top-header-text-color);
+  white-space: nowrap;
+}
+</style>
