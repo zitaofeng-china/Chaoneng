@@ -90,6 +90,7 @@
             v-model:page-size="pageSize"
             :page-sizes="[10, 20, 50, 100]"
             :total="total"
+            :disabled="loading"
             layout="total, sizes, prev, pager, next, jumper"
             @size-change="handleSizeChange"
             @current-change="handleCurrentChange"
@@ -125,7 +126,12 @@ import {
 } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { handleErrorMessage } from '@/utils/messageHelper'
-import { formatTableDateTime, getStatusLabel, getStatusTagType } from '@/utils/tableHelpers'
+import {
+  createPageParams,
+  formatTableDateTime,
+  getStatusLabel,
+  getStatusTagType
+} from '@/utils/tableHelpers'
 import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import {
   v2GetSettlementRecordList,
@@ -161,6 +167,19 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 
+const resetSettlementState = () => {
+  settlementList.value = []
+  total.value = 0
+}
+
+const buildSettlementParams = () => ({
+  order_id: orderId.value,
+  ...createPageParams({
+    current_page: currentPage.value,
+    page_size: pageSize.value
+  })
+})
+
 const open = async (row: V2ResourceOrderItem) => {
   if (!row || !row.id) {
     ElMessage.error('无效的订单信息')
@@ -171,6 +190,7 @@ const open = async (row: V2ResourceOrderItem) => {
   orderId.value = row.id
   orderInfo.value = row
   currentPage.value = 1
+  pageSize.value = 10
   await fetchSettlementRecords()
 }
 
@@ -180,38 +200,32 @@ const fetchSettlementRecords = async () => {
 
   loading.value = true
   try {
-    const res = await v2GetSettlementRecordList({
-      order_id: orderId.value,
-      current_page: currentPage.value,
-      page_size: pageSize.value
-    })
+    const res = await v2GetSettlementRecordList(buildSettlementParams())
 
     if (res?.code === '000000' && res.data) {
       settlementList.value = res.data.list || []
       total.value = res.data.pager?.total || 0
     } else {
-      settlementList.value = []
-      total.value = 0
+      resetSettlementState()
     }
   } catch (error) {
     handleErrorMessage(error, '获取结算记录失败')
-    settlementList.value = []
-    total.value = 0
+    resetSettlementState()
   } finally {
     loading.value = false
   }
 }
 
 // 分页
-const handleSizeChange = (val: number) => {
+const handleSizeChange = async (val: number) => {
   pageSize.value = val
   currentPage.value = 1
-  fetchSettlementRecords()
+  await fetchSettlementRecords()
 }
 
-const handleCurrentChange = (val: number) => {
+const handleCurrentChange = async (val: number) => {
   currentPage.value = val
-  fetchSettlementRecords()
+  await fetchSettlementRecords()
 }
 
 defineExpose({ open })

@@ -72,8 +72,10 @@
 
         <template #footer>
           <div class="dialog-footer" style="display: flex; justify-content: flex-end; gap: 8px">
-            <ElButton type="primary" @click="handleSubmit">保存</ElButton>
-            <ElButton @click="dialogVisible = false">取消</ElButton>
+            <ElButton type="primary" :loading="dialogSubmitting" @click="handleSubmit">
+              {{ dialogConfirmText }}
+            </ElButton>
+            <ElButton :disabled="dialogSubmitting" @click="handleCancelDialog">取消</ElButton>
           </div>
         </template>
       </Dialog>
@@ -86,6 +88,7 @@ import { computed, reactive, ref } from 'vue'
 import type { FormRules, FormInstance } from 'element-plus'
 import {
   ElButton,
+  ElMessageBox,
   ElForm,
   ElFormItem,
   ElInput,
@@ -130,6 +133,8 @@ const formRef = ref<FormInstance>()
 const dialogVisible = ref(false)
 const dialogMode = ref<'add' | 'edit'>('add')
 const editingRowId = ref<number | null>(null)
+const dialogSubmitting = ref(false)
+const switchingRowId = ref<number | null>(null)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 const createDefaultTaskForm = (): ChargeTaskParams => ({
@@ -143,12 +148,37 @@ const createDefaultTaskForm = (): ChargeTaskParams => ({
 const taskForm = reactive(createDefaultTaskForm())
 
 const dialogTitle = computed(() => (dialogMode.value === 'add' ? '添加任务' : '更新任务'))
+const dialogConfirmText = computed(() => (dialogMode.value === 'add' ? '保存' : '更新'))
 
 const formRules: FormRules = {
   origin: [{ required: true, message: '请选择供给源', trigger: 'change' }],
   target: [{ required: true, message: '请输入供给对象/池子', trigger: 'blur' }],
-  minimum: [{ required: true, message: '请输入阈值', trigger: 'blur' }],
-  amount: [{ required: true, message: '请输入补充数量', trigger: 'blur' }]
+  minimum: [
+    { required: true, message: '请输入阈值', trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (value === undefined || value === null || value <= 0) {
+          callback(new Error('阈值需大于 0'))
+          return
+        }
+        callback()
+      },
+      trigger: 'blur'
+    }
+  ],
+  amount: [
+    { required: true, message: '请输入补充数量', trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (value === undefined || value === null || value <= 0) {
+          callback(new Error('补充数量需大于 0'))
+          return
+        }
+        callback()
+      },
+      trigger: 'blur'
+    }
+  ]
 }
 
 const columns = ref<TableColumn[]>([
@@ -187,6 +217,7 @@ const columns = ref<TableColumn[]>([
             modelValue={row.status}
             activeValue={1}
             inactiveValue={2}
+            loading={switchingRowId.value === row.id}
             onChange={(value: number) => handleStatusChange(row, value)}
           />
         )
@@ -292,7 +323,7 @@ const handleAdd = () => {
   editingRowId.value = null
   Object.assign(taskForm, createDefaultTaskForm())
   dialogVisible.value = true
-  formRef.value?.clearValidate()
+  formRef.value?.resetFields()
 }
 
 const handleEdit = (row: ChargeItem) => {
@@ -309,8 +340,25 @@ const handleEdit = (row: ChargeItem) => {
   formRef.value?.clearValidate()
 }
 
+const handleCancelDialog = () => {
+  if (dialogSubmitting.value) return
+  dialogVisible.value = false
+}
+
 const handleStatusChange = async (row: ChargeItem, value: number) => {
+  try {
+    await ElMessageBox.confirm(`确认${value === 1 ? '启动' : '关闭'}当前补充任务吗？`, '状态确认', {
+      type: 'warning',
+      confirmButtonText: '确认',
+      cancelButtonText: '取消'
+    })
+  } catch {
+    row.status = value === 1 ? 2 : 1
+    return
+  }
+
   row.status = value
+  switchingRowId.value = row.id
   try {
     await updateChargeTask({
       id: row.id,
@@ -320,17 +368,22 @@ const handleStatusChange = async (row: ChargeItem, value: number) => {
       amount: row.amount || 0,
       status: value
     })
+    await reloadTable()
     ElMessage.success(value === 1 ? '已启动' : '已关闭')
   } catch (error) {
     row.status = value === 1 ? 2 : 1
     handleErrorMessage(error, '状态更新失败')
+  } finally {
+    switchingRowId.value = null
   }
 }
 
 const handleSubmit = async () => {
+  if (dialogSubmitting.value) return
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
 
+  dialogSubmitting.value = true
   try {
     const payload: ChargeTaskParams = {
       origin: taskForm.origin,
@@ -342,21 +395,22 @@ const handleSubmit = async () => {
 
     if (dialogMode.value === 'add') {
       await createChargeTask(payload)
-      ElMessage.success('添加任务成功')
     } else {
       await updateChargeTask({ ...payload, id: editingRowId.value! })
-      ElMessage.success('更新任务成功')
     }
 
+    await reloadTable()
     dialogVisible.value = false
-    reloadTable()
+    ElMessage.success(dialogMode.value === 'add' ? '添加任务成功' : '更新任务成功')
   } catch (error) {
     handleErrorMessage(error, dialogMode.value === 'add' ? '添加任务失败' : '更新任务失败')
+  } finally {
+    dialogSubmitting.value = false
   }
 }
 
-const reloadTable = () => {
-  return searchTableRef.value?.reload()
+const reloadTable = async () => {
+  await searchTableRef.value?.reload()
 }
 </script>
 

@@ -7,13 +7,15 @@
         :fetch-data-api="fetchResourceOrderList"
         :showAddButton="false"
         ref="searchTableRef"
+        :default-params="defaultParams"
         :search-props="{
           layout: 'inline',
           buttonPosition: 'center'
         }"
+        :table-props="tableProps"
       >
         <template #searchButtons>
-          <BaseButton type="primary" @click="handleExport">
+          <BaseButton type="primary" :loading="exporting" @click="handleExport">
             <Icon icon="ep:download" class="mr-5px" />
             导出订单
           </BaseButton>
@@ -65,6 +67,16 @@ import {
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const settlementRecordDialogRef = ref<InstanceType<typeof SettlementRecordDialog> | null>(null)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
+const exporting = ref(false)
+const defaultParams = {
+  order: DEFAULT_CREATED_AT_ORDER
+}
+const tableProps = {
+  defaultSort: {
+    prop: 'created_at',
+    order: 'descending'
+  }
+}
 
 type ResourceOrderTableSlot = TableSlot<V2ResourceOrderItem>
 type ResourceOrderSearchParams = V2ResourceOrderListParams & Recordable
@@ -156,22 +168,14 @@ const columns: TableColumn[] = [
     label: '创建时间',
     sortable: 'custom',
     width: 180,
-    slots: {
-      default: ({ row }: ResourceOrderTableSlot) => {
-        return h('span', formatTableDateTime(row.created_at))
-      }
-    }
+    formatter: (row: V2ResourceOrderItem) => formatTableDateTime(row.created_at)
   },
   {
     field: 'settled_at',
     label: '结束时间',
     sortable: 'custom',
     width: 180,
-    slots: {
-      default: ({ row }: ResourceOrderTableSlot) => {
-        return h('span', formatTableDateTime(row.settled_at))
-      }
-    }
+    formatter: (row: V2ResourceOrderItem) => formatTableDateTime(row.settled_at)
   },
   {
     field: 'action',
@@ -309,6 +313,7 @@ const handleViewSettlement = (row: V2ResourceOrderItem) => {
 }
 
 const handleExport = async () => {
+  exporting.value = true
   try {
     await exportTableData<
       V2ResourceOrderItem,
@@ -346,6 +351,8 @@ const handleExport = async () => {
     })
   } catch (error) {
     handleErrorMessage(error, '订单导出失败')
+  } finally {
+    exporting.value = false
   }
 }
 </script>

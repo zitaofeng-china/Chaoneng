@@ -15,7 +15,7 @@
         :table-props="tableProps"
       >
         <template #searchButtons>
-          <BaseButton type="primary" @click="handleExport">
+          <BaseButton type="primary" :loading="exporting" @click="handleExport">
             <Icon icon="ep:download" class="mr-5px" />
             导出
           </BaseButton>
@@ -70,6 +70,7 @@ type ChargeLogTableSlot = TableSlot<ChargeLogItem>
 
 const searchTableRef = ref<SearchTableExpose>()
 const DEFAULT_ORDER = 'created_at DESC'
+const exporting = ref(false)
 const defaultParams = {
   order: DEFAULT_ORDER
 }
@@ -185,11 +186,7 @@ const columns: TableColumn[] = [
     label: '创建时间',
     sortable: 'custom',
     width: 180,
-    slots: {
-      default: ({ row }: ChargeLogTableSlot) => {
-        return h('span', formatTableDateTime(row.created_at))
-      }
-    }
+    formatter: (row: ChargeLogItem) => formatTableDateTime(row.created_at)
   }
 ]
 
@@ -273,6 +270,7 @@ const fetchChargeLogListApi = async (params: ChargeLogSearchParams = {}) => {
 }
 
 const handleExport = async () => {
+  exporting.value = true
   try {
     await exportTableData<ChargeLogItem, ChargeLogSearchParams, ChargeLogParams>({
       searchTableRef,
@@ -296,6 +294,8 @@ const handleExport = async () => {
     })
   } catch (error) {
     handleErrorMessage(error, '导出失败')
+  } finally {
+    exporting.value = false
   }
 }
 </script>

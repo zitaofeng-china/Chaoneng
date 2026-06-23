@@ -94,7 +94,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onActivated, onMounted, reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import {
   ElButton,
   ElCol,
@@ -286,13 +286,7 @@ const handleSave = async () => {
   }
 }
 
-onMounted(() => {
-  loadConfig()
-})
-
-onActivated(() => {
-  loadConfig()
-})
+loadConfig()
 </script>
 
 <style scoped>
