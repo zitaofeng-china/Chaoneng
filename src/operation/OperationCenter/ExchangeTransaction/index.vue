@@ -341,8 +341,8 @@ const handleRetry = async (row: V2ExchangeItem) => {
 
     const res = await v2RetryExchangeOrder(row.id)
     if (res.code === '000000') {
+      await searchTableRef.value?.reload()
       handleSuccessMessage('补发成功')
-      searchTableRef.value?.reload()
     } else {
       ElMessage.error(res.msg || '补发失败')
     }

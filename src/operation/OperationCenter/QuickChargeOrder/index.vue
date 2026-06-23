@@ -24,7 +24,7 @@
         @error="handleLoadError"
       >
         <template #searchButtons>
-          <BaseButton type="primary" @click="handleExport">
+          <BaseButton type="primary" :loading="exporting" @click="handleExport">
             <Icon icon="ep:download" class="mr-5px" />
             导出
           </BaseButton>
@@ -78,6 +78,7 @@ const orderDetailRef = ref<InstanceType<typeof OrderDetail> | null>(null)
 const route = useRoute()
 const router = useRouter()
 const totalCount = ref(0)
+const exporting = ref(false)
 const botOptions = ref<SelectOption<number | string>[]>(withAllOption<number | string>([]))
 const initialSearchParams: Partial<QuickChargeSearchParams> = (() => {
   const keyword = route.query.keyword || route.query.query
@@ -347,6 +348,7 @@ const mapQuickChargeExportItem = (item: QuickChargeOrder) => ({
 })
 
 const handleExport = async () => {
+  exporting.value = true
   try {
     await exportTableData<EnergyOrder, QuickChargeSearchParams, EnergyListParams>({
       searchTableRef,
@@ -359,18 +361,14 @@ const handleExport = async () => {
     })
   } catch (error) {
     handleErrorMessage(error, '速充订单导出失败')
+  } finally {
+    exporting.value = false
   }
 }
 
-const handleDataLoaded = ({ success }: { success: boolean }) => {
-  if (!success) {
-    handleErrorMessage('加载速充订单失败')
-  }
-}
+const handleDataLoaded = (_payload: { success: boolean }) => {}
 
-const handleLoadError = () => {
-  handleErrorMessage('加载速充订单失败')
-}
+const handleLoadError = () => {}
 
 onMounted(() => {
   loadBotOptions()

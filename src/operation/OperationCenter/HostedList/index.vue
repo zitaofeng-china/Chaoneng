@@ -368,10 +368,10 @@ const handleRecycleAndReset = async (row: HostingItemV2) => {
     const res = await v2RecycleOrder({ address: row.address })
 
     if (res.code === '000000') {
-      handleSuccessMessage('回收与重置成功')
       if (searchTableRef.value) {
-        searchTableRef.value.reload()
+        await searchTableRef.value.reload()
       }
+      handleSuccessMessage('回收与重置成功')
     } else {
       ElMessage.error(res.msg || '回收与重置失败')
     }
