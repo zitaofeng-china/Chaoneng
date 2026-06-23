@@ -6,7 +6,6 @@
         :search-schema="searchSchema"
         :fetch-data-api="fetchBotList"
         :default-params="initialSearchParams"
-        :fetch-del-api="fetchBotDelete"
         :action-column="actionColumn"
         :table-props="{
           rowKey: 'id',
@@ -353,15 +352,24 @@ const handleAdd = () => {
 
 const handleStatusChange = async (row: any) => {
   if (!isLoaded.value) return
+  const previousState = {
+    status: row.status === 1 ? 2 : 1,
+    auto_renew: row.auto_renew === 1 ? 2 : 1
+  }
 
   try {
     const res = await v1UpdateBot(row)
     if (res.code === '000000') {
+      await searchTableRef.value?.reload()
       handleSuccessMessage('状态更新成功')
     } else {
+      row.status = previousState.status
+      row.auto_renew = previousState.auto_renew
       handleErrorMessage(res, '状态更新失败')
     }
   } catch (error) {
+    row.status = previousState.status
+    row.auto_renew = previousState.auto_renew
     handleErrorMessage(error, '状态更新失败')
   }
 }
@@ -465,14 +473,6 @@ const fetchBotList = async (params: any) => {
   } catch (error) {
     handleErrorMessage(error, '获取机器人列表失败')
     return { list: [], total: 0 }
-  }
-}
-
-const fetchBotDelete = async () => {
-  try {
-    return true
-  } catch (error) {
-    return false
   }
 }
 

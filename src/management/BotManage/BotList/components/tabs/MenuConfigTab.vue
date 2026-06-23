@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref } from 'vue'
 import { getBotMenuList, batchUpdateBotMenu } from '@/api/management/BotManage/common/botMenu'
 import type {
   BotMenuItem,
@@ -208,11 +208,9 @@ const fetchMenuData = async () => {
 
   try {
     loading.value = true
-    await nextTick()
     const response = await getBotMenuList({ bot_id: props.botId })
 
     if (!response.data) {
-      console.warn('菜单数据为空')
       keyboardLayout.value = []
       disabledMenus.value = []
       return
@@ -220,7 +218,6 @@ const fetchMenuData = async () => {
 
     keyboardLayout.value = convertToKeyboardLayout(response.data)
   } catch (error) {
-    console.error('获取菜单数据失败:', error)
     ElMessage.error('获取菜单数据失败，请刷新重试')
     keyboardLayout.value = []
     disabledMenus.value = []
@@ -261,14 +258,12 @@ const saveMenuConfig = async () => {
       menus: updateParams
     })
 
-    ElMessage.success('菜单配置保存成功')
-
     // 重新获取最新数据
     await fetchMenuData()
+    ElMessage.success('菜单配置保存成功')
 
     return true
   } catch (error) {
-    console.error('保存菜单配置失败:', error)
     ElMessage.error('保存失败，请检查网络后重试')
     return false
   } finally {

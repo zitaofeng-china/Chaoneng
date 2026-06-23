@@ -1,5 +1,5 @@
 // 机器人配置管理 V1 - 专门管理重构后的三个标签页（使用 v1 新接口）
-import { ref, reactive, nextTick } from 'vue'
+import { ref, reactive } from 'vue'
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
 import {
   v1GetBotDetail,
@@ -115,7 +115,6 @@ export function useBotConfigV1() {
 
       return true
     } catch (error) {
-      console.error('加载机器人基本信息失败:', error)
       ElMessage.error('加载机器人信息失败')
       return false
     }
@@ -159,8 +158,6 @@ export function useBotConfigV1() {
       addressRecordValues[5] = strokeEnergyAddress?.address || ''
       addressRecordValues[3] = exchangeAddress?.address || ''
 
-      console.log('=== 收款配置 addressRecordIds ===', JSON.parse(JSON.stringify(addressRecordIds)))
-
       formMethods.setValues({
         energy_address: timeEnergyAddress?.address || '',
         receive_address: userDepositAddress?.address || '',
@@ -176,7 +173,6 @@ export function useBotConfigV1() {
 
       return true
     } catch (error) {
-      console.error('加载收款配置失败:', error)
       ElMessage.error('加载收款配置失败')
       return false
     }
@@ -253,7 +249,6 @@ export function useBotConfigV1() {
 
       return true
     } catch (error) {
-      console.error('加载价格配置失败:', error)
       ElMessage.error('加载价格配置失败')
       return false
     }
@@ -291,7 +286,6 @@ export function useBotConfigV1() {
 
       return true
     } catch (error) {
-      console.error('加载福利配置失败:', error)
       ElMessage.error('加载福利配置失败')
       return false
     }
@@ -333,12 +327,10 @@ export function useBotConfigV1() {
 
       return success
     } catch (error) {
-      console.error('加载配置失败:', error)
       ElMessage.error('加载配置失败，请稍后重试')
       return false
     } finally {
       loading.value = false
-      await nextTick()
       loadingInstance.close()
     }
   }
@@ -406,7 +398,6 @@ export function useBotConfigV1() {
 
         formMethods.setValues(refreshedData)
       } catch (refreshError) {
-        console.warn('刷新机器人/Site数据失败:', refreshError)
         // 刷新失败不影响保存成功的提示
       }
 
@@ -475,15 +466,11 @@ export function useBotConfigV1() {
         return true
       }
 
-      await Promise.all(promises)
-      ElMessage.success('保存成功')
-
-      // 保存成功后重新加载地址列表，更新 addressRecordIds
       await loadPaymentConfig(currentBot.value.id, formMethods, null)
+      ElMessage.success('保存成功')
 
       return true
     } catch (error) {
-      console.error('保存收款配置失败:', error)
       ElMessage.error('保存失败')
       return false
     }
@@ -571,10 +558,10 @@ export function useBotConfigV1() {
       }
 
       await v1UpdateBotPrice(priceConfig)
+      await loadPriceConfig(currentBot.value.id, formMethods)
       ElMessage.success('保存成功')
       return true
     } catch (error) {
-      console.error('保存价格配置失败:', error)
       ElMessage.error('保存失败')
       return false
     }
@@ -610,10 +597,10 @@ export function useBotConfigV1() {
       }
 
       await v1UpdateBotWealConfig(currentBot.value.id, welfareConfig)
+      await loadWelfareConfig(currentBot.value.id, formMethods)
       ElMessage.success('保存成功')
       return true
     } catch (error) {
-      console.error('保存福利配置失败:', error)
       ElMessage.error('保存失败')
       return false
     }
@@ -656,7 +643,6 @@ export function useBotConfigV1() {
 
       return success
     } catch (error) {
-      console.error('提交配置失败:', error)
       ElMessage.error('提交失败')
       return false
     } finally {

@@ -319,6 +319,7 @@ const handleChatIdInput = (value: string) => {
 const getChatIdNumber = () => Number(resourcePoolForm.value.chat_id.trim())
 
 const handleSave = async () => {
+  if (submitting.value) return
   submitting.value = true
   try {
     if (isResourcePoolMode.value) {
@@ -330,6 +331,7 @@ const handleSave = async () => {
         chat_id: getChatIdNumber(),
         status: Number(resourcePoolForm.value.status) === 2 ? 2 : 1
       })
+      await fetchNotifyBot()
       handleSuccessMessage('通知配置保存成功')
     } else if (isAssetMode.value) {
       const valid = await resourcePoolFormRef.value?.validate().catch(() => false)
@@ -340,6 +342,7 @@ const handleSave = async () => {
         chat_id: getChatIdNumber(),
         interval: Number(resourcePoolForm.value.interval) || 30
       })
+      await fetchNotifyBot()
       handleSuccessMessage('通知配置保存成功')
     } else {
       const token = tokenInput.value.trim()
@@ -349,14 +352,16 @@ const handleSave = async () => {
       }
 
       await v1SetNotifyBot({ token })
+      await fetchNotifyBot()
       handleSuccessMessage('设置成功')
       tokenInput.value = ''
     }
 
-    await fetchNotifyBot()
     emit('success')
   } catch (error) {
-    handleErrorMessage(error, isResourcePoolMode.value ? '保存通知配置失败' : '设置失败')
+    const errorMessage =
+      isResourcePoolMode.value || isAssetMode.value ? '保存通知配置失败' : '设置失败'
+    handleErrorMessage(error, errorMessage)
   } finally {
     submitting.value = false
   }

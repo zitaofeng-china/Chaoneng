@@ -53,7 +53,6 @@ import { useBotConfigV1 } from './composables/useBotConfigV1'
 import BotInfoTab from './tabs/BotInfoTab.vue'
 import PaymentTab from './tabs/PaymentTab.vue'
 import PriceConfigTab from './tabs/PriceConfigTab.vue'
-import WelfareConfigTab from './tabs/WelfareConfigTab.vue'
 import MenuConfigTab from './tabs/MenuConfigTab.vue'
 
 // 组件引用
@@ -92,6 +91,10 @@ const getFormMethods = () => {
 }
 
 const handleTabChange = async (tabName: string) => {
+  if (loading.value || submitting.value) {
+    return
+  }
+
   if (tabName === 'menuConfig') {
     await menuConfigTabRef.value?.fetchMenuData()
     return
