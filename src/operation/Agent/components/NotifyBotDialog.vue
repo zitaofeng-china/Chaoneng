@@ -8,16 +8,19 @@
     <div v-loading="loading" class="notify-bot-body">
       <ElForm v-if="showModeSelect" label-width="0" class="notify-bot-selector">
         <ElFormItem>
-          <ElSelect
+          <ElTabs
             v-model="selectedMode"
-            placeholder="请选择通知机器人"
-            style="width: 100%"
-            :disabled="loading || submitting"
+            class="notify-config-tabs"
+            :class="{ 'is-disabled': loading || submitting }"
           >
-            <ElOption label="资源池账户（通知配置）" value="resourcePool" />
-            <ElOption label="现金池管理（余额播报机器人）" value="asset" />
-            <ElOption label="代理信息（通知机器人）" value="agent" />
-          </ElSelect>
+            <ElTabPane
+              v-for="tab in notifyModeTabs"
+              :key="tab.name"
+              :label="tab.label"
+              :name="tab.name"
+              :disabled="loading || submitting"
+            />
+          </ElTabs>
         </ElFormItem>
       </ElForm>
 
@@ -162,7 +165,9 @@ import {
   ElInputNumber,
   ElOption,
   ElSelect,
-  ElSwitch
+  ElSwitch,
+  ElTabPane,
+  ElTabs
 } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { useClipboard } from '@/hooks/web/useClipboard'
@@ -202,8 +207,30 @@ const dialogVisible = computed({
 })
 
 type NotifyBotMode = 'agent' | 'resourcePool' | 'asset'
+type ResourcePoolFormState = {
+  token: string
+  chat_id: string
+  agent_address_threshold: number
+  interval: number
+  status: number
+}
 
-const selectedMode = ref<NotifyBotMode>(props.mode || 'agent')
+const DEFAULT_RESOURCE_POOL_FORM: ResourcePoolFormState = {
+  token: '',
+  chat_id: '',
+  agent_address_threshold: 0,
+  interval: 30,
+  status: 1
+}
+const notifyModeTabs: Array<{ label: string; name: NotifyBotMode }> = [
+  { label: '资源池不足', name: 'resourcePool' },
+  { label: '现金池播报', name: 'asset' },
+  { label: '代理订阅', name: 'agent' }
+]
+
+const getDefaultMode = (): NotifyBotMode =>
+  props.mode || (props.showModeSelect ? 'resourcePool' : 'agent')
+const selectedMode = ref<NotifyBotMode>(getDefaultMode())
 const showModeSelect = computed(() => !!props.showModeSelect)
 const effectiveMode = computed<NotifyBotMode>(() =>
   showModeSelect.value ? selectedMode.value : props.mode || 'agent'
@@ -213,8 +240,8 @@ const isConfigMode = computed(
 )
 const isResourcePoolMode = computed(() => effectiveMode.value === 'resourcePool')
 const isAssetMode = computed(() => effectiveMode.value === 'asset')
-const dialogTitle = computed(() => props.title || '通知机器人')
-const emptyDescription = computed(() => '暂无通知机器人')
+const dialogTitle = computed(() => props.title || '通知配置')
+const emptyDescription = computed(() => '暂无通知配置')
 const dialogWidth = computed(() =>
   isResourcePoolMode.value && !showModeSelect.value ? '840px' : '680px'
 )
@@ -227,13 +254,7 @@ const resourcePoolBotInfo = ref<ResourcePoolNotifyData | null>(null)
 const assetBotInfo = ref<AssetNotifyData | null>(null)
 const tokenInput = ref('')
 const resourcePoolFormRef = ref<FormInstance>()
-const resourcePoolForm = ref({
-  token: '',
-  chat_id: '',
-  agent_address_threshold: 0,
-  interval: 30,
-  status: 1
-})
+const resourcePoolForm = ref<ResourcePoolFormState>({ ...DEFAULT_RESOURCE_POOL_FORM })
 const CHAT_ID_PATTERN = /^-?\d+$/
 const NOTIFY_STATUS_LABEL_MAP: Record<number, string> = {
   1: '启用',
@@ -289,6 +310,18 @@ const currentBotInfo = computed(() => {
 
 const { copy } = useClipboard()
 
+const resetBotInfo = () => {
+  agentBotInfo.value = null
+  resourcePoolBotInfo.value = null
+  assetBotInfo.value = null
+}
+
+const resetDialogState = () => {
+  resetBotInfo()
+  tokenInput.value = ''
+  resourcePoolForm.value = { ...DEFAULT_RESOURCE_POOL_FORM }
+}
+
 const fetchNotifyBot = async () => {
   loading.value = true
   try {
@@ -329,16 +362,8 @@ const fetchNotifyBot = async () => {
       }
     }
   } catch (error) {
-    if (isResourcePoolMode.value) {
-      resourcePoolBotInfo.value = null
-      handleErrorMessage(error, '获取通知配置失败')
-    } else if (isAssetMode.value) {
-      assetBotInfo.value = null
-      handleErrorMessage(error, '获取通知配置失败')
-    } else {
-      agentBotInfo.value = null
-      handleErrorMessage(error, '获取通知机器人失败')
-    }
+    resetBotInfo()
+    handleErrorMessage(error, isConfigMode.value ? '获取通知配置失败' : '获取通知机器人失败')
   } finally {
     loading.value = false
   }
@@ -427,18 +452,8 @@ watch(
   () => props.visible,
   async (val) => {
     if (val) {
-      selectedMode.value = props.mode || 'agent'
-      agentBotInfo.value = null
-      resourcePoolBotInfo.value = null
-      assetBotInfo.value = null
-      tokenInput.value = ''
-      resourcePoolForm.value = {
-        token: '',
-        chat_id: '',
-        agent_address_threshold: 0,
-        interval: 30,
-        status: 1
-      }
+      selectedMode.value = getDefaultMode()
+      resetDialogState()
       await fetchNotifyBot()
     }
   }
@@ -447,17 +462,7 @@ watch(
 watch(selectedMode, async () => {
   if (!props.visible || !showModeSelect.value) return
 
-  agentBotInfo.value = null
-  resourcePoolBotInfo.value = null
-  assetBotInfo.value = null
-  tokenInput.value = ''
-  resourcePoolForm.value = {
-    token: '',
-    chat_id: '',
-    agent_address_threshold: 0,
-    interval: 30,
-    status: 1
-  }
+  resetDialogState()
   await fetchNotifyBot()
 })
 </script>
@@ -472,12 +477,35 @@ watch(selectedMode, async () => {
 }
 
 .notify-bot-selector {
-  max-width: 360px;
+  width: 100%;
   margin-bottom: 12px;
 }
 
 .notify-bot-selector :deep(.el-form-item__content) {
   margin-left: 0 !important;
+}
+
+.notify-config-tabs {
+  width: 100%;
+}
+
+.notify-config-tabs.is-disabled {
+  pointer-events: none;
+}
+
+.notify-config-tabs :deep(.el-tabs__header) {
+  margin-bottom: 12px;
+}
+
+.notify-config-tabs :deep(.el-tabs__nav-wrap::after) {
+  height: 1px;
+}
+
+.notify-config-tabs :deep(.el-tabs__item) {
+  height: 36px;
+  padding: 0 18px;
+  font-size: 14px;
+  line-height: 36px;
 }
 
 .resource-pool-descriptions {

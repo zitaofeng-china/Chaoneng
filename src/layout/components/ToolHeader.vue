@@ -46,7 +46,7 @@ const locale = computed(() => appStore.getLocale)
 
 const VITE_NODE_ENV = import.meta.env.VITE_NODE_ENV === 'development' ? 'dev' : 'prod'
 
-const notifyEntryLabel = computed(() => (isManagementSystem() ? '消息通知' : '通知机器人'))
+const notifyEntryLabel = computed(() => (isManagementSystem() ? '消息通知' : '通知配置'))
 
 export default defineComponent({
   name: 'ToolHeader',
@@ -62,7 +62,6 @@ export default defineComponent({
     // 处理打开 Webhook 表单的点击事件
     const handleOpenWebhookForm = () => {
       isWebhookFormVisible.value = true
-      console.log('打开 Webhook 表单（本地状态）')
     }
 
     // 处理关闭模态框的事件
@@ -76,7 +75,6 @@ export default defineComponent({
         const response = await getAccountListApi()
         agentAccountInfo.value = response.data || {}
       } catch (error) {
-        console.error('获取账户通知配置失败:', error)
         ElMessage.error('获取账户通知配置失败')
       } finally {
         agentNotifyLoading.value = false
@@ -114,7 +112,6 @@ export default defineComponent({
           ElMessage.warning('暂无可用客服')
         }
       } catch (error) {
-        console.error('获取客服信息失败:', error)
         ElMessage.error('获取客服信息失败')
       }
     }
@@ -142,10 +139,7 @@ export default defineComponent({
             </BaseButton>
           ) : undefined}
           {VITE_NODE_ENV === 'dev' ? (
-            <div
-              class="custom-hover top-tool-action"
-              onClick={handleOpenWebhookForm}
-            >
+            <div class="custom-hover top-tool-action" onClick={handleOpenWebhookForm}>
               <Icon
                 icon="ant-design:form-outlined"
                 size={18}
@@ -155,10 +149,7 @@ export default defineComponent({
             </div>
           ) : undefined}
           <ElTooltip content={notifyEntryLabel.value} placement="bottom">
-            <div
-              class="custom-hover top-tool-action"
-              onClick={handleOpenNotifyBotDialog}
-            >
+            <div class="custom-hover top-tool-action" onClick={handleOpenNotifyBotDialog}>
               <Icon
                 icon="ant-design:notification-outlined"
                 size={18}
@@ -223,7 +214,7 @@ export default defineComponent({
         ) : (
           <NotifyBotDialog
             visible={notifyBotDialogVisible.value}
-            title="通知机器人"
+            title="通知配置"
             showModeSelect
             onUpdate:visible={(value: boolean) => (notifyBotDialogVisible.value = value)}
           />
@@ -337,11 +328,11 @@ export default defineComponent({
   }
 
   :deep(.order-type-group) {
+    width: 100%;
+    padding: 2px 0;
+    margin-top: 0;
     grid-template-columns: repeat(4, minmax(84px, 1fr));
     gap: 14px 28px;
-    width: 100%;
-    margin-top: 0;
-    padding: 2px 0;
   }
 
   :deep(.order-type-group .el-checkbox) {
