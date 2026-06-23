@@ -265,7 +265,7 @@ const loadConfig = async () => {
 }
 
 const handleSave = async () => {
-  if (!formRef.value) return
+  if (!formRef.value || saving.value) return
 
   try {
     await formRef.value.validate()
@@ -277,8 +277,8 @@ const handleSave = async () => {
   saving.value = true
   try {
     await updateFundPriceConfig(buildSubmitData())
-    ElMessage.success('保存成功')
     await loadConfig()
+    ElMessage.success('保存成功')
   } catch (error: unknown) {
     ElMessage.error(getErrorMessage(error, '保存失败，请稍后重试'))
   } finally {

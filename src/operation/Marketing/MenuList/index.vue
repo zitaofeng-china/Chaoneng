@@ -87,7 +87,7 @@
 
         <template #footer>
           <div class="flex justify-end">
-            <ElButton @click="dialogVisible = false">取消</ElButton>
+            <ElButton @click="dialogVisible = false" :disabled="submitting">取消</ElButton>
             <ElButton type="primary" :loading="submitting" @click="handleSubmit">提交</ElButton>
           </div>
         </template>

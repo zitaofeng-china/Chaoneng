@@ -123,12 +123,17 @@ const loadWelfareConfig = async () => {
 }
 
 const handleSaveWelfare = async () => {
+  if (submitting.value) {
+    return
+  }
+
   try {
     submitting.value = true
     const welfareData = await welfareFormMethods.getFormData<WelfareConditionForm>()
     const priceData = await priceFormMethods.getFormData<WelfarePriceForm>()
 
     await updateWelfareConfig(buildWelfarePayload(priceData, welfareData))
+    await loadWelfareConfig()
     handleSuccessMessage('福利条件保存成功')
   } catch (error) {
     handleErrorMessage(error, '保存福利条件失败')

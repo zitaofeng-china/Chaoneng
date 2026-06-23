@@ -511,6 +511,7 @@ const handleEdit = (agentId: number) => {
 }
 
 const handleRefresh = async () => {
+  if (refreshing.value || loading.value) return
   refreshing.value = true
   try {
     await loadPriceData()
@@ -556,6 +557,7 @@ const loadPriceData = async () => {
 }
 
 const handleSave = async (agentId: number) => {
+  if (loading.value) return
   const formData = formDataMap[agentId]
   if (!formData) {
     ElMessage.warning('没有可保存的数据')
@@ -592,9 +594,9 @@ const handleSave = async (agentId: number) => {
       weal: formData.weal
     })
 
-    ElMessage.success('保存成功')
-    editModeMap[agentId] = false
     await loadPriceData()
+    editModeMap[agentId] = false
+    ElMessage.success('保存成功')
   } catch (error: unknown) {
     ElMessage.error(getErrorMessage(error, '保存失败'))
   } finally {

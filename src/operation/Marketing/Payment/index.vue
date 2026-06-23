@@ -114,7 +114,7 @@
         </ElForm>
         <template #footer>
           <div class="flex justify-end">
-            <ElButton @click="addressDialogVisible = false">取消</ElButton>
+            <ElButton @click="addressDialogVisible = false" :disabled="submitting">取消</ElButton>
             <ElButton type="primary" @click="submitAddAddresses" :loading="submitting"
               >确定</ElButton
             >
@@ -127,7 +127,7 @@
         <Form :schema="importFormSchema" @register="importFormRegister" />
         <template #footer>
           <div class="flex justify-end">
-            <ElButton @click="batchImportVisible = false">取消</ElButton>
+            <ElButton @click="batchImportVisible = false" :disabled="submitting">取消</ElButton>
             <ElButton type="primary" @click="submitBatchImport" :loading="submitting"
               >确定</ElButton
             >
@@ -589,7 +589,7 @@ const handleAdd = () => {
   addressDialogMode.value = 'add'
   currentAddress.value = null
   getAgentList()
-  getBotList()
+  botList.value = []
   Object.assign(addressForm, {
     kind: 1,
     agent_id: undefined,
@@ -610,7 +610,7 @@ const handleEdit = (row: V2AddressItem) => {
   if (kind === PAYMENT_AGENT_BALANCE_ADDRESS_KIND) {
     getAgentList(false)
   }
-  getBotList()
+  botList.value = []
   Object.assign(addressForm, {
     kind,
     agent_id: row.agent_id ? Number(row.agent_id) : undefined,
@@ -704,6 +704,10 @@ const importFormSchema = reactive<FormSchema[]>([
 ])
 // 提交批量导入
 const submitBatchImport = async () => {
+  if (submitting.value) {
+    return
+  }
+
   try {
     const formDataRaw = await importFormMethods.getFormData<UploadFormData>()
     const fileList = formDataRaw.file
@@ -732,9 +736,9 @@ const submitBatchImport = async () => {
 
     submitting.value = true
     await v2BatchImportAddress(formData)
-    handleSuccessMessage('批量导入成功')
+    await reloadTable()
     batchImportVisible.value = false
-    reloadTable()
+    handleSuccessMessage('批量导入成功')
   } catch (error: unknown) {
     // 检查是否有返回的错误文件
     if (isBlobError(error)) {
@@ -757,8 +761,8 @@ const handleDelete = async (row: V2AddressItem) => {
       type: 'warning'
     })
     await v2DeleteAddress({ list: [row.address] })
+    await reloadTable()
     handleSuccessMessage('删除成功')
-    reloadTable()
   } catch (error) {
     if (error !== 'cancel') {
       handleErrorMessage(error, '删除失败')
@@ -767,6 +771,10 @@ const handleDelete = async (row: V2AddressItem) => {
 }
 
 const submitAddAddresses = async () => {
+  if (submitting.value) {
+    return
+  }
+
   try {
     await addressFormRef.value?.validate()
     const kind = Number(addressForm.kind)
@@ -801,7 +809,6 @@ const submitAddAddresses = async () => {
         updated_at: selectedAddress.updated_at,
         expired_at: buildExpiredAtPayload()
       })
-      handleSuccessMessage('编辑成功')
     } else {
       await v2CreateAddress({
         kind,
@@ -810,10 +817,10 @@ const submitAddAddresses = async () => {
         list: addressList,
         expired_at: buildExpiredAtPayload() || undefined
       })
-      handleSuccessMessage('新增成功')
     }
+    await reloadTable()
     addressDialogVisible.value = false
-    reloadTable()
+    handleSuccessMessage(addressDialogMode.value === 'add' ? '新增成功' : '编辑成功')
   } catch (error: unknown) {
     if (error === false) return
     const errorInfo = error as { code?: string; msg?: string; message?: string }
@@ -850,7 +857,6 @@ const handleExportTemplate = async () => {
 
 onMounted(() => {
   getAgentList()
-  getBotList()
 })
 </script>
 
