@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import { ContentWrap } from '@/components/ContentWrap'
 import { useI18n } from '@/hooks/web/useI18n'
-import { ref, nextTick, h, onMounted } from 'vue'
+import { ref, h, onMounted } from 'vue'
 import {
   getManageUserListApiV2,
   addManageUserApiV2,
@@ -127,11 +127,15 @@ const currentRow = ref<ManageUserItem | undefined>()
 const actionType = ref<UserActionType>('add')
 const writeRef = ref<ManageUserWriteExpose | null>(null)
 
+const openWriteDialog = () => {
+  writeRef.value?.open()
+}
+
 const AddAction = () => {
   dialogTitle.value = t('exampleDemo.add')
   currentRow.value = undefined
   actionType.value = 'add'
-  nextTick(() => writeRef.value?.open())
+  openWriteDialog()
 }
 
 const delLoading = ref(false)
@@ -166,7 +170,7 @@ const action = (row: ManageUserItem, type: UserActionType) => {
   dialogTitle.value = t('exampleDemo.edit')
   actionType.value = type
   currentRow.value = { ...row }
-  nextTick(() => writeRef.value?.open())
+  openWriteDialog()
 }
 
 const saveLoading = ref(false)

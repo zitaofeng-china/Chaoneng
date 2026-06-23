@@ -1,5 +1,5 @@
 <script setup lang="tsx">
-import { ref, h, nextTick, onMounted, computed } from 'vue'
+import { ref, h, onMounted, computed } from 'vue'
 import type { VNode } from 'vue'
 import {
   getRoleListApi,
@@ -10,7 +10,7 @@ import type { RoleItem } from '@/api/opertion/Authorization/common/role'
 import { useI18n } from '@/hooks/web/useI18n'
 import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
-import { ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Table, TableColumn } from '@/components/Table'
 import Write from './components/Write.vue'
 import { useTable } from '@/hooks/web/useTable'
@@ -123,6 +123,10 @@ const writeRef = ref<InstanceType<typeof Write> | null>(null)
 const formLoading = ref(false)
 const currentRow = ref<RoleFormRow | null>(null)
 
+const openWriteDialog = () => {
+  writeRef.value?.open()
+}
+
 const handleAction = async (row: RoleItem, type: 'edit' | 'detail') => {
   dialogTitle.value = t(type === 'edit' ? 'exampleDemo.edit' : 'exampleDemo.detail')
   actionType.value = type
@@ -134,9 +138,7 @@ const handleAction = async (row: RoleItem, type: 'edit' | 'detail') => {
       const res = await getRoleDetailApi(row.id)
       const roleDetail = res?.data || {}
       currentRow.value = { ...row, ...roleDetail }
-      nextTick(() => {
-        writeRef.value?.open()
-      })
+      openWriteDialog()
     } catch (error) {
       handleErrorMessage(error, '获取角色详情失败')
     } finally {
@@ -149,7 +151,7 @@ const handleAdd = () => {
   dialogTitle.value = t('exampleDemo.add')
   actionType.value = 'add'
   currentRow.value = null
-  nextTick(() => writeRef.value?.open())
+  openWriteDialog()
 }
 
 const handleSaveSuccess = async () => {
@@ -171,7 +173,9 @@ const handleDelete = (row: RoleItem) => {
         handleErrorMessage(error, '删除失败')
       }
     })
-    .catch(() => {})
+    .catch(() => {
+      ElMessage.info('取消操作')
+    })
 }
 
 const handleCurrentChange = (newPage: number) => {
