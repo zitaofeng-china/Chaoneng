@@ -128,6 +128,8 @@ const resetForm = async () => {
 }
 
 const handleRecharge = async () => {
+  if (submitting.value) return
+
   if (!userAccount.value.id) {
     ElMessage.warning('用户信息不完整，无法充值')
     return

@@ -105,7 +105,7 @@ const handleClose = () => {
 }
 
 const handleSubmit = async () => {
-  if (!formRef.value) return
+  if (!formRef.value || loading.value) return
   if (!props.user?.id) {
     handleErrorMessage(new Error('缺少用户ID'), '密码修改失败')
     return

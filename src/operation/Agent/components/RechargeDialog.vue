@@ -11,7 +11,7 @@
 
     <template #footer>
       <div class="flex justify-end">
-        <ElButton @click="close">取消</ElButton>
+        <ElButton @click="close" :disabled="submitting">取消</ElButton>
         <ElButton type="primary" :loading="submitting" @click="handleRecharge">确定</ElButton>
       </div>
     </template>
@@ -166,6 +166,10 @@ const initForm = async () => {
 
 // 处理充值
 const handleRecharge = async () => {
+  if (submitting.value) {
+    return
+  }
+
   if (!userAccount.value?.id) {
     ElMessage.warning('用户信息不完整，无法充值')
     return
@@ -222,6 +226,10 @@ const handleRecharge = async () => {
 
 // 关闭弹窗
 const close = () => {
+  if (submitting.value) {
+    return
+  }
+
   dialogVisible.value = false
 }
 
