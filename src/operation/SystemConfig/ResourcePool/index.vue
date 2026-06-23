@@ -64,6 +64,7 @@ import {
 const formRef = ref<InstanceType<typeof ResourcePoolAccountForm>>()
 const searchTableRef = ref<InstanceType<typeof SearchTable>>()
 const notifyBotDialogVisible = ref(false)
+const hasActivatedOnce = ref(false)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 type ResourcePoolSearchParams = Omit<V2PoolListParams, 'kind' | 'status'> & {
@@ -357,6 +358,11 @@ const handleEditThreshold = async (row: V2PoolItem) => {
 
 // 当页面被激活时（从缓存中恢复或首次进入），重新加载数据
 onActivated(() => {
+  if (!hasActivatedOnce.value) {
+    hasActivatedOnce.value = true
+    return
+  }
+
   reloadTable()
 })
 </script>

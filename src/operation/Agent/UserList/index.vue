@@ -141,6 +141,7 @@ const isBotListLoaded = ref(false)
 const botOptions = ref<BotOption[]>(withAllOption<string>([]))
 const botMap = ref<Map<number, MessageBotItem>>(new Map())
 const searchTableRef = ref<SearchTableExpose | null>(null)
+const hasActivatedOnce = ref(false)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 const exporting = ref(false)
 
@@ -572,6 +573,11 @@ onMounted(async () => {
 
 // 处理 keep-alive 缓存恢复
 onActivated(async () => {
+  if (!hasActivatedOnce.value) {
+    hasActivatedOnce.value = true
+    return
+  }
+
   if (!botOptions.value.length || botOptions.value.length === 1) {
     await fetchBotList()
   }
