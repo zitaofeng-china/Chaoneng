@@ -44,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import { ElButton, ElMessage, ElTabs, ElTabPane } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { useBotConfigV1 } from './composables/useBotConfigV1'
@@ -129,9 +129,13 @@ const open = async (botInfo: Record<string, any>) => {
     return
   }
 
+  await nextTick()
+
   const formMethods = getFormMethods()
   if (formMethods.botInfo) {
     await loadTabConfig(botInfo.id, 'botInfo', formMethods.botInfo)
+  } else {
+    ElMessage.warning('表单未初始化，请稍后重试')
   }
 }
 
