@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { ElButton, ElMessage, ElLink } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { SearchTable } from '@/components/SearchTable'
@@ -288,14 +288,12 @@ const onSearch = () => {
 }
 
 // 打开弹窗
-const open = (_accountId: number, name: string = '') => {
+const open = async (_accountId: number, name: string = '') => {
   dialogVisible.value = true
   accountName.value = name
 
-  // 重新加载列表
-  setTimeout(() => {
-    searchTableRef.value?.reload()
-  }, 100)
+  await nextTick()
+  await searchTableRef.value?.reload()
 }
 
 // 暴露方法

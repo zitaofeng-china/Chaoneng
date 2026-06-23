@@ -9,7 +9,7 @@
           <ElButton type="warning" @click="handleRechargeRecord">充值记录</ElButton>
           <ElButton type="danger" @click="handleDeductionRecord">扣款记录</ElButton>
         </ElButtonGroup>
-        <ElButton v-else type="primary" :loading="loading" @click="fetchAccountList({})"
+        <ElButton v-else type="primary" :loading="loading" @click="reloadAccountInfo"
           >刷新</ElButton
         >
       </div>
@@ -27,7 +27,7 @@
         :account-id="userData.id"
         :notify-threshold="userData.notify_threshold"
         :chat-id="userData.notify_chat_id"
-        @saved="fetchAccountList({})"
+        @saved="reloadAccountInfo"
       />
     </ContentWrap>
 
@@ -139,7 +139,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, onMounted, computed, reactive } from 'vue'
+import { ref, onMounted, onUnmounted, computed, reactive } from 'vue'
 import {
   ElButton,
   ElForm,
@@ -261,6 +261,10 @@ const fetchAccountList = async (params: any) => {
   } finally {
     loading.value = false
   }
+}
+
+const reloadAccountInfo = async () => {
+  await fetchAccountList({})
 }
 
 // ========== 密码修改相关 ==========
@@ -411,7 +415,6 @@ const handleUpdatePassword = async () => {
       // 添加: 修改成功后退出登录
       await userStore.logout() // 调用退出登录 action
     } catch (error) {
-      console.error('修改密码失败:', error)
       ElMessage.error('修改密码失败')
     } finally {
       submitting.value = false
@@ -485,7 +488,12 @@ const copyAddress = () => {
 
 // 页面加载时获取账户信息
 onMounted(() => {
-  fetchAccountList({})
+  reloadAccountInfo()
+})
+
+onUnmounted(() => {
+  resetCountdown()
+  debouncedApiCall.cancel()
 })
 </script>
 

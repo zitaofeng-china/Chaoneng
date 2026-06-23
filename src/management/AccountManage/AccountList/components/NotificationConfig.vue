@@ -52,7 +52,7 @@
         <!-- 操作按钮 -->
         <ElFormItem label=" ">
           <div class="flex gap-2 justify-end w-full">
-            <ElButton @click="handleReset">取消</ElButton>
+            <ElButton :disabled="saving" @click="handleReset">取消</ElButton>
             <ElButton type="primary" :loading="saving" @click="handleSave">保存</ElButton>
           </div>
         </ElFormItem>
@@ -152,6 +152,7 @@ onMounted(() => {
 
 // 保存配置
 const handleSave = async () => {
+  if (saving.value) return
   if (!props.accountId) {
     ElMessage.warning('账户信息未加载完成')
     return
@@ -212,6 +213,7 @@ const handleReset = () => {
 
 // 切换开关时直接调用接口（开 -> 关 立即禁用；关 -> 开 立即启用，阈值默认 1）
 const handleSwitchChange = async (val: boolean | string | number) => {
+  if (saving.value) return
   if (!props.accountId) return
 
   // 关 -> 开：阈值优先用之前保存过的，否则默认 1
