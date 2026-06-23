@@ -13,7 +13,9 @@
             </div>
             <div class="header-actions">
               <template v-if="!editModeMap[agent.id]">
-                <el-button size="default" @click="handleRefresh"> 刷新 </el-button>
+                <el-button size="default" :loading="refreshing" @click="handleRefresh">
+                  刷新
+                </el-button>
                 <el-button
                   v-if="hasEditPermission"
                   type="primary"
@@ -373,7 +375,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive, computed, onMounted, onActivated } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   v1GetPriceList,
@@ -390,6 +392,7 @@ const route = useRoute()
 const loading = ref(false)
 const priceList = ref<V1PriceListResponse[]>([])
 const editModeMap = reactive<Record<number, boolean>>({})
+const refreshing = ref(false)
 
 interface PriceFormData {
   active: number
@@ -508,8 +511,13 @@ const handleEdit = (agentId: number) => {
 }
 
 const handleRefresh = async () => {
-  await loadPriceData()
-  ElMessage.success('刷新成功')
+  refreshing.value = true
+  try {
+    await loadPriceData()
+    ElMessage.success('刷新成功')
+  } finally {
+    refreshing.value = false
+  }
 }
 
 const handleCancel = (agentId: number) => {
@@ -594,13 +602,7 @@ const handleSave = async (agentId: number) => {
   }
 }
 
-onMounted(() => {
-  loadPriceData()
-})
-
-onActivated(() => {
-  loadPriceData()
-})
+loadPriceData()
 </script>
 
 <style scoped>

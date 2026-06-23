@@ -502,7 +502,6 @@ const handleSubmit = async () => {
       }
 
       await batchUpdateBotMenu(updateParams)
-      ElMessage.success('更新成功')
     } else {
       const addParams: AddBotMenuParams = {
         menu_name: formData.menu_name,
@@ -512,11 +511,11 @@ const handleSubmit = async () => {
       }
 
       await addBotMenu(addParams)
-      ElMessage.success('添加成功')
     }
 
     dialogVisible.value = false
-    searchTableRef.value?.reload()
+    await searchTableRef.value?.reload()
+    ElMessage.success(formData.id ? '更新成功' : '添加成功')
   } catch (error) {
     if (error instanceof Error && error.message) {
       ElMessage.error(error.message)
@@ -541,13 +540,7 @@ const handleDataLoaded = ({
   total: number
   success: boolean
 }) => {
-  nextTick(() => {
-    isLoaded.value = true
-  })
-
-  if (data?.length === 0 && success) {
-    ElMessage.info('未查询到符合条件的数据')
-  }
+  isLoaded.value = true
 }
 
 const handleStatusChange = async (row: BotMenuItem) => {
@@ -571,8 +564,8 @@ const handleStatusChange = async (row: BotMenuItem) => {
     }
 
     await batchUpdateBotMenu(updateParams)
+    await searchTableRef.value?.reload()
     ElMessage.success('状态更新成功')
-    searchTableRef.value?.reload()
   } catch (error) {
     handleErrorMessage(error, '状态更新失败')
     row.status = previousStatus

@@ -8,6 +8,12 @@
         :show-add-button="false"
         :action-column="actionColumn"
         ref="searchTableRef"
+        :table-props="{
+          defaultSort: {
+            prop: 'created_at',
+            order: 'descending'
+          }
+        }"
       />
     </ContentWrap>
 
@@ -363,10 +369,10 @@ const handleBroadcastChange = async (row: ChatRow, value: number) => {
   }
 }
 
-const handleMessageSuccess = () => {
+const handleMessageSuccess = async () => {
   pendingMessageDraft.value = null
+  await searchTableRef.value?.reload()
   ElMessage.success('消息发送成功')
-  searchTableRef.value?.reload()
 }
 
 const handleMessageCancel = (draft: GroupMessageDraft) => {
