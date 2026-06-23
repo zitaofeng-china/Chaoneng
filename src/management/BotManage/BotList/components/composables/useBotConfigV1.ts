@@ -97,6 +97,10 @@ export function useBotConfigV1() {
         tg_bot_id: botDetailRes.data.id || '',
         firstname: botDetailRes.data.first_name || '',
         name: botDetailRes.data.user_name || '',
+        avatar: botDetailRes.data.avatar || '',
+        introduction: botDetailRes.data.introduction || '',
+        description_image: botDetailRes.data.description_image || '',
+        description: botDetailRes.data.description || '',
         token: botDetailRes.data.token || '',
         api_key: '',
         tg_admin: botDetailRes.data.tg_admin || '',
@@ -343,6 +347,11 @@ export function useBotConfigV1() {
       // 1. 更新机器人基本信息
       await v1UpdateBot({
         id: currentBot.value.id,
+        avatar: botInfoData.avatar,
+        introduction: botInfoData.introduction,
+        description_image: botInfoData.description_image,
+        description: botInfoData.description,
+        first_name: botInfoData.firstname,
         describe: botInfoData.describe,
         status: botInfoData.status,
         tg_admin: botInfoData.tg_admin,
@@ -375,6 +384,11 @@ export function useBotConfigV1() {
         // 刷新机器人详情：管理员TG账号、备注、状态、奖励
         if (botRes && botRes.code === '000000' && botRes.data) {
           currentBot.value = botRes.data
+          refreshedData.avatar = botRes.data.avatar || ''
+          refreshedData.introduction = botRes.data.introduction || ''
+          refreshedData.description_image = botRes.data.description_image || ''
+          refreshedData.description = botRes.data.description || ''
+          refreshedData.firstname = botRes.data.first_name || ''
           refreshedData.tg_admin = botRes.data.tg_admin || ''
           refreshedData.describe = botRes.data.describe || ''
           refreshedData.status = botRes.data.status || 2
