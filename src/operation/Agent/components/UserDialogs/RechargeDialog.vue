@@ -19,15 +19,20 @@
 </template>
 
 <script setup lang="tsx">
-import { computed, reactive, ref, watch, nextTick } from 'vue'
-import { ElButton, ElMessage } from 'element-plus'
+import { computed, ref, watch, nextTick } from 'vue'
+import { ElButton } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
-import { Form, FormSchema } from '@/components/Form'
+import { Form } from '@/components/Form'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
-import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { createRechargeFormDefaults, createRechargeFormSchema } from '../rechargeDialogShared'
+import {
+  handleErrorMessage,
+  handleSuccessMessage,
+  handleWarningMessage
+} from '@/utils/messageHelper'
 import { v1RechargeUser } from '@/api/opertion/common/tgUser'
 import type { RechargeUserParamsV1 } from '@/api/opertion/common/tgUser'
 
@@ -75,55 +80,12 @@ const rechargeSchema = computed<DescriptionsSchema[]>(() => [
   { field: 'trx_balance', label: 'TRX余额' }
 ])
 
-const rechargeFormSchema = reactive<FormSchema[]>([
-  {
-    field: 'coin',
-    component: 'RadioGroup',
-    label: '充值类型',
-    value: 'TRX',
-    componentProps: {
-      options: [{ label: '充值TRX', value: 'TRX' }]
-    }
-  },
-  {
-    field: 'amount',
-    component: 'InputNumber',
-    label: '金额',
-    componentProps: {
-      placeholder: '请输入金额',
-      style: { width: '100%' },
-      remark: () => (
-        <div>
-          <span>如果需要扣减余额，请输入负数</span>
-          <br />
-          <span>例如：输入5，则是增加5余额，输入-5，则是扣减5余额</span>
-        </div>
-      )
-    },
-    formItemProps: {
-      rules: [required()]
-    }
-  },
-  {
-    field: 'describe',
-    component: 'Input',
-    label: '备注',
-    componentProps: {
-      placeholder: '请输入备注',
-      type: 'textarea',
-      rows: 2
-    }
-  }
-])
+const rechargeFormSchema = createRechargeFormSchema({ required })
 
 const resetForm = async () => {
   await nextTick()
   formMethods
-    .setValues({
-      coin: 'TRX',
-      amount: undefined,
-      describe: ''
-    })
+    .setValues(createRechargeFormDefaults())
     .catch((error) => handleErrorMessage(error, '初始化充值表单失败'))
 }
 
@@ -131,7 +93,7 @@ const handleRecharge = async () => {
   if (submitting.value) return
 
   if (!userAccount.value.id) {
-    ElMessage.warning('用户信息不完整，无法充值')
+    handleWarningMessage('用户信息不完整，无法充值')
     return
   }
 
@@ -139,7 +101,7 @@ const handleRecharge = async () => {
     const form = await formMethods.getFormExpose()
     const elForm = await formMethods.getElFormExpose()
     if (!form || !elForm) {
-      ElMessage.warning('表单未初始化，请稍后再试')
+      handleWarningMessage('表单未初始化，请稍后再试')
       return
     }
 

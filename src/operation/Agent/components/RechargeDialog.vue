@@ -19,16 +19,21 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, computed, reactive, watch, nextTick } from 'vue'
-import { ElButton, ElMessage } from 'element-plus'
+import { ref, computed, watch, nextTick } from 'vue'
+import { ElButton } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
-import { Form, FormSchema } from '@/components/Form'
+import { Form } from '@/components/Form'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
 import { rechargeTrxApi } from '@/api/opertion/Agent/AgentList'
-import { handleErrorMessage } from '@/utils/messageHelper'
+import { createRechargeFormDefaults, createRechargeFormSchema } from './rechargeDialogShared'
+import {
+  handleErrorMessage,
+  handleSuccessMessage,
+  handleWarningMessage
+} from '@/utils/messageHelper'
 
 const props = defineProps({
   visible: {
@@ -85,83 +90,14 @@ const rechargeSchema = computed<DescriptionsSchema[]>(() => {
 })
 
 // 充值表单结构定义
-const rechargeFormSchema = reactive<FormSchema[]>([
-  {
-    field: 'coin',
-    component: 'RadioGroup',
-    label: '充值类型',
-    value: 'TRX',
-    componentProps: {
-      options: [
-        {
-          label: '充值余额',
-          value: 'TRX'
-        }
-        // {
-        //   label: '充值USDT',
-        //   value: 'USDT'
-        // }
-      ]
-    }
-  },
-  {
-    field: 'amount',
-    component: 'InputNumber',
-    label: '金额',
-    componentProps: {
-      placeholder: '请输入金额',
-      style: {
-        width: '100%'
-      },
-      remark: () => (
-        <div>
-          <span>如果需要扣减余额，请输入负数</span>
-          <br />
-          <span>例如：输入5，则是增加5余额，输入-5，则是扣减5余额</span>
-        </div>
-      )
-    },
-    formItemProps: {
-      rules: [required()]
-    }
-  },
-  {
-    field: 'secret',
-    component: 'Input',
-    label: '秘钥',
-    componentProps: {
-      placeholder: '请输入秘钥',
-      type: 'password'
-    },
-    formItemProps: {
-      rules: [required('秘钥不能为空')]
-    }
-  },
-  {
-    field: 'describe',
-    component: 'Input',
-    label: '备注',
-    componentProps: {
-      placeholder: '请输入备注',
-      type: 'textarea',
-      rows: 2
-    }
-  }
-])
+const rechargeFormSchema = createRechargeFormSchema({ includeSecret: true, required })
 
 // 初始化表单
 const initForm = async () => {
   await nextTick()
-  formMethods
-    .setValues({
-      coin: 'TRX',
-      amount: '',
-      secret: '',
-      describe: ''
-    })
-    .catch((error) => {
-      handleErrorMessage(error, '初始化充值表单失败')
-    })
+  formMethods.setValues(createRechargeFormDefaults(true)).catch((error) => {
+    handleErrorMessage(error, '初始化充值表单失败')
+  })
 }
 
 // 处理充值
@@ -171,7 +107,7 @@ const handleRecharge = async () => {
   }
 
   if (!userAccount.value?.id) {
-    ElMessage.warning('用户信息不完整，无法充值')
+    handleWarningMessage('用户信息不完整，无法充值')
     return
   }
 
@@ -179,14 +115,14 @@ const handleRecharge = async () => {
     // 验证表单是否已注册
     const form = await formMethods.getFormExpose()
     if (!form) {
-      ElMessage.warning('表单未初始化，请稍后再试')
+      handleWarningMessage('表单未初始化，请稍后再试')
       return
     }
 
     // 表单验证
     const elForm = await formMethods.getElFormExpose()
     if (!elForm) {
-      ElMessage.warning('表单未初始化，请稍后再试')
+      handleWarningMessage('表单未初始化，请稍后再试')
       return
     }
 
@@ -211,7 +147,7 @@ const handleRecharge = async () => {
       // 调用充值API
       await rechargeTrxApi(params)
 
-      ElMessage.success('充值成功')
+      handleSuccessMessage('充值成功')
       close()
       emit('success')
     } catch (error) {
