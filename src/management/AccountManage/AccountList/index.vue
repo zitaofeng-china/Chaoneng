@@ -20,15 +20,6 @@
       </div>
 
       <Descriptions v-else :column="1" :schema="accountSchema" :data="userData" />
-
-      <!-- 代理消息提醒配置 -->
-      <ElDivider />
-      <NotificationConfig
-        :account-id="userData.id"
-        :notify-threshold="userData.notify_threshold"
-        :chat-id="userData.notify_chat_id"
-        @saved="reloadAccountInfo"
-      />
     </ContentWrap>
 
     <!-- 修改密码弹窗 -->
@@ -161,7 +152,6 @@ import { getAccountListApi } from '@/api/management/AccountManage/AccountList'
 import { useValidator } from '@/hooks/web/useValidator'
 import RechargeRecordDialog from './components/RechargeRecordDialog.vue'
 import DeductionRecordDialog from './components/DeductionRecordDialog.vue'
-import NotificationConfig from './components/NotificationConfig.vue'
 import { useClipboard } from '@/hooks/web/useClipboard'
 import { changePasswordApi, sendEmailCodeApi } from '@/api/common/login'
 import { debounce } from 'lodash-es'

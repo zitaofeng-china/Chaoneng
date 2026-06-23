@@ -52,6 +52,12 @@ export interface UpdateNotifyParams {
   id: number
   chat_id: number
   threshold: number
+  order_chat_id?: number
+  order_notify_chat_id?: number
+  order_types?: number[]
+  order_notify_types?: number[]
+  order_enabled?: boolean
+  order_notify_enabled?: boolean
 }
 
 export const v1UpdateUserNotify = (data: UpdateNotifyParams): Promise<IResponse> => {

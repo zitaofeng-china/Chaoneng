@@ -12,6 +12,12 @@ export interface AccountDetail {
   gift_bandwidth: boolean
   notify_threshold: number | string
   notify_chat_id: number | string
+  order_notify_chat_id?: number | string
+  order_chat_id?: number | string
+  order_notify_types?: number[] | string
+  order_types?: number[] | string
+  order_notify_enabled?: boolean | number | string
+  order_enabled?: boolean | number | string
   created_at: number | string
   updated_at: number | string
   // 仅充值弹窗使用：调用 ?address=true 时后端可能返回二维码地址

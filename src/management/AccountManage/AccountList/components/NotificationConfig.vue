@@ -34,6 +34,37 @@
           </div>
         </ElFormItem>
 
+        <ElFormItem label="订单播报">
+          <div class="w-full">
+            <ElCheckboxGroup
+              v-model="form.orderTypes"
+              class="order-type-group"
+              :disabled="saving"
+              @change="handleOrderTypesChange"
+            >
+              <div class="order-type-action">
+                <ElSwitch
+                  v-model="form.orderEnabled"
+                  :loading="saving"
+                  :width="orderSwitchWidth"
+                  :active-text="ORDER_SELECT_ACTIVE_TEXT"
+                  :inactive-text="ORDER_SELECT_INACTIVE_TEXT"
+                  inline-prompt
+                  class="order-select-switch"
+                  @change="handleOrderSwitchChange"
+                />
+              </div>
+              <ElCheckbox
+                v-for="item in ORDER_NOTIFY_TYPE_OPTIONS"
+                :key="item.value"
+                :label="item.value"
+              >
+                {{ item.label }}
+              </ElCheckbox>
+            </ElCheckboxGroup>
+          </div>
+        </ElFormItem>
+
         <!-- TG账号 -->
         <ElFormItem label="TG账号">
           <ElInput
@@ -69,16 +100,39 @@ import {
   ElSwitch,
   ElInput,
   ElInputNumber,
+  ElCheckbox,
+  ElCheckboxGroup,
   ElButton,
   ElMessage
 } from 'element-plus'
 import { v1UpdateUserNotify } from '@/api/management/AccountManage/AccountList'
 import { v1GetNotifyBot } from '@/api/management/BotManage/BotList'
 
+const ORDER_NOTIFY_TYPE_OPTIONS = [
+  { label: '闪租', value: 4 },
+  { label: '托管', value: 20 },
+  { label: '按笔数', value: 5 },
+  { label: '闪兑', value: 3 },
+  { label: '按时间', value: 7 },
+  { label: '充值订单', value: 2 },
+  { label: '托管速充', value: 21 },
+  { label: '速充能量', value: 15 },
+  { label: '激活', value: 10 },
+  { label: '速充', value: 22 },
+  { label: '即用能量', value: 23 }
+] as const
+
+const ORDER_SELECT_ACTIVE_TEXT = '全选'
+const ORDER_SELECT_INACTIVE_TEXT = '不选中'
+const ORDER_SWITCH_TEXT_WIDTH = 12
+const ORDER_SWITCH_ACTION_WIDTH = 40
+
 interface NotificationFormState {
   enabled: boolean
   threshold: number | undefined
   chatId: string
+  orderEnabled: boolean
+  orderTypes: number[]
 }
 
 const props = defineProps<{
@@ -88,6 +142,8 @@ const props = defineProps<{
    */
   notifyThreshold?: number | string
   chatId?: number | string
+  orderNotifyTypes?: number[] | string
+  orderNotifyEnabled?: boolean | number | string
 }>()
 
 const emit = defineEmits<{
@@ -98,14 +154,18 @@ const emit = defineEmits<{
 const form = reactive<NotificationFormState>({
   enabled: false,
   threshold: undefined,
-  chatId: ''
+  chatId: '',
+  orderEnabled: false,
+  orderTypes: []
 })
 
 // 原始数据备份（用于取消时恢复）
 const originalData = reactive<NotificationFormState>({
   enabled: false,
   threshold: undefined,
-  chatId: ''
+  chatId: '',
+  orderEnabled: false,
+  orderTypes: []
 })
 
 const saving = ref(false)
@@ -121,6 +181,14 @@ const notifyBotLink = computed(() => {
   return username ? `https://t.me/${username}` : ''
 })
 
+const orderSwitchWidth = computed(() => {
+  const maxTextLength = Math.max(
+    ORDER_SELECT_ACTIVE_TEXT.length,
+    ORDER_SELECT_INACTIVE_TEXT.length
+  )
+  return maxTextLength * ORDER_SWITCH_TEXT_WIDTH + ORDER_SWITCH_ACTION_WIDTH
+})
+
 const fetchNotifyBotName = async () => {
   try {
     const res = await v1GetNotifyBot()
@@ -130,18 +198,52 @@ const fetchNotifyBotName = async () => {
   }
 }
 
+const parseBoolean = (value: unknown) => {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value > 0
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    return ['1', 'true', 'yes', 'on'].includes(normalized)
+  }
+  return false
+}
+
+const parseOrderTypes = (value: unknown) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => Number(item)).filter((item) => !isNaN(item))
+  }
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((item) => Number(item.trim()))
+      .filter((item) => !isNaN(item))
+  }
+  return []
+}
+
 // 同步父组件传入的数据到表单
 const syncFromProps = () => {
   const threshold = Number(props.notifyThreshold || 0)
   const chatIdStr = props.chatId !== undefined && props.chatId !== null ? String(props.chatId) : ''
+  const orderTypes = parseOrderTypes(props.orderNotifyTypes)
+  const orderEnabled = parseBoolean(props.orderNotifyEnabled) || orderTypes.length > 0
   form.enabled = threshold > 0
   form.threshold = threshold > 0 ? threshold : undefined
   form.chatId = chatIdStr === '0' ? '' : chatIdStr
+  form.orderEnabled = orderEnabled
+  form.orderTypes = orderTypes
   Object.assign(originalData, form)
+  originalData.orderTypes = [...form.orderTypes]
 }
 
 watch(
-  () => [props.accountId, props.notifyThreshold, props.chatId],
+  () => [
+    props.accountId,
+    props.notifyThreshold,
+    props.chatId,
+    props.orderNotifyTypes,
+    props.orderNotifyEnabled
+  ],
   () => syncFromProps(),
   { immediate: true }
 )
@@ -161,6 +263,7 @@ const handleSave = async () => {
   let threshold = 0
   // 关闭开关时也保留原 TG 账号，只把阈值置 0 表示禁用
   let chatId: number = Number(String(form.chatId || '').trim()) || 0
+  let orderTypes = form.orderTypes.map((item) => Number(item)).filter((item) => !isNaN(item))
 
   if (form.enabled) {
     if (form.threshold === undefined || form.threshold === null) {
@@ -188,16 +291,31 @@ const handleSave = async () => {
     }
   }
 
+  if (orderTypes.length > 0) {
+    if (chatId <= 0) {
+      ElMessage.warning('请先填写TG账号')
+      return
+    }
+  }
+  form.orderEnabled = orderTypes.length === ORDER_NOTIFY_TYPE_OPTIONS.length
+
   saving.value = true
   try {
     await v1UpdateUserNotify({
       id: Number(props.accountId),
       chat_id: chatId,
-      threshold
+      threshold,
+      order_chat_id: chatId,
+      order_notify_chat_id: chatId,
+      order_types: orderTypes,
+      order_notify_types: orderTypes,
+      order_enabled: orderTypes.length > 0,
+      order_notify_enabled: orderTypes.length > 0
     })
 
     ElMessage.success('保存成功')
     Object.assign(originalData, form)
+    originalData.orderTypes = [...form.orderTypes]
     emit('saved')
   } catch (error: any) {
     ElMessage.error(error?.msg || '保存失败')
@@ -209,6 +327,7 @@ const handleSave = async () => {
 // 取消：恢复到原始数据
 const handleReset = () => {
   Object.assign(form, originalData)
+  form.orderTypes = [...originalData.orderTypes]
 }
 
 // 切换开关时直接调用接口（开 -> 关 立即禁用；关 -> 开 立即启用，阈值默认 1）
@@ -271,6 +390,18 @@ const handleSwitchChange = async (val: boolean | string | number) => {
 const handleChatIdInput = (value: string) => {
   form.chatId = String(value || '').replace(/\D/g, '')
 }
+
+const handleOrderSwitchChange = (val: boolean | string | number) => {
+  if (val) {
+    form.orderTypes = ORDER_NOTIFY_TYPE_OPTIONS.map((item) => item.value)
+  } else {
+    form.orderTypes = []
+  }
+}
+
+const handleOrderTypesChange = (value: Array<number | string>) => {
+  form.orderEnabled = value.length === ORDER_NOTIFY_TYPE_OPTIONS.length
+}
 </script>
 
 <style scoped>
@@ -313,5 +444,31 @@ const handleChatIdInput = (value: string) => {
 
 .official-bot-tip a:hover {
   text-decoration: underline;
+}
+
+.order-type-group {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px 20px;
+  margin-top: 0;
+}
+
+.order-type-group :deep(.el-checkbox) {
+  margin-right: 0;
+}
+
+.order-type-action {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+}
+
+.order-select-switch {
+  --el-switch-on-color: var(--el-color-primary);
+  --el-switch-off-color: var(--el-border-color-darker);
+}
+
+.order-select-switch :deep(.el-switch__inner) {
+  padding: 0 10px;
 }
 </style>
