@@ -93,7 +93,6 @@ const getFormMethods = () => {
 
 const handleTabChange = async (tabName: string) => {
   if (tabName === 'menuConfig') {
-    await new Promise((resolve) => setTimeout(resolve, 50))
     await menuConfigTabRef.value?.fetchMenuData()
     return
   }
@@ -101,8 +100,6 @@ const handleTabChange = async (tabName: string) => {
   if (!currentBot.value.id) {
     return
   }
-
-  await new Promise((resolve) => setTimeout(resolve, 50))
 
   const formMethods = getFormMethods()
   const currentFormMethod = formMethods[tabName]
@@ -128,8 +125,6 @@ const open = async (botInfo: Record<string, any>) => {
     ElMessage.error('机器人信息不完整')
     return
   }
-
-  await new Promise((resolve) => setTimeout(resolve, 100))
 
   const formMethods = getFormMethods()
   if (formMethods.botInfo) {

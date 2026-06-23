@@ -1,5 +1,5 @@
 // 机器人配置管理 V1 - 专门管理重构后的三个标签页（使用 v1 新接口）
-import { ref, reactive } from 'vue'
+import { ref, reactive, nextTick } from 'vue'
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
 import {
   v1GetBotDetail,
@@ -337,10 +337,9 @@ export function useBotConfigV1() {
       ElMessage.error('加载配置失败，请稍后重试')
       return false
     } finally {
-      setTimeout(() => {
-        loading.value = false
-        loadingInstance.close()
-      }, 300)
+      loading.value = false
+      await nextTick()
+      loadingInstance.close()
     }
   }
 

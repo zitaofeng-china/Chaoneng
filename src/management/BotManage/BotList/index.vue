@@ -34,10 +34,12 @@
         <Form :isCol="false" :schema="formSchema" @register="formRegister" />
         <template #footer>
           <div class="flex justify-end">
-            <ElButton @click="dialogVisible = false">
+            <ElButton :disabled="dialogSubmitting" @click="dialogVisible = false">
               {{ t('common.cancel') }}
             </ElButton>
-            <ElButton type="primary" @click="handleSubmit"> 提交 </ElButton>
+            <ElButton type="primary" :loading="dialogSubmitting" @click="handleSubmit">
+              提交
+            </ElButton>
           </div>
         </template>
       </Dialog>
@@ -94,6 +96,7 @@ const totalCount = ref(0)
 const dialogVisible = ref(false)
 const dialogType = ref<'add' | 'edit'>('add')
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
+const dialogSubmitting = ref(false)
 
 // 表格列配置
 const columns = [
@@ -387,6 +390,7 @@ const handleSubmit = async () => {
     if (!valid) return
 
     const formData = await formMethods.getFormData()
+    dialogSubmitting.value = true
 
     try {
       const res = await v1CreateBot({
@@ -398,9 +402,9 @@ const handleSubmit = async () => {
       })
 
       if (res.code === '000000') {
-        handleSuccessMessage(dialogType.value === 'add' ? '添加成功' : '编辑成功')
+        await searchTableRef.value?.reload()
         dialogVisible.value = false
-        searchTableRef.value?.reload()
+        handleSuccessMessage(dialogType.value === 'add' ? '添加成功' : '编辑成功')
       } else {
         const errorMsg = (res as any)?.msg || (res as any)?.message || ''
         if (
@@ -424,6 +428,8 @@ const handleSubmit = async () => {
       } else {
         handleErrorMessage(error, '创建机器人失败')
       }
+    } finally {
+      dialogSubmitting.value = false
     }
   })
 }
@@ -464,36 +470,28 @@ const fetchBotList = async (params: any) => {
 
 const fetchBotDelete = async () => {
   try {
-    return new Promise<boolean>((resolve) => {
-      setTimeout(() => {
-        resolve(true)
-      }, 500)
-    })
+    return true
   } catch (error) {
     return false
   }
 }
 
 const handleDataLoaded = ({ data, total, success }) => {
-  nextTick(() => {
-    isLoaded.value = true
-  })
+  isLoaded.value = true
 }
 
-const handleLoadError = () => {
-  ElMessage.error('加载数据失败')
-}
+const handleLoadError = () => {}
 
 const openConsumptionRecord = () => {
   consumptionRecordRef.value?.open()
 }
 
-const handleRenewSuccess = () => {
-  searchTableRef.value?.reload()
+const handleRenewSuccess = async () => {
+  await searchTableRef.value?.reload()
 }
 
-const handleConfigSuccess = () => {
-  searchTableRef.value?.reload()
+const handleConfigSuccess = async () => {
+  await searchTableRef.value?.reload()
 }
 
 const getBotPrice = async () => {

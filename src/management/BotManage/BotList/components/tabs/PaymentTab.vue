@@ -146,8 +146,8 @@ const handleDeleteAddress = async (row: any) => {
       list: [row.address]
     })
 
+    await reloadTable()
     ElMessage.success('删除成功')
-    reloadTable()
   } catch (error: any) {
     if (error !== 'cancel') {
       const errorMsg = error?.msg || error?.message || '删除失败'
@@ -219,8 +219,8 @@ const fetchWealAddresses = async (params: any) => {
 }
 
 // 刷新表格
-const reloadTable = () => {
-  return searchTableRef.value?.reload()
+const reloadTable = async () => {
+  await searchTableRef.value?.reload()
 }
 
 // 收款配置表单（移除福利地址字段）
@@ -269,19 +269,15 @@ const paymentSchema = reactive<FormSchema[]>([
               callback()
               return
             }
-            // 使用setTimeout来确保能获取到最新的表单数据
-            setTimeout(async () => {
-              try {
-                const formData = await formMethods.getFormData()
+            Promise.resolve(formMethods.getFormData())
+              .then((formData) => {
                 if (formData && formData.energy_address && value === formData.energy_address) {
                   callback(new Error('TRX/USDT收款钱包地址不能与闪租收款钱包地址相同'))
-                } else {
-                  callback()
+                  return
                 }
-              } catch (error) {
                 callback()
-              }
-            }, 0)
+              })
+              .catch(() => callback())
           },
           trigger: 'blur'
         }
@@ -307,22 +303,19 @@ const paymentSchema = reactive<FormSchema[]>([
               callback()
               return
             }
-            // 使用setTimeout来确保能获取到最新的表单数据
-            setTimeout(async () => {
-              try {
-                const formData = await formMethods.getFormData()
-                // 验证不能与其他地址相同
+            Promise.resolve(formMethods.getFormData())
+              .then((formData) => {
                 if (formData.energy_address && value === formData.energy_address) {
                   callback(new Error('闪兑收款地址不能与闪租收款地址相同'))
-                } else if (formData.energy_usdt_address && value === formData.energy_usdt_address) {
-                  callback(new Error('闪兑收款地址不能与按笔数购买收款地址相同'))
-                } else {
-                  callback()
+                  return
                 }
-              } catch (error) {
+                if (formData.energy_usdt_address && value === formData.energy_usdt_address) {
+                  callback(new Error('闪兑收款地址不能与按笔数购买收款地址相同'))
+                  return
+                }
                 callback()
-              }
-            }, 0)
+              })
+              .catch(() => callback())
           },
           trigger: 'blur'
         }
@@ -360,9 +353,9 @@ const handleConfirmAdd = async () => {
       kind: 6,
       list: addressList
     })
-    ElMessage.success(`成功添加 ${addressList.length} 个地址`)
     dialogVisible.value = false
-    reloadTable()
+    await reloadTable()
+    ElMessage.success(`成功添加 ${addressList.length} 个地址`)
   } catch (error: any) {
     const errorMsg = error?.msg || error?.message || '添加失败'
     ElMessage.error(errorMsg)
@@ -374,7 +367,7 @@ const setBotId = (botId: number) => {
   currentBotId.value = botId
   // 设置 botId 后刷新表格
   if (searchTableRef.value) {
-    reloadTable()
+    void reloadTable()
   }
 }
 
@@ -413,9 +406,9 @@ const handleConfirmBatchDelete = async () => {
       list: addressList
     })
 
-    ElMessage.success(`成功删除 ${addressList.length} 个地址`)
     batchDeleteVisible.value = false
-    reloadTable()
+    await reloadTable()
+    ElMessage.success(`成功删除 ${addressList.length} 个地址`)
   } catch (error: any) {
     if (error !== 'cancel') {
       const errorMsg = error?.msg || error?.message || '批量删除失败'

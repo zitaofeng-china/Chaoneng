@@ -41,6 +41,7 @@ const dataList = ref<ConsumptionRecord[]>([])
 const pageSize = ref(10)
 const currentPage = ref(1)
 const total = ref(0)
+const skipPageWatch = ref(false)
 
 const columns = [
   {
@@ -109,35 +110,38 @@ const getList = async () => {
       total.value = res.data.pager?.total || 0
     }
   } catch (error) {
-    console.error('获取消费记录失败:', error)
   } finally {
     loading.value = false
   }
 }
 
-watch(currentPage, (newPage, oldPage) => {
+watch(currentPage, async (newPage, oldPage) => {
+  if (skipPageWatch.value) return
   if (newPage !== oldPage) {
-    getList()
+    await getList()
   }
 })
 
-watch(pageSize, (newPageSize, oldPageSize) => {
+watch(pageSize, async (newPageSize, oldPageSize) => {
+  if (skipPageWatch.value) return
   if (newPageSize !== oldPageSize) {
     if (currentPage.value !== 1) {
       currentPage.value = 1
     } else {
-      getList()
+      await getList()
     }
   }
 })
 
-const open = () => {
+const open = async () => {
+  skipPageWatch.value = true
   currentPage.value = 1
   pageSize.value = 10
-  dialogVisible.value = true
   dataList.value = []
   total.value = 0
-  getList()
+  dialogVisible.value = true
+  skipPageWatch.value = false
+  await getList()
 }
 
 defineExpose({

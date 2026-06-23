@@ -204,6 +204,8 @@ const refreshOrderNum = (enabledItems: MenuItemWithExtras[]) => {
  * 获取菜单数据
  */
 const fetchMenuData = async () => {
+  if (loading.value || !props.botId) return
+
   try {
     loading.value = true
     await nextTick()
@@ -231,6 +233,8 @@ const fetchMenuData = async () => {
  * 保存菜单配置
  */
 const saveMenuConfig = async () => {
+  if (loading.value || !props.botId) return false
+
   try {
     loading.value = true
 

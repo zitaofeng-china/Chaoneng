@@ -66,12 +66,14 @@ const h5Config = ref({
 
 // 当前机器人ID
 const currentBotId = ref<number | null>(null)
+const lastLoadedSiteBotId = ref<number | null>(null)
 
 // 获取Site详情
 const fetchSiteDetail = async (botId: number) => {
   try {
     const res = await v1GetSiteDetail(botId)
     if (res && res.data) {
+      lastLoadedSiteBotId.value = botId
       h5Config.value.url = res.data.url || ''
       h5Config.value.site_tg_admin = res.data.tg_admin || ''
       h5Config.value.h5_enable = res.data.status === 1 ? 1 : 0
@@ -85,7 +87,7 @@ const fetchSiteDetail = async (botId: number) => {
 watch(
   () => currentBotId.value,
   (newBotId) => {
-    if (newBotId) {
+    if (newBotId && newBotId !== lastLoadedSiteBotId.value) {
       fetchSiteDetail(newBotId)
     }
   },
@@ -209,7 +211,7 @@ defineExpose({
     setValues: (data: any) => {
       formMethods.setValues(data)
 
-      if (data.tg_bot_id !== undefined) {
+      if (data.tg_bot_id !== undefined && data.tg_bot_id !== currentBotId.value) {
         currentBotId.value = data.tg_bot_id
       }
 

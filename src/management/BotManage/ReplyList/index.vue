@@ -320,7 +320,6 @@ const handleDialogSubmitted = async (data: ReplySaveParams) => {
         status: data.status
       }
       await v1UpdateReply(updateParams)
-      handleSuccessMessage('更新成功')
     } else {
       const createParams: CreateReplyParamsV1 = {
         bot_id: data.tg_bot_id,
@@ -329,11 +328,11 @@ const handleDialogSubmitted = async (data: ReplySaveParams) => {
         status: data.status
       }
       await v1CreateReply(createParams)
-      handleSuccessMessage('添加成功')
     }
 
     dialogVisible.value = false
-    searchTableRef.value?.reload()
+    await searchTableRef.value?.reload()
+    handleSuccessMessage(data.id ? '更新成功' : '添加成功')
   } catch (error) {
     handleErrorMessage(error, '保存失败')
   } finally {
@@ -347,6 +346,7 @@ const handleStatusChange = async (row: ReplyItem, newStatus: number) => {
   if (!isLoaded.value) return
   try {
     await updateReplyStatusApi({ ...row, status: newStatus })
+    await searchTableRef.value?.reload()
     handleSuccessMessage('状态更新成功')
   } catch (error) {
     handleErrorMessage(error, '状态更新失败')
@@ -359,9 +359,7 @@ const onSearch = (params: any) => {
 }
 
 const handleDataLoaded = ({ data, total, success }) => {
-  nextTick(() => {
-    isLoaded.value = true
-  })
+  isLoaded.value = true
 }
 
 const viewContentDialogVisible = ref(false)

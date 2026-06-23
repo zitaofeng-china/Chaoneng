@@ -4,8 +4,8 @@
     <Form :schema="formSchema" @register="formRegister" />
     <template #footer>
       <div class="flex justify-end">
-        <ElButton @click="close">取消</ElButton>
-        <ElButton type="primary" @click="submit">确认续费</ElButton>
+        <ElButton @click="close" :disabled="submitting">取消</ElButton>
+        <ElButton type="primary" @click="submit" :loading="submitting">确认续费</ElButton>
       </div>
     </template>
   </Dialog>
@@ -13,7 +13,7 @@
 
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { ElButton, ElMessage } from 'element-plus'
+import { ElButton } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
@@ -28,6 +28,7 @@ const currentBot = ref<Record<string, any>>({})
 const { required } = useValidator()
 const { formRegister, formMethods } = useForm()
 const botPrice = ref<any>(null)
+const submitting = ref(false)
 
 const formSchema = reactive<FormSchema[]>([
   {
@@ -71,11 +72,14 @@ const open = async (botInfo: Record<string, any>) => {
 }
 
 const close = () => {
+  if (submitting.value) return
   dialogVisible.value = false
   emit('close')
 }
 
 const submit = async () => {
+  if (submitting.value) return
+
   const elForm = await formMethods.getElFormExpose()
 
   await elForm?.validate(async (valid) => {
@@ -84,6 +88,7 @@ const submit = async () => {
     const formData = await formMethods.getFormData()
 
     try {
+      submitting.value = true
       const res = await v1RenewBot({
         id: currentBot.value.id,
         month_num: formData.month_num
@@ -98,6 +103,8 @@ const submit = async () => {
       }
     } catch (error) {
       handleErrorMessage(error, '续费失败')
+    } finally {
+      submitting.value = false
     }
   })
 }
