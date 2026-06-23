@@ -119,6 +119,22 @@ const columns = ref<TableColumn[]>([
     }
   },
   {
+    field: '',
+    label: '桶数量/阈值',
+    minWidth: '180px',
+    formatter: (row: V2PoolItem) => {
+      const bucket = formatPoolAmount(row.bucket)
+      const threshold =
+        row.bucket_threshold === undefined ||
+        row.bucket_threshold === null ||
+        row.bucket_threshold === ''
+          ? 0
+          : row.bucket_threshold
+
+      return `${bucket} / ${threshold}`
+    }
+  },
+  {
     field: 'created_by',
     label: '创建人',
     width: '120px',

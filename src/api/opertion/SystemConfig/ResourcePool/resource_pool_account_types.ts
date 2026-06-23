@@ -22,6 +22,8 @@ export interface PoolItem {
   kind: number
   status: number
   amount: string
+  bucket: string
+  bucket_threshold: string
   limit: string
   permission_id: number
   permission_name: string
@@ -67,6 +69,7 @@ export interface UpdatePoolParams {
  * GET /v1/pool/notify
  */
 export interface ResourcePoolNotifyData {
+  agent_address_threshold: number
   chat_id: number | string
   first_name: string
   id: number
@@ -81,6 +84,7 @@ export interface ResourcePoolNotifyData {
  * PUT /v1/pool/notify
  */
 export interface UpdateResourcePoolNotifyParams {
+  agent_address_threshold?: number
   chat_id: number
   first_name?: string
   id?: number

@@ -49,6 +49,9 @@
         <ElDescriptionsItem v-if="isResourcePoolMode || isAssetMode" label="接收消息对象ID">
           {{ resourcePoolForm.chat_id || '-' }}
         </ElDescriptionsItem>
+        <ElDescriptionsItem v-if="isResourcePoolMode" label="代理地址阈值">
+          {{ formatThreshold(resourcePoolForm.agent_address_threshold) }}
+        </ElDescriptionsItem>
         <ElDescriptionsItem v-if="isResourcePoolMode" label="通知状态">
           <span :class="getNotifyStatusClass(resourcePoolForm.status)">
             {{ getNotifyStatusLabel(resourcePoolForm.status) }}
@@ -86,6 +89,20 @@
                 placeholder="请输入接收消息对象ID"
                 style="width: 100%"
                 @input="handleChatIdInput"
+              />
+            </ElFormItem>
+            <ElFormItem
+              v-if="isResourcePoolMode"
+              label="代理地址阈值"
+              prop="agent_address_threshold"
+            >
+              <ElInputNumber
+                v-model="resourcePoolForm.agent_address_threshold"
+                :min="0"
+                :precision="0"
+                :step="1"
+                controls-position="right"
+                style="width: 100%"
               />
             </ElFormItem>
             <ElFormItem v-if="isResourcePoolMode" label="通知状态" prop="status">
@@ -142,6 +159,7 @@ import {
   ElForm,
   ElFormItem,
   ElInput,
+  ElInputNumber,
   ElOption,
   ElSelect,
   ElSwitch
@@ -190,7 +208,9 @@ const showModeSelect = computed(() => !!props.showModeSelect)
 const effectiveMode = computed<NotifyBotMode>(() =>
   showModeSelect.value ? selectedMode.value : props.mode || 'agent'
 )
-const isConfigMode = computed(() => effectiveMode.value === 'resourcePool' || effectiveMode.value === 'asset')
+const isConfigMode = computed(
+  () => effectiveMode.value === 'resourcePool' || effectiveMode.value === 'asset'
+)
 const isResourcePoolMode = computed(() => effectiveMode.value === 'resourcePool')
 const isAssetMode = computed(() => effectiveMode.value === 'asset')
 const dialogTitle = computed(() => props.title || '通知机器人')
@@ -210,6 +230,7 @@ const resourcePoolFormRef = ref<FormInstance>()
 const resourcePoolForm = ref({
   token: '',
   chat_id: '',
+  agent_address_threshold: 0,
   interval: 30,
   status: 1
 })
@@ -233,6 +254,8 @@ const getIntervalLabel = (interval?: number) =>
 
 const getNotifyStatusClass = (status?: number) =>
   status === 2 ? 'notify-status notify-status--disabled' : 'notify-status notify-status--enabled'
+
+const formatThreshold = (value?: number) => (value === undefined || value === null ? '-' : value)
 
 const resourcePoolRules: FormRules = {
   token: [{ required: true, message: '请输入机器人 Token', trigger: 'blur' }],
@@ -276,6 +299,7 @@ const fetchNotifyBot = async () => {
         resourcePoolForm.value = {
           token: res.data.token || '',
           chat_id: res.data.chat_id ? String(res.data.chat_id) : '',
+          agent_address_threshold: Number(res.data.agent_address_threshold) || 0,
           interval: 30,
           status: Number(res.data.status) === 2 ? 2 : 1
         }
@@ -289,6 +313,7 @@ const fetchNotifyBot = async () => {
         resourcePoolForm.value = {
           token: res.data.token || '',
           chat_id: res.data.chat_id ? String(res.data.chat_id) : '',
+          agent_address_threshold: 0,
           interval: Number(res.data.interval) || 30,
           status: 1
         }
@@ -354,6 +379,7 @@ const handleSave = async () => {
       await updateResourcePoolNotify({
         token: resourcePoolForm.value.token.trim(),
         chat_id: getChatIdNumber(),
+        agent_address_threshold: Number(resourcePoolForm.value.agent_address_threshold) || 0,
         status: Number(resourcePoolForm.value.status) === 2 ? 2 : 1
       })
       await fetchNotifyBot()
@@ -409,6 +435,7 @@ watch(
       resourcePoolForm.value = {
         token: '',
         chat_id: '',
+        agent_address_threshold: 0,
         interval: 30,
         status: 1
       }
@@ -417,24 +444,22 @@ watch(
   }
 )
 
-watch(
-  selectedMode,
-  async () => {
-    if (!props.visible || !showModeSelect.value) return
+watch(selectedMode, async () => {
+  if (!props.visible || !showModeSelect.value) return
 
-    agentBotInfo.value = null
-    resourcePoolBotInfo.value = null
-    assetBotInfo.value = null
-    tokenInput.value = ''
-    resourcePoolForm.value = {
-      token: '',
-      chat_id: '',
-      interval: 30,
-      status: 1
-    }
-    await fetchNotifyBot()
+  agentBotInfo.value = null
+  resourcePoolBotInfo.value = null
+  assetBotInfo.value = null
+  tokenInput.value = ''
+  resourcePoolForm.value = {
+    token: '',
+    chat_id: '',
+    agent_address_threshold: 0,
+    interval: 30,
+    status: 1
   }
-)
+  await fetchNotifyBot()
+})
 </script>
 
 <style scoped>
