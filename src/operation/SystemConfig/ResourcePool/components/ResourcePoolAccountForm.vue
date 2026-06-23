@@ -3,7 +3,7 @@
     <Form :schema="formSchema" @register="formRegister" :isCol="true" :gridColumns="1" />
     <template #footer>
       <div class="flex justify-end">
-        <ElButton @click="visible = false">取消</ElButton>
+        <ElButton :disabled="submitting" @click="visible = false">取消</ElButton>
         <ElButton type="primary" @click="handleSubmit" :loading="submitting">确定</ElButton>
       </div>
     </template>
@@ -203,6 +203,7 @@ const open = async (params: OpenParams) => {
 }
 
 const handleSubmit = async () => {
+  if (submitting.value) return
   const elForm = await getElFormExpose()
   const valid = await elForm?.validate().catch(() => false)
   if (!valid) return
@@ -227,8 +228,11 @@ const handleSubmit = async () => {
 
       const res = await v2CreatePool(createParams)
       if (res.code === '000000') {
+        emit('success')
         visible.value = false
         handleSuccessMessage('新增成功')
+      } else {
+        throw new Error(res.msg || '新增失败')
       }
     } else {
       const updateParams: V2UpdatePoolParams = {
@@ -241,11 +245,13 @@ const handleSubmit = async () => {
 
       const res = await v2UpdatePool(updateParams)
       if (res.code === '000000') {
+        emit('success')
         visible.value = false
         handleSuccessMessage('更新成功')
+      } else {
+        throw new Error(res.msg || '更新失败')
       }
     }
-    emit('success')
   } catch (error) {
     handleErrorMessage(error, '保存失败')
   } finally {

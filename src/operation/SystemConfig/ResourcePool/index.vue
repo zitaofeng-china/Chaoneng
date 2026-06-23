@@ -268,8 +268,8 @@ const handleNotifyConfig = () => {
   notifyBotDialogVisible.value = true
 }
 
-const reloadTable = () => {
-  return searchTableRef.value?.reload()
+const reloadTable = async () => {
+  await searchTableRef.value?.reload()
 }
 
 const handleStatusChangeAttempt = async (row: V2PoolItem, newValue: number) => {
@@ -299,8 +299,8 @@ const handleStatusChangeAttempt = async (row: V2PoolItem, newValue: number) => {
       limit: parseFloat(row.limit) || 0
     })
 
+    await reloadTable()
     handleSuccessMessage(`状态已更新为 "${actionText}"`)
-    reloadTable()
   } catch (error) {
     if (error === 'cancel') {
       ElMessage.info('操作已取消')
@@ -310,8 +310,8 @@ const handleStatusChangeAttempt = async (row: V2PoolItem, newValue: number) => {
   }
 }
 
-const handleSuccess = () => {
-  reloadTable()
+const handleSuccess = async () => {
+  await reloadTable()
 }
 
 const handleEditThreshold = async (row: V2PoolItem) => {
@@ -346,8 +346,8 @@ const handleEditThreshold = async (row: V2PoolItem) => {
       status: row.status
     })
 
+    await reloadTable()
     handleSuccessMessage('阈值更新成功')
-    reloadTable()
   } catch (error) {
     if (error !== 'cancel') {
       handleErrorMessage(error, '更新阈值失败')
