@@ -219,7 +219,7 @@
     </ElForm>
     <template #footer>
       <div class="flex justify-end">
-        <ElButton @click="handleCancel">取消</ElButton>
+        <ElButton @click="handleCancel" :disabled="submitting">取消</ElButton>
         <ElButton type="primary" :loading="submitting" @click="handleSubmit">发送</ElButton>
       </div>
     </template>
@@ -250,7 +250,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, computed, watch, onMounted, type PropType } from 'vue'
+import { ref, computed, watch, onBeforeUnmount, type PropType } from 'vue'
 import {
   ElButton,
   ElMessage,
@@ -482,6 +482,7 @@ const previewFileType = ref<'image' | 'video'>('image')
 // 消息预览相关
 const showMessagePreview = ref(false)
 const messagePreviewData = ref<MessagePreviewData>({})
+const crossFieldValidateTimer = ref<number | null>(null)
 
 // 消息内容编辑器引用
 const messageContentEditorRef = ref<InstanceType<typeof MessageContentEditor> | null>(null)
@@ -612,7 +613,22 @@ const fetchMenuList = async () => {
 }
 
 // 获取聊天列表
-const fetchGroupList = async (botId?: number | string) => {
+const clearCrossFieldValidateTimer = () => {
+  if (crossFieldValidateTimer.value !== null) {
+    window.clearTimeout(crossFieldValidateTimer.value)
+    crossFieldValidateTimer.value = null
+  }
+}
+
+const scheduleCrossFieldValidation = (field: 'chat_ids' | 'user_list') => {
+  clearCrossFieldValidateTimer()
+  crossFieldValidateTimer.value = window.setTimeout(() => {
+    formRef.value?.validateField(field, () => {})
+    crossFieldValidateTimer.value = null
+  }, 200)
+}
+
+const fetchGroupList = async (botId?: number | string, options?: { notifyEmpty?: boolean }) => {
   if (!botId) {
     groupList.value = []
     return
@@ -623,7 +639,7 @@ const fetchGroupList = async (botId?: number | string) => {
     const res = await v1GetMessageChatList(botId)
     if (res.code === '000000') {
       groupList.value = res.data || []
-      if (groupList.value.length === 0) {
+      if (options?.notifyEmpty && groupList.value.length === 0) {
         ElMessage({ type: 'info', message: '没有可选择的聊天', grouping: false, offset: 80 })
       }
     } else {
@@ -645,7 +661,7 @@ const handleGroupSelectVisibleChange = (visible: boolean) => {
     // 当下拉框打开且群组列表为空时，尝试加载群组列表
     const botId = selectedBotIdForUserList.value
     if (botId) {
-      fetchGroupList(botId)
+      fetchGroupList(botId, { notifyEmpty: true })
     }
   }
 }
@@ -657,6 +673,7 @@ const openInlineButtonDialog = () => {
 
 // 取消操作
 const handleCancel = () => {
+  if (submitting.value) return
   dialogVisible.value = false
 }
 
@@ -759,6 +776,8 @@ const handleSubmit = async () => {
 
 // 确认发送消息
 const handleConfirmSend = async (buttonLayout?: number[][]) => {
+  if (submitting.value) return
+
   submitting.value = true
 
   try {
@@ -776,12 +795,10 @@ const handleConfirmSend = async (buttonLayout?: number[][]) => {
               uploadedFiles.push(`${browserOrigin}/${res.data.filename}`)
             } else {
               ElMessage.error(`文件 ${fileItem.name} 上传失败，未返回文件名`)
-              submitting.value = false
               return
             }
           } catch (error) {
             ElMessage.error(`文件 ${fileItem.name} 上传失败: ${getErrorMessage(error, '请重试')}`)
-            submitting.value = false
             return
           }
         }
@@ -851,7 +868,6 @@ const handleConfirmSend = async (buttonLayout?: number[][]) => {
         ElMessage.error(
           props.showChatList ? 'TG用户ID列表和聊天列表至少需要填写一个' : '请输入TG用户ID列表'
         )
-        submitting.value = false
         return
       }
 
@@ -964,9 +980,7 @@ watch(
       !isMultipleBots.value
     ) {
       // 延迟验证，避免在输入过程中频繁提示
-      setTimeout(() => {
-        formRef.value?.validateField('chat_ids', () => {})
-      }, 300)
+      scheduleCrossFieldValidation('chat_ids')
     }
   }
 )
@@ -977,9 +991,7 @@ watch(
   () => {
     if (formData.value.filter_type === 'user_custom' && !isMultipleBots.value) {
       // 延迟验证，避免在选择过程中频繁提示
-      setTimeout(() => {
-        formRef.value?.validateField('user_list', () => {})
-      }, 300)
+      scheduleCrossFieldValidation('user_list')
     }
   },
   { deep: true }
@@ -1061,8 +1073,8 @@ const handleDatePickerFocus = () => {
   }
 }
 
-onMounted(() => {
-  // 初始化逻辑
+onBeforeUnmount(() => {
+  clearCrossFieldValidateTimer()
 })
 </script>
 

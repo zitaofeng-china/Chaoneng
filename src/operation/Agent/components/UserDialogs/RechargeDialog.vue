@@ -11,7 +11,7 @@
 
     <template #footer>
       <div class="flex justify-end">
-        <ElButton @click="close">取消</ElButton>
+        <ElButton @click="close" :disabled="submitting">取消</ElButton>
         <ElButton type="primary" :loading="submitting" @click="handleRecharge">确定</ElButton>
       </div>
     </template>
@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="tsx">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch, nextTick } from 'vue'
 import { ElButton, ElMessage } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
@@ -116,16 +116,15 @@ const rechargeFormSchema = reactive<FormSchema[]>([
   }
 ])
 
-const resetForm = () => {
-  setTimeout(() => {
-    formMethods
-      .setValues({
-        coin: 'TRX',
-        amount: undefined,
-        describe: ''
-      })
-      .catch((error) => handleErrorMessage(error, '初始化充值表单失败'))
-  }, 200)
+const resetForm = async () => {
+  await nextTick()
+  formMethods
+    .setValues({
+      coin: 'TRX',
+      amount: undefined,
+      describe: ''
+    })
+    .catch((error) => handleErrorMessage(error, '初始化充值表单失败'))
 }
 
 const handleRecharge = async () => {
@@ -166,6 +165,7 @@ const handleRecharge = async () => {
 }
 
 const close = () => {
+  if (submitting.value) return
   dialogVisible.value = false
 }
 

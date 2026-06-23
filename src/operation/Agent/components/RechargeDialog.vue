@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch, nextTick } from 'vue'
 import { ElButton, ElMessage } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
@@ -150,21 +150,18 @@ const rechargeFormSchema = reactive<FormSchema[]>([
 ])
 
 // 初始化表单
-const initForm = () => {
-  // 使用延迟确保表单完全注册
-  setTimeout(() => {
-    // 使用setValues方法设置初始值
-    formMethods
-      .setValues({
-        coin: 'TRX',
-        amount: '',
-        secret: '',
-        describe: ''
-      })
-      .catch((error) => {
-        handleErrorMessage(error, '初始化充值表单失败')
-      })
-  }, 200)
+const initForm = async () => {
+  await nextTick()
+  formMethods
+    .setValues({
+      coin: 'TRX',
+      amount: '',
+      secret: '',
+      describe: ''
+    })
+    .catch((error) => {
+      handleErrorMessage(error, '初始化充值表单失败')
+    })
 }
 
 // 处理充值
@@ -229,8 +226,14 @@ const close = () => {
 }
 
 // 监听弹窗变化
-const watchDialog = computed(() => props.visible)
-watchDialog.value && initForm()
+watch(
+  () => props.visible,
+  (visible) => {
+    if (visible) {
+      initForm()
+    }
+  }
+)
 </script>
 
 <style scoped>

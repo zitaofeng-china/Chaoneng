@@ -28,6 +28,7 @@ const dialogVisible = ref(false)
 const isEdit = ref(false)
 const originalData = ref<Partial<AgentFormData>>({})
 const emailValue = ref('')
+const submitting = ref(false)
 
 interface AgentFormData {
   id?: number | string
@@ -214,21 +215,22 @@ async function openDialog(mode: 'add' | 'edit' = 'add', data: Partial<AgentFormD
     gift_bandwidth: data.gift_bandwidth ?? 0
   }
 
-  setTimeout(async () => {
-    try {
-      await formMethods.setValues(formValues)
-      if (!isEdit.value) {
-        await formMethods2.setValues({ gift_bandwidth: formValues.gift_bandwidth })
-      }
-    } catch {
-      ElMessage.error('设置表单值失败，请重新打开弹窗')
+  try {
+    await formMethods.setValues(formValues)
+    if (!isEdit.value) {
+      await formMethods2.setValues({ gift_bandwidth: formValues.gift_bandwidth })
     }
-  }, 100)
+  } catch {
+    ElMessage.error('设置表单值失败，请重新打开弹窗')
+  }
 }
 
 // 提交表单
 async function onSubmit() {
+  if (submitting.value) return
+
   try {
+    submitting.value = true
     const elFormInstance = await formMethods.getElFormExpose()
     const valid1 = await validateForm(elFormInstance)
 
@@ -266,6 +268,8 @@ async function onSubmit() {
       type: isEdit.value ? 'edit' : 'add',
       error
     })
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -331,7 +335,7 @@ defineExpose({ openDialog })
     </div>
 
     <template #footer>
-      <BaseButton type="primary" @click="onSubmit">提交</BaseButton>
+      <BaseButton type="primary" :loading="submitting" @click="onSubmit">提交</BaseButton>
     </template>
   </Dialog>
 </template>

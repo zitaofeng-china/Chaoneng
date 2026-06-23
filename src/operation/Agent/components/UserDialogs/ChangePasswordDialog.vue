@@ -31,6 +31,7 @@
       <ElButton
         type="success"
         :loading="loading"
+        :disabled="loading"
         @click="handleSubmit"
         style="width: 100%; height: 42px; font-size: 16px"
       >
@@ -98,6 +99,7 @@ watch(dialogVisible, (val) => {
 })
 
 const handleClose = () => {
+  if (loading.value) return
   dialogVisible.value = false
   formRef.value?.resetFields()
 }

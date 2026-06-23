@@ -24,7 +24,7 @@
           </template>
         </template>
         <template #searchButtons>
-          <BaseButton type="primary" @click="handleExport">
+          <BaseButton type="primary" :loading="exporting" @click="handleExport">
             <Icon icon="ep:download" class="mr-5px" />
             导出
           </BaseButton>
@@ -144,6 +144,7 @@ const notifyBotDialogVisible = ref(false)
 const agentStats = ref<AgentStats | null>(null)
 const agentTotal = ref(0)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
+const exporting = ref(false)
 
 // 批量修改状态
 const isBatchEditMode = ref(false)
@@ -199,6 +200,7 @@ const EMAIL_SUFFIXES = [
 
 // 导出
 const handleExport = async () => {
+  exporting.value = true
   try {
     await exportTableData<AgentItem, AgentSearchParams, AgentQueryParams>({
       searchTableRef,
@@ -221,6 +223,8 @@ const handleExport = async () => {
     })
   } catch (error) {
     handleErrorMessage(error, '导出失败')
+  } finally {
+    exporting.value = false
   }
 }
 
@@ -331,8 +335,8 @@ const updateAgentStatus = async (id: number | string, status: number, row: Agent
 
   try {
     await updateAgentApi(buildUpdatePayload(id, row, { status }))
+    await searchTableRef.value?.reload()
     handleSuccessMessage(status === 1 ? '启用成功' : '禁用成功')
-    searchTableRef.value?.reload()
   } catch (error) {
     handleErrorMessage(error, '更新代理状态失败')
   }
@@ -344,8 +348,8 @@ const updateAgentLevel = async (id: number | string, priceId: number, row: Agent
 
   try {
     await updateAgentApi(buildUpdatePayload(id, row, { price_id: priceId }))
+    await searchTableRef.value?.reload()
     handleSuccessMessage('代理等级更新成功')
-    searchTableRef.value?.reload()
   } catch (error) {
     handleErrorMessage(error, '更新代理等级失败')
   }
@@ -357,11 +361,11 @@ const updateGiftBandwidth = async (id: number | string, giftBandwidth: boolean, 
 
   try {
     await updateAgentApi(buildUpdatePayload(id, row, { gift_bandwidth: giftBandwidth }))
+    await searchTableRef.value?.reload()
     handleSuccessMessage(giftBandwidth ? '已开启赠送带宽' : '已关闭赠送带宽')
-    searchTableRef.value?.reload()
   } catch (error) {
     handleErrorMessage(error, '更新赠送带宽状态失败')
-    searchTableRef.value?.reload()
+    await searchTableRef.value?.reload()
   }
 }
 
@@ -473,9 +477,9 @@ const handleEmailBlur = async (row: AgentItem) => {
       await updateAgentApi(
         buildUpdatePayload(row.id, row, { email: emailFormData.email || undefined })
       )
-      handleSuccessMessage('联系方式更新成功')
+      await searchTableRef.value?.reload()
       editingEmailId.value = null
-      searchTableRef.value?.reload()
+      handleSuccessMessage('联系方式更新成功')
     } catch (error) {
       handleErrorMessage(error, '更新联系方式失败')
       editingEmailId.value = null
@@ -828,9 +832,9 @@ const handleBatchSave = async () => {
       ids: selectedAgentIds.value,
       price_id: batchPriceId.value
     })
-    handleSuccessMessage(`成功修改 ${selectedAgentIds.value.length} 个代理的等级`)
     resetBatchEditState()
-    searchTableRef.value?.reload()
+    await searchTableRef.value?.reload()
+    handleSuccessMessage(`成功修改 ${selectedAgentIds.value.length} 个代理的等级`)
   } catch (error) {
     handleErrorMessage(error, '批量修改代理等级失败')
   }
@@ -866,13 +870,13 @@ const handleRecharge = (row: AgentItem) => {
   rechargeDialogVisible.value = true
 }
 
-const handleRechargeSuccess = (amount: number) => {
+const handleRechargeSuccess = async (amount: number) => {
+  await searchTableRef.value?.reload()
   ElMessage.success(`充值成功 ${amount} TRX`)
-  searchTableRef.value?.reload()
 }
 
 const handleAgentSuccess = () => {
-  searchTableRef.value?.reload()
+  return searchTableRef.value?.reload()
 }
 
 const handleAgentError = (error: { type: 'add' | 'edit'; error: unknown }) => {

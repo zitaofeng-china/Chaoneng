@@ -14,7 +14,7 @@
 
     <template #footer>
       <div class="flex justify-end">
-        <ElButton @click="closeDialog">关闭</ElButton>
+        <ElButton @click="closeDialog" :disabled="loading">关闭</ElButton>
       </div>
     </template>
   </Dialog>
@@ -95,6 +95,7 @@ const tableColumns = ref<TableColumn[]>([
 ])
 
 const closeDialog = () => {
+  if (loading.value) return
   dialogVisible.value = false
 }
 
@@ -135,27 +136,27 @@ const fetchData = async () => {
   }
 }
 
-const handleSearch = (data: BalanceRecordSearchParams) => {
+const handleSearch = async (data: BalanceRecordSearchParams) => {
   searchParams.value = data
   pagination.currentPage = 1
-  fetchData()
+  await fetchData()
 }
 
-const handleReset = (data: BalanceRecordSearchParams = {}) => {
+const handleReset = async (data: BalanceRecordSearchParams = {}) => {
   searchParams.value = data
   pagination.currentPage = 1
-  fetchData()
+  await fetchData()
 }
 
-const handleCurrentPageChange = (page: number) => {
+const handleCurrentPageChange = async (page: number) => {
   pagination.currentPage = page
-  fetchData()
+  await fetchData()
 }
 
-const handlePageSizeChange = (size: number) => {
+const handlePageSizeChange = async (size: number) => {
   pagination.pageSize = size
   pagination.currentPage = 1
-  fetchData()
+  await fetchData()
 }
 
 watch(

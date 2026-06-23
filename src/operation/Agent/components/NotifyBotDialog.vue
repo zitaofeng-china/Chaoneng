@@ -107,7 +107,9 @@
 
     <template #footer>
       <div class="flex justify-end">
-        <ElButton @click="handleClose">{{ isConfigMode ? '取消' : '关闭' }}</ElButton>
+        <ElButton @click="handleClose" :disabled="submitting">
+          {{ isConfigMode ? '取消' : '关闭' }}
+        </ElButton>
         <ElButton type="primary" :loading="submitting" @click="handleSave"> 保存 </ElButton>
       </div>
     </template>
@@ -361,6 +363,7 @@ const handleSave = async () => {
 }
 
 const handleClose = () => {
+  if (submitting.value) return
   dialogVisible.value = false
 }
 

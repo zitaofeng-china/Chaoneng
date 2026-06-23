@@ -16,7 +16,7 @@
         }"
       >
         <template #searchButtons>
-          <BaseButton type="primary" @click="handleExport">
+          <BaseButton type="primary" :loading="exporting" @click="handleExport">
             <Icon icon="ep:download" class="mr-5px" />
             导出
           </BaseButton>
@@ -142,6 +142,7 @@ const botOptions = ref<BotOption[]>(withAllOption<string>([]))
 const botMap = ref<Map<number, MessageBotItem>>(new Map())
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
+const exporting = ref(false)
 
 const buildUserListParams = (params: UserSearchParams = {}, pageSize?: number): UserListParams => {
   const apiParams: UserListParams = {
@@ -187,6 +188,28 @@ const getRouteSearchParams = (): UserSearchParams => {
   }
 
   return params
+}
+
+const isSameSearchParamValue = (left: unknown, right: unknown) => {
+  if (!hasSearchValue(left) && !hasSearchValue(right)) return true
+  return String(left ?? '') === String(right ?? '')
+}
+
+const syncRouteSearchParams = async () => {
+  if (!searchTableRef.value) return
+
+  const params = getRouteSearchParams()
+  if (!Object.keys(params).length) return
+
+  const currentParams = searchTableRef.value.searchParams.value || {}
+  const changed = Object.entries(params).some(([key, value]) => {
+    return !isSameSearchParamValue(currentParams[key], value)
+  })
+
+  if (!changed) return
+
+  searchTableRef.value.setSearchParams(params)
+  await searchTableRef.value.reload()
 }
 
 // 获取机器人列表
@@ -479,7 +502,7 @@ const openRechargeDialog = (row: UserListRow) => {
 }
 
 const handleRechargeSuccess = () => {
-  searchTableRef.value?.reload()
+  return searchTableRef.value?.reload()
 }
 
 // 余额记录
@@ -499,7 +522,7 @@ const handleChangePassword = (row: UserListRow) => {
 }
 
 const handlePasswordChangeSuccess = () => {
-  searchTableRef.value?.reload()
+  return searchTableRef.value?.reload()
 }
 
 // 消息发送成功
@@ -509,6 +532,7 @@ const handleMessageSent = () => {
 
 // 导出
 const handleExport = async () => {
+  exporting.value = true
   try {
     await exportTableData<UserListItem, UserSearchParams, UserListParams>({
       searchTableRef,
@@ -537,6 +561,8 @@ const handleExport = async () => {
     })
   } catch (error) {
     handleErrorMessage(error, '用户列表导出失败')
+  } finally {
+    exporting.value = false
   }
 }
 
@@ -546,14 +572,10 @@ onMounted(async () => {
 
 // 处理 keep-alive 缓存恢复
 onActivated(async () => {
-  await fetchBotList()
-
-  if (!searchTableRef.value) return
-  const params = getRouteSearchParams()
-  if (Object.keys(params).length > 0) {
-    searchTableRef.value.setSearchParams(params)
-    searchTableRef.value.reload()
+  if (!botOptions.value.length || botOptions.value.length === 1) {
+    await fetchBotList()
   }
+  await syncRouteSearchParams()
 })
 </script>
 

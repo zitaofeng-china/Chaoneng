@@ -110,8 +110,8 @@ const getAgentBotList = async (
 const updateBotStatus = async (id: number | string, status: number) => {
   try {
     await updateAgentBotApi({ id: Number(id), status })
+    await searchTableRef.value?.reload()
     handleSuccessMessage(status === 1 ? '启用成功' : '禁用成功')
-    searchTableRef.value?.reload()
   } catch (error) {
     handleErrorMessage(error, '更新机器人状态失败')
   }
