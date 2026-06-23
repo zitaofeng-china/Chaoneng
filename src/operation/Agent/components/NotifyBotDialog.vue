@@ -52,7 +52,7 @@
         <ElDescriptionsItem v-if="isResourcePoolMode || isAssetMode" label="接收消息对象ID">
           {{ resourcePoolForm.chat_id || '-' }}
         </ElDescriptionsItem>
-        <ElDescriptionsItem v-if="isResourcePoolMode" label="代理地址阈值">
+        <ElDescriptionsItem v-if="isResourcePoolMode" label="代理充值地址阈值">
           {{ formatThreshold(resourcePoolForm.agent_address_threshold) }}
         </ElDescriptionsItem>
         <ElDescriptionsItem v-if="isResourcePoolMode" label="通知状态">
@@ -83,20 +83,9 @@
                 clearable
               />
             </ElFormItem>
-            <ElFormItem label="接收消息对象ID" prop="chat_id" required>
-              <ElInput
-                v-model="resourcePoolForm.chat_id"
-                clearable
-                inputmode="numeric"
-                pattern="-?[0-9]*"
-                placeholder="请输入接收消息对象ID"
-                style="width: 100%"
-                @input="handleChatIdInput"
-              />
-            </ElFormItem>
             <ElFormItem
               v-if="isResourcePoolMode"
-              label="代理地址阈值"
+              label="代理充值地址阈值"
               prop="agent_address_threshold"
             >
               <ElInputNumber
@@ -106,6 +95,17 @@
                 :step="1"
                 controls-position="right"
                 style="width: 100%"
+              />
+            </ElFormItem>
+            <ElFormItem label="接收消息对象ID" prop="chat_id" required>
+              <ElInput
+                v-model="resourcePoolForm.chat_id"
+                clearable
+                inputmode="numeric"
+                pattern="-?[0-9]*"
+                placeholder="请输入接收消息对象ID"
+                style="width: 100%"
+                @input="handleChatIdInput"
               />
             </ElFormItem>
             <ElFormItem v-if="isResourcePoolMode" label="通知状态" prop="status">
@@ -223,7 +223,7 @@ const DEFAULT_RESOURCE_POOL_FORM: ResourcePoolFormState = {
   status: 1
 }
 const notifyModeTabs: Array<{ label: string; name: NotifyBotMode }> = [
-  { label: '资源池不足', name: 'resourcePool' },
+  { label: '资源池播报', name: 'resourcePool' },
   { label: '现金池播报', name: 'asset' },
   { label: '代理订阅', name: 'agent' }
 ]
