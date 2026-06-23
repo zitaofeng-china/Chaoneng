@@ -60,6 +60,7 @@ export interface CreatePoolParams {
  */
 export interface UpdatePoolParams {
   id: number
+  bucket_threshold?: number
   limit?: number
   status?: number
 }

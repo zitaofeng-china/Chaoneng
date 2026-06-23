@@ -61,6 +61,7 @@ import {
   hasSearchValue,
   type TableSlot
 } from '@/utils/tableHelpers'
+
 const formRef = ref<InstanceType<typeof ResourcePoolAccountForm>>()
 const searchTableRef = ref<InstanceType<typeof SearchTable>>()
 const notifyBotDialogVisible = ref(false)
@@ -72,12 +73,43 @@ type ResourcePoolSearchParams = Omit<V2PoolListParams, 'kind' | 'status'> & {
   status?: number | string
 }
 type ResourcePoolTableSlot = TableSlot<V2PoolItem>
+type EditableThresholdField = 'limit' | 'bucket_threshold'
+
+const THRESHOLD_EDIT_CONFIG: Record<
+  EditableThresholdField,
+  {
+    title: string
+    prompt: string
+    unchangedMessage: string
+    successMessage: string
+    errorMessage: string
+  }
+> = {
+  limit: {
+    title: '编辑阈值',
+    prompt: '请输入新的阈值 (输入0或留空表示不设阈值)',
+    unchangedMessage: '阈值未改变',
+    successMessage: '阈值更新成功',
+    errorMessage: '更新阈值失败'
+  },
+  bucket_threshold: {
+    title: '编辑桶阈值',
+    prompt: '请输入新的桶阈值 (输入0或留空表示不设阈值)',
+    unchangedMessage: '桶阈值未改变',
+    successMessage: '桶阈值更新成功',
+    errorMessage: '更新桶阈值失败'
+  }
+}
 
 const formatPoolAmount = (value: V2PoolItem['amount']) => {
   if (value === undefined || value === null || value === '') return '-'
 
   const numericValue = Number(value)
   return Number.isFinite(numericValue) ? Math.floor(numericValue) : value
+}
+
+const formatThresholdValue = (value?: string | number | null) => {
+  return value === undefined || value === null || value === '' ? 0 : value
 }
 
 const columns = ref<TableColumn[]>([
@@ -107,12 +139,14 @@ const columns = ref<TableColumn[]>([
     minWidth: '180px',
     formatter: (row: V2PoolItem) => {
       const amount = formatPoolAmount(row.amount)
-      const limit =
-        row.limit === undefined || row.limit === null || row.limit === '' ? 0 : row.limit
+      const limit = formatThresholdValue(row.limit)
       const displayValue = `${amount} / ${limit}`
 
       return (
-        <span onDblclick={() => handleEditThreshold(row)} style={{ cursor: 'pointer' }}>
+        <span
+          onDblclick={() => handleEditThresholdValue(row, 'limit')}
+          style={{ cursor: 'pointer' }}
+        >
           {displayValue}
         </span>
       )
@@ -124,14 +158,18 @@ const columns = ref<TableColumn[]>([
     minWidth: '180px',
     formatter: (row: V2PoolItem) => {
       const bucket = formatPoolAmount(row.bucket)
-      const threshold =
-        row.bucket_threshold === undefined ||
-        row.bucket_threshold === null ||
-        row.bucket_threshold === ''
-          ? 0
-          : row.bucket_threshold
+      const threshold = formatThresholdValue(row.bucket_threshold)
 
-      return `${bucket} / ${threshold}`
+      const displayValue = `${bucket} / ${threshold}`
+
+      return (
+        <span
+          onDblclick={() => handleEditThresholdValue(row, 'bucket_threshold')}
+          style={{ cursor: 'pointer' }}
+        >
+          {displayValue}
+        </span>
+      )
     }
   },
   {
@@ -331,20 +369,18 @@ const handleSuccess = async () => {
   await reloadTable()
 }
 
-const handleEditThreshold = async (row: V2PoolItem) => {
+const handleEditThresholdValue = async (row: V2PoolItem, field: EditableThresholdField) => {
+  const config = THRESHOLD_EDIT_CONFIG[field]
+
   try {
-    const currentThreshold = Number(row.limit) || 0
-    const { value } = await ElMessageBox.prompt(
-      '请输入新的阈值 (输入0或留空表示不设阈值)',
-      '编辑阈值',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        inputValue: currentThreshold === 0 ? '' : String(currentThreshold),
-        inputPattern: /^\d*$/,
-        inputErrorMessage: '请输入有效的非负整数'
-      }
-    )
+    const currentThreshold = Number(row[field]) || 0
+    const { value } = await ElMessageBox.prompt(config.prompt, config.title, {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputValue: currentThreshold === 0 ? '' : String(currentThreshold),
+      inputPattern: /^\d*$/,
+      inputErrorMessage: '请输入有效的非负整数'
+    })
 
     if (value === null) {
       return
@@ -353,21 +389,21 @@ const handleEditThreshold = async (row: V2PoolItem) => {
     const newThreshold = value === '' ? 0 : parseInt(value, 10)
 
     if (newThreshold === currentThreshold) {
-      ElMessage.info('阈值未改变')
+      ElMessage.info(config.unchangedMessage)
       return
     }
 
     await v2UpdatePool({
       id: row.id,
-      limit: newThreshold,
+      [field]: newThreshold,
       status: row.status
     })
 
     await reloadTable()
-    handleSuccessMessage('阈值更新成功')
+    handleSuccessMessage(config.successMessage)
   } catch (error) {
     if (error !== 'cancel') {
-      handleErrorMessage(error, '更新阈值失败')
+      handleErrorMessage(error, config.errorMessage)
     }
   }
 }
