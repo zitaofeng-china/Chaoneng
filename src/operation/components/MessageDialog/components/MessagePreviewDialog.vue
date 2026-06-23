@@ -85,7 +85,7 @@
       </div>
 
       <div
-        v-if="previewData.buttons && previewData.buttons.length > 0"
+        v-if="!readonly && previewData.buttons && previewData.buttons.length > 0"
         class="button-layout-section"
       >
         <div class="section-label">内联按钮布局调整：</div>
@@ -146,7 +146,10 @@
     <template #footer>
       <div class="dialog-footer">
         <ElButton @click="handleCancel">取消</ElButton>
-        <ElButton type="primary" :loading="submitting" @click="handleConfirm">确认发送</ElButton>
+        <ElButton v-if="readonly" type="primary" @click="visible = false">关闭</ElButton>
+        <ElButton v-else type="primary" :loading="submitting" @click="handleConfirm">
+          确认发送
+        </ElButton>
       </div>
     </template>
   </Dialog>
@@ -184,10 +187,12 @@ const props = withDefaults(
     modelValue: boolean
     previewData?: MessagePreviewData
     submitting?: boolean
+    readonly?: boolean
   }>(),
   {
     previewData: () => ({}),
-    submitting: false
+    submitting: false,
+    readonly: false
   }
 )
 

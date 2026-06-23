@@ -24,24 +24,20 @@
       ref="replyFormDialogRef"
     />
 
-    <!-- New Dialog for viewing rich text content -->
-    <Dialog
+    <MessagePreviewDialog
       v-model="viewContentDialogVisible"
-      title="查看回复内容"
-      width="50%"
-      :close-on-click-modal="false"
-    >
-      <div v-html="currentContentToView" style="white-space: pre-line"></div>
-      <template #footer>
-        <ElButton @click="viewContentDialogVisible = false">关闭</ElButton>
-      </template>
-    </Dialog>
+      :preview-data="currentPreviewData"
+      :submitting="false"
+      :readonly="true"
+      @confirm="viewContentDialogVisible = false"
+      @cancel="viewContentDialogVisible = false"
+    />
   </div>
 </template>
 
 <script setup lang="tsx">
-import { ref, onMounted, computed, nextTick } from 'vue'
-import { ElButton, ElLink, ElSwitch, ElMessage } from 'element-plus'
+import { ref, onMounted, computed } from 'vue'
+import { ElLink, ElSwitch } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
@@ -65,8 +61,11 @@ import type {
 } from '@/api/management/BotManage/ReplyList/types'
 import { formatToDateTime } from '@/utils/dateUtil'
 import ReplyFormDialog from './components/ReplyFormDialog.vue'
-import { Dialog } from '@/components/Dialog'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import MessagePreviewDialog from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
+import type { MessagePreviewData } from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
+import { v1GetInnerButtonList, type InnerButtonItem } from '@/api/opertion/common/menuList'
+import { getMessageFileType } from '@/operation/components/MessageDialog/utils'
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const replyFormDialogRef = ref<InstanceType<typeof ReplyFormDialog> | null>(null)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
@@ -79,6 +78,7 @@ const currentRowData = ref<ReplyItem | null>(null)
 
 const botOptionsForDialog = ref<BotOption[]>([])
 const botInfoMap = ref<Map<number, { user_name: string; first_name: string }>>(new Map())
+const innerButtonMap = ref<Map<number, InnerButtonItem>>(new Map())
 
 const fetchBotOptionsForPage = async () => {
   try {
@@ -104,8 +104,22 @@ const fetchBotOptionsForPage = async () => {
   }
 }
 
+const fetchInnerButtonOptions = async () => {
+  try {
+    const res = await v1GetInnerButtonList()
+    innerButtonMap.value.clear()
+    if (res.code === '000000' && res.data) {
+      ;(res.data || []).forEach((button) => {
+        innerButtonMap.value.set(button.id, button)
+      })
+    }
+  } catch (error) {
+    innerButtonMap.value.clear()
+  }
+}
+
 onMounted(async () => {
-  await fetchBotOptionsForPage()
+  await Promise.all([fetchBotOptionsForPage(), fetchInnerButtonOptions()])
 })
 
 const columns: TableColumn[] = [
@@ -252,12 +266,14 @@ const fetchReplyList = async (params: any) => {
           bot_name: fullName,
           key_name: item.key_name,
           content: item.content,
+          files: item.files || [],
           status: item.status,
           created_at: item.created_at,
           updated_at: item.updated_at,
           bot_id: String(item.bot_id),
           keyword: item.key_name,
-          bot_username: userName
+          bot_username: userName,
+          inline_menu_ids: item.inline_menu_ids || []
         }
       })
 
@@ -319,6 +335,9 @@ const handleDialogSubmitted = async (data: ReplySaveParams) => {
       const updateParams: UpdateReplyParamsV1 = {
         id: data.id,
         content: data.content || '',
+        files: data.files || [],
+        inline_menu_ids: data.inline_menu_ids || [],
+        key_name: data.key_name,
         status: data.status
       }
       await v1UpdateReply(updateParams)
@@ -326,6 +345,8 @@ const handleDialogSubmitted = async (data: ReplySaveParams) => {
       const createParams: CreateReplyParamsV1 = {
         bot_id: data.tg_bot_id,
         content: data.content || '',
+        files: data.files || [],
+        inline_menu_ids: data.inline_menu_ids || [],
         key_name: data.key_name,
         status: data.status
       }
@@ -365,9 +386,28 @@ const handleDataLoaded = ({ data, total, success }) => {
 }
 
 const viewContentDialogVisible = ref(false)
-const currentContentToView = ref('')
+const currentPreviewData = ref<MessagePreviewData>({})
 const handleViewContent = (row: ReplyItem) => {
-  currentContentToView.value = row.content || '<i>没有内容</i>'
+  currentPreviewData.value = {
+    botName: row.bot_username || row.bot_name,
+    content: row.content || '',
+    files: (row.files || []).map((fileUrl) => ({
+      type: getMessageFileType({ name: fileUrl } as File),
+      url: fileUrl,
+      name: fileUrl.split('/').pop() || fileUrl
+    })),
+    buttons: (row.inline_menu_ids || [])
+      .map((id) => {
+        const button = innerButtonMap.value.get(Number(id))
+        return button
+          ? {
+              id: button.id,
+              text: button.text
+            }
+          : null
+      })
+      .filter((item) => item !== null) as NonNullable<MessagePreviewData['buttons']>
+  }
   viewContentDialogVisible.value = true
 }
 </script>
