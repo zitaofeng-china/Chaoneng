@@ -599,9 +599,9 @@ const handleImport = async () => {
     }
 
     await batchCreateAssetAccount(accounts)
-    handleSuccessMessage(`成功导入 ${accounts.length} 条账户`)
     importFile.value = null
-    loadData()
+    await loadData()
+    handleSuccessMessage(`成功导入 ${accounts.length} 条账户`)
   } catch (error) {
     handleErrorMessage(error, '导入失败')
   }
@@ -639,18 +639,12 @@ const handleManualAdd = async () => {
       address: addressInput.value,
       name: nameInput.value
     })
-    handleSuccessMessage(`已添加账户：${nameInput.value}`)
-
-    // 添加到本地列表
-    const key = nameInput.value.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')
-    accountColumns.value.push({
-      key,
-      name: nameInput.value
-    })
+    const addedName = nameInput.value
 
     addressInput.value = ''
     nameInput.value = ''
-    loadData()
+    await loadData()
+    handleSuccessMessage(`已添加账户：${addedName}`)
   } catch (error) {
     handleErrorMessage(error, '添加账户失败')
   }
