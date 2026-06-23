@@ -220,15 +220,14 @@ export default defineComponent({
     const elTableRef = ref<ComponentRef<typeof ElTable>>()
     const tableWrapperRef = ref<HTMLElement | null>(null)
 
+    if (props.wheelScroll) {
+      useWheelHorizontalScroll(tableWrapperRef)
+    }
+
     // 注册
     onMounted(() => {
       const tableRef = unref(elTableRef)
       emit('register', tableRef?.$parent, elTableRef)
-
-      // 在组件挂载后启用滚轮横向滚动
-      if (props.wheelScroll && tableWrapperRef.value) {
-        useWheelHorizontalScroll(tableWrapperRef)
-      }
     })
 
     const pageSizeRef = ref(props.pageSize)
@@ -355,53 +354,6 @@ export default defineComponent({
       return bindValue
     })
 
-    const renderTreeTableColumn = (columnsChildren: TableColumn[]) => {
-      const { align, headerAlign, showOverflowTooltip, imagePreview, videoPreview } =
-        unref(getProps)
-      return columnsChildren.map((v) => {
-        if (v.hidden) return null
-        const props = { ...v } as any
-        if (props.children) delete props.children
-
-        const children = v.children
-
-        const slots = {
-          default: (...args: any[]) => {
-            const data = args[0]
-            let isPreview = false
-            isPreview =
-              imagePreview.some((item) => (item as string) === v.field) ||
-              videoPreview.some((item) => (item as string) === v.field)
-
-            return children && children.length
-              ? renderTreeTableColumn(children)
-              : props?.slots?.default
-                ? props.slots.default(...args)
-                : v?.formatter
-                  ? v?.formatter?.(data.row, data.column, get(data.row, v.field), data.$index)
-                  : isPreview
-                    ? renderPreview(get(data.row, v.field), v.field)
-                    : get(data.row, v.field)
-          }
-        }
-        if (props?.slots?.header) {
-          slots['header'] = (...args: any[]) => props.slots.header(...args)
-        }
-
-        return (
-          <ElTableColumn
-            showOverflowTooltip={showOverflowTooltip}
-            align={align}
-            headerAlign={headerAlign}
-            {...props}
-            prop={v.field}
-          >
-            {slots}
-          </ElTableColumn>
-        )
-      })
-    }
-
     const renderPreview = (url: string, field: string) => {
       const { imagePreview, videoPreview } = unref(getProps)
       return (
@@ -432,7 +384,72 @@ export default defineComponent({
       )
     }
 
-    const renderTableColumn = (columnsChildren?: TableColumn[]) => {
+    const isPreviewField = (field: string) => {
+      const { imagePreview, videoPreview } = unref(getProps)
+      return imagePreview.includes(field) || videoPreview.includes(field)
+    }
+
+    const renderCellContent = (column: TableColumn, args: any[], children?: TableColumn[]) => {
+      const data = args[0]
+
+      if (children?.length) {
+        return renderTableColumn(children, true)
+      }
+
+      if (column?.slots?.default) {
+        return column.slots.default(...args)
+      }
+
+      const value = get(data.row, column.field)
+
+      if (column?.formatter) {
+        return column.formatter(data.row, data.column, value, data.$index)
+      }
+
+      if (isPreviewField(column.field)) {
+        return renderPreview(value, column.field)
+      }
+
+      return value
+    }
+
+    const getColumnSlots = (column: TableColumn, children?: TableColumn[]) => {
+      const columnSlots = {
+        default: (...args: any[]) => renderCellContent(column, args, children)
+      }
+
+      if (column?.slots?.header) {
+        columnSlots['header'] = (...args: any[]) => column.slots!.header!(...args)
+      }
+
+      return columnSlots
+    }
+
+    const getCommonColumnProps = (
+      column: TableColumn,
+      tableShowOverflowTooltip: boolean,
+      isChildColumn = false
+    ) => {
+      const { align, headerAlign } = unref(getProps)
+      const props = { ...column } as any
+      if (props.children) delete props.children
+
+      const finalShowOverflowTooltip = isChildColumn
+        ? tableShowOverflowTooltip
+        : props?.slots?.header
+          ? false
+          : (props.showOverflowTooltip ?? tableShowOverflowTooltip)
+
+      return {
+        ...props,
+        prop: column.field,
+        align: column.align || align,
+        headerAlign: column.headerAlign || headerAlign,
+        showOverflowTooltip: finalShowOverflowTooltip
+      }
+    }
+
+    const renderTableColumn = (columnsChildren?: TableColumn[], isChildColumn = false) => {
       const {
         columns,
         reserveIndex,
@@ -441,9 +458,7 @@ export default defineComponent({
         align,
         headerAlign,
         showOverflowTooltip: tableShowOverflowTooltip,
-        reserveSelection,
-        imagePreview,
-        videoPreview
+        reserveSelection
       } = unref(getProps)
 
       return (columnsChildren || columns).map((v) => {
@@ -500,48 +515,11 @@ export default defineComponent({
             </ElTableColumn>
           )
         } else {
-          const props = { ...v } as any
-          if (props.children) delete props.children
-
           const children = v.children
 
-          const slots = {
-            default: (...args: any[]) => {
-              const data = args[0]
-
-              let isPreview = false
-              isPreview =
-                imagePreview.some((item) => (item as string) === v.field) ||
-                videoPreview.some((item) => (item as string) === v.field)
-
-              return children && children.length
-                ? renderTreeTableColumn(children)
-                : props?.slots?.default
-                  ? props.slots.default(...args)
-                  : v?.formatter
-                    ? v?.formatter?.(data.row, data.column, get(data.row, v.field), data.$index)
-                    : isPreview
-                      ? renderPreview(get(data.row, v.field), v.field)
-                      : get(data.row, v.field)
-            }
-          }
-          if (props?.slots?.header) {
-            slots['header'] = (...args: any[]) => props.slots.header(...args)
-          }
-
-          const finalShowOverflowTooltip = props?.slots?.header
-            ? false
-            : (props.showOverflowTooltip ?? tableShowOverflowTooltip)
-
           return (
-            <ElTableColumn
-              showOverflowTooltip={finalShowOverflowTooltip}
-              align={v.align || align}
-              headerAlign={v.headerAlign || headerAlign}
-              {...props}
-              prop={v.field}
-            >
-              {slots}
+            <ElTableColumn {...getCommonColumnProps(v, tableShowOverflowTooltip, isChildColumn)}>
+              {getColumnSlots(v, children)}
             </ElTableColumn>
           )
         }

@@ -232,9 +232,7 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
       await tableMethods.setProps({ columns: setupActionColumn() })
       initialized.value = true
       if (config.immediate !== false) {
-        setTimeout(() => {
-          loadData()
-        }, 0)
+        await loadData()
       }
     } catch {
       ElMessage.error('表格初始化失败')

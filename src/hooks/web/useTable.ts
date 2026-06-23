@@ -27,6 +27,21 @@ export const useTable = (config: UseTableConfig) => {
   const dataList = ref<any[]>([])
   let skipNextPageChangeRequest = false
 
+  const requestData = async () => {
+    loading.value = true
+    try {
+      const res = await config?.fetchDataApi()
+      if (res) {
+        dataList.value = res.list
+        total.value = res.total || 0
+      }
+    } catch {
+      ElMessage.error('数据加载失败')
+    } finally {
+      loading.value = false
+    }
+  }
+
   watch(
     () => currentPage.value,
     () => {
@@ -34,7 +49,7 @@ export const useTable = (config: UseTableConfig) => {
         skipNextPageChangeRequest = false
         return
       }
-      methods.getList()
+      methods.reload()
     }
   )
 
@@ -45,13 +60,13 @@ export const useTable = (config: UseTableConfig) => {
         skipNextPageChangeRequest = true
         currentPage.value = 1
       }
-      methods.getList()
+      methods.reload()
     }
   )
 
   onMounted(() => {
     if (immediate) {
-      methods.getList()
+      methods.reload()
     }
   })
 
@@ -77,18 +92,7 @@ export const useTable = (config: UseTableConfig) => {
      * 获取表单数据
      */
     getList: async () => {
-      loading.value = true
-      try {
-        const res = await config?.fetchDataApi()
-        if (res) {
-          dataList.value = res.list
-          total.value = res.total || 0
-        }
-      } catch {
-        ElMessage.error('数据加载失败')
-      } finally {
-        loading.value = false
-      }
+      await requestData()
     },
 
     /**
@@ -138,11 +142,11 @@ export const useTable = (config: UseTableConfig) => {
     },
 
     refresh: () => {
-      return methods.getList()
+      return methods.reload()
     },
 
     reload: () => {
-      return methods.getList()
+      return requestData()
     },
 
     // 删除数据
@@ -151,11 +155,17 @@ export const useTable = (config: UseTableConfig) => {
       if (!fetchDelApi) {
         return false
       }
-      ElMessageBox.confirm('是否删除所选中数据？', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(async () => {
+      try {
+        await ElMessageBox.confirm('是否删除所选中数据？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
+      } catch {
+        return false
+      }
+
+      try {
         const res = await fetchDelApi()
         if (res) {
           ElMessage.success('删除成功')
@@ -169,9 +179,14 @@ export const useTable = (config: UseTableConfig) => {
               : unref(currentPage)
 
           currentPage.value = current
-          return methods.reload()
+          await methods.reload()
+          return true
         }
-      })
+        return false
+      } catch {
+        ElMessage.error('删除失败')
+        return false
+      }
     }
   }
 

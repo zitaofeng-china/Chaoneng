@@ -152,6 +152,20 @@ const emit = defineEmits([
   'selection-change'
 ])
 
+const createExposePayload = () => ({
+  setSearchParams,
+  reload: tableMethods.reload,
+  search: handleSearch,
+  reset: handleReset,
+  delete: doDelete,
+  getTableData,
+  currentRow,
+  tableMethods,
+  searchMethods,
+  tableState,
+  searchParams
+})
+
 // 使用hook
 const {
   searchRegister,
@@ -255,39 +269,16 @@ watch(
 )
 
 onMounted(() => {
-  // 触发ready事件，暴露核心方法
-  emit('ready', {
-    setSearchParams,
-    reload: tableMethods.reload,
-    search: handleSearch,
-    reset: handleReset,
-    delete: doDelete,
-    getTableData,
-    currentRow,
-    tableMethods,
-    searchMethods,
-    tableState,
-    searchParams
-  })
+  emit('ready', createExposePayload())
 })
 
 // 暴露方法
 defineExpose({
-  reload: tableMethods.reload,
-  reset: handleReset,
-  search: handleSearch,
-  delete: doDelete,
-  currentRow,
-  getTableData,
-  getElTableExpose: tableMethods.getElTableExpose,
-  tableMethods,
-  searchMethods,
-  tableState,
-  searchParams,
-  setSearchParams
+  ...createExposePayload(),
+  getElTableExpose: tableMethods.getElTableExpose
 })
 
-const handleSortChange = (data: { column: any; prop: string; order: string }) => {
+const handleSortChange = async (data: { column: any; prop: string; order: string }) => {
   // 将排序信息保存到搜索参数中
   // Element Plus 的 order 值：'ascending' | 'descending' | null
 
@@ -301,8 +292,7 @@ const handleSortChange = (data: { column: any; prop: string; order: string }) =>
     delete searchParams.value.order
   }
 
-  // 重新加载数据
-  tableMethods.reload()
+  await tableMethods.reload()
 }
 
 // 处理表格选择变化
