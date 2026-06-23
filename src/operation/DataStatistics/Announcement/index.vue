@@ -8,6 +8,7 @@
             v-model="dateRange"
             placeholder="近7天"
             style="width: 120px"
+            :disabled="isPageBusy"
             @change="handleDateRangeChange"
           >
             <el-option label="近7天" value="7" />
@@ -20,27 +21,57 @@
             type="date"
             placeholder="选择开始日期"
             style="width: 160px"
+            :disabled="isPageBusy"
             :disabled-date="disableFutureDate"
             @change="handleCustomDateChange"
           />
           <el-upload
             :auto-upload="false"
             :show-file-list="false"
+            :disabled="isImporting"
             accept=".xlsx,.xls,.csv,.txt"
             @change="handleFileChange"
           >
-            <el-button>选择文件</el-button>
+            <el-button :disabled="isImporting">选择文件</el-button>
           </el-upload>
-          <el-button type="primary" @click="handleImport">导入</el-button>
-          <el-button type="success" @click="handleDownloadTemplate">下载模板</el-button>
-          <el-button @click="handleManualAdd">手动添加</el-button>
-          <el-input v-model="addressInput" placeholder="请输入地址（TRON）" style="width: 200px" />
+          <el-button
+            type="primary"
+            :loading="isImporting"
+            :disabled="isPageLoading"
+            @click="handleImport"
+            >导入</el-button
+          >
+          <el-button type="success" :disabled="isPageBusy" @click="handleDownloadTemplate"
+            >下载模板</el-button
+          >
+          <el-button :loading="isAdding" :disabled="isPageLoading" @click="handleManualAdd"
+            >手动添加</el-button
+          >
+          <el-input
+            v-model="addressInput"
+            placeholder="请输入地址（TRON）"
+            style="width: 200px"
+            :disabled="isPageBusy"
+          />
           <span class="toolbar-label">名称</span>
-          <el-input v-model="nameInput" placeholder="请输入名称" style="width: 140px" />
+          <el-input
+            v-model="nameInput"
+            placeholder="请输入名称"
+            style="width: 140px"
+            :disabled="isPageBusy"
+          />
         </div>
         <div class="toolbar-right">
-          <el-button type="primary" @click="handleExport">导出数据</el-button>
-          <el-button type="primary" @click="handlePushReport">推送余额播报到机器人</el-button>
+          <el-button
+            type="primary"
+            :loading="isExporting"
+            :disabled="isPageLoading"
+            @click="handleExport"
+            >导出数据</el-button
+          >
+          <el-button type="primary" :disabled="isPageBusy" @click="handlePushReport"
+            >推送余额播报到机器人</el-button
+          >
         </div>
       </div>
 
@@ -72,6 +103,7 @@
         <h3 class="section-title">每日资金明细报表</h3>
         <el-table
           :data="dailyReport"
+          v-loading="isPageLoading"
           border
           style="width: 100%"
           max-height="380"
@@ -147,7 +179,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed, shallowRef, type ShallowRef } from 'vue'
 import {
-  ElMessage,
   ElTable,
   ElTableColumn,
   ElCard,
@@ -160,12 +191,15 @@ import type { UploadFile } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Echart } from '@/components/Echart'
 import NotifyBotDialog from '@/operation/Agent/components/NotifyBotDialog.vue'
-import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import {
+  handleErrorMessage,
+  handleSuccessMessage,
+  handleWarningMessage
+} from '@/utils/messageHelper'
 import {
   createAssetAccount,
   getAssetReport,
   batchCreateAssetAccount,
-  type AssetBalanceData,
   type AccountBalanceSnapshot
 } from '@/api/opertion/DataStatistics/Announcement'
 import { simpleExportToExcel } from '@/utils/excel'
@@ -222,6 +256,13 @@ const disableFutureDate = (time: Date) => {
 }
 const nameInput = ref('')
 const notifyBotDialogVisible = ref(false)
+const isPageLoading = ref(false)
+const isImporting = ref(false)
+const isAdding = ref(false)
+const isExporting = ref(false)
+const pendingReload = ref(false)
+
+let loadRequestId = 0
 
 // 动态账户列配置
 const accountColumns = ref<AccountColumn[]>([])
@@ -236,6 +277,9 @@ const priceTrx = ref(0)
 
 // 每日报表数据
 const dailyReport = ref<DailyReportRow[]>([])
+const isPageBusy = computed(
+  () => isPageLoading.value || isImporting.value || isAdding.value || isExporting.value
+)
 
 const avgChangeLabel = computed(() => {
   if (dateRange.value === 'custom') {
@@ -406,6 +450,14 @@ const formatDateStr = (date: Date) => {
 
 // 加载数据
 const loadData = async () => {
+  if (isPageLoading.value) {
+    pendingReload.value = true
+    return
+  }
+
+  const currentRequestId = ++loadRequestId
+  isPageLoading.value = true
+
   try {
     Object.assign(statsData, DEFAULT_STATS)
 
@@ -557,6 +609,15 @@ const loadData = async () => {
     }
   } catch (error) {
     handleErrorMessage(error, '获取数据失败')
+  } finally {
+    if (currentRequestId === loadRequestId) {
+      isPageLoading.value = false
+    }
+
+    if (pendingReload.value) {
+      pendingReload.value = false
+      void loadData()
+    }
   }
 }
 
@@ -568,12 +629,15 @@ const handleFileChange = (uploadFile: UploadFile) => {
 
 // 导入
 const handleImport = async () => {
+  if (isImporting.value) return
+
   if (!importFile.value) {
-    ElMessage.warning('请先选择文件')
+    handleWarningMessage('请先选择文件')
     return
   }
 
   try {
+    isImporting.value = true
     const XLSX = await import('xlsx')
     const arrayBuffer = await importFile.value.arrayBuffer()
     const workbook = XLSX.read(arrayBuffer, { type: 'array' })
@@ -581,7 +645,7 @@ const handleImport = async () => {
     const jsonData = XLSX.utils.sheet_to_json<ImportAccountRow>(sheet)
 
     if (!jsonData || jsonData.length === 0) {
-      ElMessage.warning('文件中无有效数据')
+      handleWarningMessage('文件中无有效数据')
       return
     }
 
@@ -594,7 +658,7 @@ const handleImport = async () => {
       .filter((item) => item.name && item.address)
 
     if (accounts.length === 0) {
-      ElMessage.warning('未识别到有效的名称和地址数据')
+      handleWarningMessage('未识别到有效的名称和地址数据')
       return
     }
 
@@ -604,6 +668,8 @@ const handleImport = async () => {
     handleSuccessMessage(`成功导入 ${accounts.length} 条账户`)
   } catch (error) {
     handleErrorMessage(error, '导入失败')
+  } finally {
+    isImporting.value = false
   }
 }
 
@@ -619,27 +685,33 @@ const handleDownloadTemplate = () => {
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, '地址导入模板')
     XLSX.writeFile(wb, '地址导入模板.xlsx')
-    ElMessage.success('模板下载成功')
+    handleSuccessMessage('模板下载成功')
   })
 }
 
 // 手动添加
 const handleManualAdd = async () => {
-  if (!addressInput.value) {
-    ElMessage.warning('请输入地址')
+  if (isAdding.value) return
+
+  const address = addressInput.value.trim()
+  const name = nameInput.value.trim()
+
+  if (!address) {
+    handleWarningMessage('请输入地址')
     return
   }
-  if (!nameInput.value) {
-    ElMessage.warning('请输入名称')
+  if (!name) {
+    handleWarningMessage('请输入名称')
     return
   }
 
   try {
+    isAdding.value = true
     await createAssetAccount({
-      address: addressInput.value,
-      name: nameInput.value
+      address,
+      name
     })
-    const addedName = nameInput.value
+    const addedName = name
 
     addressInput.value = ''
     nameInput.value = ''
@@ -647,17 +719,22 @@ const handleManualAdd = async () => {
     handleSuccessMessage(`已添加账户：${addedName}`)
   } catch (error) {
     handleErrorMessage(error, '添加账户失败')
+  } finally {
+    isAdding.value = false
   }
 }
 
 // 导出数据
 const handleExport = async () => {
+  if (isExporting.value) return
+
   try {
+    isExporting.value = true
     const params = getTimeParams()
     const res = await getAssetReport(params)
 
     if (!res?.data || !res.data.history) {
-      ElMessage.warning('暂无数据可导出')
+      handleWarningMessage('暂无数据可导出')
       return
     }
 
@@ -745,6 +822,8 @@ const handleExport = async () => {
     handleSuccessMessage('导出成功')
   } catch (error) {
     handleErrorMessage(error, '导出失败')
+  } finally {
+    isExporting.value = false
   }
 }
 
