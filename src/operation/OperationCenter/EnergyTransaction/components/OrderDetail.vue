@@ -3,12 +3,16 @@
     <ElTabs v-model="activeTab" class="order-detail-tabs">
       <!-- 基本信息标签页 - 始终显示 -->
       <ElTabPane label="基本信息" name="basic">
-        <div v-if="currentOrder" class="order-detail">
+        <div
+          v-if="detailLoading"
+          class="order-detail-loading"
+          v-loading="true"
+          element-loading-text="正在加载订单详情..."
+        ></div>
+        <div v-else-if="currentOrder" class="order-detail">
           <Descriptions :schema="commonDetailSchema" :data="currentOrder" :column="2" border />
         </div>
-        <div v-else-if="!currentOrder" class="p-4 text-center text-gray-500">
-          无法加载订单详情。
-        </div>
+        <div v-else class="p-4 text-center text-gray-500"> 无法加载订单详情。 </div>
       </ElTabPane>
 
       <!-- 资源详情标签页 - 只有当 resources 数组存在且有数据时才显示 -->
@@ -30,7 +34,7 @@
 
 <script setup lang="tsx">
 import { ref, computed, defineAsyncComponent, h } from 'vue'
-import { ElButton, ElTag, ElMessage, ElTabs, ElTabPane } from 'element-plus'
+import { ElButton, ElTag, ElTabs, ElTabPane } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { formatToWan } from '@/utils'
 import {
@@ -54,6 +58,7 @@ const ResourceDetails = defineAsyncComponent(() => import('./details/ResourceDet
 const visible = ref(false)
 const currentOrder = ref<V2OrderDetailResponse | null>(null)
 const activeTab = ref('basic')
+const detailLoading = ref(false)
 
 const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
   { label: '订单号', field: 'id' },
@@ -212,25 +217,27 @@ const getEnergyRentText = (data?: V2OrderDetailResponse | null) => {
 
 const open = async (row: { id: string | number }) => {
   if (!row || !row.id) {
-    ElMessage.error('无效的订单信息')
     return
   }
   visible.value = true
   activeTab.value = 'basic'
   currentOrder.value = null
+  detailLoading.value = true
 
   try {
     const response = await v2GetOrderDetail(String(row.id))
 
     if (response && response.data) {
       currentOrder.value = response.data
-    } else {
-      ElMessage.warning('未获取到订单详情数据或数据格式错误')
-      currentOrder.value = null
+      return
     }
+
+    currentOrder.value = null
   } catch (error) {
     handleErrorMessage(error, '获取订单详情失败')
     currentOrder.value = null
+  } finally {
+    detailLoading.value = false
   }
 }
 
@@ -246,5 +253,13 @@ defineExpose({
 
 .order-detail-tabs .el-tabs__content {
   min-height: 150px;
+}
+
+.order-detail-loading {
+  display: flex;
+  min-height: 240px;
+  color: var(--el-text-color-secondary);
+  align-items: center;
+  justify-content: center;
 }
 </style>
