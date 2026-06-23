@@ -302,7 +302,14 @@ const fetchAutoManageList = async (params: any) => {
 
     if (res.code === '000000' && res.data) {
       const list: HostingItemV1[] = res.data.list || []
-      handleListMessage(list, true, '托管地址')
+      const hasSearchCondition = [
+        params.bot_id,
+        params.keyword,
+        params.origin,
+        params.kind,
+        params.status
+      ].some(hasSearchValue)
+      handleListMessage(list, hasSearchCondition, '托管地址')
 
       return {
         list: list,

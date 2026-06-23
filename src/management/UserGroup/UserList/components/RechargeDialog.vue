@@ -11,7 +11,7 @@
 
     <template #footer>
       <div class="flex justify-end">
-        <ElButton @click="close">取消</ElButton>
+        <ElButton :disabled="submitting" @click="close">取消</ElButton>
         <ElButton type="primary" :loading="submitting" @click="handleRecharge">确定</ElButton>
       </div>
     </template>
@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch, nextTick } from 'vue'
 import { ElButton, ElMessage } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
@@ -143,9 +143,7 @@ const rechargeFormSchema = reactive<FormSchema[]>([
 
 // 初始化表单
 const initForm = () => {
-  // 使用延迟确保表单完全注册
-  setTimeout(() => {
-    // 使用setValues方法设置初始值
+  nextTick(() => {
     formMethods
       .setValues({
         unit: 'TRX',
@@ -153,11 +151,12 @@ const initForm = () => {
         describe: ''
       })
       .catch((err) => handleErrorMessage(err, '初始化充值表单失败'))
-  }, 200)
+  })
 }
 
 // 处理充值
 const handleRecharge = async () => {
+  if (submitting.value) return
   if (!userAccount.value?.id) {
     ElMessage.warning('用户信息不完整，无法充值')
     return
@@ -213,12 +212,19 @@ const handleRecharge = async () => {
 
 // 关闭弹窗
 const close = () => {
+  if (submitting.value) return
   dialogVisible.value = false
 }
 
-// 监听弹窗变化
-const watchDialog = computed(() => props.visible)
-watchDialog.value && initForm()
+watch(
+  () => props.visible,
+  (visible) => {
+    if (visible) {
+      initForm()
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>

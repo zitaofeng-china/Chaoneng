@@ -130,8 +130,8 @@
         </ElForm>
         <template #footer>
           <div class="flex justify-end">
-            <ElButton @click="formDialogVisible = false">取消</ElButton>
-            <ElButton type="primary" @click="handleFormSubmit">提交</ElButton>
+            <ElButton :disabled="submitting" @click="formDialogVisible = false">取消</ElButton>
+            <ElButton type="primary" :loading="submitting" @click="handleFormSubmit">提交</ElButton>
           </div>
         </template>
       </Dialog>
@@ -140,7 +140,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive, watch, nextTick } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import {
   ElMessage,
   ElButton,
@@ -196,10 +196,8 @@ watch(
 watch(dialogVisible, async (val) => {
   emit('update:modelValue', val)
   if (val) {
-    // 弹窗打开时获取回调函数列表和数据
-    fetchCallbackList()
-    await nextTick()
-    fetchData()
+    await fetchCallbackList()
+    await fetchData()
   }
 })
 
@@ -207,6 +205,7 @@ watch(dialogVisible, async (val) => {
 const tableData = ref<InnerButtonItem[]>([])
 const allData = ref<InnerButtonItem[]>([])
 const loading = ref(false)
+const submitting = ref(false)
 
 // 分页
 const pagination = reactive({
@@ -327,8 +326,8 @@ const handleDelete = async (row: InnerButtonItem) => {
 
     const res = await v1DeleteInnerButton(row.id)
     if (res.code === '000000') {
+      await fetchData()
       ElMessage.success('删除成功')
-      fetchData()
       emit('success')
     } else {
       ElMessage.error('删除失败')
@@ -382,10 +381,10 @@ const handleEdit = (row: InnerButtonItem) => {
   })
 }
 const handleFormSubmit = async () => {
-  if (!formRef.value) return
+  if (!formRef.value || submitting.value) return
   try {
+    submitting.value = true
     await formRef.value.validate()
-    // 判断是添加还是更新
     if (formData.id) {
       // 更新操作
       const updateParams: UpdateInnerButtonParams = {
@@ -397,7 +396,6 @@ const handleFormSubmit = async () => {
         status: formData.status
       }
       await v1UpdateInnerButton(updateParams)
-      ElMessage.success('更新成功')
     } else {
       // 添加操作 - 使用新的创建接口
       const createParams: CreateInnerButtonParams = {
@@ -408,17 +406,17 @@ const handleFormSubmit = async () => {
         status: formData.status
       }
       await v1CreateInnerButton(createParams)
-      ElMessage.success('添加成功')
     }
     formDialogVisible.value = false
-    // 刷新列表
-    fetchData()
+    await fetchData()
+    ElMessage.success(formData.id ? '更新成功' : '添加成功')
     emit('success')
   } catch (error: any) {
     if (error !== 'cancel') {
-      console.error('保存失败:', error)
       ElMessage.error('保存失败')
     }
+  } finally {
+    submitting.value = false
   }
 }
 </script>

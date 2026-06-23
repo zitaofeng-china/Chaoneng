@@ -12,11 +12,20 @@
         :table-props="{
           rowKey: 'id',
           highlightCurrentRow: false,
-          reserveSelection: false
+          reserveSelection: false,
+          defaultSort: {
+            prop: 'created_at',
+            order: 'descending'
+          }
         }"
       >
         <template #searchButtons>
-          <BaseButton type="primary" @click="handleExport" style="margin-right: 10px">
+          <BaseButton
+            type="primary"
+            :loading="exporting"
+            @click="handleExport"
+            style="margin-right: 10px"
+          >
             <Icon icon="ep:download" class="mr-5px" />
             导出
           </BaseButton>
@@ -76,8 +85,8 @@ import { useRoute, useRouter } from 'vue-router'
 import RechargeDialog from './components/RechargeDialog.vue'
 import BalanceRecordDialog from './components/BalanceRecordDialog.vue'
 import ChangePasswordDialog from './components/ChangePasswordDialog.vue'
-import { simpleExportToExcel } from '@/utils/excel'
-import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { handleErrorMessage } from '@/utils/messageHelper'
+import { exportTableData, formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
 
 const route = useRoute()
 const router = useRouter()
@@ -140,6 +149,7 @@ const changePasswordDialogVisible = ref(false)
 const rechargeDialogVisible = ref(false)
 const selectedSource = ref<number | string>('')
 const searchTableRef = ref<SearchTableExpose | null>(null)
+const exporting = ref(false)
 
 // 表格列配置
 const columns = computed(() => {
@@ -398,7 +408,7 @@ const openRechargeDialog = (row: any) => {
 }
 
 const handleRechargeSuccess = () => {
-  searchTableRef.value?.reload()
+  return searchTableRef.value?.reload()
 }
 
 const handleBalanceRecord = (accountIdValue: number | string) => {
@@ -416,7 +426,7 @@ const handleChangePassword = (row: any) => {
 }
 
 const handlePasswordChangeSuccess = () => {
-  searchTableRef.value?.reload()
+  return searchTableRef.value?.reload()
 }
 
 const openSendMessageDialog = (row: any) => {
@@ -429,23 +439,39 @@ const handleMessageSent = () => {
   messageDialogVisible.value = false
 }
 
-// 处理导出
+const buildExportParams = (params: Recordable = {}): UserListParamsV1 => {
+  const queryParams: UserListParamsV1 = {
+    current_page: -1,
+    page_size: -1,
+    order: DEFAULT_CREATED_AT_ORDER
+  }
+
+  if (hasSearchValue(params.bot_id)) {
+    queryParams.bot_id = Number(params.bot_id)
+  }
+  if (hasSearchValue(params.origin)) {
+    queryParams.origin = Number(params.origin)
+  }
+  if (params.keyword && String(params.keyword).trim()) {
+    queryParams.keyword = String(params.keyword).trim()
+  }
+  if (hasSearchValue(params.order)) {
+    queryParams.order = String(params.order)
+  }
+
+  return queryParams
+}
+
 const handleExport = async () => {
+  exporting.value = true
   try {
-    const params = await searchTableRef.value?.searchMethods.getFormData()
-
-    const queryParams: any = {}
-    if (params?.bot_id !== undefined && params.bot_id !== '') {
-      queryParams.bot_id = Number(params.bot_id)
-    }
-    if (params?.keyword && params.keyword.trim()) {
-      queryParams.keyword = params.keyword.trim()
-    }
-
-    const res = await v1GetUserList(queryParams)
-
-    if (res.code === '000000' && res.data && res.data.list) {
-      const list = res.data.list.map((item: any) => {
+    await exportTableData<any, Recordable, UserListParamsV1>({
+      searchTableRef,
+      filename: 'TG用户列表',
+      fetchData: v1GetUserList,
+      buildParams: buildExportParams,
+      getList: (res) => res.data?.list || [],
+      mapItem: (item: any) => {
         const botInfo = botInfoMap.value.get(item.bot_id)
         const origin =
           (!item.tg_user_id || item.tg_user_id === 0) && !item.tg_user_name ? 'H5' : '机器人'
@@ -459,18 +485,16 @@ const handleExport = async () => {
           机器人用户名: botInfo ? botInfo.user_name : '-',
           来源: origin,
           TRX余额: `${item.trx_balance || 0} TRX`,
-          创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
-          更新时间: item.updated_at ? formatToDateTime(item.updated_at * 1000) : '-'
+          创建时间: formatTableDateTime(item.created_at),
+          更新时间: formatTableDateTime(item.updated_at)
         }
-      })
-
-      simpleExportToExcel(list, 'TG用户列表')
-      handleSuccessMessage('用户列表导出成功')
-    } else {
-      ElMessage.error('导出失败：数据格式错误')
-    }
+      },
+      successMessage: '用户列表导出成功'
+    })
   } catch (error) {
     handleErrorMessage(error, '用户列表导出失败')
+  } finally {
+    exporting.value = false
   }
 }
 

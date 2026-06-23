@@ -12,7 +12,12 @@
       />
     </ContentWrap>
 
-    <ElDialog v-model="dialogVisible" title="新增黑名单" width="400px">
+    <ElDialog
+      v-model="dialogVisible"
+      title="新增黑名单"
+      width="400px"
+      :close-on-click-modal="!submitting"
+    >
       <ElForm
         :model="newAddressForm"
         ref="newAddressFormRef"
@@ -27,8 +32,8 @@
         </ElFormItem>
       </ElForm>
       <template #footer>
-        <ElButton @click="dialogVisible = false">取消</ElButton>
-        <ElButton type="primary" @click="submitAdd">确定</ElButton>
+        <ElButton :disabled="submitting" @click="dialogVisible = false">取消</ElButton>
+        <ElButton type="primary" :loading="submitting" @click="submitAdd">确定</ElButton>
       </template>
     </ElDialog>
   </div>
@@ -57,6 +62,7 @@ const currentRowForDelete = ref<BlackListItemV1 | null>(null)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 const dialogVisible = ref(false)
+const submitting = ref(false)
 const newAddressForm = reactive({
   address: '',
   describe: ''
@@ -209,20 +215,23 @@ const handleAdd = () => {
 }
 
 const submitAdd = async () => {
-  if (!newAddressFormRef.value) return
+  if (!newAddressFormRef.value || submitting.value) return
   try {
+    submitting.value = true
     await newAddressFormRef.value.validate()
     await v1CreateBlackList({
       address: newAddressForm.address,
       describe: newAddressForm.describe
     })
-    handleSuccessMessage('新增成功')
+    await searchTableRef.value?.reload()
     dialogVisible.value = false
-    searchTableRef.value?.reload()
+    handleSuccessMessage('新增成功')
   } catch (error) {
     if (error !== false) {
       handleErrorMessage(error, '新增黑名单失败')
     }
+  } finally {
+    submitting.value = false
   }
 }
 </script>

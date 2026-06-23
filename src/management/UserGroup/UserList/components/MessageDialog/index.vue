@@ -223,7 +223,7 @@
     </ElForm>
     <template #footer>
       <div class="flex justify-end">
-        <ElButton @click="handleCancel">取消</ElButton>
+        <ElButton :disabled="submitting" @click="handleCancel">取消</ElButton>
         <ElButton type="primary" :loading="submitting" @click="handleSubmit">发送</ElButton>
       </div>
     </template>
@@ -254,7 +254,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import {
   ElButton,
   ElMessage,
@@ -495,6 +495,7 @@ const previewFileType = ref<'image' | 'video'>('image')
 // 消息预览相关
 const showMessagePreview = ref(false)
 const messagePreviewData = ref<MessagePreviewData>({})
+const crossFieldValidateTimer = ref<number | null>(null)
 
 // 消息内容编辑器引用
 const messageContentEditorRef = ref()
@@ -648,13 +649,26 @@ const openInlineButtonDialog = () => {
   inlineButtonDialogVisible.value = true
 }
 
+const scheduleCrossFieldValidation = (field: 'chat_ids' | 'user_list') => {
+  if (crossFieldValidateTimer.value !== null) {
+    window.clearTimeout(crossFieldValidateTimer.value)
+  }
+
+  crossFieldValidateTimer.value = window.setTimeout(() => {
+    formRef.value?.validateField(field, () => {})
+    crossFieldValidateTimer.value = null
+  }, 300)
+}
+
 // 取消操作
 const handleCancel = () => {
+  if (submitting.value) return
   dialogVisible.value = false
 }
 
 // 提交消息 - 显示预览
 const handleSubmit = async () => {
+  if (submitting.value) return
   if (!formRef.value) {
     ElMessage.error('表单实例获取失败')
     return
@@ -754,6 +768,7 @@ const handleSubmit = async () => {
 
 // 确认发送消息
 const handleConfirmSend = async (buttonLayout?: number[][]) => {
+  if (submitting.value) return
   submitting.value = true
 
   try {
@@ -955,9 +970,7 @@ watch(
   () => formData.value.user_list,
   () => {
     if (formData.value.filter_type === 'user_custom' && !isMultipleBots.value) {
-      setTimeout(() => {
-        formRef.value?.validateField('chat_ids', () => {})
-      }, 300)
+      scheduleCrossFieldValidation('chat_ids')
     }
   }
 )
@@ -967,9 +980,7 @@ watch(
   () => formData.value.chat_ids,
   () => {
     if (formData.value.filter_type === 'user_custom' && !isMultipleBots.value) {
-      setTimeout(() => {
-        formRef.value?.validateField('user_list', () => {})
-      }, 300)
+      scheduleCrossFieldValidation('user_list')
     }
   },
   { deep: true }
@@ -1053,6 +1064,13 @@ const handleDatePickerFocus = () => {
 
 onMounted(() => {
   // 初始化逻辑
+})
+
+onUnmounted(() => {
+  if (crossFieldValidateTimer.value !== null) {
+    window.clearTimeout(crossFieldValidateTimer.value)
+    crossFieldValidateTimer.value = null
+  }
 })
 </script>
 
