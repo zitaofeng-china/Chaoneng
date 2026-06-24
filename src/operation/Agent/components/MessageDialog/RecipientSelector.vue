@@ -51,6 +51,7 @@
 import { computed, watch, ref, type PropType } from 'vue'
 import { ElFormItem, ElRadioGroup, ElRadio, ElInput, ElSelectV2, ElMessage } from 'element-plus'
 import { v1GetMessageUserList } from '@/api/opertion/common/message'
+import { handleErrorMessage, handleWarningMessage } from '@/utils/messageHelper'
 import type { SelectOption } from '@/utils/tableHelpers'
 
 const props = defineProps({
@@ -122,12 +123,11 @@ const fetchBotUsers = async (botId: number | string) => {
       }
     } else {
       userOptions.value = []
-      ElMessage.warning('获取用户列表失败')
+      handleWarningMessage('获取用户列表失败')
     }
-  } catch (error) {
+  } catch (error: unknown) {
     userOptions.value = []
-    const message = error instanceof Error ? error.message : '获取用户列表失败'
-    ElMessage.error(message)
+    handleErrorMessage(error, '获取用户列表失败')
   } finally {
     loadingUsers.value = false
   }
