@@ -1,17 +1,21 @@
 <script setup lang="tsx">
-import { ref, nextTick, computed, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
 import type { FormInstance, FormRules } from 'element-plus'
-import { ElMessage } from 'element-plus'
 import {
   addAgentApi,
   updateAgentApi,
   type AddAgentPayload,
   type UpdateAgentPayload
 } from '@/api/opertion/Agent/AgentList'
+import {
+  handleErrorMessage,
+  handleSuccessMessage,
+  handleWarningMessage
+} from '@/utils/messageHelper'
 import EmailInput from './EmailInput.vue'
 import { AGENT_LEVEL_OPTIONS } from '../constants'
 
@@ -38,6 +42,14 @@ interface AgentFormData {
   gift_bandwidth?: number
   status?: number
   price_id?: number
+}
+
+interface AgentFormValues {
+  username: string
+  email: string
+  password: string
+  gift_bandwidth: number
+  price_id: number
 }
 
 const { required, lengthRange } = useValidator()
@@ -198,6 +210,35 @@ const validateForm = (formInstance?: FormInstance): Promise<boolean> => {
   })
 }
 
+const createFormValues = (data: Partial<AgentFormData> = {}): AgentFormValues => ({
+  username: data.username || '',
+  password: '',
+  price_id: data.price_id ?? DEFAULT_PRICE_ID,
+  email: data.email || '',
+  gift_bandwidth: data.gift_bandwidth ?? 0
+})
+
+const initializeFormValues = async (data: Partial<AgentFormData> = {}) => {
+  const formValues = createFormValues(data)
+  await formMethods.setValues(formValues)
+
+  if (!isEdit.value) {
+    await formMethods2.setValues({ gift_bandwidth: formValues.gift_bandwidth })
+  }
+}
+
+const handleBeforeClose = (done: () => void) => {
+  if (submitting.value) {
+    return
+  }
+  done()
+}
+
+const resetDialogState = () => {
+  originalData.value = {}
+  emailValue.value = ''
+}
+
 // 打开对话框
 async function openDialog(mode: 'add' | 'edit' = 'add', data: Partial<AgentFormData> = {}) {
   isEdit.value = mode === 'edit'
@@ -205,23 +246,10 @@ async function openDialog(mode: 'add' | 'edit' = 'add', data: Partial<AgentFormD
   originalData.value = { ...data }
   emailValue.value = data.email || ''
 
-  await nextTick()
-
-  const formValues = {
-    username: data.username || '',
-    password: '',
-    price_id: data.price_id ?? DEFAULT_PRICE_ID,
-    email: data.email || '',
-    gift_bandwidth: data.gift_bandwidth ?? 0
-  }
-
   try {
-    await formMethods.setValues(formValues)
-    if (!isEdit.value) {
-      await formMethods2.setValues({ gift_bandwidth: formValues.gift_bandwidth })
-    }
-  } catch {
-    ElMessage.error('设置表单值失败，请重新打开弹窗')
+    await initializeFormValues(data)
+  } catch (error) {
+    handleErrorMessage(error, '初始化代理表单失败')
   }
 }
 
@@ -241,7 +269,7 @@ async function onSubmit() {
     }
 
     if (!valid1 || !valid2) {
-      ElMessage.error('请填写完整信息')
+      handleWarningMessage('请填写完整信息')
       return
     }
 
@@ -263,7 +291,7 @@ async function onSubmit() {
     })
     dialogVisible.value = false
   } catch (error) {
-    ElMessage.error('操作失败，请稍后重试')
+    handleErrorMessage(error, '操作失败')
     emits('error', {
       type: isEdit.value ? 'edit' : 'add',
       error
@@ -283,7 +311,7 @@ async function handleAdd(formData: AgentFormData) {
     gift_bandwidth: formData.gift_bandwidth === 1
   }
   await addAgentApi(payload)
-  ElMessage.success('新增代理成功')
+  handleSuccessMessage('新增代理成功')
 }
 
 // 处理编辑
@@ -301,14 +329,21 @@ async function handleEdit(formData: AgentFormData) {
   }
 
   await updateAgentApi(payload)
-  ElMessage.success('密码修改成功')
+  handleSuccessMessage('密码修改成功')
 }
 
 defineExpose({ openDialog })
 </script>
 
 <template>
-  <Dialog v-model="dialogVisible" :title="dialogTitle" @onOk="onSubmit">
+  <Dialog
+    v-model="dialogVisible"
+    :title="dialogTitle"
+    :close-on-press-escape="!submitting"
+    :before-close="handleBeforeClose"
+    @closed="resetDialogState"
+    @onOk="onSubmit"
+  >
     <!-- 主表单 -->
     <Form
       @register="formRegister"
