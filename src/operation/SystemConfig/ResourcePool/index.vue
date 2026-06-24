@@ -73,7 +73,7 @@ type ResourcePoolSearchParams = Omit<V2PoolListParams, 'kind' | 'status'> & {
   status?: number | string
 }
 type ResourcePoolTableSlot = TableSlot<V2PoolItem>
-type EditableThresholdField = 'limit' | 'bucket_threshold'
+type EditableThresholdField = 'amount_threshold' | 'bucket_threshold'
 
 const THRESHOLD_EDIT_CONFIG: Record<
   EditableThresholdField,
@@ -85,12 +85,12 @@ const THRESHOLD_EDIT_CONFIG: Record<
     errorMessage: string
   }
 > = {
-  limit: {
-    title: '编辑阈值',
-    prompt: '请输入新的阈值 (输入0或留空表示不设阈值)',
-    unchangedMessage: '阈值未改变',
-    successMessage: '阈值更新成功',
-    errorMessage: '更新阈值失败'
+  amount_threshold: {
+    title: '编辑可用数量阈值',
+    prompt: '请输入新的可用数量阈值 (输入0或留空表示不设阈值)',
+    unchangedMessage: '可用数量阈值未改变',
+    successMessage: '可用数量阈值更新成功',
+    errorMessage: '更新可用数量阈值失败'
   },
   bucket_threshold: {
     title: '编辑桶阈值',
@@ -110,6 +110,19 @@ const formatPoolAmount = (value: V2PoolItem['amount']) => {
 
 const formatThresholdValue = (value?: string | number | null) => {
   return value === undefined || value === null || value === '' ? 0 : value
+}
+
+const getThresholdUpdatePayload = (
+  row: V2PoolItem,
+  overrides: Partial<Record<EditableThresholdField, number>>
+) => {
+  const currentAmountThreshold = Number.parseInt(String(row.amount_threshold ?? 0), 10) || 0
+  const currentBucketThreshold = Number.parseInt(String(row.bucket_threshold ?? 0), 10) || 0
+
+  return {
+    amount_threshold: overrides.amount_threshold ?? currentAmountThreshold,
+    bucket_threshold: overrides.bucket_threshold ?? currentBucketThreshold
+  }
 }
 
 const columns = ref<TableColumn[]>([
@@ -139,12 +152,12 @@ const columns = ref<TableColumn[]>([
     minWidth: '180px',
     formatter: (row: V2PoolItem) => {
       const amount = formatPoolAmount(row.amount)
-      const limit = formatThresholdValue(row.limit)
-      const displayValue = `${amount} / ${limit}`
+      const threshold = formatThresholdValue(row.amount_threshold)
+      const displayValue = `${amount} / ${threshold}`
 
       return (
         <span
-          onDblclick={() => handleEditThresholdValue(row, 'limit')}
+          onDblclick={() => handleEditThresholdValue(row, 'amount_threshold')}
           style={{ cursor: 'pointer' }}
         >
           {displayValue}
@@ -351,7 +364,7 @@ const handleStatusChangeAttempt = async (row: V2PoolItem, newValue: number) => {
     await v2UpdatePool({
       id: row.id,
       status: intendedStatus,
-      limit: parseFloat(row.limit) || 0
+      ...getThresholdUpdatePayload(row, {})
     })
 
     await reloadTable()
@@ -395,7 +408,7 @@ const handleEditThresholdValue = async (row: V2PoolItem, field: EditableThreshol
 
     await v2UpdatePool({
       id: row.id,
-      [field]: newThreshold,
+      ...getThresholdUpdatePayload(row, { [field]: newThreshold }),
       status: row.status
     })
 

@@ -23,8 +23,8 @@ export interface PoolItem {
   status: number
   amount: string
   bucket: string
+  amount_threshold: string
   bucket_threshold: string
-  limit: string
   permission_id: number
   permission_name: string
   created_by: string
@@ -48,9 +48,9 @@ export interface PoolListResponse {
  */
 export interface CreatePoolParams {
   address: string
+  amount_threshold: number
   created_by: string
   kind: number
-  limit: number
   permission_name: string
 }
 
@@ -60,8 +60,8 @@ export interface CreatePoolParams {
  */
 export interface UpdatePoolParams {
   id: number
+  amount_threshold?: number
   bucket_threshold?: number
-  limit?: number
   status?: number
 }
 

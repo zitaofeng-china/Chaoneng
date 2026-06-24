@@ -33,7 +33,7 @@ interface ResourcePoolFormData {
   kind?: string | number
   address?: string
   status?: number
-  limit?: number | string
+  amount_threshold?: number | string
   permission_name?: string
 }
 
@@ -96,11 +96,11 @@ const permissionNameSchema: FormSchema[] = [
 
 const energyPoolSchema: FormSchema[] = [
   {
-    field: 'limit',
+    field: 'amount_threshold',
     component: 'InputNumber',
-    label: '阈值：',
+    label: '可用数量阈值：',
     componentProps: {
-      placeholder: '请输入阈值',
+      placeholder: '请输入可用数量阈值',
       precision: 2,
       remark: '说明：当达到阈值时，自动切换至最高优先级备用地址'
     }
@@ -127,10 +127,10 @@ const buildSchema = (type: number | string | undefined): FormSchema[] => {
     }
   }
 
-  const shouldShowLimit = formMode.value === 'add' || isThresholdPoolKind(numericType)
+  const shouldShowAmountThreshold = formMode.value === 'add' || isThresholdPoolKind(numericType)
 
   let specificSchema: FormSchema[] = []
-  if (shouldShowLimit) {
+  if (shouldShowAmountThreshold) {
     specificSchema = [...specificSchema, ...energyPoolSchema]
   }
   if (isReceivePoolKind(numericType)) {
@@ -168,6 +168,12 @@ const formSchema = ref<FormSchema[]>(buildSchema(1))
 const { formRegister, formMethods } = useForm()
 const { setValues, getFormData, getElFormExpose } = formMethods
 
+const getExistingThresholdValue = (value?: string | number | null) => {
+  return value === undefined || value === null || value === ''
+    ? 0
+    : Number.parseInt(String(value), 10) || 0
+}
+
 const open = async (params: OpenParams) => {
   formMode.value = params.mode
   visible.value = true
@@ -188,11 +194,11 @@ const open = async (params: OpenParams) => {
   const valuesToSet: ResourcePoolFormValues = {
     kind: initialConfigType,
     address: currentData.value.address || '',
-    limit: undefined,
+    amount_threshold: undefined,
     permission_name: undefined
   }
   if (formMode.value === 'add' || isThresholdPoolKind(initialConfigType)) {
-    valuesToSet.limit = currentData.value.limit ?? undefined
+    valuesToSet.amount_threshold = currentData.value.amount_threshold ?? undefined
   }
   if (isReceivePoolKind(initialConfigType)) {
     valuesToSet.permission_name = currentData.value.permission_name || ''
@@ -211,7 +217,7 @@ const handleSubmit = async () => {
   const formData = await getFormData<ResourcePoolFormValues>()
   const kind = Number(formData.kind)
   const address = String(formData.address || '').trim()
-  const limit = Number(formData.limit) || 0
+  const amountThreshold = Number(formData.amount_threshold) || 0
   const permissionName = String(formData.permission_name || '').trim()
   submitting.value = true
 
@@ -220,9 +226,9 @@ const handleSubmit = async () => {
       const createdBy = userStore.getUserInfo?.username || userStore.getUserInfo?.name || ''
       const createParams: V2CreatePoolParams = {
         address,
+        amount_threshold: amountThreshold,
         created_by: createdBy,
         kind,
-        limit,
         permission_name: isReceivePoolKind(kind) ? permissionName : ''
       }
 
@@ -237,10 +243,12 @@ const handleSubmit = async () => {
     } else {
       const updateParams: V2UpdatePoolParams = {
         id: currentData.value.id!,
-        status: currentData.value.status
+        status: currentData.value.status,
+        amount_threshold: getExistingThresholdValue(currentData.value.amount_threshold),
+        bucket_threshold: getExistingThresholdValue(currentData.value.bucket_threshold)
       }
       if (isThresholdPoolKind(kind)) {
-        updateParams.limit = limit
+        updateParams.amount_threshold = amountThreshold
       }
 
       const res = await v2UpdatePool(updateParams)
