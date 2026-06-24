@@ -142,7 +142,6 @@
 <script setup lang="tsx">
 import { ref, reactive, watch } from 'vue'
 import {
-  ElMessage,
   ElButton,
   ElTag,
   ElTable,
@@ -169,6 +168,11 @@ import type {
   InnerButtonItem,
   UpdateInnerButtonParams
 } from '@/api/management/common/menuList/types'
+import { getErrorMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { formatTableDateTime } from '@/utils/tableHelpers'
+import type { SelectOption } from '@/utils/tableHelpers'
+
+type InlineButtonType = 'url' | 'call'
 
 // Props
 const props = defineProps<{
@@ -215,20 +219,10 @@ const pagination = reactive({
 })
 
 // 时间戳格式化函数
-const formatTimestamp = (timestamp: number): string => {
-  if (!timestamp) return '-'
-  const date = new Date(timestamp * 1000) // 转换为毫秒
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const hours = String(date.getHours()).padStart(2, '0')
-  const minutes = String(date.getMinutes()).padStart(2, '0')
-  const seconds = String(date.getSeconds()).padStart(2, '0')
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
-}
+const formatTimestamp = (timestamp: number): string => formatTableDateTime(timestamp)
 
 // 回调函数列表
-const callbackList = ref<Array<{ label: string; value: string }>>([])
+const callbackList = ref<SelectOption<string>[]>([])
 
 // 表单相关
 const formDialogVisible = ref(false)
@@ -239,8 +233,9 @@ const formRef = ref<FormInstance>()
 const formData = reactive({
   id: undefined as number | undefined,
   menu_name: '',
-  inner_type: 'url' as 'url' | 'call',
+  inner_type: 'url' as InlineButtonType,
   inner_value: '',
+  order_num: 0,
   status: 1
 })
 
@@ -283,9 +278,8 @@ const fetchData = async () => {
       tableData.value = []
       pagination.total = 0
     }
-  } catch (error) {
-    console.error('获取内联按钮列表失败:', error)
-    ElMessage.error('获取内联按钮列表失败')
+  } catch (error: unknown) {
+    handleErrorMessage(error, '获取内联按钮列表失败')
     allData.value = []
     tableData.value = []
     pagination.total = 0
@@ -296,10 +290,8 @@ const fetchData = async () => {
 
 // 应用分页
 const applyPagination = () => {
-  // 更新总数
   pagination.total = allData.value.length
 
-  // 分页
   const startIndex = (pagination.currentPage - 1) * pagination.pageSize
   const endIndex = startIndex + pagination.pageSize
   tableData.value = allData.value.slice(startIndex, endIndex)
@@ -327,14 +319,14 @@ const handleDelete = async (row: InnerButtonItem) => {
     const res = await v1DeleteInnerButton(row.id)
     if (res.code === '000000') {
       await fetchData()
-      ElMessage.success('删除成功')
+      handleSuccessMessage('删除成功')
       emit('success')
     } else {
-      ElMessage.error('删除失败')
+      handleErrorMessage('删除失败')
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error !== 'cancel') {
-      ElMessage.error('删除内联按钮失败')
+      handleErrorMessage(error, '删除内联按钮失败')
     }
   }
 }
@@ -344,13 +336,13 @@ const fetchCallbackList = async () => {
   try {
     const response = await getCallBackListApi()
     if (response.code === '000000' && response.data) {
-      callbackList.value = response.data.map((item: any) => ({
+      callbackList.value = response.data.map((item: { name: string; key: string }) => ({
         label: item.name,
         value: item.key
       }))
     }
-  } catch (error) {
-    ElMessage.error('获取回调函数列表失败')
+  } catch (error: unknown) {
+    handleErrorMessage(error, '获取回调函数列表失败')
   }
 }
 
@@ -358,62 +350,68 @@ const fetchCallbackList = async () => {
 const handleAdd = () => {
   formDialogVisible.value = true
   formDialogTitle.value = '添加内联按钮'
-  // 重置表单
+
   Object.assign(formData, {
     id: undefined,
     menu_name: '',
     inner_type: 'url',
     inner_value: '',
+    order_num: 0,
     status: 1
   })
+
   formRef.value?.resetFields()
 }
+
 const handleEdit = (row: InnerButtonItem) => {
   formDialogVisible.value = true
   formDialogTitle.value = '编辑内联按钮'
-  // 设置表单值
+
   Object.assign(formData, {
     id: row.id,
     menu_name: row.text,
-    inner_type: row.inner_type,
+    inner_type: row.inner_type === 'call' ? 'call' : 'url',
     inner_value: row.inner_value || '',
-    status: 1 // 默认启用，因为接口返回的数据没有 status 字段
+    order_num: row.order_num || 0,
+    status: row.status || 1
   })
 }
+
 const handleFormSubmit = async () => {
   if (!formRef.value || submitting.value) return
+
   try {
     submitting.value = true
     await formRef.value.validate()
+
     if (formData.id) {
-      // 更新操作
       const updateParams: UpdateInnerButtonParams = {
         id: formData.id,
         text: formData.menu_name,
         inner_type: formData.inner_type,
         inner_value: formData.inner_value,
-        order_num: 0,
-        status: formData.status
+        order_num: formData.order_num || 0,
+        status: formData.status || 1
       }
       await v1UpdateInnerButton(updateParams)
     } else {
-      // 添加操作 - 使用新的创建接口
       const createParams: CreateInnerButtonParams = {
         text: formData.menu_name,
         inner_type: formData.inner_type,
         inner_value: formData.inner_value,
-        order_num: 0,
-        status: formData.status
+        order_num: formData.order_num || 0,
+        status: formData.status || 1
       }
       await v1CreateInnerButton(createParams)
     }
+
     formDialogVisible.value = false
     await fetchData()
-    ElMessage.success(formData.id ? '更新成功' : '添加成功')
+    handleSuccessMessage(formData.id ? '更新成功' : '添加成功')
     emit('success')
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error !== 'cancel') {
-      ElMessage.error('保存失败')
+      handleErrorMessage(error, '保存失败')
     }
   } finally {
     submitting.value = false
