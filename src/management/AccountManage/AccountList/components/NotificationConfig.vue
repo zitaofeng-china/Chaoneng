@@ -113,17 +113,15 @@ import {
 } from '@/utils/messageHelper'
 
 const ORDER_NOTIFY_TYPE_OPTIONS = [
-  { label: '闪租', value: 4 },
+  { label: '闪租', value: 7 },
   { label: '托管', value: 20 },
   { label: '按笔数', value: 5 },
   { label: '闪兑', value: 3 },
-  { label: '按时间', value: 7 },
+  { label: '按时间', value: 4 },
   { label: '用户充值', value: 2 },
   { label: '托管速充', value: 21 },
   { label: '速充能量', value: 15 },
-  { label: '激活', value: 10 },
-  { label: '速充', value: 22 },
-  { label: '即用能量', value: 23 }
+  { label: '激活', value: 10 }
 ] as const
 
 const ORDER_SELECT_ACTIVE_TEXT = '全选'
@@ -143,6 +141,12 @@ interface NotifyConfigData {
   chat_id?: number | string
   balance_threshold?: number | string
   order_subscription?: number[] | string | null
+}
+
+interface NotifyPayload {
+  chat_id: number
+  balance_threshold: number
+  order_subscription?: number[] | null
 }
 
 const props = defineProps<{
@@ -280,20 +284,16 @@ const buildNotifyPayload = (params: {
   chatId: number
   threshold: number
   orderTypes?: number[]
-}) => {
+}): NotifyPayload => {
   const orderSubscription = getOrderSubscriptionPayload(params.orderTypes ?? form.orderTypes)
-  const notify: NotifyConfigData = {
+  const notify: NotifyPayload = {
     chat_id: params.chatId,
     balance_threshold: params.threshold
   }
   if (orderSubscription !== undefined) {
     notify.order_subscription = orderSubscription
   }
-  return notify as {
-    chat_id: number
-    balance_threshold: number
-    order_subscription?: number[]
-  }
+  return notify
 }
 
 const syncOriginalData = () => {
@@ -308,7 +308,7 @@ const persistNotifyConfig = async (params: {
 }) => {
   await v1UpdateUserNotify({
     id: Number(props.accountId),
-    notify: buildNotifyPayload(params)
+    ...buildNotifyPayload(params)
   })
 }
 

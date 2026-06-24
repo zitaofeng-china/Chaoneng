@@ -13,6 +13,7 @@ export interface AccountDetail {
   notify?: {
     chat_id?: number | string
     balance_threshold?: number | string
+    // null 或不返回表示不通知，[] 表示所有类型通知，非空数组表示指定 Kind 通知
     order_subscription?: number[] | string | null
   }
   notify_threshold: number | string
