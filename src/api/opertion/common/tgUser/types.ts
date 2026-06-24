@@ -177,6 +177,7 @@ export enum UserBillKind {
   KindWealEnergy = 6, // 福利能量（打折的时间能量，有购买限制）
   // 以下的类别暂不支持绑定快速购买地址
   KindFlashEnergy = 7, // 快速能量（快速租用，1小时有效的，用了会提前回收）
+  KindInstantEnergy = 8, // 即用能量
   KindHosting = 20, // 托管（一次发放两笔）
   KindBatchEnergy = 9, // 批量能量（带自动激活）
   KindBatchActive = 10, // 批量激活

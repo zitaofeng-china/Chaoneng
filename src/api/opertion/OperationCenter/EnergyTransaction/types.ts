@@ -8,7 +8,7 @@ export interface V2EnergyListParams {
   end_time?: string // 结束时间
   energy_address?: string // 能量地址
   keyword?: string // 关键字
-  kind?: number | number[] // 类型: 4-时间能量, 5-笔数能量, 6-福利能量, 7-快速能量, 9-批量能量, 10-批量激活, 15-速充能量, 20-托管, 21-托管速充
+  kind?: number | number[] // 类型: 4-时间能量, 5-笔数能量, 6-福利能量, 7-快速能量, 8-即用能量, 9-批量能量, 10-批量激活, 15-速充能量, 20-托管, 21-托管速充
   order_id?: string // 订单ID（字符串格式）
   order?: string // 排序参数，格式：字段名 ASC/DESC
   page_size?: number // 每页大小
@@ -27,7 +27,7 @@ export interface V2EnergyItem {
   created_at: number // 创建时间（Unix时间戳）
   updated_at: number // 更新时间（Unix时间戳）
   paid_at: number | null // 支付时间（Unix时间戳）
-  kind: number // 类型: 1-代理充值, 2-用户充值, 3-兑换, 4-时间能量, 5-笔数能量, 6-福利能量, 7-快速能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充
+  kind: number // 类型: 1-代理充值, 2-用户充值, 3-兑换, 4-时间能量, 5-笔数能量, 6-福利能量, 7-快速能量, 8-即用能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充
   status: number // 状态: 1-新订单, 2-已支付, 3-已发送(已发送能量或兑换的TRX/USDT交易), 4-已回收(已发送回收能量或带宽的交易), 5-已完成(能量已被回收的), 6-失败订单, 7-已退款, 8-已取消(一般是超时自动取消), 9-中止订单(一般是代理余额不足)
   user_id: number // 用户ID
   agent_id: number // 代理ID

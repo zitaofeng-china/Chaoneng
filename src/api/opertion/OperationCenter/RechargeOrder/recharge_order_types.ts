@@ -11,7 +11,7 @@ export interface V2DepositListParams {
   current_page?: number // 当前页码
   end_time?: string // 结束时间
   keyword?: string // 关键字
-  kind?: number // 类型: 1-代理充值, 2-用户充值, 3-兑换, 4-时间能量, 5-笔数能量, 6-福利能量, 7-快速能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充
+  kind?: number // 类型: 1-代理充值, 2-用户充值, 3-兑换, 4-时间能量, 5-笔数能量, 6-福利能量, 7-快速能量, 8-即用能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充
   coin?: string // 币种
   order_id?: string // 订单ID（字符串格式）
   order?: string // 排序参数
@@ -32,7 +32,7 @@ export interface V2DepositItem {
   created_at: number // 创建时间（Unix时间戳）
   updated_at: number // 更新时间（Unix时间戳）
   paid_at: number | null // 支付时间（Unix时间戳）
-  kind: number // 类型: 1-代理充值, 2-用户充值, 3-兑换, 4-时间能量, 5-笔数能量, 6-福利能量, 7-快速能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充
+  kind: number // 类型: 1-代理充值, 2-用户充值, 3-兑换, 4-时间能量, 5-笔数能量, 6-福利能量, 7-快速能量, 8-即用能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充
   status: number // 状态: 1-新订单, 2-已支付, 3-已发送, 4-已回收, 5-已完成, 6-失败订单, 7-已退款, 8-已取消, 9-中止订单
   user_id: number // 用户ID
   agent_id: number // 代理ID
@@ -78,7 +78,7 @@ export interface V2DepositDetail {
   created_at: number // 创建时间（Unix时间戳）
   updated_at: number // 更新时间（Unix时间戳）
   paid_at: number // 支付时间（Unix时间戳）
-  kind: number // 类型: 1-代理充值, 2-用户充值, 3-兑换, 4-时间能量, 5-笔数能量, 6-福利能量, 7-快速能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充
+  kind: number // 类型: 1-代理充值, 2-用户充值, 3-兑换, 4-时间能量, 5-笔数能量, 6-福利能量, 7-快速能量, 8-即用能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充
   status: number // 状态: 1-新订单, 2-已支付, 3-已发送, 4-已回收, 5-已完成, 6-失败订单, 7-已退款, 8-已取消, 9-中止订单
   user_id: number // 用户ID
   agent_id: number // 代理ID
