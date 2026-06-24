@@ -30,7 +30,7 @@
         >
           <template #file="{ file }">
             <div
-              v-if="getFileType(file) === 'video' && file.url"
+              v-if="getMessageFileType(file) === 'video' && file.url"
               class="video-thumbnail-wrapper"
               @click="handlePreview(file)"
             >
@@ -71,9 +71,11 @@
 
 <script setup lang="ts">
 import { type PropType } from 'vue'
-import { ElFormItem, ElUpload, ElMessage } from 'element-plus'
+import { ElFormItem, ElUpload } from 'element-plus'
 import type { UploadUserFile } from 'element-plus'
 import { BaseButton } from '@/components/Button'
+import { handleWarningMessage } from '@/utils/messageHelper'
+import { getMessageFileType } from '@/operation/components/MessageDialog/utils'
 
 defineProps({
   fileList: {
@@ -83,17 +85,6 @@ defineProps({
 })
 
 const emit = defineEmits(['preview', 'change', 'remove'])
-
-// 判断文件类型
-const getFileType = (file: File | UploadUserFile): 'image' | 'video' => {
-  const fileName = file.name || ''
-  const fileType = (file as File).type || (file as UploadUserFile).raw?.type || ''
-
-  if (fileType.startsWith('video/') || /\.(mp4|avi|mov|wmv|flv|mkv)$/i.test(fileName)) {
-    return 'video'
-  }
-  return 'image'
-}
 
 const handlePreview = (uploadFile: UploadUserFile) => {
   emit('preview', uploadFile)
@@ -109,7 +100,7 @@ const handleRemove = (file: UploadUserFile) => {
 }
 
 const handleExceed = () => {
-  ElMessage.warning('最多只能上传 10 个文件')
+  handleWarningMessage('最多只能上传 10 个文件')
 }
 </script>
 
