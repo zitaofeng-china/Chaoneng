@@ -375,7 +375,7 @@ const handleSave = async () => {
   // 关闭开关时也保留原 TG 账号，只把阈值置 0 表示禁用
   let chatId: number = Number(String(form.chatId || '').trim()) || 0
   const validOrderTypeSet = new Set(getAllOrderTypeValues())
-  let orderTypes = form.orderTypes
+  const orderTypes = form.orderTypes
     .map((item) => Number(item))
     .filter((item) => !isNaN(item) && validOrderTypeSet.has(item))
 
