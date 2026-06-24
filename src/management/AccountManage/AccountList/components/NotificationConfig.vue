@@ -437,58 +437,19 @@ const handleReset = () => {
   form.orderTypes = [...originalData.orderTypes]
 }
 
-// 切换开关时直接调用接口（开 -> 关 立即禁用；关 -> 开 立即启用，阈值默认 1）
-const handleSwitchChange = async (val: boolean | string | number) => {
+// 切换余额提醒开关只更新本地表单，最终由“保存”统一提交
+const handleSwitchChange = (val: boolean | string | number) => {
   if (saving.value) return
-  if (!props.accountId) return
 
-  // 关 -> 开：阈值优先用之前保存过的，否则默认 1
   if (val) {
     const prevThreshold = Number(originalData.threshold || 0)
-    const prevChatIdStr = String(originalData.chatId || '').trim()
-    const prevChatId = /^\d+$/.test(prevChatIdStr) ? Number(prevChatIdStr) : 0
-    const threshold = prevThreshold > 0 ? prevThreshold : 1
-
-    saving.value = true
-    try {
-      await persistNotifyConfig({
-        chatId: prevChatId,
-        threshold
-      })
-      form.threshold = threshold
-      form.chatId = prevChatId > 0 ? String(prevChatId) : ''
-      syncOriginalData()
-      handleSuccessMessage('已开启余额提醒')
-      emit('saved')
-    } catch (error) {
-      // 失败回退
-      form.enabled = false
-      handleErrorMessage(error, '开启失败')
-    } finally {
-      saving.value = false
+    if (!form.threshold || Number(form.threshold) <= 0) {
+      form.threshold = prevThreshold > 0 ? prevThreshold : 1
     }
     return
   }
 
-  // 开 -> 关：直接置 threshold 为 0 禁用
-  saving.value = true
-  try {
-    const chatIdStr = String(form.chatId || '').trim()
-    const chatId = /^\d+$/.test(chatIdStr) ? Number(chatIdStr) : 0
-    await persistNotifyConfig({
-      chatId,
-      threshold: 0
-    })
-    syncOriginalData()
-    handleSuccessMessage('已关闭余额提醒')
-    emit('saved')
-  } catch (error) {
-    // 失败回退
-    form.enabled = true
-    handleErrorMessage(error, '关闭失败')
-  } finally {
-    saving.value = false
-  }
+  form.threshold = undefined
 }
 
 // TG账号输入过滤：只保留数字
