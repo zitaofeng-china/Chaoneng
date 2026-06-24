@@ -68,9 +68,10 @@
 
 <script setup lang="ts">
 import { type PropType } from 'vue'
-import { ElFormItem, ElUpload, ElMessage } from 'element-plus'
+import { ElFormItem, ElUpload } from 'element-plus'
 import type { UploadUserFile } from 'element-plus'
 import { BaseButton } from '@/components/Button'
+import { handleWarningMessage } from '@/utils/messageHelper'
 import { getMessageFileType } from './utils'
 
 defineProps({
@@ -96,7 +97,7 @@ const handleRemove = (file: UploadUserFile) => {
 }
 
 const handleExceed = () => {
-  ElMessage.warning('最多只能上传 10 个文件')
+  handleWarningMessage('最多只能上传 10 个文件')
 }
 </script>
 
