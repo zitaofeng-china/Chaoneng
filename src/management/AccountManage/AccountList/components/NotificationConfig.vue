@@ -113,15 +113,19 @@ import {
 } from '@/utils/messageHelper'
 
 const ORDER_NOTIFY_TYPE_OPTIONS = [
-  { label: '闪租', value: 7 },
-  { label: '托管', value: 20 },
-  { label: '按笔数', value: 5 },
-  { label: '闪兑', value: 3 },
-  { label: '按时间', value: 4 },
   { label: '用户充值', value: 2 },
-  { label: '托管速充', value: 21 },
+  { label: '兑换', value: 3 },
+  { label: '时间能量', value: 4 },
+  { label: '笔数能量', value: 5 },
+  { label: '福利能量', value: 6 },
+  { label: '闪租能量', value: 7 },
+  { label: '批量能量', value: 9 },
+  { label: '批量激活', value: 10 },
+  { label: '机器人付费', value: 11 },
+  { label: '奖励', value: 12 },
   { label: '速充能量', value: 15 },
-  { label: '激活', value: 10 }
+  { label: '能量托管', value: 20 },
+  { label: '速充托管', value: 21 }
 ] as const
 
 const ORDER_SELECT_ACTIVE_TEXT = '全选'
@@ -221,8 +225,12 @@ const parseBoolean = (value: unknown) => {
 }
 
 const parseOrderTypes = (value: unknown) => {
+  const validValues = new Set(getAllOrderTypeValues())
+  const normalizeOrderTypes = (items: unknown[]) =>
+    items.map((item) => Number(item)).filter((item) => !isNaN(item) && validValues.has(item))
+
   if (Array.isArray(value)) {
-    return value.map((item) => Number(item)).filter((item) => !isNaN(item))
+    return normalizeOrderTypes(value)
   }
   if (typeof value === 'string') {
     const normalized = value.trim()
@@ -237,13 +245,15 @@ const parseOrderTypes = (value: unknown) => {
     }
     return value
       .split(',')
-      .map((item) => Number(item.trim()))
-      .filter((item) => !isNaN(item))
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .map((item) => Number(item))
+      .filter((item) => !isNaN(item) && validValues.has(item))
   }
   return []
 }
 
-const getAllOrderTypeValues = () => ORDER_NOTIFY_TYPE_OPTIONS.map((item) => item.value)
+const getAllOrderTypeValues = (): number[] => ORDER_NOTIFY_TYPE_OPTIONS.map((item) => item.value)
 
 const parseOrderSubscription = (value: unknown) => {
   if (value === null || value === undefined) {
@@ -275,9 +285,12 @@ const parseOrderSubscription = (value: unknown) => {
 }
 
 const getOrderSubscriptionPayload = (orderTypes: number[]) => {
-  if (orderTypes.length === 0) return undefined
-  if (orderTypes.length === ORDER_NOTIFY_TYPE_OPTIONS.length) return []
-  return orderTypes
+  const validValues = getAllOrderTypeValues()
+  const validSet = new Set(validValues)
+  const normalizedOrderTypes = [...new Set(orderTypes)].filter((item) => validSet.has(item))
+  if (normalizedOrderTypes.length === 0) return null
+  if (normalizedOrderTypes.length === validValues.length) return []
+  return normalizedOrderTypes
 }
 
 const buildNotifyPayload = (params: {
@@ -288,10 +301,8 @@ const buildNotifyPayload = (params: {
   const orderSubscription = getOrderSubscriptionPayload(params.orderTypes ?? form.orderTypes)
   const notify: NotifyPayload = {
     chat_id: params.chatId,
-    balance_threshold: params.threshold
-  }
-  if (orderSubscription !== undefined) {
-    notify.order_subscription = orderSubscription
+    balance_threshold: params.threshold,
+    order_subscription: orderSubscription
   }
   return notify
 }
@@ -363,7 +374,10 @@ const handleSave = async () => {
   let threshold = 0
   // 关闭开关时也保留原 TG 账号，只把阈值置 0 表示禁用
   let chatId: number = Number(String(form.chatId || '').trim()) || 0
-  let orderTypes = form.orderTypes.map((item) => Number(item)).filter((item) => !isNaN(item))
+  const validOrderTypeSet = new Set(getAllOrderTypeValues())
+  let orderTypes = form.orderTypes
+    .map((item) => Number(item))
+    .filter((item) => !isNaN(item) && validOrderTypeSet.has(item))
 
   if (form.enabled) {
     if (form.threshold === undefined || form.threshold === null) {
