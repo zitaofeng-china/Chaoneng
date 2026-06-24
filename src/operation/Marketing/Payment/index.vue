@@ -174,7 +174,11 @@ import {
   type V2AddressItem,
   type V2AddressListParams
 } from '@/api/opertion/Marketing/Payment'
-import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import {
+  handleErrorMessage,
+  handleSuccessMessage,
+  handleWarningMessage
+} from '@/utils/messageHelper'
 import {
   v1GetMessageAgentList,
   v1GetMessageBotList,
@@ -229,6 +233,14 @@ const addressForm = reactive({
   address: '',
   expired_at: ''
 })
+
+const DEFAULT_ADDRESS_FORM = {
+  kind: 1,
+  agent_id: undefined as number | undefined,
+  bot_id: undefined as number | undefined,
+  address: '',
+  expired_at: ''
+}
 
 // 使用表单Hook - 导入表单
 const { formRegister: importFormRegister, formMethods: importFormMethods } = useForm()
@@ -584,23 +596,25 @@ const reloadTable = () => {
   return searchTableRef.value?.reload() // 调用 SearchTable 的 reload
 }
 
+const resetAddressForm = (payload?: Partial<typeof DEFAULT_ADDRESS_FORM>) => {
+  Object.assign(addressForm, DEFAULT_ADDRESS_FORM, payload)
+}
+
+const openAddressDialog = () => {
+  addressDialogVisible.value = true
+  nextTick(() => {
+    addressFormRef.value?.clearValidate()
+  })
+}
+
 // 新增地址
 const handleAdd = () => {
   addressDialogMode.value = 'add'
   currentAddress.value = null
   getAgentList()
   botList.value = []
-  Object.assign(addressForm, {
-    kind: 1,
-    agent_id: undefined,
-    bot_id: undefined,
-    address: '',
-    expired_at: ''
-  })
-  addressDialogVisible.value = true
-  nextTick(() => {
-    addressFormRef.value?.clearValidate()
-  })
+  resetAddressForm()
+  openAddressDialog()
 }
 
 const handleEdit = (row: V2AddressItem) => {
@@ -611,17 +625,14 @@ const handleEdit = (row: V2AddressItem) => {
     getAgentList(false)
   }
   botList.value = []
-  Object.assign(addressForm, {
+  resetAddressForm({
     kind,
     agent_id: row.agent_id ? Number(row.agent_id) : undefined,
     bot_id: row.bot_id ? Number(row.bot_id) : undefined,
     address: row.address || '',
     expired_at: normalizeExpiredAtValue(row.expired_at)
   })
-  addressDialogVisible.value = true
-  nextTick(() => {
-    addressFormRef.value?.clearValidate()
-  })
+  openAddressDialog()
 }
 
 const handleAddressKindChange = () => {
@@ -681,7 +692,7 @@ const importFormSchema = reactive<FormSchema[]>([
       multiple: false,
       // 添加 onExceed 处理
       onExceed: () => {
-        ElMessage.warning('只能上传一个文件')
+        handleWarningMessage('只能上传一个文件')
       },
       // 添加 slots 以自定义按钮和提示
       slots: {
@@ -713,7 +724,7 @@ const submitBatchImport = async () => {
     const fileList = formDataRaw.file
 
     if (!fileList || fileList.length === 0) {
-      ElMessage.warning('请先选择文件')
+      handleWarningMessage('请先选择文件')
       return
     }
 
@@ -780,11 +791,11 @@ const submitAddAddresses = async () => {
     const kind = Number(addressForm.kind)
     const addressList = parseAddressList()
     if (addressList.length === 0) {
-      ElMessage.warning('请输入地址')
+      handleWarningMessage('请输入地址')
       return
     }
     if (addressDialogMode.value === 'edit' && addressList.length > 1) {
-      ElMessage.warning('编辑时只能填写一个地址')
+      handleWarningMessage('编辑时只能填写一个地址')
       return
     }
     const address = addressList[0]
