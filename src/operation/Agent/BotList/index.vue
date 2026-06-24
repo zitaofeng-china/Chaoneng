@@ -18,6 +18,8 @@
         </template>
       </SearchTable>
     </ContentWrap>
+
+    <BotInfoEditDialog ref="botInfoEditDialogRef" @success="handleEditSuccess" />
   </div>
 </template>
 
@@ -37,6 +39,7 @@ import {
 } from '@/api/opertion/Agent/BotList'
 import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
+import BotInfoEditDialog from '../components/BotInfoEditDialog.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import {
@@ -53,6 +56,7 @@ import { BOT_STATUS_MAP, BOT_STATUS_OPTIONS } from '../constants'
 const route = useRoute()
 const router = useRouter()
 const searchTableRef = ref<SearchTableExpose | null>(null)
+const botInfoEditDialogRef = ref()
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 type AgentBotSearchParams = Omit<AgentBotQueryParams, 'status'> & {
@@ -244,7 +248,7 @@ const columns = ref<TableColumn[]>([
   {
     field: 'action',
     label: '操作',
-    width: '100px',
+    width: '170px',
     fixed: 'right',
     formatter: (row: AgentBotItem) => {
       const isEnabled = row.status === 1
@@ -254,16 +258,25 @@ const columns = ref<TableColumn[]>([
       const actionText = isEnabled ? '禁用' : '启用'
 
       return (
-        <BaseButton
-          type={buttonType}
-          onClick={() => handleUpdateStatus(row.id, targetStatus, actionText)}
-        >
-          {buttonText}
-        </BaseButton>
+        <>
+          <BaseButton type="primary" onClick={() => handleEdit(row)}>
+            编辑
+          </BaseButton>
+          <BaseButton
+            type={buttonType}
+            onClick={() => handleUpdateStatus(row.id, targetStatus, actionText)}
+          >
+            {buttonText}
+          </BaseButton>
+        </>
       )
     }
   }
 ])
+
+const handleEdit = (row: AgentBotItem) => {
+  botInfoEditDialogRef.value?.open(row)
+}
 
 const handleUpdateStatus = (id: number | string, status: number, actionText: string) => {
   ElMessageBox.confirm(`确定要${actionText}该机器人吗？`, '提示', {
@@ -307,6 +320,10 @@ const handleExport = async () => {
 
 const handleUserCountClick = (botId: number | string) => {
   router.push({ path: '/agent/user_list', query: { bot_id: botId } })
+}
+
+const handleEditSuccess = async () => {
+  await searchTableRef.value?.reload()
 }
 </script>
 
