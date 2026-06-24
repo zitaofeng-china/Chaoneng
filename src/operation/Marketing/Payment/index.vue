@@ -900,6 +900,10 @@ onMounted(() => {
   color: #409eff;
 }
 
+.kind-instant {
+  color: #13c2c2;
+}
+
 .kind-default {
   color: #606266;
 }

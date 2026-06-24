@@ -4,7 +4,8 @@ export const PAYMENT_ADDRESS_KIND_MAP: Record<number, { label: string; className
   3: { label: '闪兑', className: 'kind-exchange' },
   4: { label: '闪租能量', className: 'kind-flash' },
   5: { label: '笔数能量', className: 'kind-count' },
-  6: { label: '福利能量', className: 'kind-welfare' }
+  6: { label: '福利能量', className: 'kind-welfare' },
+  8: { label: '即用能量', className: 'kind-instant' }
 }
 
 export const PAYMENT_ADDRESS_KIND_OPTIONS = Object.entries(PAYMENT_ADDRESS_KIND_MAP).map(

@@ -65,7 +65,6 @@ import {
 import { ElLink } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
 import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
-import { getStatusText, getStatusType, ORDER_STATUS_OPTIONS } from '@/utils/orderStatus'
 import { getSourceText, SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'
 import {
   createPageParams,
@@ -87,6 +86,23 @@ const initialSearchParams = route.query.order_num
     }
   : {}
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
+const USER_RECHARGE_KIND = 2
+const RECHARGE_ORDER_STATUS_TEXT: Record<number, string> = {
+  1: '新订单',
+  5: '已完成',
+  8: '已取消'
+}
+const RECHARGE_ORDER_STATUS_TYPE: Record<number, 'success' | 'warning' | 'info'> = {
+  1: 'info',
+  5: 'success',
+  8: 'warning'
+}
+const RECHARGE_ORDER_STATUS_OPTIONS = [
+  { label: '全部', value: undefined },
+  { label: '新订单', value: 1 },
+  { label: '已完成', value: 5 },
+  { label: '已取消', value: 8 }
+]
 
 type DepositSearchParams = Omit<V2DepositListParams, 'origin' | 'status'> & {
   origin?: number | string
@@ -103,12 +119,23 @@ const activeTab = ref('order')
 const orderDetail = ref<Partial<V2DepositDetail>>({})
 const rechargeDetail = ref<Partial<V2PayTransaction>>({})
 
+const getRechargeOrderStatusText = (status: number | undefined) => {
+  if (status === undefined || status === null) return '-'
+  return RECHARGE_ORDER_STATUS_TEXT[status] || '未知状态'
+}
+
+const getRechargeOrderStatusType = (status: number | undefined): 'success' | 'warning' | 'info' => {
+  if (status === undefined || status === null) return 'info'
+  return RECHARGE_ORDER_STATUS_TYPE[status] || 'info'
+}
+
 const buildDepositListParams = (
   params: DepositSearchParams = {},
   pageSize?: number
 ): V2DepositListParams => {
   const adaptedParams: V2DepositListParams = {
-    ...createPageParams(params, 10, pageSize)
+    ...createPageParams(params, 10, pageSize),
+    kind: USER_RECHARGE_KIND
   }
 
   if (params.keyword) adaptedParams.keyword = params.keyword
@@ -136,8 +163,10 @@ const orderDetailSchema = computed(() => {
       slots: {
         default: (row: V2DepositDetail) => {
           if (!row) return h('span', '-')
-          const tagType = getStatusType(row.status)
-          return h(ElTag, { type: tagType, size: 'small' }, () => getStatusText(row.status))
+          const tagType = getRechargeOrderStatusType(row.status)
+          return h(ElTag, { type: tagType, size: 'small' }, () =>
+            getRechargeOrderStatusText(row.status)
+          )
         }
       }
     },
@@ -338,8 +367,8 @@ const columns = computed(() => {
       width: 100,
       slots: {
         default: ({ row }: DepositTableSlot) => {
-          const type = getStatusType(row.status)
-          const text = getStatusText(row.status)
+          const type = getRechargeOrderStatusType(row.status)
+          const text = getRechargeOrderStatusText(row.status)
           return h(ElTag, { type }, () => text)
         }
       }
@@ -418,7 +447,7 @@ const searchSchema = [
     component: 'Select' as const,
     label: '订单状态',
     componentProps: {
-      options: ORDER_STATUS_OPTIONS,
+      options: RECHARGE_ORDER_STATUS_OPTIONS,
       placeholder: '请选择订单状态'
     }
   },
@@ -557,7 +586,7 @@ const handleExport = async () => {
           来源: getSourceText(item.origin, item.tg_user_name, item.username),
           订单类型: item.coin ? `充值${item.coin}` : '-',
           金额: item.amount ? `${item.amount} ${item.coin || ''}` : '-',
-          订单状态: getStatusText(item.status),
+          订单状态: getRechargeOrderStatusText(item.status),
           收款地址: item.receive_address || '-',
           支付地址: item.pay_address || '-',
           备注: item.describe || '-',

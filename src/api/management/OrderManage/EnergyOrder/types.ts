@@ -19,7 +19,7 @@ export interface EnergyOrderListParamsV1 {
   page_size?: number // 每页大小
   order_id?: string // 订单ID
   keyword?: string // 关键字（TG用户名/机器人名称/用户账号/用户邮箱）
-  kind?: number // 订单类型（4=按时间, 5=按笔数, 6=福利, 7=闪租, 9=批量下单, 10=激活, 15=速充能量, 20=托管, 21=托管速充）
+  kind?: number // 订单类型（4=按时间, 5=按笔数, 6=福利, 7=闪租, 8=即用能量, 9=批量下单, 10=激活, 15=速充能量, 20=托管, 21=托管速充）
   status?: number // 状态（1=新订单, 2=已支付, 3=已发送, 4=已回收, 5=已完成, 6=失败, 7=已退款, 8=已取消, 9=中止）
   origin?: number // 来源（1=机器人，2=H5）
   receive_address?: string // 收款钱包地址
@@ -37,7 +37,7 @@ export interface EnergyOrderItemV1 {
   created_at: number // 创建时间（Unix时间戳-秒）
   updated_at: number // 更新时间（Unix时间戳-秒）
   paid_at: number | null // 支付时间（Unix时间戳-秒，可为null）
-  kind: number // 订单类型（4=按时间, 5=按笔数, 6=福利, 7=闪租, 9=批量下单, 10=激活, 15=速充能量, 20=托管, 21=托管速充）
+  kind: number // 订单类型（4=按时间, 5=按笔数, 6=福利, 7=闪租, 8=即用能量, 9=批量下单, 10=激活, 15=速充能量, 20=托管, 21=托管速充）
   status: number // 状态
   origin: number // 来源（1=机器人，2=H5）
   user_id: number // 用户ID

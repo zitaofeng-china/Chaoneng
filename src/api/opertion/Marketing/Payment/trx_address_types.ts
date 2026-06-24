@@ -10,7 +10,7 @@ export interface V2AddressListParams {
   bot_id?: number // 机器人ID
   current_page?: number // 当前页码
   keyword?: string // 关键字
-  kind?: number // 类型：1-代理余额充值, 2-用户余额充值, 3-闪兑, 4-闪租能量, 5-笔数能量, 6-福利能量
+  kind?: number // 类型：1-代理余额充值, 2-用户余额充值, 3-闪兑, 4-闪租能量, 5-笔数能量, 6-福利能量, 8-即用能量
   order?: string // 排序参数
   page_size?: number // 每页大小
 }
@@ -57,7 +57,7 @@ export interface V2AddressListResponse {
 export interface V2CreateAddressParams {
   agent_id?: number // 代理ID
   bot_id?: number // 机器人ID
-  kind: number // 类型：1-代理余额充值, 2-用户余额充值, 3-闪兑, 4-闪租能量, 5-笔数能量, 6-福利能量
+  kind: number // 类型：1-代理余额充值, 2-用户余额充值, 3-闪兑, 4-闪租能量, 5-笔数能量, 6-福利能量, 8-即用能量
   list: string[] // 地址列表
   expired_at?: number | string // 过期时间
 }
