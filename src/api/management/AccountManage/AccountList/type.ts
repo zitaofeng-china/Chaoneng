@@ -10,6 +10,11 @@ export interface AccountDetail {
   role_id: number
   price_id: number
   gift_bandwidth: boolean
+  notify?: {
+    chat_id?: number | string
+    balance_threshold?: number | string
+    order_subscription?: number[] | string | null
+  }
   notify_threshold: number | string
   notify_chat_id: number | string
   order_notify_chat_id?: number | string

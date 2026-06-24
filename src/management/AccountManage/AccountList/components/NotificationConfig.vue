@@ -70,7 +70,7 @@
           <ElInput
             v-model="form.chatId"
             placeholder="请输入TG账号数字ID"
-            :disabled="!form.enabled"
+            :disabled="saving"
             style="width: 100%"
             maxlength="20"
             @input="handleChatIdInput"
@@ -102,11 +102,15 @@ import {
   ElInputNumber,
   ElCheckbox,
   ElCheckboxGroup,
-  ElButton,
-  ElMessage
+  ElButton
 } from 'element-plus'
 import { v1UpdateUserNotify } from '@/api/management/AccountManage/AccountList'
 import { v1GetNotifyBot } from '@/api/management/BotManage/BotList'
+import {
+  handleErrorMessage,
+  handleSuccessMessage,
+  handleWarningMessage
+} from '@/utils/messageHelper'
 
 const ORDER_NOTIFY_TYPE_OPTIONS = [
   { label: '闪租', value: 4 },
@@ -114,7 +118,7 @@ const ORDER_NOTIFY_TYPE_OPTIONS = [
   { label: '按笔数', value: 5 },
   { label: '闪兑', value: 3 },
   { label: '按时间', value: 7 },
-  { label: '充值订单', value: 2 },
+  { label: '用户充值', value: 2 },
   { label: '托管速充', value: 21 },
   { label: '速充能量', value: 15 },
   { label: '激活', value: 10 },
@@ -135,11 +139,18 @@ interface NotificationFormState {
   orderTypes: number[]
 }
 
+interface NotifyConfigData {
+  chat_id?: number | string
+  balance_threshold?: number | string
+  order_subscription?: number[] | string | null
+}
+
 const props = defineProps<{
   accountId?: number
   /**
-   * 后端返回的字段：notify_threshold（0 表示禁用，>0 表示启用）、chat_id
+   * 后端返回的字段：notify.balance_threshold（0 表示禁用，>0 表示启用）、notify.chat_id
    */
+  notify?: NotifyConfigData | null
   notifyThreshold?: number | string
   chatId?: number | string
   orderNotifyTypes?: number[] | string
@@ -182,10 +193,7 @@ const notifyBotLink = computed(() => {
 })
 
 const orderSwitchWidth = computed(() => {
-  const maxTextLength = Math.max(
-    ORDER_SELECT_ACTIVE_TEXT.length,
-    ORDER_SELECT_INACTIVE_TEXT.length
-  )
+  const maxTextLength = Math.max(ORDER_SELECT_ACTIVE_TEXT.length, ORDER_SELECT_INACTIVE_TEXT.length)
   return maxTextLength * ORDER_SWITCH_TEXT_WIDTH + ORDER_SWITCH_ACTION_WIDTH
 })
 
@@ -213,6 +221,16 @@ const parseOrderTypes = (value: unknown) => {
     return value.map((item) => Number(item)).filter((item) => !isNaN(item))
   }
   if (typeof value === 'string') {
+    const normalized = value.trim()
+    if (!normalized || normalized.toLowerCase() === 'null') return []
+    if (normalized.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(normalized)
+        return parseOrderTypes(parsed)
+      } catch (error) {
+        return []
+      }
+    }
     return value
       .split(',')
       .map((item) => Number(item.trim()))
@@ -221,16 +239,97 @@ const parseOrderTypes = (value: unknown) => {
   return []
 }
 
+const getAllOrderTypeValues = () => ORDER_NOTIFY_TYPE_OPTIONS.map((item) => item.value)
+
+const parseOrderSubscription = (value: unknown) => {
+  if (value === null || value === undefined) {
+    return {
+      orderEnabled: false,
+      orderTypes: []
+    }
+  }
+
+  if (Array.isArray(value) && value.length === 0) {
+    return {
+      orderEnabled: true,
+      orderTypes: getAllOrderTypeValues()
+    }
+  }
+
+  if (typeof value === 'string' && value.trim() === '[]') {
+    return {
+      orderEnabled: true,
+      orderTypes: getAllOrderTypeValues()
+    }
+  }
+
+  const orderTypes = parseOrderTypes(value)
+  return {
+    orderEnabled: orderTypes.length === ORDER_NOTIFY_TYPE_OPTIONS.length,
+    orderTypes
+  }
+}
+
+const getOrderSubscriptionPayload = (orderTypes: number[]) => {
+  if (orderTypes.length === 0) return undefined
+  if (orderTypes.length === ORDER_NOTIFY_TYPE_OPTIONS.length) return []
+  return orderTypes
+}
+
+const buildNotifyPayload = (params: {
+  chatId: number
+  threshold: number
+  orderTypes?: number[]
+}) => {
+  const orderSubscription = getOrderSubscriptionPayload(params.orderTypes ?? form.orderTypes)
+  const notify: NotifyConfigData = {
+    chat_id: params.chatId,
+    balance_threshold: params.threshold
+  }
+  if (orderSubscription !== undefined) {
+    notify.order_subscription = orderSubscription
+  }
+  return notify as {
+    chat_id: number
+    balance_threshold: number
+    order_subscription?: number[]
+  }
+}
+
+const syncOriginalData = () => {
+  Object.assign(originalData, form)
+  originalData.orderTypes = [...form.orderTypes]
+}
+
+const persistNotifyConfig = async (params: {
+  chatId: number
+  threshold: number
+  orderTypes?: number[]
+}) => {
+  await v1UpdateUserNotify({
+    id: Number(props.accountId),
+    notify: buildNotifyPayload(params)
+  })
+}
+
 // 同步父组件传入的数据到表单
 const syncFromProps = () => {
-  const threshold = Number(props.notifyThreshold || 0)
-  const chatIdStr = props.chatId !== undefined && props.chatId !== null ? String(props.chatId) : ''
-  const orderTypes = parseOrderTypes(props.orderNotifyTypes)
-  const orderEnabled = parseBoolean(props.orderNotifyEnabled) || orderTypes.length > 0
+  const notify = props.notify || {}
+  const threshold = Number(notify.balance_threshold ?? props.notifyThreshold ?? 0)
+  const rawChatId = notify.chat_id ?? props.chatId
+  const chatIdStr = rawChatId !== undefined && rawChatId !== null ? String(rawChatId) : ''
+  const hasNotifyOrderSubscription = Object.prototype.hasOwnProperty.call(
+    notify,
+    'order_subscription'
+  )
+  const orderSubscription = hasNotifyOrderSubscription
+    ? notify.order_subscription
+    : props.orderNotifyTypes
+  const { orderEnabled, orderTypes } = parseOrderSubscription(orderSubscription)
   form.enabled = threshold > 0
   form.threshold = threshold > 0 ? threshold : undefined
   form.chatId = chatIdStr === '0' ? '' : chatIdStr
-  form.orderEnabled = orderEnabled
+  form.orderEnabled = orderEnabled || parseBoolean(props.orderNotifyEnabled)
   form.orderTypes = orderTypes
   Object.assign(originalData, form)
   originalData.orderTypes = [...form.orderTypes]
@@ -239,6 +338,7 @@ const syncFromProps = () => {
 watch(
   () => [
     props.accountId,
+    props.notify,
     props.notifyThreshold,
     props.chatId,
     props.orderNotifyTypes,
@@ -256,7 +356,7 @@ onMounted(() => {
 const handleSave = async () => {
   if (saving.value) return
   if (!props.accountId) {
-    ElMessage.warning('账户信息未加载完成')
+    handleWarningMessage('账户信息未加载完成')
     return
   }
 
@@ -267,33 +367,33 @@ const handleSave = async () => {
 
   if (form.enabled) {
     if (form.threshold === undefined || form.threshold === null) {
-      ElMessage.warning('请输入提醒阈值')
+      handleWarningMessage('请输入提醒阈值')
       return
     }
     threshold = Number(form.threshold)
     if (isNaN(threshold) || threshold <= 0) {
-      ElMessage.warning('请输入大于 0 的提醒阈值')
+      handleWarningMessage('请输入大于 0 的提醒阈值')
       return
     }
     const chatIdStr = String(form.chatId || '').trim()
     if (chatIdStr === '') {
-      ElMessage.warning('请输入TG账号')
+      handleWarningMessage('请输入TG账号')
       return
     }
     if (!/^\d+$/.test(chatIdStr)) {
-      ElMessage.warning('TG账号仅支持数字 ID')
+      handleWarningMessage('TG账号仅支持数字 ID')
       return
     }
     chatId = Number(chatIdStr)
     if (isNaN(chatId) || chatId <= 0) {
-      ElMessage.warning('请输入有效的TG账号')
+      handleWarningMessage('请输入有效的TG账号')
       return
     }
   }
 
   if (orderTypes.length > 0) {
     if (chatId <= 0) {
-      ElMessage.warning('请先填写TG账号')
+      handleWarningMessage('请先填写TG账号')
       return
     }
   }
@@ -301,24 +401,17 @@ const handleSave = async () => {
 
   saving.value = true
   try {
-    await v1UpdateUserNotify({
-      id: Number(props.accountId),
-      chat_id: chatId,
+    await persistNotifyConfig({
+      chatId,
       threshold,
-      order_chat_id: chatId,
-      order_notify_chat_id: chatId,
-      order_types: orderTypes,
-      order_notify_types: orderTypes,
-      order_enabled: orderTypes.length > 0,
-      order_notify_enabled: orderTypes.length > 0
+      orderTypes
     })
 
-    ElMessage.success('保存成功')
-    Object.assign(originalData, form)
-    originalData.orderTypes = [...form.orderTypes]
+    handleSuccessMessage('保存成功')
+    syncOriginalData()
     emit('saved')
-  } catch (error: any) {
-    ElMessage.error(error?.msg || '保存失败')
+  } catch (error) {
+    handleErrorMessage(error, '保存失败')
   } finally {
     saving.value = false
   }
@@ -344,20 +437,19 @@ const handleSwitchChange = async (val: boolean | string | number) => {
 
     saving.value = true
     try {
-      await v1UpdateUserNotify({
-        id: Number(props.accountId),
-        chat_id: prevChatId,
+      await persistNotifyConfig({
+        chatId: prevChatId,
         threshold
       })
       form.threshold = threshold
       form.chatId = prevChatId > 0 ? String(prevChatId) : ''
-      Object.assign(originalData, form)
-      ElMessage.success('已开启余额提醒')
+      syncOriginalData()
+      handleSuccessMessage('已开启余额提醒')
       emit('saved')
-    } catch (error: any) {
+    } catch (error) {
       // 失败回退
       form.enabled = false
-      ElMessage.error(error?.msg || '开启失败')
+      handleErrorMessage(error, '开启失败')
     } finally {
       saving.value = false
     }
@@ -369,18 +461,17 @@ const handleSwitchChange = async (val: boolean | string | number) => {
   try {
     const chatIdStr = String(form.chatId || '').trim()
     const chatId = /^\d+$/.test(chatIdStr) ? Number(chatIdStr) : 0
-    await v1UpdateUserNotify({
-      id: Number(props.accountId),
-      chat_id: chatId,
+    await persistNotifyConfig({
+      chatId,
       threshold: 0
     })
-    Object.assign(originalData, form)
-    ElMessage.success('已关闭余额提醒')
+    syncOriginalData()
+    handleSuccessMessage('已关闭余额提醒')
     emit('saved')
-  } catch (error: any) {
+  } catch (error) {
     // 失败回退
     form.enabled = true
-    ElMessage.error(error?.msg || '关闭失败')
+    handleErrorMessage(error, '关闭失败')
   } finally {
     saving.value = false
   }

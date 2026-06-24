@@ -46,18 +46,15 @@ export const getAccountListApi = (params?: any) => {
 /**
  * 更新代理通知设置
  * 接口路径：PUT /v1/user/notify
- * 参数：id（账户ID）、chat_id（TG用户数字ID）、threshold（提醒阈值，0 表示禁用）
+ * 参数：id（账户ID）、notify（通知配置对象）
  */
 export interface UpdateNotifyParams {
   id: number
-  chat_id: number
-  threshold: number
-  order_chat_id?: number
-  order_notify_chat_id?: number
-  order_types?: number[]
-  order_notify_types?: number[]
-  order_enabled?: boolean
-  order_notify_enabled?: boolean
+  notify: {
+    chat_id: number
+    balance_threshold: number
+    order_subscription?: number[] | null
+  }
 }
 
 export const v1UpdateUserNotify = (data: UpdateNotifyParams): Promise<IResponse> => {
