@@ -18,7 +18,7 @@
     "build:dev": "node scripts/build-with-system-type.mjs",
     "build:test": "node scripts/build-with-system-type.mjs",
     "build:management": "cross-env VITE_SYSTEM_TYPE=Management pnpm vite build --mode pro",
-    "build:operation": "cross-env VITE_SYSTEM_TYPE=Operation pnpm vite build --mode pro",
+    "build:operation": "cross-env NODE_OPTIONS=--max-old-space-size=4096 VITE_SYSTEM_TYPE=Operation pnpm vite build --mode pro",
     "serve:pro": "pnpm vite preview --mode pro",
     "serve:dev": "pnpm vite preview --mode dev",
     "serve:test": "pnpm vite preview --mode test",
