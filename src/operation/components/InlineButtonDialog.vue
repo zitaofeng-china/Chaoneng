@@ -142,7 +142,6 @@
 <script setup lang="tsx">
 import { ref, reactive, watch } from 'vue'
 import {
-  ElMessage,
   ElButton,
   ElTag,
   ElTable,
@@ -168,7 +167,7 @@ import {
   type InnerButtonItem,
   type UpdateInnerButtonParams
 } from '@/api/opertion/common/menuList'
-import { getErrorMessage } from '@/utils/messageHelper'
+import { getErrorMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import { formatTableDateTime } from '@/utils/tableHelpers'
 import type { SelectOption } from '@/utils/tableHelpers'
 
@@ -277,7 +276,7 @@ const fetchData = async () => {
       pagination.total = 0
     }
   } catch (error: unknown) {
-    ElMessage.error(getErrorMessage(error, '获取内联按钮列表失败'))
+    handleErrorMessage(error, '获取内联按钮列表失败')
     allData.value = []
     tableData.value = []
     pagination.total = 0
@@ -317,14 +316,14 @@ const handleDelete = async (row: InnerButtonItem) => {
     const res = await v1DeleteInnerButton(row.id)
     if (res.code === '000000') {
       await fetchData()
-      ElMessage.success('删除成功')
+      handleSuccessMessage('删除成功')
       emit('success')
     } else {
-      ElMessage.error('删除失败')
+      handleErrorMessage('删除失败')
     }
   } catch (error: unknown) {
     if (error !== 'cancel') {
-      ElMessage.error('删除内联按钮失败')
+      handleErrorMessage(error, '删除内联按钮失败')
     }
   }
 }
@@ -339,8 +338,8 @@ const fetchCallbackList = async () => {
         value: item.key
       }))
     }
-  } catch (error) {
-    ElMessage.error('获取回调函数列表失败')
+  } catch (error: unknown) {
+    handleErrorMessage(error, '获取回调函数列表失败')
   }
 }
 
@@ -370,6 +369,7 @@ const handleEdit = (row: InnerButtonItem) => {
     menu_name: row.text,
     inner_type: row.inner_type === 'call' ? 'call' : 'url',
     inner_value: row.inner_value || '',
+    order_num: row.order_num || 0,
     status: row.status || 1
   })
 }
@@ -407,11 +407,11 @@ const handleFormSubmit = async () => {
     formDialogVisible.value = false
 
     await fetchData()
-    ElMessage.success(formData.id ? '更新成功' : '添加成功')
+    handleSuccessMessage(formData.id ? '更新成功' : '添加成功')
     emit('success')
   } catch (error: unknown) {
     if (error !== 'cancel') {
-      ElMessage.error(getErrorMessage(error, '保存失败'))
+      handleErrorMessage(error, '保存失败')
     }
   } finally {
     submitting.value = false
