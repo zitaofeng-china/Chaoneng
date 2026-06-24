@@ -220,7 +220,7 @@ export function useBotConfigV1() {
         charge: getChargePrice(systemPrice),
         bandwidth: parsePriceValue(systemPrice.bandwidth),
         active: parsePriceValue(systemPrice.active),
-        weal: parsePriceValue(systemPrice.weal)
+        instant: parsePriceValue(systemPrice.instant)
       })
 
       // 保存当前价格配置
@@ -248,7 +248,7 @@ export function useBotConfigV1() {
         max_usdt_2_trx: parsePriceValue(botPriceData.max_usdt_2_trx),
         trx_2_usdt: parsePriceValue(botPriceData.trx_2_usdt) * 100,
         max_trx_2_usdt: parsePriceValue(botPriceData.max_trx_2_usdt),
-        weal: parsePriceValue(botPriceData.weal)
+        instant: parsePriceValue(botPriceData.instant)
       })
 
       return true
@@ -510,6 +510,7 @@ export function useBotConfigV1() {
         { field: 'hosting_131k', label: '131000能量', costKey: 'hosting_131k' },
         { field: 'batch_flash', label: '批量能量单价', costKey: 'batch_flash' },
         { field: 'charge', label: '速充', costKey: 'charge' },
+        { field: 'instant', label: '即用能量', costKey: 'instant' },
         { field: 'active', label: '激活地址单价', costKey: 'active' }
       ]
 
@@ -568,7 +569,7 @@ export function useBotConfigV1() {
         min_trx_balance: priceData.min_trx_balance || 0,
         max_usdt_2_trx: priceData.max_usdt_2_trx || 0,
         max_trx_2_usdt: priceData.max_trx_2_usdt || 0,
-        weal: priceData.weal || 0
+        instant: priceData.instant || 0
       }
 
       await v1UpdateBotPrice(priceConfig)

@@ -477,6 +477,41 @@ const priceSchema = reactive<FormSchema[]>([
     }
   },
 
+  // 即用能量
+  {
+    field: 'divider_instant_energy',
+    component: 'Divider' as const,
+    label: '即用能量',
+    colProps: { span: 24 }
+  },
+  {
+    field: 'instant',
+    component: 'InputNumber' as const,
+    label: '即用能量',
+    componentProps: {
+      placeholder: '请输入即用能量价格',
+      min: 0,
+      precision: 2
+    },
+    formItemProps: {
+      rules: [
+        { required: true, message: '即用能量是必填项' },
+        createCostPriceValidator('instant', '即用能量价格')
+      ],
+      slots: {
+        label: () => {
+          const costPrice = computedCostPrices.value.instant
+          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
+          return (
+            <>
+              即用能量 <small style="color: #909399; font-size: 10px;">（{costText}）</small>
+            </>
+          )
+        }
+      }
+    }
+  },
+
   // 闪兑配置
   {
     field: 'divider_flash_exchange',
@@ -555,40 +590,6 @@ const priceSchema = reactive<FormSchema[]>([
       precision: 2
     }
   }
-
-  // 福利板块 - 已迁移至运营端营销管理
-  // {
-  //   field: 'divider_welfare',
-  //   component: 'Divider' as const,
-  //   label: '福利板块',
-  //   colProps: { span: 24 }
-  // },
-  // {
-  //   field: 'weal',
-  //   component: 'InputNumber' as const,
-  //   label: '福利能量（TRX）',
-  //   componentProps: {
-  //     placeholder: '请输入福利能量价格',
-  //     min: 0,
-  //     precision: 2
-  //   },
-  //   formItemProps: {
-  //     rules: [
-  //       { required: true, message: '福利能量是必填项' }
-  //     ],
-  //     slots: {
-  //       label: () => {
-  //         const costPrice = computedCostPrices.value.weal
-  //         const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
-  //         return (
-  //           <>
-  //             福利能量（TRX） <small style="color: #909399; font-size: 10px;">（{costText}）</small>
-  //           </>
-  //         )
-  //       }
-  //     }
-  //   }
-  // }
 ])
 
 defineExpose({

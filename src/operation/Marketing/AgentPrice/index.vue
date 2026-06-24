@@ -89,14 +89,14 @@
                 <div class="value-wrapper">
                   <el-input-number
                     v-if="editModeMap[agent.id]"
-                    v-model="formDataMap[agent.id].weal"
+                    v-model="formDataMap[agent.id].instant"
                     :precision="2"
                     :step="0.1"
                     :min="0"
                     size="small"
                     controls-position="right"
                   />
-                  <span v-else class="value-text">{{ formDataMap[agent.id].weal }}</span>
+                  <span v-else class="value-text">{{ formDataMap[agent.id].instant }}</span>
                   <span class="unit">TRX</span>
                 </div>
               </div>
@@ -432,7 +432,7 @@ interface PriceFormData {
   batch_flash: number
   bandwidth: number
   charge: number
-  weal: number
+  instant: number
 }
 
 const hasEditPermission = computed(() => hasRouteButtonPermission(route, 'edit'))
@@ -465,7 +465,7 @@ const createPriceFormData = (item: V1PriceListResponse): PriceFormData => ({
   batch_flash: toNumber(item.batch_flash),
   bandwidth: toNumber(item.bandwidth),
   charge: getChargeValue(item),
-  weal: toNumber(item.weal)
+  instant: toNumber(item.instant)
 })
 
 const getTrx2UsdtDisplay = (agentId: number) => {
@@ -522,7 +522,7 @@ const hasChanges = (agentId: number) => {
     Number(formData.batch_flash) !== Number(original.batch_flash || 0) ||
     Number(formData.bandwidth) !== Number(original.bandwidth || 0) ||
     Number(formData.charge) !== getChargeValue(original) ||
-    Number(formData.weal) !== Number(original.weal || 0)
+    Number(formData.instant) !== Number(original.instant || 0)
   )
 }
 
@@ -611,7 +611,7 @@ const handleSave = async (agentId: number) => {
       batch_flash: formData.batch_flash,
       bandwidth: formData.bandwidth,
       charge: Math.round(Number(formData.charge) || 0),
-      weal: formData.weal
+      instant: formData.instant
     })
 
     await loadPriceData()
@@ -633,11 +633,11 @@ loadPriceData()
   .row-first > .price-item-card:nth-child(2),
   .row-first > .price-item-card:nth-child(4),
   .row-first > .price-item-card:nth-child(5) {
-    grid-column: span 3;
+    grid-column: span 2;
   }
 
   .row-first > .price-item-card:nth-child(3) {
-    grid-column: span 6;
+    grid-column: span 4;
   }
 
   .row-second {
@@ -720,7 +720,7 @@ loadPriceData()
 }
 
 .row-first > .price-item-card:nth-child(3) {
-  grid-column: span 6;
+  grid-column: span 4;
   min-width: 0;
 }
 

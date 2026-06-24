@@ -41,7 +41,7 @@ export interface V1PriceListResponse {
   batch_flash: string | number // 批量下单价格
   bandwidth?: string | number // 带宽价格
   charge?: string | number // 速充价格
-  weal?: string | number // 福利价格
+  instant?: string | number // 即用能量价格
 }
 
 // 价格参数更新参数 - v1
@@ -65,5 +65,5 @@ export interface V1UpdatePriceParams {
   batch_flash?: string | number // 批量下单价格
   bandwidth?: string | number // 带宽价格
   charge?: string | number // 速充价格
-  weal?: string | number // 福利价格
+  instant?: string | number // 即用能量价格
 }
