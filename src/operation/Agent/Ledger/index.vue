@@ -167,6 +167,7 @@ const columns = ref<TableColumn[]>([
           case 5: // 按笔数
           case 6: // 福利能量
           case 7: // 闪租
+          case 8: // 即用能量
           case 9: // 批量能量
           case 10: // 激活
           case 20: // 托管

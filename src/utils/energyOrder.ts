@@ -11,6 +11,7 @@ export enum EnergyOrderKind {
   COUNT_ENERGY = 5, // 笔数能量
   WELFARE_ENERGY = 6, // 福利能量
   QUICK_ENERGY = 7, // 快速能量
+  INSTANT_ENERGY = 8, // 即用能量
   BATCH_ENERGY = 9, // 批量能量
   BATCH_ACTIVE = 10, // 批量激活
   MANUAL_QUICK_CHARGE = 15, // 速充能量
@@ -26,6 +27,7 @@ export const ENERGY_ORDER_KIND_TEXT: Record<number, string> = {
   [EnergyOrderKind.COUNT_ENERGY]: '按笔数',
   [EnergyOrderKind.WELFARE_ENERGY]: '福利',
   [EnergyOrderKind.QUICK_ENERGY]: '闪租',
+  [EnergyOrderKind.INSTANT_ENERGY]: '即用能量',
   [EnergyOrderKind.AUTO_HOSTING]: '托管',
   [EnergyOrderKind.BATCH_ENERGY]: '批量下单',
   [EnergyOrderKind.BATCH_ACTIVE]: '激活',
@@ -40,6 +42,7 @@ export const ENERGY_ORDER_KIND_TAG_TYPE: Record<number, EnergyOrderKindTagType> 
   [EnergyOrderKind.COUNT_ENERGY]: 'primary',
   [EnergyOrderKind.WELFARE_ENERGY]: 'primary',
   [EnergyOrderKind.QUICK_ENERGY]: 'success',
+  [EnergyOrderKind.INSTANT_ENERGY]: 'warning',
   [EnergyOrderKind.AUTO_HOSTING]: 'warning',
   [EnergyOrderKind.BATCH_ENERGY]: 'danger',
   [EnergyOrderKind.BATCH_ACTIVE]: 'info',
@@ -105,6 +108,7 @@ export const ENERGY_ORDER_KIND_OPTIONS = [
   { label: '按笔数', value: EnergyOrderKind.COUNT_ENERGY },
   { label: '福利', value: EnergyOrderKind.WELFARE_ENERGY },
   { label: '闪租', value: EnergyOrderKind.QUICK_ENERGY },
+  { label: '即用能量', value: EnergyOrderKind.INSTANT_ENERGY },
   { label: '托管', value: EnergyOrderKind.AUTO_HOSTING },
   { label: '批量下单', value: EnergyOrderKind.BATCH_ENERGY },
   { label: '激活', value: EnergyOrderKind.BATCH_ACTIVE },

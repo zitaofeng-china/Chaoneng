@@ -119,6 +119,7 @@ const ORDER_NOTIFY_TYPE_OPTIONS = [
   { label: '笔数能量', value: 5 },
   { label: '福利能量', value: 6 },
   { label: '闪租能量', value: 7 },
+  { label: '即用能量', value: 8 },
   { label: '批量能量', value: 9 },
   { label: '批量激活', value: 10 },
   { label: '机器人付费', value: 11 },

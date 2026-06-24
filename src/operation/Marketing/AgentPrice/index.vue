@@ -41,7 +41,7 @@
         </template>
 
         <div class="price-items-grid">
-          <!-- 第一行：托管 - 按时间 - 速充 - 闪兑 -->
+          <!-- 第一行：托管 - 即用能量 - 按时间 - 速充 - 闪兑 -->
           <div class="row-first">
             <!-- 托管 -->
             <div class="price-item-card">
@@ -78,6 +78,26 @@
                     <span v-else class="value-text">{{ formDataMap[agent.id].hosting_131k }}</span>
                     <span class="unit">TRX</span>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 即用能量 -->
+            <div class="price-item-card">
+              <div class="item-title">即用能量</div>
+              <div class="item-content single-input">
+                <div class="value-wrapper">
+                  <el-input-number
+                    v-if="editModeMap[agent.id]"
+                    v-model="formDataMap[agent.id].weal"
+                    :precision="2"
+                    :step="0.1"
+                    :min="0"
+                    size="small"
+                    controls-position="right"
+                  />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].weal }}</span>
+                  <span class="unit">TRX</span>
                 </div>
               </div>
             </div>
@@ -610,12 +630,13 @@ loadPriceData()
 <style scoped>
 @media (width <= 1280px) {
   .row-first > .price-item-card:nth-child(1),
-  .row-first > .price-item-card:nth-child(3),
-  .row-first > .price-item-card:nth-child(4) {
+  .row-first > .price-item-card:nth-child(2),
+  .row-first > .price-item-card:nth-child(4),
+  .row-first > .price-item-card:nth-child(5) {
     grid-column: span 3;
   }
 
-  .row-first > .price-item-card:nth-child(2) {
+  .row-first > .price-item-card:nth-child(3) {
     grid-column: span 6;
   }
 
@@ -694,16 +715,21 @@ loadPriceData()
 }
 
 .row-first > .price-item-card:nth-child(2) {
-  grid-column: span 6;
-  min-width: 0;
-}
-
-.row-first > .price-item-card:nth-child(3) {
   grid-column: span 2;
   min-width: 0;
 }
 
+.row-first > .price-item-card:nth-child(3) {
+  grid-column: span 6;
+  min-width: 0;
+}
+
 .row-first > .price-item-card:nth-child(4) {
+  grid-column: span 2;
+  min-width: 0;
+}
+
+.row-first > .price-item-card:nth-child(5) {
   grid-column: span 2;
   min-width: 0;
 }

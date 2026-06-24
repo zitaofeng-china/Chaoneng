@@ -176,7 +176,7 @@ export type AddressListParams = {
   current_page?: number // 当前页码
   keyword?: string // 关键字（搜索）
   order?: string // 排序 【ASC | DESC】
-  kind?: number // 类型：1-代理充值, 2-用户充值, 3-兑换(TRX-USDT), 4-时间能量(闪租), 5-笔数能量, 6-福利能量, 7-快速能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充
+  kind?: number // 类型：1-代理充值, 2-用户充值, 3-兑换(TRX-USDT), 4-时间能量(闪租), 5-笔数能量, 6-福利能量, 7-快速能量, 8-即用能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充
   page_size?: number // 每页数量
 }
 
@@ -186,7 +186,7 @@ export type AddressListParams = {
 export type AddressAddParams = {
   agent_id?: number // 代理ID
   bot_id?: number // 机器人ID
-  kind?: number // 类型：1-代理充值, 2-用户充值, 3-兑换(TRX-USDT), 4-时间能量(闪租), 5-笔数能量, 6-福利能量, 7-快速能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充
+  kind?: number // 类型：1-代理充值, 2-用户充值, 3-兑换(TRX-USDT), 4-时间能量(闪租), 5-笔数能量, 6-福利能量, 7-快速能量, 8-即用能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充
   list: string[] //地址列表
 }
 
@@ -206,7 +206,7 @@ export type AddressListItem = {
   created_at: number // 创建时间（Unix时间戳）
   updated_at: number // 更新时间（Unix时间戳）
   address: string // 地址
-  kind: number | string // 类型：1-代理充值, 2-用户充值, 3-兑换(TRX-USDT), 4-时间能量(闪租), 5-笔数能量, 6-福利能量, 7-快速能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充（可能是数字或字符串）
+  kind: number | string // 类型：1-代理充值, 2-用户充值, 3-兑换(TRX-USDT), 4-时间能量(闪租), 5-笔数能量, 6-福利能量, 7-快速能量, 8-即用能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充（可能是数字或字符串）
   bot_id: number // 机器人ID
   agent_id: number // 代理ID
   created_by: string // 创建者

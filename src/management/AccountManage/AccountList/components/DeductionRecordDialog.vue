@@ -51,6 +51,7 @@ const orderTypeMap = () => {
     5: '按笔数',
     6: '福利能量',
     7: '快速能量',
+    8: '即用能量',
     9: '批量能量',
     10: '批量激活',
     11: '机器人付费',
@@ -81,6 +82,7 @@ const columns: TableColumn[] = [
           case 5: // 按笔数
           case 6: // 福利能量
           case 7: // 快速能量
+          case 8: // 即用能量
           case 9: // 批量能量
           case 10: // 批量激活
             href = `${href}/energy_order`

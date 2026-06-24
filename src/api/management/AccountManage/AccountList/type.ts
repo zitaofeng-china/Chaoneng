@@ -55,7 +55,7 @@ export interface BillListParamsV1 {
   current_page?: number // 当前页码
   end_time?: string // 结束时间
   keyword?: string // 关键字
-  kinds?: number[] // 类型数组：1-代理充值, 2-用户充值, 3-兑换, 4-按时间, 5-按笔数, 6-福利能量, 7-快速能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充
+  kinds?: number[] // 类型数组：1-代理充值, 2-用户充值, 3-兑换, 4-按时间, 5-按笔数, 6-福利能量, 7-快速能量, 8-即用能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充
   order_id?: string // 订单ID
   page_size?: number // 每页大小
   start_time?: string // 开始时间
@@ -68,7 +68,7 @@ export interface BillListParamsV1 {
 export interface BillItemV1 {
   order_id: string // 订单ID
   created_at: number // 创建时间（Unix时间戳-秒）
-  kind: number // 类型：1-代理充值, 2-用户充值, 3-兑换, 4-按时间, 5-按笔数, 6-福利能量, 7-快速能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充
+  kind: number // 类型：1-代理充值, 2-用户充值, 3-兑换, 4-按时间, 5-按笔数, 6-福利能量, 7-快速能量, 8-即用能量, 9-批量能量, 10-批量激活, 11-机器人付费, 15-速充能量, 20-托管, 21-托管速充
   agent_id: number // 代理ID
   bot_id: number // 机器人ID
   amount: string // 金额

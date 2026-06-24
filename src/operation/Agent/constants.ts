@@ -45,6 +45,7 @@ export const AGENT_BILL_ORDER_TYPE_MAP: Record<number, string> = {
   5: '按笔数',
   6: '福利能量',
   7: '闪租',
+  8: '即用能量',
   9: '批量能量',
   10: '激活',
   11: '机器人付费',
