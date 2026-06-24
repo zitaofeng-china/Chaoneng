@@ -107,7 +107,6 @@ import {
   ElFormItem,
   ElInput,
   ElInputNumber,
-  ElMessage,
   ElOption,
   ElRadio,
   ElRadioGroup,
@@ -220,6 +219,28 @@ const resetFormData = () => {
   })
 }
 
+const openMenuDialog = async (title: string, row?: MenuDialogRow) => {
+  dialogTitle.value = title
+  resetFormData()
+  dialogVisible.value = true
+
+  if (row) {
+    Object.assign(formData, {
+      id: row.id ? Number(row.id) : undefined,
+      menu_name: row.menu_name ? String(row.menu_name) : '',
+      order_num: row.order_num ? Number(row.order_num) : 0,
+      status: row.status ? Number(row.status) : 1
+    })
+    hydrateVisibilityFields(row)
+  }
+
+  await fetchAgentOptions()
+  ensureSelectedAgentOptions(formData.agent_ids)
+
+  await nextTick()
+  formRef.value?.clearValidate()
+}
+
 const hydrateVisibilityFields = (row?: Partial<Record<string, unknown>>) => {
   const rawWhitelist = row?.whitelist
   const rawAgentIds = row?.agent_ids
@@ -275,28 +296,6 @@ const fetchAgentOptions = async () => {
   } finally {
     agentLoading.value = false
   }
-}
-
-const openDialog = async (title: string, row?: MenuDialogRow) => {
-  dialogTitle.value = title
-  dialogVisible.value = true
-  resetFormData()
-
-  if (row) {
-    Object.assign(formData, {
-      id: row.id ? Number(row.id) : undefined,
-      menu_name: row.menu_name ? String(row.menu_name) : '',
-      order_num: row.order_num ? Number(row.order_num) : 0,
-      status: row.status ? Number(row.status) : 1
-    })
-    hydrateVisibilityFields(row)
-  }
-
-  await fetchAgentOptions()
-  ensureSelectedAgentOptions(formData.agent_ids)
-
-  await nextTick()
-  formRef.value?.clearValidate()
 }
 
 const buildVisibilityPayload = () => {
@@ -447,11 +446,11 @@ const handleDelete = (row: BotMenuItem) => {
 }
 
 const handleAdd = async () => {
-  await openDialog('添加菜单')
+  await openMenuDialog('添加菜单')
 }
 
 const handleEdit = async (row: BotMenuItem) => {
-  await openDialog('编辑菜单', row)
+  await openMenuDialog('编辑菜单', row)
 }
 
 const handlePreview = () => {
@@ -464,7 +463,7 @@ const handleInlineButton = () => {
 
 const handleRefresh = async () => {
   await searchTableRef.value?.reload()
-  ElMessage.success('刷新成功')
+  handleSuccessMessage('刷新成功')
 }
 
 const handleSubmit = async () => {
@@ -480,7 +479,9 @@ const handleSubmit = async () => {
         (!formData.id || item.id !== formData.id)
     )
     if (duplicated) {
-      ElMessage.warning(`排序号 ${formData.order_num} 已被「${duplicated.menu_name}」占用，请更换`)
+      handleWarningMessage(
+        `排序号 ${formData.order_num} 已被「${duplicated.menu_name}」占用，请更换`
+      )
       return
     }
 
@@ -515,13 +516,13 @@ const handleSubmit = async () => {
 
     dialogVisible.value = false
     await searchTableRef.value?.reload()
-    ElMessage.success(formData.id ? '更新成功' : '添加成功')
+    handleSuccessMessage(formData.id ? '更新成功' : '添加成功')
   } catch (error) {
     if (error instanceof Error && error.message) {
-      ElMessage.error(error.message)
+      handleErrorMessage(error.message, '提交失败')
       return
     }
-    ElMessage.error('表单验证失败，请检查填写内容')
+    handleErrorMessage('表单验证失败，请检查填写内容', '提交失败')
   } finally {
     submitting.value = false
   }
@@ -532,14 +533,7 @@ const previewHandleClose = () => {
   searchTableRef.value?.reload()
 }
 
-const handleDataLoaded = ({
-  data,
-  success
-}: {
-  data: BotMenuItem[]
-  total: number
-  success: boolean
-}) => {
+const handleDataLoaded = () => {
   isLoaded.value = true
 }
 
@@ -565,7 +559,7 @@ const handleStatusChange = async (row: BotMenuItem) => {
 
     await batchUpdateBotMenu(updateParams)
     await searchTableRef.value?.reload()
-    ElMessage.success('状态更新成功')
+    handleSuccessMessage('状态更新成功')
   } catch (error) {
     handleErrorMessage(error, '状态更新失败')
     row.status = previousStatus
