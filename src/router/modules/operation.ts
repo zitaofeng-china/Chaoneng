@@ -281,6 +281,14 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           }
         },
         {
+          path: 'recharge_order',
+          component: () => import('@/operation/Agent/RechargeOrder/index.vue'),
+          name: 'AgentRechargeOrder',
+          meta: {
+            title: '代理充值'
+          }
+        },
+        {
           path: 'bot_list',
           component: () => import('@/operation/Agent/BotList/index.vue'),
           name: 'AgentBotList',
