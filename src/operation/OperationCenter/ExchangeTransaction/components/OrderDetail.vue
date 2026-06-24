@@ -1,10 +1,13 @@
 <template>
   <Dialog v-model="visible" title="兑换详情">
-    <div v-if="loading" class="flex justify-center items-center min-h-[200px]">
-      <Icon icon="ep:loading" class="is-loading" :size="26" />
-    </div>
+    <div
+      v-if="loading"
+      class="order-detail-loading"
+      v-loading="true"
+      element-loading-text="正在加载订单详情..."
+    ></div>
 
-    <template v-if="orderDetail && !loading">
+    <template v-else-if="orderDetail">
       <ElTabs v-model="activeTab">
         <!-- 标签页1：兑换详情 -->
         <ElTabPane label="兑换详情" name="detail">
@@ -37,7 +40,7 @@
       </ElTabs>
     </template>
 
-    <div v-else-if="!loading" class="text-center p-5">无法加载订单详情数据。</div>
+    <div v-else class="text-center p-5">无法加载订单详情数据。</div>
 
     <template #footer>
       <div class="flex justify-end">
@@ -49,7 +52,7 @@
 
 <script setup lang="ts">
 import { ref, computed, h } from 'vue'
-import { ElButton, ElMessage, ElTag, ElTabs, ElTabPane, ElEmpty } from 'element-plus'
+import { ElButton, ElTag, ElTabs, ElTabPane, ElEmpty } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
@@ -57,7 +60,6 @@ import {
   v2GetExchangeDetail,
   type V2ExchangeDetail
 } from '@/api/opertion/OperationCenter/ExchangeTransaction'
-import Icon from '@/components/Icon/src/Icon.vue'
 import { handleErrorMessage } from '@/utils/messageHelper'
 import { formatTableDateTime, getStatusLabel, getStatusTagType } from '@/utils/tableHelpers'
 import { ExchangeOrderType, getExchangeOrderType } from '@/utils/exchangeOrder'
@@ -308,7 +310,6 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
 const open = async (orderIdValue: number | string) => {
   const id = String(orderIdValue)
   if (!id) {
-    ElMessage.error('无效的订单ID')
     return
   }
 
@@ -321,11 +322,13 @@ const open = async (orderIdValue: number | string) => {
     const res = await v2GetExchangeDetail(id)
     if (res.code === '000000' && res.data) {
       orderDetail.value = res.data
-    } else {
-      ElMessage.error(res.msg || '获取订单详情失败')
+      return
     }
+
+    orderDetail.value = null
   } catch (error) {
     handleErrorMessage(error, '获取订单详情失败')
+    orderDetail.value = null
   } finally {
     loading.value = false
   }
@@ -339,18 +342,12 @@ defineExpose({ open })
   color: #3b82f6;
 }
 
-.is-loading {
-  animation: rotating 2s linear infinite;
-}
-
-@keyframes rotating {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
+.order-detail-loading {
+  display: flex;
+  min-height: 240px;
+  color: var(--el-text-color-secondary);
+  align-items: center;
+  justify-content: center;
 }
 
 :deep(.el-descriptions__content) {
