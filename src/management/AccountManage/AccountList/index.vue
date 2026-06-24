@@ -136,7 +136,6 @@ import {
   ElForm,
   ElFormItem,
   ElInput,
-  ElMessage,
   ElDescriptions,
   ElDescriptionsItem,
   ElDivider,
@@ -157,6 +156,11 @@ import { changePasswordApi, sendEmailCodeApi } from '@/api/common/login'
 import { debounce } from 'lodash-es'
 import { useUserStore } from '@/store/modules/user'
 import QRCode from 'qrcode'
+import {
+  handleErrorMessage,
+  handleSuccessMessage,
+  handleWarningMessage
+} from '@/utils/messageHelper'
 
 // 表单校验
 const { required } = useValidator()
@@ -179,6 +183,21 @@ const rechargeDialogVisible = ref(false)
 // 收款地址生成的二维码 DataURL
 const qrCodeDataUrl = ref('')
 
+const ensureAccountReady = (message: string) => {
+  if (!userData.value.id) {
+    handleWarningMessage(message)
+    return false
+  }
+  return true
+}
+
+const resetPasswordFormState = () => {
+  resetForm.code = ''
+  resetForm.password = ''
+  resetForm.confirmPassword = ''
+  resetForm.email = userData.value.email || ''
+}
+
 // 根据收款地址生成二维码
 const generateQrCode = async (address: string) => {
   if (!address) {
@@ -192,7 +211,7 @@ const generateQrCode = async (address: string) => {
       errorCorrectionLevel: 'M'
     })
   } catch (error) {
-    console.error('生成二维码失败:', error)
+    handleErrorMessage(error, '生成充值二维码失败')
     qrCodeDataUrl.value = ''
   }
 }
@@ -242,11 +261,11 @@ const fetchAccountList = async (params: any) => {
     if (response && response.data) {
       userData.value = response.data
     } else {
-      ElMessage.warning('获取账户信息失败，返回数据为空')
+      handleWarningMessage('获取账户信息失败，返回数据为空')
       userData.value = {}
     }
   } catch (error) {
-    ElMessage.error('获取账户信息失败')
+    handleErrorMessage(error, '获取账户信息失败')
     userData.value = {}
   } finally {
     loading.value = false
@@ -312,27 +331,18 @@ const startCountdown = () => {
 // 实际执行 API 请求的防抖函数
 const debouncedApiCall = debounce(async () => {
   try {
-    if (!resetForm.email) {
-      // 如果 API 调用因邮箱为空而未执行，也需要重置状态
-      ElMessage.warning('邮箱地址为空，无法发送验证码')
-      resetCountdown() // 重置倒计时状态
-      return
-    }
-
     // 发送邮箱验证码
     await sendEmailCodeApi({
       email: resetForm.email,
       channel: 'change_passwd'
     })
 
-    ElMessage.success('验证码已发送到邮箱')
-    // 注意：倒计时已经在 handleClickSendCode 中启动了
+    handleSuccessMessage('验证码已发送到邮箱')
   } catch (error) {
-    ElMessage.error('发送验证码失败，请稍后重试')
-    // API 请求失败时，重置倒计时状态，让用户可以重试
+    handleErrorMessage(error, '发送验证码失败')
     resetCountdown()
   }
-}, 1000) // 保持 1 秒防抖
+}, 1000)
 
 // 重置倒计时的辅助函数
 const resetCountdown = () => {
@@ -345,81 +355,79 @@ const resetCountdown = () => {
 
 // 按钮点击时触发的函数
 const handleSendCodeClick = () => {
-  // 如果正在倒计时，则不执行任何操作
   if (isCounting.value) {
+    return
+  }
+  if (!resetForm.email) {
+    handleWarningMessage('邮箱地址为空，无法发送验证码')
     return
   }
 
   startCountdown()
-
   debouncedApiCall()
 }
 
 // 打开修改密码弹窗
 const openPasswordDialog = () => {
-  if (!userData.value.id) {
-    ElMessage.warning('账户信息不完整，请刷新页面后重试')
+  if (!ensureAccountReady('账户信息不完整，请刷新页面后重试')) {
     return
   }
   if (!userData.value.email) {
-    ElMessage.warning('账户邮箱信息缺失，无法修改密码')
+    handleWarningMessage('账户邮箱信息缺失，无法修改密码')
     return
   }
 
-  resetForm.code = ''
-  resetForm.password = ''
-  resetForm.confirmPassword = ''
-  resetForm.email = userData.value.email
-
+  resetPasswordFormState()
   resetFormRef.value?.clearValidate()
-
   passwordDialogVisible.value = true
+}
+
+const validateResetForm = async () => {
+  if (!resetFormRef.value) {
+    return false
+  }
+
+  return await new Promise<boolean>((resolve) => {
+    resetFormRef.value.validate((valid: boolean) => resolve(valid))
+  })
 }
 
 // 处理修改密码
 const handleUpdatePassword = async () => {
-  if (!userData.value.id) {
-    ElMessage.warning('账户信息不完整，无法修改密码')
+  if (submitting.value) return
+  if (!ensureAccountReady('账户信息不完整，无法修改密码')) {
     return
   }
 
-  // 表单验证
-  resetFormRef.value.validate(async (valid) => {
-    if (!valid) return
+  const valid = await validateResetForm()
+  if (!valid) return
 
-    submitting.value = true
+  submitting.value = true
 
-    try {
-      // 构建请求参数（根据 Swagger 文档，只需要 email, password, verify_code）
-      const params = {
-        email: resetForm.email,
-        password: resetForm.password,
-        verify_code: resetForm.code
-      }
-
-      // 调用修改密码API
-      await changePasswordApi(params)
-      ElMessage.success('密码修改成功')
-      passwordDialogVisible.value = false
-
-      // 添加: 修改成功后退出登录
-      await userStore.logout() // 调用退出登录 action
-    } catch (error) {
-      ElMessage.error('修改密码失败')
-    } finally {
-      submitting.value = false
+  try {
+    const params = {
+      email: resetForm.email,
+      password: resetForm.password,
+      verify_code: resetForm.code
     }
-  })
+
+    await changePasswordApi(params)
+    handleSuccessMessage('密码修改成功')
+    passwordDialogVisible.value = false
+    await userStore.logout()
+  } catch (error) {
+    handleErrorMessage(error, '修改密码失败')
+  } finally {
+    submitting.value = false
+  }
 }
 
 // 打开充值弹窗
 const openRechargeDialog = async () => {
-  if (!userData.value.id) {
-    ElMessage.warning('账户信息不完整，请刷新页面后重试')
+  if (!ensureAccountReady('账户信息不完整，请刷新页面后重试')) {
     return
   }
 
-  // 调用接口获取充值地址信息
   try {
     const response = await getAccountListApi({ address: true })
 
@@ -437,17 +445,16 @@ const openRechargeDialog = async () => {
 
       rechargeDialogVisible.value = true
     } else {
-      ElMessage.error('获取充值地址失败')
+      handleErrorMessage('获取充值地址失败')
     }
   } catch (error) {
-    ElMessage.error('获取充值地址失败，请稍后重试')
+    handleErrorMessage(error, '获取充值地址失败')
   }
 }
 
 // 充值记录 - 打开充值记录弹窗
 const handleRechargeRecord = () => {
-  if (!userData.value.id) {
-    ElMessage.warning('账户信息不完整，请刷新页面后重试')
+  if (!ensureAccountReady('账户信息不完整，请刷新页面后重试')) {
     return
   }
 
@@ -456,8 +463,7 @@ const handleRechargeRecord = () => {
 
 // 扣款记录 - 打开扣款记录弹窗
 const handleDeductionRecord = () => {
-  if (!userData.value.id) {
-    ElMessage.warning('账户信息不完整，请刷新页面后重试')
+  if (!ensureAccountReady('账户信息不完整，请刷新页面后重试')) {
     return
   }
 
@@ -468,12 +474,12 @@ const handleDeductionRecord = () => {
 const { copy } = useClipboard()
 const copyAddress = () => {
   if (!userData.value.address) {
-    ElMessage.warning('收款地址为空，无法复制')
+    handleWarningMessage('收款地址为空，无法复制')
     return
   }
 
   copy(userData.value.address)
-  ElMessage.success('地址复制成功')
+  handleSuccessMessage('地址复制成功')
 }
 
 // 页面加载时获取账户信息
