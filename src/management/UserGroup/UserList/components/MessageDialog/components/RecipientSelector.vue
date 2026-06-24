@@ -52,6 +52,8 @@
 import { computed, watch, ref, type PropType } from 'vue'
 import { ElFormItem, ElRadioGroup, ElRadio, ElInput, ElSelectV2, ElMessage } from 'element-plus'
 import { v1GetMessageUserList } from '@/api/management/common/message'
+import { handleErrorMessage, handleWarningMessage } from '@/utils/messageHelper'
+import type { SelectOption } from '@/utils/tableHelpers'
 
 const props = defineProps({
   filterType: {
@@ -70,17 +72,14 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  // 新增：是否显示类型选择
   showFilterType: {
     type: Boolean,
     default: true
   },
-  // 新增：是否显示用户列表输入框
   showUserList: {
     type: Boolean,
     default: true
   },
-  // 新增：选中的机器人ID（用于获取用户列表）
   selectedBotId: {
     type: [Number, String] as PropType<number | string | undefined>,
     default: undefined
@@ -89,11 +88,9 @@ const props = defineProps({
 
 const emit = defineEmits(['update:filterType', 'update:userList'])
 
-// 用户列表相关状态
 const loadingUsers = ref(false)
-const userOptions = ref<Array<{ label: string; value: number }>>([])
+const userOptions = ref<SelectOption<number>[]>([])
 
-// 将逗号分隔的字符串转换为数组
 const selectedUserIds = computed(() => {
   if (!props.userList) return []
   return props.userList
@@ -102,15 +99,11 @@ const selectedUserIds = computed(() => {
     .filter((id) => !isNaN(id) && id !== 0)
 })
 
-// 是否应该显示用户列表输入框
 const shouldShowUserListInput = computed(() => {
-  // 多选机器人时不显示
   if (props.isMultipleBots) return false
-  // 单个用户模式或自定义用户类型时显示
   return props.isSingleUser || props.filterType === 'user_custom'
 })
 
-// 获取机器人用户列表
 const fetchBotUsers = async (botId: number | string) => {
   if (!botId) {
     userOptions.value = []
@@ -131,17 +124,16 @@ const fetchBotUsers = async (botId: number | string) => {
       }
     } else {
       userOptions.value = []
-      ElMessage.warning('获取用户列表失败')
+      handleWarningMessage('获取用户列表失败')
     }
-  } catch (error) {
+  } catch (error: unknown) {
     userOptions.value = []
-    ElMessage.error('获取用户列表失败')
+    handleErrorMessage(error, '获取用户列表失败')
   } finally {
     loadingUsers.value = false
   }
 }
 
-// 监听机器人ID变化，自动获取用户列表
 watch(
   () => props.selectedBotId,
   (newBotId) => {
@@ -154,7 +146,6 @@ watch(
   { immediate: true }
 )
 
-// 监听filterType变化
 watch(
   () => props.filterType,
   (newType) => {
@@ -166,7 +157,6 @@ watch(
 
 const handleFilterTypeChange = (value: 'user_custom' | 'all_user') => {
   emit('update:filterType', value)
-  // 如果切换到全部用户，清空用户列表
   if (value === 'all_user') {
     emit('update:userList', '')
   }
@@ -176,9 +166,7 @@ const handleUserListChange = (value: string) => {
   emit('update:userList', value)
 }
 
-// 处理用户选择变化
 const handleUserSelectionChange = (selectedIds: number[]) => {
-  // 将数组转换为逗号分隔的字符串
   const userListStr = selectedIds.join(',')
   emit('update:userList', userListStr)
 }
