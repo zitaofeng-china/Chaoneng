@@ -33,6 +33,7 @@
                 <tr class="summary-row">
                   <td>数据汇总</td>
                   <td>{{ formatCount(summaryTotals.flash_energy) }}</td>
+                  <td>{{ formatCount(summaryTotals.instant_energy) }}</td>
                   <td>{{ formatCount(summaryTotals.stroke_energy) }}</td>
                   <td>{{ formatCount(summaryTotals.hosting) }}</td>
                   <td>{{ formatCount(summaryTotals.weal_energy) }}</td>
@@ -56,6 +57,26 @@
                           class="sort-caret sort-caret-down"
                           :class="{
                             active: sortState.prop === 'flash_energy' && sortState.order === 'DESC'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" class="sort-header" @click="handleSort('instant_energy')">
+                      即用能量
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active: sortState.prop === 'instant_energy' && sortState.order === 'ASC'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active:
+                              sortState.prop === 'instant_energy' && sortState.order === 'DESC'
                           }"
                         ></i>
                       </span>
@@ -161,11 +182,12 @@
               </thead>
               <tbody>
                 <tr v-if="reportRows.length === 0">
-                  <td class="empty-cell" colspan="8">暂无数据</td>
+                  <td class="empty-cell" colspan="9">暂无数据</td>
                 </tr>
                 <tr v-for="row in displayedRows" :key="row.date">
                   <td>{{ row.dateLabel }}</td>
                   <td>{{ formatCount(row.flash_energy) }}</td>
+                  <td>{{ formatCount(row.instant_energy) }}</td>
                   <td>{{ formatCount(row.stroke_energy) }}</td>
                   <td>{{ formatCount(row.hosting) }}</td>
                   <td>{{ formatCount(row.weal_energy) }}</td>
@@ -207,6 +229,7 @@ import {
 type SortOrder = 'ASC' | 'DESC'
 type SortableField =
   | 'flash_energy'
+  | 'instant_energy'
   | 'stroke_energy'
   | 'hosting'
   | 'weal_energy'
@@ -215,6 +238,7 @@ type SortableField =
 
 const SORT_FIELD_MAP: Record<SortableField, string> = {
   flash_energy: 'flash_energy',
+  instant_energy: 'instant_energy',
   stroke_energy: 'stroke_energy',
   hosting: 'hosting',
   weal_energy: 'weal_energy',
@@ -230,6 +254,7 @@ interface ReportRow {
   date: string
   dateLabel: string
   flash_energy: number
+  instant_energy: number
   stroke_energy: number
   hosting: number
   weal_energy: number
@@ -247,39 +272,55 @@ const createEmptySummary = (): Required<EnergyStatisticsSummary> => ({
   batch_energy: 0,
   flash_energy: 0,
   hosting: 0,
+  instant_energy: 0,
   stroke_energy: 0,
   time_energy: 0,
   total: 0,
   weal_energy: 0
 })
 
-const normalizeSummary = (
-  summary?: EnergyStatisticsSummary
-): Required<EnergyStatisticsSummary> => ({
-  batch_energy: toNumber(summary?.batch_energy),
-  flash_energy: toNumber(summary?.flash_energy),
-  hosting: toNumber(summary?.hosting),
-  stroke_energy: toNumber(summary?.stroke_energy),
-  time_energy: toNumber(summary?.time_energy),
-  total: toNumber(summary?.total),
-  weal_energy: toNumber(summary?.weal_energy)
-})
+const normalizeSummary = (summary?: EnergyStatisticsSummary): Required<EnergyStatisticsSummary> => {
+  const flashEnergy = toNumber(summary?.flash_energy)
+  const instantEnergy = toNumber(summary?.instant_energy)
+  const strokeEnergy = toNumber(summary?.stroke_energy)
+  const hosting = toNumber(summary?.hosting)
+  const wealEnergy = toNumber(summary?.weal_energy)
+  const batchEnergy = toNumber(summary?.batch_energy)
+  const calculatedTotal =
+    flashEnergy + instantEnergy + strokeEnergy + hosting + wealEnergy + batchEnergy
+
+  return {
+    batch_energy: batchEnergy,
+    flash_energy: flashEnergy,
+    hosting,
+    instant_energy: instantEnergy,
+    stroke_energy: strokeEnergy,
+    time_energy: toNumber(summary?.time_energy),
+    total:
+      summary?.total === undefined
+        ? calculatedTotal
+        : Math.max(toNumber(summary.total), calculatedTotal),
+    weal_energy: wealEnergy
+  }
+}
 
 const normalizeRow = (row: EnergyStatisticsDetailItem): ReportRow => {
   const flashEnergy = toNumber(row.flash_energy)
+  const instantEnergy = toNumber(row.instant_energy)
   const strokeEnergy = toNumber(row.stroke_energy)
   const hosting = toNumber(row.hosting)
   const wealEnergy = toNumber(row.weal_energy)
   const batchEnergy = toNumber(row.batch_energy)
+  const calculatedTotal =
+    flashEnergy + instantEnergy + strokeEnergy + hosting + wealEnergy + batchEnergy
   const total =
-    row.total === undefined
-      ? flashEnergy + strokeEnergy + hosting + wealEnergy + batchEnergy
-      : toNumber(row.total)
+    row.total === undefined ? calculatedTotal : Math.max(toNumber(row.total), calculatedTotal)
 
   return {
     date: row.date,
     dateLabel: formatStatsDateLabel(row.date),
     flash_energy: flashEnergy,
+    instant_energy: instantEnergy,
     stroke_energy: strokeEnergy,
     hosting,
     weal_energy: wealEnergy,
@@ -389,10 +430,11 @@ const handleExport = () => {
   }
 
   const exportRows = [
-    ['日期', '闪租', '按笔数', '托管', '福利', '批量下单', '总计', '福利占比'],
+    ['日期', '闪租', '即用能量', '按笔数', '托管', '福利', '批量下单', '总计', '福利占比'],
     [
       '数据汇总',
       toNumber(summaryTotals.value.flash_energy),
+      toNumber(summaryTotals.value.instant_energy),
       toNumber(summaryTotals.value.stroke_energy),
       toNumber(summaryTotals.value.hosting),
       toNumber(summaryTotals.value.weal_energy),
@@ -403,6 +445,7 @@ const handleExport = () => {
     ...displayedRows.value.map((row) => [
       row.dateLabel,
       row.flash_energy,
+      row.instant_energy,
       row.stroke_energy,
       row.hosting,
       row.weal_energy,
@@ -419,6 +462,7 @@ const handleExport = () => {
     columnWidths: [
       { wpx: 110 },
       { wpx: 90 },
+      { wpx: 100 },
       { wpx: 90 },
       { wpx: 90 },
       { wpx: 90 },

@@ -33,6 +33,7 @@
                 <tr class="summary-row">
                   <td>汇总</td>
                   <td>{{ formatCount(summaryTotals.flashOrderCount) }}</td>
+                  <td>{{ formatCount(summaryTotals.instantOrderCount) }}</td>
                   <td>{{ formatCount(summaryTotals.strokeOrderCount) }}</td>
                   <td>{{ formatCount(summaryTotals.hostedOrderCount) }}</td>
                   <td>{{ formatCount(summaryTotals.welfareOrderCount) }}</td>
@@ -64,6 +65,33 @@
                           :class="{
                             active:
                               sortState.prop === 'flashOrderCount' &&
+                              sortState.order === 'descending'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                  </th>
+                  <th>
+                    <button
+                      type="button"
+                      class="sort-header"
+                      @click="handleSort('instantOrderCount')"
+                    >
+                      即用能量
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active:
+                              sortState.prop === 'instantOrderCount' &&
+                              sortState.order === 'ascending'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active:
+                              sortState.prop === 'instantOrderCount' &&
                               sortState.order === 'descending'
                           }"
                         ></i>
@@ -237,11 +265,12 @@
               </thead>
               <tbody>
                 <tr v-if="reportRows.length === 0">
-                  <td colspan="9" class="empty-cell">暂无数据</td>
+                  <td colspan="10" class="empty-cell">暂无数据</td>
                 </tr>
                 <tr v-for="row in reportRows" :key="row.date">
                   <td>{{ row.dateLabel }}</td>
                   <td>{{ formatCount(row.flashOrderCount) }}</td>
+                  <td>{{ formatCount(row.instantOrderCount) }}</td>
                   <td>{{ formatCount(row.strokeOrderCount) }}</td>
                   <td>{{ formatCount(row.hostedOrderCount) }}</td>
                   <td>{{ formatCount(row.welfareOrderCount) }}</td>
@@ -284,6 +313,7 @@ import {
 type SortOrder = 'ascending' | 'descending' | null
 type SortableField =
   | 'flashOrderCount'
+  | 'instantOrderCount'
   | 'strokeOrderCount'
   | 'hostedOrderCount'
   | 'welfareOrderCount'
@@ -299,6 +329,7 @@ interface ReportRow {
   date: string
   dateLabel: string
   flashOrderCount: number
+  instantOrderCount: number
   strokeOrderCount: number
   hostedOrderCount: number
   welfareOrderCount: number
@@ -311,6 +342,7 @@ interface ReportRow {
 
 interface SummaryTotals {
   flashOrderCount: number
+  instantOrderCount: number
   strokeOrderCount: number
   hostedOrderCount: number
   welfareOrderCount: number
@@ -322,6 +354,7 @@ interface SummaryTotals {
 
 const SORT_FIELD_MAP: Record<SortableField, string> = {
   flashOrderCount: 'flash_energy',
+  instantOrderCount: 'instant_energy',
   strokeOrderCount: 'stroke_energy',
   hostedOrderCount: 'hosting',
   welfareOrderCount: 'weal_energy',
@@ -338,6 +371,7 @@ const toNumber = (value: number | string | undefined) => {
 
 const createEmptySummary = (): SummaryTotals => ({
   flashOrderCount: 0,
+  instantOrderCount: 0,
   strokeOrderCount: 0,
   hostedOrderCount: 0,
   welfareOrderCount: 0,
@@ -349,23 +383,28 @@ const createEmptySummary = (): SummaryTotals => ({
 
 const normalizeSummary = (summary?: OrderTypeStatisticsSummary): SummaryTotals => {
   const flashOrderCount = toNumber(summary?.flash_energy)
+  const instantOrderCount = toNumber(summary?.instant_energy)
   const strokeOrderCount = toNumber(summary?.stroke_energy)
   const hostedOrderCount = toNumber(summary?.hosting)
   const welfareOrderCount = toNumber(summary?.weal_energy)
   const batchOrderCount = toNumber(summary?.batch_energy)
   const activationOrderCount = toNumber(summary?.batch_active)
+  const calculatedTotal =
+    flashOrderCount +
+    instantOrderCount +
+    strokeOrderCount +
+    hostedOrderCount +
+    welfareOrderCount +
+    batchOrderCount +
+    activationOrderCount
   const totalOrderCount =
     summary?.total === undefined
-      ? flashOrderCount +
-        strokeOrderCount +
-        hostedOrderCount +
-        welfareOrderCount +
-        batchOrderCount +
-        activationOrderCount
-      : toNumber(summary.total)
+      ? calculatedTotal
+      : Math.max(toNumber(summary.total), calculatedTotal)
 
   return {
     flashOrderCount,
+    instantOrderCount,
     strokeOrderCount,
     hostedOrderCount,
     welfareOrderCount,
@@ -378,26 +417,29 @@ const normalizeSummary = (summary?: OrderTypeStatisticsSummary): SummaryTotals =
 
 const normalizeRow = (row: OrderTypeStatisticsDetailItem): ReportRow => {
   const flashOrderCount = toNumber(row.flash_energy)
+  const instantOrderCount = toNumber(row.instant_energy)
   const strokeOrderCount = toNumber(row.stroke_energy)
   const hostedOrderCount = toNumber(row.hosting)
   const welfareOrderCount = toNumber(row.weal_energy)
   const batchOrderCount = toNumber(row.batch_energy)
   const activationOrderCount = toNumber(row.batch_active)
+  const calculatedTotal =
+    flashOrderCount +
+    instantOrderCount +
+    strokeOrderCount +
+    hostedOrderCount +
+    welfareOrderCount +
+    batchOrderCount +
+    activationOrderCount
   const totalOrderCount =
-    row.total === undefined
-      ? flashOrderCount +
-        strokeOrderCount +
-        hostedOrderCount +
-        welfareOrderCount +
-        batchOrderCount +
-        activationOrderCount
-      : toNumber(row.total)
+    row.total === undefined ? calculatedTotal : Math.max(toNumber(row.total), calculatedTotal)
   const welfareRatio = totalOrderCount > 0 ? welfareOrderCount / totalOrderCount : 0
 
   return {
     date: row.date,
     dateLabel: formatStatsDateLabel(row.date),
     flashOrderCount,
+    instantOrderCount,
     strokeOrderCount,
     hostedOrderCount,
     welfareOrderCount,
@@ -491,10 +533,11 @@ const handleExport = () => {
   }
 
   const exportRows = [
-    ['日期', '闪租', '按笔数', '托管', '福利', '批量下单', '激活', '总计', '福利占比'],
+    ['日期', '闪租', '即用能量', '按笔数', '托管', '福利', '批量下单', '激活', '总计', '福利占比'],
     [
       '汇总',
       summaryTotals.value.flashOrderCount,
+      summaryTotals.value.instantOrderCount,
       summaryTotals.value.strokeOrderCount,
       summaryTotals.value.hostedOrderCount,
       summaryTotals.value.welfareOrderCount,
@@ -506,6 +549,7 @@ const handleExport = () => {
     ...reportRows.value.map((row) => [
       row.dateLabel,
       row.flashOrderCount,
+      row.instantOrderCount,
       row.strokeOrderCount,
       row.hostedOrderCount,
       row.welfareOrderCount,
@@ -523,6 +567,7 @@ const handleExport = () => {
     columnWidths: [
       { wpx: 110 },
       { wpx: 90 },
+      { wpx: 100 },
       { wpx: 90 },
       { wpx: 90 },
       { wpx: 90 },

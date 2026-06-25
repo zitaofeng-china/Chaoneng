@@ -34,6 +34,7 @@
                   <th>类型</th>
                   <th>类别</th>
                   <th>闪租</th>
+                  <th>即用能量</th>
                   <th>按笔数</th>
                   <th>托管</th>
                   <th>福利</th>
@@ -51,6 +52,7 @@
                     <td v-if="index === 0" :rowspan="3">{{ row.typeLabel }}</td>
                     <td>{{ row.categoryLabel }}</td>
                     <td>{{ formatCount(row.flashAmount) }}</td>
+                    <td>{{ formatCount(row.instantAmount) }}</td>
                     <td>{{ formatCount(row.strokeAmount) }}</td>
                     <td>{{ formatCount(row.hostedAmount) }}</td>
                     <td>{{ formatCount(row.welfareAmount) }}</td>
@@ -61,6 +63,7 @@
                   <tr class="summary-row-inline">
                     <td>汇总</td>
                     <td>{{ formatCount(summaryOrderMetrics.flashAmount) }}</td>
+                    <td>{{ formatCount(summaryOrderMetrics.instantAmount) }}</td>
                     <td>{{ formatCount(summaryOrderMetrics.strokeAmount) }}</td>
                     <td>{{ formatCount(summaryOrderMetrics.hostedAmount) }}</td>
                     <td>{{ formatCount(summaryOrderMetrics.welfareAmount) }}</td>
@@ -75,6 +78,7 @@
                     <td v-if="index === 0" :rowspan="3">{{ row.typeLabel }}</td>
                     <td>{{ row.categoryLabel }}</td>
                     <td>{{ formatCount(row.flashAmount) }}</td>
+                    <td>{{ formatCount(row.instantAmount) }}</td>
                     <td>{{ formatCount(row.strokeAmount) }}</td>
                     <td>{{ formatCount(row.hostedAmount) }}</td>
                     <td>{{ formatCount(row.welfareAmount) }}</td>
@@ -85,6 +89,7 @@
                   <tr class="summary-row-inline">
                     <td>汇总</td>
                     <td>{{ formatCount(summaryEnergyMetrics.flashAmount) }}</td>
+                    <td>{{ formatCount(summaryEnergyMetrics.instantAmount) }}</td>
                     <td>{{ formatCount(summaryEnergyMetrics.strokeAmount) }}</td>
                     <td>{{ formatCount(summaryEnergyMetrics.hostedAmount) }}</td>
                     <td>{{ formatCount(summaryEnergyMetrics.welfareAmount) }}</td>
@@ -94,7 +99,7 @@
                   </tr>
                 </template>
                 <tr v-else>
-                  <td colspan="9">暂无数据</td>
+                  <td colspan="10">暂无数据</td>
                 </tr>
               </tbody>
             </table>
@@ -134,6 +139,7 @@ interface SearchFormState {
 
 interface ReportMetrics {
   flashAmount: number
+  instantAmount: number
   strokeAmount: number
   hostedAmount: number
   welfareAmount: number
@@ -178,6 +184,7 @@ const buildReportRow = (
 ): ReportRow => {
   const metricsTotal =
     metrics.flashAmount +
+    metrics.instantAmount +
     metrics.strokeAmount +
     metrics.hostedAmount +
     metrics.welfareAmount +
@@ -200,6 +207,7 @@ const normalizeReportRow = (
 ): ReportRow => {
   const metrics: ReportMetrics = {
     flashAmount: toNumber(item.flash_energy),
+    instantAmount: toNumber(item.instant_energy),
     strokeAmount: toNumber(item.stroke_energy),
     hostedAmount: toNumber(item.hosting),
     welfareAmount: toNumber(item.weal_energy),
@@ -207,6 +215,7 @@ const normalizeReportRow = (
   }
   const fallbackTotal =
     metrics.flashAmount +
+    metrics.instantAmount +
     metrics.strokeAmount +
     metrics.hostedAmount +
     metrics.welfareAmount +
@@ -228,6 +237,7 @@ const mergeSummaryItems = (items: SaleByTimeReportSummaryItem[]): SaleByTimeRepo
       batch_energy: toNumber(totals.batch_energy) + toNumber(item.batch_energy),
       flash_energy: toNumber(totals.flash_energy) + toNumber(item.flash_energy),
       hosting: toNumber(totals.hosting) + toNumber(item.hosting),
+      instant_energy: toNumber(totals.instant_energy) + toNumber(item.instant_energy),
       stroke_energy: toNumber(totals.stroke_energy) + toNumber(item.stroke_energy),
       time_energy: toNumber(totals.time_energy) + toNumber(item.time_energy),
       weal_energy: toNumber(totals.weal_energy) + toNumber(item.weal_energy)
@@ -280,6 +290,7 @@ const sumMetrics = (rows: ReportRow[]): ReportMetrics => {
   return rows.reduce<ReportMetrics>(
     (totals, row) => {
       totals.flashAmount += row.flashAmount
+      totals.instantAmount += row.instantAmount
       totals.strokeAmount += row.strokeAmount
       totals.hostedAmount += row.hostedAmount
       totals.welfareAmount += row.welfareAmount
@@ -288,6 +299,7 @@ const sumMetrics = (rows: ReportRow[]): ReportMetrics => {
     },
     {
       flashAmount: 0,
+      instantAmount: 0,
       strokeAmount: 0,
       hostedAmount: 0,
       welfareAmount: 0,
@@ -393,11 +405,12 @@ const handleExport = () => {
   }
 
   const exportRows = [
-    ['类型', '类别', '闪租', '按笔数', '托管', '福利', '批量下单', '总计', '福利占比'],
+    ['类型', '类别', '闪租', '即用能量', '按笔数', '托管', '福利', '批量下单', '总计', '福利占比'],
     ...orderRowsWithRatio.value.map((row) => [
       row.typeLabel,
       row.categoryLabel,
       row.flashAmount,
+      row.instantAmount,
       row.strokeAmount,
       row.hostedAmount,
       row.welfareAmount,
@@ -409,6 +422,7 @@ const handleExport = () => {
       '订单数',
       '汇总',
       summaryOrderMetrics.value.flashAmount,
+      summaryOrderMetrics.value.instantAmount,
       summaryOrderMetrics.value.strokeAmount,
       summaryOrderMetrics.value.hostedAmount,
       summaryOrderMetrics.value.welfareAmount,
@@ -420,6 +434,7 @@ const handleExport = () => {
       row.typeLabel,
       row.categoryLabel,
       row.flashAmount,
+      row.instantAmount,
       row.strokeAmount,
       row.hostedAmount,
       row.welfareAmount,
@@ -431,6 +446,7 @@ const handleExport = () => {
       '能量数',
       '汇总',
       summaryEnergyMetrics.value.flashAmount,
+      summaryEnergyMetrics.value.instantAmount,
       summaryEnergyMetrics.value.strokeAmount,
       summaryEnergyMetrics.value.hostedAmount,
       summaryEnergyMetrics.value.welfareAmount,
@@ -447,6 +463,7 @@ const handleExport = () => {
     columnWidths: [
       { wpx: 90 },
       { wpx: 90 },
+      { wpx: 110 },
       { wpx: 110 },
       { wpx: 110 },
       { wpx: 110 },

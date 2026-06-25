@@ -310,6 +310,7 @@ const statsData = reactive({
   strokeEnergyIncome: 0,
   wealEnergyIncome: 0,
   flashIncome: 0,
+  instantEnergyIncome: 0,
   hostingIncome: 0,
   batchEnergyIncome: 0,
   batchActiveIncome: 0,
@@ -327,6 +328,7 @@ const statsData = reactive({
   justlendExpense: 0,
   feeExpense: 0,
   trxfeeExpense: 0,
+  sohuExpense: 0,
   activeExpense: 0,
   // 利润明细
   exchangeProfit: 0,
@@ -486,6 +488,7 @@ const incomeRows = computed(() => [
   { label: '按笔数', value: statsData.strokeEnergyIncome },
   { label: '福利', value: statsData.wealEnergyIncome },
   { label: '闪租', value: statsData.flashIncome },
+  { label: '即用能量', value: statsData.instantEnergyIncome },
   { label: '托管', value: statsData.hostingIncome },
   { label: '批量下单', value: statsData.batchEnergyIncome },
   { label: '激活', value: statsData.batchActiveIncome },
@@ -500,7 +503,8 @@ const expenseRows = computed<DetailRow[]>(() => [
   { label: '带宽支出', value: statsData.bandwidthExpense },
   { label: 'justlend', value: statsData.justlendExpense },
   { label: 'feee', value: statsData.feeExpense },
-  { label: 'trxfee', value: statsData.trxfeeExpense }
+  { label: 'trxfee', value: statsData.trxfeeExpense },
+  { label: 'sohu', value: statsData.sohuExpense }
 ])
 
 const profitRows = computed(() => [
@@ -590,6 +594,7 @@ const incomeData = computed(() => [
   { name: '按笔数', value: toNum(statsData.strokeEnergyIncome) },
   { name: '福利', value: toNum(statsData.wealEnergyIncome) },
   { name: '闪租', value: toNum(statsData.flashIncome) },
+  { name: '即用能量', value: toNum(statsData.instantEnergyIncome) },
   { name: '托管', value: toNum(statsData.hostingIncome) },
   { name: '批量下单', value: toNum(statsData.batchEnergyIncome) },
   { name: '激活', value: toNum(statsData.batchActiveIncome) },
@@ -615,7 +620,8 @@ const expenseData = computed<ChartDataItem[]>(() => [
   { name: '带宽支出', value: toNum(statsData.bandwidthExpense), unit: 'TRX' },
   { name: 'justlend', value: toNum(statsData.justlendExpense), unit: 'TRX' },
   { name: 'feee', value: toNum(statsData.feeExpense), unit: 'TRX' },
-  { name: 'trxfee', value: toNum(statsData.trxfeeExpense), unit: 'TRX' }
+  { name: 'trxfee', value: toNum(statsData.trxfeeExpense), unit: 'TRX' },
+  { name: 'sohu', value: toNum(statsData.sohuExpense), unit: 'TRX' }
 ])
 const expenseTotal = computed(() => expenseData.value.reduce((s, d) => s + d.value, 0))
 // 大额数值缩写：1.2w / 3.5k
@@ -847,6 +853,7 @@ const applyStatsData = (data: V2StatsData) => {
     n(revenue?.stroke_energy) +
     n(revenue?.weal_energy) +
     n(revenue?.flash_energy) +
+    n(revenue?.instant_energy) +
     n(revenue?.hosting) +
     n(revenue?.batch_energy) +
     n(revenue?.batch_active) +
@@ -862,7 +869,8 @@ const applyStatsData = (data: V2StatsData) => {
     n(expense?.bandwidth_reward) +
     n(expense?.justlend) +
     n(expense?.feee) +
-    n(expense?.trxfee)
+    n(expense?.trxfee) +
+    n(expense?.sohu)
 
   // 利润：直接用接口返回的利润明细合计
   const totalProfit = n(income?.exchange) + n(income?.energy) + n(income?.activation)
@@ -875,6 +883,7 @@ const applyStatsData = (data: V2StatsData) => {
     strokeEnergyIncome: n(revenue?.stroke_energy),
     wealEnergyIncome: n(revenue?.weal_energy),
     flashIncome: n(revenue?.flash_energy),
+    instantEnergyIncome: n(revenue?.instant_energy),
     hostingIncome: n(revenue?.hosting),
     batchEnergyIncome: n(revenue?.batch_energy),
     batchActiveIncome: n(revenue?.batch_active),
@@ -888,12 +897,14 @@ const applyStatsData = (data: V2StatsData) => {
       n(expense?.bandwidth_reward) +
       n(expense?.justlend) +
       n(expense?.feee) +
-      n(expense?.trxfee),
+      n(expense?.trxfee) +
+      n(expense?.sohu),
     energyExpense: n(expense?.energy_reward),
     bandwidthExpense: n(expense?.bandwidth_reward),
     justlendExpense: n(expense?.justlend),
     feeExpense: n(expense?.feee),
     trxfeeExpense: n(expense?.trxfee),
+    sohuExpense: n(expense?.sohu),
     exchangeProfit: n(income?.exchange),
     energyProfit: n(income?.energy),
     activeProfit: n(income?.activation),
