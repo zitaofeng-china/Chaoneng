@@ -10,6 +10,7 @@ export interface V2StatsRevenue {
   stroke_energy: string
   weal_energy: string
   flash_energy: string
+  instant_energy: string
   hosting: string
   batch_energy: string
   batch_active: string
@@ -24,6 +25,7 @@ export interface V2StatsExpense {
   justlend: string
   feee: string
   trxfee: string
+  sohu: string
 }
 
 export interface V2StatsResource {

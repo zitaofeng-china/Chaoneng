@@ -8,6 +8,7 @@ export interface EnergyStatisticsSummary {
   batch_energy?: number | string
   flash_energy?: number | string
   hosting?: number | string
+  instant_energy?: number | string
   stroke_energy?: number | string
   time_energy?: number | string
   total?: number | string
