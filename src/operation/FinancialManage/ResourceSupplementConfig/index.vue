@@ -170,8 +170,8 @@ const formRules: FormRules = {
     { required: true, message: '请输入补充数量', trigger: 'blur' },
     {
       validator: (_rule, value, callback) => {
-        if (value === undefined || value === null || value <= 0) {
-          callback(new Error('补充数量需大于 0'))
+        if (value === undefined || value === null || value < 0) {
+          callback(new Error('补充数量不能小于 0'))
           return
         }
         callback()
