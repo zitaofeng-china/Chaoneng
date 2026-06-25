@@ -61,6 +61,7 @@ import {
   buildEnergyListParams,
   transformOrderToExportData,
   sortOrdersByCreatedTime,
+  filterVisibleEnergyOrders,
   hasSearchCondition,
   canStopOrder,
   STOP_POLLING_CONFIG
@@ -204,7 +205,7 @@ const fetchDataWrapper = async (
 
     if (response?.code === '000000' && response.data) {
       const data = response.data
-      const list = data.list || []
+      const list = filterVisibleEnergyOrders(data.list || [])
       const total = data.pager?.total || 0
 
       totalCount.value = total
@@ -233,7 +234,8 @@ const handleExport = async () => {
         ...buildEnergyListParams(params),
         page_size: -1
       }),
-      getList: (response) => sortOrdersByCreatedTime(response.data?.list || []),
+      getList: (response) =>
+        sortOrdersByCreatedTime(filterVisibleEnergyOrders(response.data?.list || [])),
       mapItem: (item) => transformOrderToExportData(item, selectedSource.value),
       successMessage: '订单导出成功'
     })

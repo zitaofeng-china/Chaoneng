@@ -49,7 +49,8 @@ import {
   ENERGY_ORDER_KIND_OPTIONS,
   getEnergyOrderKindTagType,
   getEnergyOrderKindText,
-  getPaymentMethodText
+  getPaymentMethodText,
+  shouldHideEnergyOrderKind
 } from '@/utils/energyOrder'
 import { dateRangeToSeconds, exportTableData } from '@/utils/tableHelpers'
 
@@ -480,23 +481,25 @@ const fetchEnergyOrderList = async (params: any) => {
     const response = await v1GetEnergyOrderList(adaptedParams)
 
     // 映射返回数据字段 - 直接使用API原始字段，只做必要转换
-    const list = (response.data?.list || []).map((item: any) => ({
-      ...item, // 保留所有原始字段
-      created_at: item.created_at * 1000, // 秒 → 毫秒
-      updated_at: item.updated_at * 1000, // 秒 → 毫秒
-      paid_at: item.paid_at ? item.paid_at * 1000 : null, // 秒 → 毫秒
-      energy_rent_text: formatExpirationTime(item.kind), // 计算有效期
-      // 来源判断逻辑：如果TG用户名不存在且用户账号存在则来源是H5，反之就是机器人
-      origin: (() => {
-        if (!item.tg_user_name && item.username) {
-          return 2 // H5
-        } else if (item.tg_user_name) {
-          return 1 // 机器人
-        }
-        // 兜底：使用API返回的 origin
-        return item.origin || 0
-      })()
-    }))
+    const list = (response.data?.list || [])
+      .filter((item: any) => !shouldHideEnergyOrderKind(item.kind))
+      .map((item: any) => ({
+        ...item, // 保留所有原始字段
+        created_at: item.created_at * 1000, // 秒 → 毫秒
+        updated_at: item.updated_at * 1000, // 秒 → 毫秒
+        paid_at: item.paid_at ? item.paid_at * 1000 : null, // 秒 → 毫秒
+        energy_rent_text: formatExpirationTime(item.kind), // 计算有效期
+        // 来源判断逻辑：如果TG用户名不存在且用户账号存在则来源是H5，反之就是机器人
+        origin: (() => {
+          if (!item.tg_user_name && item.username) {
+            return 2 // H5
+          } else if (item.tg_user_name) {
+            return 1 // 机器人
+          }
+          // 兜底：使用API返回的 origin
+          return item.origin || 0
+        })()
+      }))
 
     totalCount.value = response.data?.pager?.total || 0
     currentSearchParams.value = params
@@ -618,6 +621,8 @@ const handleExport = async () => {
 
         return adaptedParams
       },
+      getList: (response) =>
+        (response.data?.list || []).filter((item: any) => !shouldHideEnergyOrderKind(item.kind)),
       mapItem: (item) => ({
         订单号: item.id,
         TG用户名: item.tg_user_name,

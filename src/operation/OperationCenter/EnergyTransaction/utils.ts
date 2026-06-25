@@ -7,7 +7,8 @@ import { getSourceText } from '@/utils/sourceFilter'
 import {
   getEnergyOrderKindText,
   formatEnergyAmount,
-  getPaymentMethodText
+  getPaymentMethodText,
+  shouldHideEnergyOrderKind
 } from '@/utils/energyOrder'
 import { getStatusText } from '@/utils/orderStatus'
 import { dateRangeToSeconds, formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
@@ -106,6 +107,10 @@ export function sortOrdersByCreatedTime(orders: EnergyOrder[]): EnergyOrder[] {
   return [...orders].sort((a, b) => {
     return getTimeValue(b.created_at) - getTimeValue(a.created_at)
   })
+}
+
+export function filterVisibleEnergyOrders(orders: EnergyOrder[]): EnergyOrder[] {
+  return orders.filter((order) => !shouldHideEnergyOrderKind(order.kind))
 }
 
 export function hasSearchCondition(params: SearchFormParams): boolean {

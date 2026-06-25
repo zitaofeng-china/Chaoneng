@@ -111,10 +111,19 @@ export const ENERGY_ORDER_KIND_OPTIONS = [
   { label: '即用能量', value: EnergyOrderKind.INSTANT_ENERGY },
   { label: '托管', value: EnergyOrderKind.AUTO_HOSTING },
   { label: '批量下单', value: EnergyOrderKind.BATCH_ENERGY },
-  { label: '激活', value: EnergyOrderKind.BATCH_ACTIVE },
-  { label: '速充能量', value: EnergyOrderKind.MANUAL_QUICK_CHARGE },
-  { label: '托管速充', value: EnergyOrderKind.HOSTING_QUICK_CHARGE }
+  { label: '激活', value: EnergyOrderKind.BATCH_ACTIVE }
 ]
+
+export const HIDDEN_ENERGY_ORDER_KINDS = [
+  EnergyOrderKind.MANUAL_QUICK_CHARGE,
+  EnergyOrderKind.HOSTING_QUICK_CHARGE
+] as const
+
+export function shouldHideEnergyOrderKind(kind: number | string | null | undefined): boolean {
+  if (kind === undefined || kind === null || kind === '') return false
+  const normalizedKind = Number(kind)
+  return !Number.isNaN(normalizedKind) && HIDDEN_ENERGY_ORDER_KINDS.includes(normalizedKind as any)
+}
 
 /**
  * ISO 时间字符串转 Unix 时间戳（秒）
