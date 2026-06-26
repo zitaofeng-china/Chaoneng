@@ -197,6 +197,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           }
         },
         {
+          path: 'reply_list',
+          component: () => import('@/operation/Marketing/ReplyList/index.vue'),
+          name: 'MarketingReplyList',
+          meta: {
+            title: '关键词回复',
+            buttonList: ['add', 'edit', 'delete']
+          }
+        },
+        {
           path: 'group_list',
           component: () => import('@/operation/Marketing/GroupList/index.vue'),
           name: 'MarketingGroupList',
@@ -311,6 +320,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           name: 'AgentMessageList',
           meta: {
             title: '消息列表',
+            buttonList: ['add', 'edit', 'delete']
+          }
+        },
+        {
+          path: 'reply_list',
+          component: () => import('@/operation/Agent/ReplyList/index.vue'),
+          name: 'AgentReplyList',
+          meta: {
+            title: '关键词回复',
             buttonList: ['add', 'edit', 'delete']
           }
         },
