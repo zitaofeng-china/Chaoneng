@@ -73,6 +73,7 @@ export interface CreateReplyParamsV1 {
  * 更新关键词回复请求参数 - 新接口 v1
  */
 export interface UpdateReplyParamsV1 {
+  bot_id?: number // 机器人ID（0 表示全部）
   content: string // 回复内容
   files?: string[] // 文件URL数组
   id: number // 回复ID（必填）

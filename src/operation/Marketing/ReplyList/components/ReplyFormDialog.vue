@@ -8,8 +8,8 @@
     :close-on-click-modal="false"
   >
     <ElForm ref="elFormRef" :model="formData" :rules="formRules" label-width="100px">
-      <!-- 新增模式：机器人选择 -->
-      <ElFormItem v-if="!props.isEdit" label="机器人" prop="bot_id">
+      <!-- 机器人选择（新增/编辑均可设置，可选“全部”=0） -->
+      <ElFormItem label="机器人" prop="bot_id">
         <ElSelect
           v-model="formData.bot_id"
           placeholder="请选择机器人"
@@ -17,7 +17,7 @@
           style="width: 100%"
         >
           <ElOption
-            v-for="opt in props.botOptions"
+            v-for="opt in botSelectOptions"
             :key="opt.value"
             :label="opt.label"
             :value="opt.value"
@@ -153,6 +153,10 @@ const contentTextareaRef = ref()
 const submitLoading = ref(false)
 
 const dialogTitle = computed(() => (props.isEdit ? '编辑关键词回复' : '新增关键词回复'))
+
+// 机器人下拉选项：在真实机器人列表前追加“全部”(value=0)
+const ALL_BOT_OPTION: BotOption = { label: '全部', value: 0 }
+const botSelectOptions = computed<BotOption[]>(() => [ALL_BOT_OPTION, ...props.botOptions])
 
 // 表单数据
 const formData = ref({
@@ -377,15 +381,8 @@ const getPreviewFiles = () => {
 }
 
 const getPreviewBotName = () => {
-  if (props.isEdit && props.rowData) {
-    return (
-      props.rowData.bot_username ||
-      props.rowData.bot_name ||
-      `机器人 ID: ${props.rowData.tg_bot_id}`
-    )
-  }
-
   const botId = Number(formData.value.bot_id)
+  if (botId === 0) return '全部'
   const matchedBot = props.botOptions.find((item) => Number(item.value) === botId)
   return matchedBot?.label || (botId ? `机器人 ID: ${botId}` : '')
 }
@@ -487,12 +484,10 @@ const unregisterGlobalDragEvents = () => {
 // 验证规则
 const formRules = computed(() => {
   const rules: Record<string, any[]> = {
+    bot_id: [required('请选择机器人')],
     keyword: [required('关键词不能为空')],
     content: [required('回复内容不能为空')],
     status: [required('请选择状态')]
-  }
-  if (!props.isEdit) {
-    rules.bot_id = [required('请选择机器人')]
   }
   return rules
 })
@@ -508,7 +503,7 @@ watch(
       resetMediaState()
       if (props.isEdit && props.rowData) {
         formData.value = {
-          bot_id: undefined,
+          bot_id: Number(props.rowData.tg_bot_id ?? 0),
           keyword: props.rowData.key_name || '',
           content: props.rowData.content || '',
           status: props.rowData.status ?? 1
@@ -567,11 +562,9 @@ const handleConfirmSubmit = async () => {
     let params: ReplySaveParams
 
     if (props.isEdit && props.rowData?.id) {
-      if (
-        typeof props.rowData.tg_bot_id !== 'number' ||
-        typeof props.rowData.key_name !== 'string'
-      ) {
-        ElMessage.error('无法编辑：原始机器人ID或关键词信息丢失')
+      const botIdAsNumber = Number(formData.value.bot_id)
+      if (isNaN(botIdAsNumber)) {
+        ElMessage.error('机器人ID无效，请重新选择')
         return
       }
       const processedKeywords = formData.value.keyword
@@ -582,7 +575,7 @@ const handleConfirmSubmit = async () => {
         : []
       params = {
         id: props.rowData.id,
-        tg_bot_id: props.rowData.tg_bot_id,
+        tg_bot_id: botIdAsNumber,
         key_name: processedKeywords,
         content: formData.value.content,
         files: uploadedFiles,
