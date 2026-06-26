@@ -12,7 +12,11 @@
         ref="searchTableRef"
         @add="handleAdd"
         @search="onSearch"
-      />
+      >
+        <template #rightToolbar>
+          <BaseButton type="warning" @click="handleInlineButton">内联按钮</BaseButton>
+        </template>
+      </SearchTable>
     </ContentWrap>
 
     <ReplyFormDialog
@@ -32,6 +36,8 @@
       @confirm="viewContentDialogVisible = false"
       @cancel="viewContentDialogVisible = false"
     />
+
+    <InlineButtonDialog v-model="inlineButtonDialogVisible" />
   </div>
 </template>
 
@@ -49,8 +55,8 @@ import {
   v1UpdateReply,
   v1DeleteReply,
   updateReplyStatusApi
-} from '@/api/management/BotManage/ReplyList'
-import { v1GetMessageBotList } from '@/api/management/common/message'
+} from '@/api/opertion/Marketing/ReplyList'
+import { v1GetMessageBotList } from '@/api/opertion/common/message'
 import type {
   ReplyItem,
   ReplySaveParams,
@@ -58,12 +64,13 @@ import type {
   ReplyListParamsV1,
   CreateReplyParamsV1,
   UpdateReplyParamsV1
-} from '@/api/management/BotManage/ReplyList/types'
+} from '@/api/opertion/Marketing/ReplyList/types'
 import { formatToDateTime } from '@/utils/dateUtil'
 import ReplyFormDialog from './components/ReplyFormDialog.vue'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import MessagePreviewDialog from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
 import type { MessagePreviewData } from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
+import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
 import { v1GetInnerButtonList, type InnerButtonItem } from '@/api/opertion/common/menuList'
 import { getMessageFileType } from '@/operation/components/MessageDialog/utils'
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -71,6 +78,7 @@ const replyFormDialogRef = ref<InstanceType<typeof ReplyFormDialog> | null>(null
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 const dialogVisible = ref(false)
+const inlineButtonDialogVisible = ref(false)
 const isEditMode = ref(false)
 const isLoaded = ref(false)
 const isBotlistLoaded = ref(false)
@@ -79,6 +87,20 @@ const currentRowData = ref<ReplyItem | null>(null)
 const botOptionsForDialog = ref<BotOption[]>([])
 const botInfoMap = ref<Map<number, { user_name: string; first_name: string }>>(new Map())
 const innerButtonMap = ref<Map<number, InnerButtonItem>>(new Map())
+
+const flattenInnerButtons = (innerButtons: any): InnerButtonItem[] => {
+  if (!Array.isArray(innerButtons)) {
+    return []
+  }
+
+  return innerButtons.flatMap((group) => {
+    if (Array.isArray(group)) {
+      return group.filter((button) => button && typeof button.id === 'number')
+    }
+
+    return group && typeof group.id === 'number' ? [group] : []
+  })
+}
 
 const fetchBotOptionsForPage = async () => {
   try {
@@ -141,11 +163,49 @@ const columns: TableColumn[] = [
   {
     field: 'content',
     label: '回复内容',
+    minWidth: 240,
+    slots: {
+      default: (data: { row: ReplyItem }) => {
+        if (!hasReplyContent(data.row)) {
+          return <span>-</span>
+        }
+        const content = getReplyContentText(data.row)
+        return (
+          <div class="reply-content-cell" title={content}>
+            {content}
+          </div>
+        )
+      }
+    }
+  },
+  {
+    field: 'files',
+    label: '文件',
     width: 100,
     slots: {
       default: (data: { row: ReplyItem }) => {
+        if (!hasReplyFiles(data.row)) {
+          return <span>-</span>
+        }
         return (
-          <ElLink type="primary" onClick={() => handleViewContent(data.row)}>
+          <ElLink type="primary" onClick={() => handleViewContent(data.row, 'files')}>
+            查看
+          </ElLink>
+        )
+      }
+    }
+  },
+  {
+    field: 'inline_menu_ids',
+    label: '内联按钮',
+    width: 100,
+    slots: {
+      default: (data: { row: ReplyItem }) => {
+        if (!hasReplyInlineButtons(data.row)) {
+          return <span>-</span>
+        }
+        return (
+          <ElLink type="primary" onClick={() => handleViewContent(data.row, 'buttons')}>
             查看
           </ElLink>
         )
@@ -259,8 +319,9 @@ const fetchReplyList = async (params: any) => {
         const botInfo = botInfoMap.value.get(item.bot_id)
         const userName = botInfo ? botInfo.user_name : ''
         const fullName = botInfo ? `${botInfo.user_name} (${botInfo.first_name})` : ''
-        const innerButtonIds = Array.isArray(item.inner_buttons)
-          ? item.inner_buttons.map((button: any) => button.id)
+        const flattenedInnerButtons = flattenInnerButtons(item.inner_buttons)
+        const innerButtonIds = flattenedInnerButtons.length
+          ? flattenedInnerButtons.map((button) => button.id)
           : item.inline_menu_ids || []
 
         return {
@@ -276,7 +337,8 @@ const fetchReplyList = async (params: any) => {
           bot_id: String(item.bot_id),
           keyword: item.key_name,
           bot_username: userName,
-          inline_menu_ids: innerButtonIds
+          inline_menu_ids: innerButtonIds,
+          inner_buttons: flattenedInnerButtons
         }
       })
 
@@ -326,6 +388,10 @@ const handleEdit = (row: ReplyItem) => {
 const handleDeleteConfirmation = (row: ReplyItem) => {
   currentRowData.value = row
   searchTableRef.value?.delete(row)
+}
+
+const handleInlineButton = () => {
+  inlineButtonDialogVisible.value = true
 }
 
 const handleDialogSubmitted = async (data: ReplySaveParams) => {
@@ -395,29 +461,60 @@ const handleDataLoaded = ({ data, total, success }) => {
 
 const viewContentDialogVisible = ref(false)
 const currentPreviewData = ref<MessagePreviewData>({})
-const handleViewContent = (row: ReplyItem) => {
+const getReplyContentText = (row: ReplyItem) => row.content?.trim() || ''
+
+const getReplyPreviewFiles = (row: ReplyItem) => {
+  return (row.files || []).map((fileUrl) => ({
+    type: getMessageFileType({ name: fileUrl } as File),
+    url: fileUrl,
+    name: fileUrl.split('/').pop() || fileUrl
+  }))
+}
+
+const getReplyInlineButtons = (row: ReplyItem) => {
+  const rowInnerButtons = flattenInnerButtons(row.inner_buttons)
+  if (rowInnerButtons.length > 0) {
+    return rowInnerButtons.map((button) => ({
+      id: button.id,
+      text: button.text
+    }))
+  }
+
+  return (row.inline_menu_ids || [])
+    .map((id) => {
+      const button = innerButtonMap.value.get(Number(id))
+      return button
+        ? {
+            id: button.id,
+            text: button.text
+          }
+        : null
+    })
+    .filter((item) => item !== null) as NonNullable<MessagePreviewData['buttons']>
+}
+
+const hasReplyContent = (row: ReplyItem) => !!getReplyContentText(row)
+const hasReplyFiles = (row: ReplyItem) => getReplyPreviewFiles(row).length > 0
+const hasReplyInlineButtons = (row: ReplyItem) => getReplyInlineButtons(row).length > 0
+
+const handleViewContent = (row: ReplyItem, previewType: 'content' | 'files' | 'buttons') => {
   currentPreviewData.value = {
     botName: row.bot_username || row.bot_name,
-    content: row.content || '',
-    files: (row.files || []).map((fileUrl) => ({
-      type: getMessageFileType({ name: fileUrl } as File),
-      url: fileUrl,
-      name: fileUrl.split('/').pop() || fileUrl
-    })),
-    buttons: (row.inline_menu_ids || [])
-      .map((id) => {
-        const button = innerButtonMap.value.get(Number(id))
-        return button
-          ? {
-              id: button.id,
-              text: button.text
-            }
-          : null
-      })
-      .filter((item) => item !== null) as NonNullable<MessagePreviewData['buttons']>
+    content: previewType === 'content' ? getReplyContentText(row) : '',
+    files: previewType === 'files' ? getReplyPreviewFiles(row) : [],
+    buttons: previewType === 'buttons' ? getReplyInlineButtons(row) : []
   }
   viewContentDialogVisible.value = true
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+.reply-content-cell {
+  display: -webkit-box;
+  overflow: hidden;
+  line-height: 20px;
+  word-break: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+</style>
