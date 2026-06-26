@@ -148,17 +148,34 @@ const columns: TableColumn[] = [
   {
     field: 'bot_id',
     label: '机器人ID',
-    width: 120
+    width: 120,
+    slots: {
+      default: (data: { row: ReplyItem }) => {
+        return <span>{Number(data.row.bot_id) === 0 ? '-' : data.row.bot_id}</span>
+      }
+    }
   },
   {
     field: 'bot_username',
     label: '机器人用户名',
-    width: 150
+    width: 150,
+    slots: {
+      default: (data: { row: ReplyItem }) => {
+        const name = data.row.bot_username?.trim()
+        return <span>{name ? name : '-'}</span>
+      }
+    }
   },
   {
     field: 'keyword',
     label: '关键词',
-    minWidth: 180
+    minWidth: 180,
+    slots: {
+      default: (data: { row: ReplyItem }) => {
+        const kw = (data.row.keyword || '').toString().trim()
+        return <span>{kw ? kw : '-'}</span>
+      }
+    }
   },
   {
     field: 'content',
@@ -403,6 +420,7 @@ const handleDialogSubmitted = async (data: ReplySaveParams) => {
     if (data.id) {
       const updateParams: UpdateReplyParamsV1 = {
         id: data.id,
+        bot_id: data.tg_bot_id,
         content: data.content || '',
         files: data.files || [],
         inner_buttons: data.inline_menu_ids || [],
