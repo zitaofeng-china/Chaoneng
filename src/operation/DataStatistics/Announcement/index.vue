@@ -296,6 +296,11 @@ const formatNumber = (num: number) => {
   return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+const formatDecimalString = (value: string | number) => {
+  const num = typeof value === 'number' ? value : parseFloat(value)
+  return Number.isFinite(num) ? num.toFixed(2) : '0.00'
+}
+
 // 格式化本地日期为 YYYY-MM-DD
 const formatLocalDate = (date: Date) => {
   const y = date.getFullYear()
@@ -533,8 +538,8 @@ const loadData = async () => {
           const key = item.name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')
           const usdt = parseFloat(item.balance_usdt) || 0
           const trx = parseFloat(item.balance_trx) || 0
-          row[`${key}_usdt`] = item.balance_usdt
-          row[`${key}_trx`] = item.balance_trx
+          row[`${key}_usdt`] = formatDecimalString(item.balance_usdt)
+          row[`${key}_trx`] = formatDecimalString(item.balance_trx)
           dayUsdt += usdt
           dayTrx += trx
         })
@@ -773,8 +778,8 @@ const handleExport = async () => {
       history[date].forEach((item: AccountBalanceSnapshot) => {
         const usdt = parseFloat(item.balance_usdt) || 0
         const trx = parseFloat(item.balance_trx) || 0
-        row[`${item.name}-USDT`] = item.balance_usdt
-        row[`${item.name}-TRX`] = item.balance_trx
+        row[`${item.name}-USDT`] = formatDecimalString(item.balance_usdt)
+        row[`${item.name}-TRX`] = formatDecimalString(item.balance_trx)
         dayUsdt += usdt
         dayTrx += trx
       })
