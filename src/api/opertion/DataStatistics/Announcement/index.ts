@@ -7,7 +7,9 @@ import type {
   GetAssetBalanceParams,
   AssetBalanceData,
   UpdateAssetNotifyParams,
-  AssetNotifyData
+  AssetNotifyData,
+  GetAssetAccountListParams,
+  AssetAccountListData
 } from './types'
 
 export * from './types'
@@ -20,6 +22,16 @@ const BASE_URL = '/v1/asset'
  */
 export const createAssetAccount = (data: CreateAssetAccountParams): Promise<IResponse<unknown>> => {
   return request.post({ url: `${BASE_URL}/account`, data })
+}
+
+/**
+ * 分页查询资产账户
+ * GET /v1/asset/account
+ */
+export const getAssetAccountList = (
+  params?: GetAssetAccountListParams
+): Promise<IResponse<AssetAccountListData>> => {
+  return request.get({ url: `${BASE_URL}/account`, params })
 }
 
 /**

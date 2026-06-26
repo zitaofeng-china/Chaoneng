@@ -200,6 +200,7 @@ import {
   createAssetAccount,
   getAssetReport,
   batchCreateAssetAccount,
+  getAssetAccountList,
   type AccountBalanceSnapshot
 } from '@/api/opertion/DataStatistics/Announcement'
 import { simpleExportToExcel } from '@/utils/excel'
@@ -679,19 +680,32 @@ const handleImport = async () => {
 }
 
 // 下载模板
-const handleDownloadTemplate = () => {
-  import('xlsx').then((XLSX) => {
+const handleDownloadTemplate = async () => {
+  if (isPageBusy.value) return
+
+  try {
+    const accountRes = await getAssetAccountList({ page_size: -1 })
+    const accountList = accountRes?.data?.list ?? []
+
+    const XLSX = await import('xlsx')
     const data = [
       ['名称', '地址'],
-      ['示例账户', 'TXxxxxxxxxxxxxxxxxxx']
+      ...accountList.map((item) => [item.name || '', item.address || ''])
     ]
+
+    if (accountList.length === 0) {
+      data.push(['示例账户', 'TXxxxxxxxxxxxxxxxxxx'])
+    }
+
     const ws = XLSX.utils.aoa_to_sheet(data)
     ws['!cols'] = [{ wch: 20 }, { wch: 40 }]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, '地址导入模板')
     XLSX.writeFile(wb, '地址导入模板.xlsx')
     handleSuccessMessage('模板下载成功')
-  })
+  } catch (error) {
+    handleErrorMessage(error, '模板下载失败')
+  }
 }
 
 // 手动添加
@@ -736,14 +750,14 @@ const handleExport = async () => {
   try {
     isExporting.value = true
     const params = getTimeParams()
-    const res = await getAssetReport(params)
+    const reportRes = await getAssetReport(params)
 
-    if (!res?.data || !res.data.history) {
+    if (!reportRes?.data || !reportRes.data.history) {
       handleWarningMessage('暂无数据可导出')
       return
     }
 
-    const data = res.data
+    const data = reportRes.data
     const price = parseFloat(data.price_trx) || 0
     const history = data.history
 

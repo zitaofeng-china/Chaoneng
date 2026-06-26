@@ -8,6 +8,33 @@ export interface CreateAssetAccountParams {
   name: string
 }
 
+/** 资产账户项 */
+export interface AssetAccountItem {
+  id: number
+  address: string
+  name: string
+  created_at: number
+  updated_at: number
+}
+
+/** 分页查询资产账户请求参数 */
+export interface GetAssetAccountListParams {
+  current_page?: number
+  page_size?: number
+  keyword?: string
+  order?: string
+}
+
+/** 分页查询资产账户响应数据 */
+export interface AssetAccountListData {
+  list: AssetAccountItem[]
+  pager: {
+    current_page: number
+    page_size: number
+    total: number
+  }
+}
+
 /** 资产通知配置响应 */
 export interface AssetNotifyData {
   chat_id: number | string
