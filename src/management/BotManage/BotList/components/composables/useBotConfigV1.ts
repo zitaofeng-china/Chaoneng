@@ -98,8 +98,7 @@ export function useBotConfigV1() {
         firstname: botDetailRes.data.first_name || '',
         name: botDetailRes.data.user_name || '',
         avatar: botDetailRes.data.avatar || '',
-        introduction: botDetailRes.data.introduction || '',
-        description_image: botDetailRes.data.description_image || '',
+        short_description: botDetailRes.data.short_description || '',
         description: botDetailRes.data.description || '',
         token: botDetailRes.data.token || '',
         api_key: '',
@@ -348,8 +347,7 @@ export function useBotConfigV1() {
       await v1UpdateBot({
         id: currentBot.value.id,
         avatar: botInfoData.avatar,
-        introduction: botInfoData.introduction,
-        description_image: botInfoData.description_image,
+        short_description: botInfoData.short_description,
         description: botInfoData.description,
         first_name: botInfoData.firstname,
         describe: botInfoData.describe,
@@ -385,8 +383,7 @@ export function useBotConfigV1() {
         if (botRes && botRes.code === '000000' && botRes.data) {
           currentBot.value = botRes.data
           refreshedData.avatar = botRes.data.avatar || ''
-          refreshedData.introduction = botRes.data.introduction || ''
-          refreshedData.description_image = botRes.data.description_image || ''
+          refreshedData.short_description = botRes.data.short_description || ''
           refreshedData.description = botRes.data.description || ''
           refreshedData.firstname = botRes.data.first_name || ''
           refreshedData.tg_admin = botRes.data.tg_admin || ''

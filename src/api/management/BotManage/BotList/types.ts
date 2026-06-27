@@ -68,8 +68,7 @@ export type BotDetail = {
   token: string // 机器人Token
   tg_admin: string // TG管理员
   avatar?: string // 头像
-  introduction?: string // 简介
-  description_image?: string // 机器人描述图片
+  short_description?: string // 简介
   description?: string // 机器人描述内容
   describe: string // 描述
   invite_reward?: number // 邀请奖励（TRX）- 兼容旧字段
@@ -247,8 +246,7 @@ export type UpdateBotParams = {
   id: number | string // 机器人ID（必填）
   auto_renew?: number // 自动续费：1-是，2-否
   avatar?: string // 头像
-  introduction?: string // 简介
-  description_image?: string // 机器人描述图片
+  short_description?: string // 简介
   description?: string // 机器人描述内容
   first_name?: string // 机器人昵称
   describe?: string // 描述

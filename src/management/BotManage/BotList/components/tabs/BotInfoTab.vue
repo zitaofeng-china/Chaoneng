@@ -1,5 +1,12 @@
 <template>
-  <div>
+  <div
+    class="bot-info-tab"
+    :class="{ 'is-dialog-dragover': isDialogDragover }"
+    @dragenter.prevent="handleDialogDragenter"
+    @dragover.prevent="handleDialogDragover"
+    @dragleave.prevent="handleDialogDragleave"
+    @drop.prevent="handleDialogDrop"
+  >
     <!-- 机器人基本信息表单 -->
     <Form
       :isCol="true"
@@ -75,7 +82,7 @@
         <ElCol :span="12">
           <ElFormItem label="简介：">
             <ElInput
-              v-model="botProfile.introduction"
+              v-model="botProfile.shortDescription"
               class="profile-textarea"
               type="textarea"
               maxlength="200"
@@ -87,47 +94,7 @@
       </ElRow>
 
       <ElRow :gutter="20">
-        <ElCol :span="12">
-          <ElFormItem label="机器人描述图片：">
-            <input
-              ref="descriptionImageFileInputRef"
-              class="bot-image-input"
-              type="file"
-              accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
-              @change="handleNativeFileChange($event, 'descriptionImage')"
-            />
-            <div
-              class="upload-placeholder desc-image-placeholder"
-              :class="{ 'is-dragover': dragoverField === 'descriptionImage' }"
-              @click="handleUploadClick('descriptionImage')"
-              @dblclick.stop.prevent="handleUploadDblClick('descriptionImage')"
-              @dragover.prevent="handleImageDragover('descriptionImage')"
-              @dragleave.prevent="handleImageDragleave('descriptionImage')"
-              @drop.prevent="handleImageDrop($event, 'descriptionImage')"
-            >
-              <ElImage
-                v-if="botProfile.descriptionImage"
-                class="upload-preview"
-                :src="botProfile.descriptionImage"
-                fit="contain"
-              />
-              <div v-if="!botProfile.descriptionImage" class="upload-content">
-                <Icon icon="ep:picture-filled" />
-                <span>请上传图片</span>
-              </div>
-              <ElButton
-                v-if="botProfile.descriptionImage"
-                class="image-preview-button"
-                link
-                type="primary"
-                @click.stop.prevent="previewImage(botProfile.descriptionImage)"
-              >
-                预览
-              </ElButton>
-            </div>
-          </ElFormItem>
-        </ElCol>
-        <ElCol :span="12">
+        <ElCol :span="24">
           <ElFormItem label="机器人描述内容：">
             <ElInput
               v-model="botProfile.descriptionContent"
@@ -147,6 +114,13 @@
       :url-list="imageViewerList"
       @close="imageViewerVisible = false"
     />
+
+    <div v-if="isDialogDragover" class="dialog-upload-mask">
+      <div class="dialog-upload-mask__content">
+        <Icon icon="ep:upload-filled" />
+        <span>松开鼠标，上传头像</span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -196,30 +170,24 @@ const h5Config = ref({
 
 const botProfile = reactive({
   avatar: '',
-  introduction: '',
-  descriptionImage: '',
+  shortDescription: '',
   descriptionContent: ''
 })
 
-const pendingImages = reactive<Record<'avatar' | 'descriptionImage', File | null>>({
-  avatar: null,
-  descriptionImage: null
+const pendingImages = reactive<Record<'avatar', File | null>>({
+  avatar: null
 })
 const avatarFileInputRef = ref<HTMLInputElement>()
-const descriptionImageFileInputRef = ref<HTMLInputElement>()
 const imageViewerVisible = ref(false)
 const imageViewerList = ref<string[]>([])
-const dragoverField = ref<'avatar' | 'descriptionImage' | null>(null)
+const dragoverField = ref<'avatar' | null>(null)
+const isDialogDragover = ref(false)
+const dialogDragCounter = ref(0)
 let uploadClickTimer: ReturnType<typeof setTimeout> | null = null
 
 // 当前机器人ID
 const currentBotId = ref<number | null>(null)
 const lastLoadedSiteBotId = ref<number | null>(null)
-
-const getCompatibleValue = (data: Record<string, any>, fields: string[]) => {
-  const matchedField = fields.find((field) => data[field] !== undefined && data[field] !== null)
-  return matchedField ? data[matchedField] || '' : ''
-}
 
 const isImageFile = (file?: File | null) => {
   if (!file) return false
@@ -227,7 +195,7 @@ const isImageFile = (file?: File | null) => {
   return /\.(png|jpe?g|gif|webp)$/i.test(file.name || '')
 }
 
-const replaceImageFile = (file: File | null, field: 'avatar' | 'descriptionImage') => {
+const replaceImageFile = (file: File | null, field: 'avatar') => {
   if (!file) {
     ElMessage.warning('未获取到图片文件')
     return
@@ -242,19 +210,20 @@ const replaceImageFile = (file: File | null, field: 'avatar' | 'descriptionImage
   botProfile[field] = URL.createObjectURL(file)
 }
 
-const handleNativeFileChange = (event: Event, field: 'avatar' | 'descriptionImage') => {
+const handleNativeFileChange = (event: Event, field: 'avatar') => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0] || null
   replaceImageFile(file, field)
   input.value = ''
 }
 
-const triggerFileSelect = (field: 'avatar' | 'descriptionImage') => {
-  const input = field === 'avatar' ? avatarFileInputRef.value : descriptionImageFileInputRef.value
-  input?.click()
+const triggerFileSelect = (field: 'avatar') => {
+  if (field === 'avatar') {
+    avatarFileInputRef.value?.click()
+  }
 }
 
-const handleUploadClick = (field: 'avatar' | 'descriptionImage') => {
+const handleUploadClick = (field: 'avatar') => {
   if (uploadClickTimer) {
     clearTimeout(uploadClickTimer)
   }
@@ -265,7 +234,7 @@ const handleUploadClick = (field: 'avatar' | 'descriptionImage') => {
   }, 220)
 }
 
-const handleUploadDblClick = (field: 'avatar' | 'descriptionImage') => {
+const handleUploadDblClick = (field: 'avatar') => {
   if (uploadClickTimer) {
     clearTimeout(uploadClickTimer)
     uploadClickTimer = null
@@ -277,20 +246,60 @@ const handleUploadDblClick = (field: 'avatar' | 'descriptionImage') => {
   }
 }
 
-const handleImageDragover = (field: 'avatar' | 'descriptionImage') => {
+const handleImageDragover = (field: 'avatar') => {
   dragoverField.value = field
 }
 
-const handleImageDragleave = (field: 'avatar' | 'descriptionImage') => {
+const handleImageDragleave = (field: 'avatar') => {
   if (dragoverField.value === field) {
     dragoverField.value = null
   }
 }
 
-const handleImageDrop = (event: DragEvent, field: 'avatar' | 'descriptionImage') => {
+const handleImageDrop = (event: DragEvent, field: 'avatar') => {
   dragoverField.value = null
   const file = event.dataTransfer?.files?.[0]
   replaceImageFile(file || null, field)
+}
+
+const hasImageDragFile = (event: DragEvent) => {
+  const items = Array.from(event.dataTransfer?.items || [])
+  return items.some((item) => item.kind === 'file' && item.type.startsWith('image/'))
+}
+
+const resetDialogDragState = () => {
+  dialogDragCounter.value = 0
+  isDialogDragover.value = false
+}
+
+const handleDialogDragenter = (event: DragEvent) => {
+  if (!hasImageDragFile(event)) return
+  dialogDragCounter.value += 1
+  isDialogDragover.value = true
+}
+
+const handleDialogDragover = (event: DragEvent) => {
+  if (!hasImageDragFile(event)) return
+  isDialogDragover.value = true
+}
+
+const handleDialogDragleave = (event: DragEvent) => {
+  if (!hasImageDragFile(event)) return
+  dialogDragCounter.value = Math.max(dialogDragCounter.value - 1, 0)
+  if (dialogDragCounter.value === 0) {
+    isDialogDragover.value = false
+  }
+}
+
+const handleDialogDrop = (event: DragEvent) => {
+  if (!hasImageDragFile(event)) {
+    resetDialogDragState()
+    return
+  }
+
+  resetDialogDragState()
+  const file = event.dataTransfer?.files?.[0] || null
+  replaceImageFile(file, 'avatar')
 }
 
 const previewImage = (url: string) => {
@@ -299,20 +308,22 @@ const previewImage = (url: string) => {
   imageViewerVisible.value = true
 }
 
-const uploadPendingImage = async (field: 'avatar' | 'descriptionImage') => {
+const uploadPendingImage = async (field: 'avatar') => {
   const file = pendingImages[field]
   if (!file) return botProfile[field]
 
   const formData = new FormData()
   formData.append('file', file)
   const res = await uploadFile(formData)
-  const fileUrl = res?.data?.url || res?.data?.filename
+  const fileUrl = res?.data?.filename || res?.data?.url
 
   if (!fileUrl) {
     throw new Error('图片上传失败')
   }
 
-  const normalizedUrl = /^https?:\/\//.test(fileUrl) ? fileUrl : `${window.location.origin}/${fileUrl}`
+  const normalizedUrl = /^https?:\/\//.test(fileUrl)
+    ? fileUrl
+    : `${window.location.origin}/${fileUrl}`
   botProfile[field] = normalizedUrl
   pendingImages[field] = null
   return normalizedUrl
@@ -460,20 +471,10 @@ defineExpose({
     setValues: (data: any) => {
       formMethods.setValues(data)
 
-      botProfile.avatar = getCompatibleValue(data, ['avatar', 'photo', 'head_img', 'head_image'])
-      botProfile.introduction = getCompatibleValue(data, ['introduction', 'intro', 'brief'])
-      botProfile.descriptionImage = getCompatibleValue(data, [
-        'description_image',
-        'describe_image',
-        'desc_image'
-      ])
-      botProfile.descriptionContent = getCompatibleValue(data, [
-        'description',
-        'description_content',
-        'describe_content'
-      ])
+      botProfile.avatar = data.avatar || ''
+      botProfile.shortDescription = data.short_description || ''
+      botProfile.descriptionContent = data.description || ''
       pendingImages.avatar = null
-      pendingImages.descriptionImage = null
 
       if (data.tg_bot_id !== undefined && data.tg_bot_id !== currentBotId.value) {
         currentBotId.value = data.tg_bot_id
@@ -487,16 +488,12 @@ defineExpose({
     },
     getFormData: async () => {
       const formData = await formMethods.getFormData()
-      const [avatar, descriptionImage] = await Promise.all([
-        uploadPendingImage('avatar'),
-        uploadPendingImage('descriptionImage')
-      ])
+      const avatar = await uploadPendingImage('avatar')
 
       return {
         ...formData,
         avatar,
-        introduction: botProfile.introduction,
-        description_image: descriptionImage,
+        short_description: botProfile.shortDescription,
         description: botProfile.descriptionContent,
         site_tg_admin: h5Config.value.site_tg_admin,
         h5_enable: h5Config.value.h5_enable,
@@ -539,10 +536,18 @@ defineExpose({
   animation: rotate 3s linear infinite;
 }
 
+.bot-info-tab {
+  position: relative;
+}
+
 .bot-profile-section {
   padding-top: 20px;
   margin-bottom: 20px;
   border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.bot-info-tab.is-dialog-dragover {
+  user-select: none;
 }
 
 .bot-profile-section :deep(.el-form-item) {
@@ -572,16 +577,16 @@ defineExpose({
   height: 92px;
   overflow: hidden;
   color: var(--el-text-color-secondary);
+  cursor: pointer;
   background-color: var(--el-fill-color-lighter);
   border: 1px dashed var(--el-border-color);
   border-radius: 4px;
-  cursor: pointer;
-  align-items: center;
-  justify-content: center;
   transition:
     border-color 0.2s,
     background-color 0.2s,
     color 0.2s;
+  align-items: center;
+  justify-content: center;
 }
 
 .upload-placeholder:hover {
@@ -653,6 +658,32 @@ defineExpose({
   width: 100%;
   height: 100%;
   background-color: #fff;
+}
+
+.dialog-upload-mask {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  display: flex;
+  pointer-events: none;
+  background: rgb(64 158 255 / 12%);
+  border: 2px dashed var(--el-color-primary);
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog-upload-mask__content {
+  display: flex;
+  padding: 18px 28px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  background: rgb(255 255 255 / 96%);
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 10%);
+  align-items: center;
+  gap: 10px;
 }
 
 /* H5配置区域样式 */
