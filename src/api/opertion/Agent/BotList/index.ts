@@ -1,5 +1,10 @@
 import request from '@/axios'
-import type { AgentBotQueryParams, AgentBotListResponse, UpdateAgentBotPayload } from './bot.types'
+import type {
+  AgentBotQueryParams,
+  AgentBotListResponse,
+  AgentBotItem,
+  UpdateAgentBotPayload
+} from './bot.types'
 
 // 导出类型定义
 export * from './bot.types'
@@ -14,6 +19,14 @@ export const getAgentBotListApi = (
   params: AgentBotQueryParams
 ): Promise<IResponse<AgentBotListResponse>> => {
   return request.get({ url: '/v1/bot', params })
+}
+
+/**
+ * 获取机器人详情
+ * GET /v1/bot/{id}
+ */
+export const getAgentBotDetailApi = (id: number | string): Promise<IResponse<AgentBotItem>> => {
+  return request.get({ url: `/v1/bot/${id}` })
 }
 
 /**

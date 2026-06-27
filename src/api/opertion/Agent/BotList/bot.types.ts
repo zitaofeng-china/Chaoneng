@@ -30,11 +30,20 @@ export interface AgentBotItem {
   agent_id: number // 代理ID
   agent_name: string // 代理名称
   auto_renew: number // 自动续费（1: 开启, 2: 关闭）
+  avatar?: string // 头像
   created_at: number // 创建时间（Unix时间戳-秒）
+  description?: string // 机器人描述内容
   describe: string // 描述
   expired_at: number // 过期时间（Unix时间戳-秒）
   first_name: string // 机器人昵称
   order_count: number // 交易订单数
+  reward?: {
+    first_deposit?: number // 首充奖励
+    first_visit?: number // 访问奖励
+    premium_invite?: number // 邀请奖励-会员
+    standard_invite?: number // 邀请奖励-非会员
+  }
+  short_description?: string // 简介
   status: number // 状态 (1: 启用, 2: 禁用)
   tg_admin: string // 管理员TG号
   token: string // 机器人Token
@@ -56,9 +65,19 @@ export interface AgentBotListResponse {
  * 更新机器人参数
  */
 export interface UpdateAgentBotPayload {
-  id: number // 机器人ID
-  auto_renew?: number // 自动续费 (1: 开启, 0: 关闭)
-  describe?: string // 描述
-  status?: number // 状态 (1: 启用, 2: 禁用)
-  tg_admin?: string // 管理员TG号
+  id: number | string // 机器人ID
+  auto_renew: number // 自动续费 (1: 开启, 2: 关闭)
+  avatar: string // 头像
+  short_description: string // 简介
+  description: string // 机器人描述内容
+  first_name: string // 机器人昵称
+  describe: string // 描述
+  reward: {
+    first_deposit: number // 首充奖励
+    premium_invite: number // 邀请奖励-会员
+    standard_invite: number // 邀请奖励-非会员
+  }
+  status: number // 状态 (1: 启用, 2: 禁用)
+  tg_admin: string // 管理员TG号
+  invite_reward: number // 邀请奖励（兼容字段）
 }
