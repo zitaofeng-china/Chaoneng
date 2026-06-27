@@ -366,6 +366,7 @@ const handleDialogSubmitted = async (data: ReplySaveParams) => {
         files: data.files || [],
         inner_buttons:
           data.inner_buttons || (data.inline_menu_ids?.length ? [data.inline_menu_ids] : []),
+        key_name: data.key_name,
         status: data.status
       }
       await v1UpdateReply(updateParams)
@@ -411,6 +412,7 @@ const handleStatusChange = async (row: ReplyItem, newStatus: number) => {
       content: row.content || '',
       files: row.files || [],
       inner_buttons: getReplyInnerButtonLayout(row),
+      key_name: row.key_name,
       status: newStatus
     })
     await searchTableRef.value?.reload()

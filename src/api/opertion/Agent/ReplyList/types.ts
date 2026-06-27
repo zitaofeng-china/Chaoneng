@@ -76,7 +76,7 @@ export interface CreateReplyParamsV1 {
   content: string // 回复内容
   files?: string[] // 文件URL数组
   inner_buttons?: number[][] // 内联按钮二维布局
-  key_name: string[] // 关键词名称数组（必填）
+  key_name: string // 关键词名称（必填）
   status: number // 状态（必填）
 }
 
@@ -88,6 +88,7 @@ export interface UpdateReplyParamsV1 {
   files?: string[] // 文件URL数组
   id: number // 回复ID（必填）
   inner_buttons?: number[][] // 内联按钮二维布局
+  key_name: string // 关键词名称（必填）
   status: number // 状态（必填）
 }
 
@@ -143,7 +144,7 @@ export interface ReplyListParams {
 export interface ReplySaveParams {
   id?: number // For edit mode
   tg_bot_id: number // Changed from string to number
-  key_name: string[] // Changed from keyword: string
+  key_name: string
   content?: string // 回复内容 from the new dialog
   files?: string[] // 上传后的图片/视频地址
   inline_menu_ids?: number[] // 已选择的内联按钮ID

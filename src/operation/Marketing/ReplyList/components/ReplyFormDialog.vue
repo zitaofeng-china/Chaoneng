@@ -580,12 +580,7 @@ const handleConfirmSubmit = async (buttonLayout?: number[][]) => {
         ElMessage.error('机器人ID无效，请重新选择')
         return
       }
-      const processedKeywords = formData.value.keyword
-        ? formData.value.keyword
-            .split(',')
-            .map((k) => k.trim())
-            .filter((k) => k)
-        : []
+      const processedKeywords = formData.value.keyword?.trim() || ''
       params = {
         id: props.rowData.id,
         tg_bot_id: botIdAsNumber,
@@ -597,12 +592,7 @@ const handleConfirmSubmit = async (buttonLayout?: number[][]) => {
         status: formData.value.status
       }
     } else {
-      const processedKeywords = formData.value.keyword
-        ? formData.value.keyword
-            .split(',')
-            .map((k) => k.trim())
-            .filter((k) => k)
-        : []
+      const processedKeywords = formData.value.keyword?.trim() || ''
       const botIdAsNumber = Number(formData.value.bot_id)
       if (isNaN(botIdAsNumber)) {
         ElMessage.error('机器人ID无效，请重新选择')
