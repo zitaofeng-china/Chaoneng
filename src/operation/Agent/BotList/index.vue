@@ -34,6 +34,7 @@ import type { TableColumn } from '@/components/Table'
 import {
   getAgentBotListApi,
   updateAgentBotApi,
+  getAgentBotDetailApi,
   type AgentBotQueryParams,
   AgentBotItem
 } from '@/api/opertion/Agent/BotList'
@@ -52,6 +53,7 @@ import {
   type TableSlot
 } from '@/utils/tableHelpers'
 import { BOT_STATUS_MAP, BOT_STATUS_OPTIONS } from '../constants'
+import { buildBotUpdatePayload, validateBotUpdatePayload } from '@/utils/botUpdatePayload'
 
 const route = useRoute()
 const router = useRouter()
@@ -111,9 +113,23 @@ const getAgentBotList = async (
   }
 }
 
-const updateBotStatus = async (id: number | string, status: number) => {
+const updateBotStatus = async (row: AgentBotItem, status: number) => {
   try {
-    await updateAgentBotApi({ id: Number(id), status })
+    const detailRes = await getAgentBotDetailApi(row.id)
+    if (detailRes.code !== '000000' || !detailRes.data) {
+      handleErrorMessage(detailRes, '获取机器人详情失败')
+      return
+    }
+
+    const payload = buildBotUpdatePayload(detailRes.data, { status })
+    const validationMessage = validateBotUpdatePayload(payload)
+
+    if (validationMessage) {
+      handleErrorMessage(validationMessage, '更新机器人状态失败')
+      return
+    }
+
+    await updateAgentBotApi(payload)
     await searchTableRef.value?.reload()
     handleSuccessMessage(status === 1 ? '启用成功' : '禁用成功')
   } catch (error) {
@@ -264,7 +280,7 @@ const columns = ref<TableColumn[]>([
           </BaseButton>
           <BaseButton
             type={buttonType}
-            onClick={() => handleUpdateStatus(row.id, targetStatus, actionText)}
+            onClick={() => handleUpdateStatus(row, targetStatus, actionText)}
           >
             {buttonText}
           </BaseButton>
@@ -278,14 +294,14 @@ const handleEdit = (row: AgentBotItem) => {
   botInfoEditDialogRef.value?.open(row)
 }
 
-const handleUpdateStatus = (id: number | string, status: number, actionText: string) => {
+const handleUpdateStatus = (row: AgentBotItem, status: number, actionText: string) => {
   ElMessageBox.confirm(`确定要${actionText}该机器人吗？`, '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
   })
     .then(async () => {
-      await updateBotStatus(id, status)
+      await updateBotStatus(row, status)
     })
     .catch(() => {
       ElMessage.info('操作已取消')

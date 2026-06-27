@@ -17,6 +17,7 @@ import {
 } from '@/api/management/BotManage/BotList'
 import { v1UpdateSite, v1GetSiteDetail } from '@/api/management/BotManage/common/site'
 import { getAccountListApi } from '@/api/management/AccountManage/AccountList'
+import { buildBotUpdatePayload, validateBotUpdatePayload } from '@/utils/botUpdatePayload'
 
 export function useBotConfigV1() {
   // 共享状态
@@ -343,22 +344,16 @@ export function useBotConfigV1() {
     try {
       const botInfoData = await formMethods.getFormData()
 
+      const botPayload = buildBotUpdatePayload(currentBot.value, botInfoData)
+      const validationMessage = validateBotUpdatePayload(botPayload)
+
+      if (validationMessage) {
+        ElMessage.error(validationMessage)
+        return false
+      }
+
       // 1. 更新机器人基本信息
-      await v1UpdateBot({
-        id: currentBot.value.id,
-        avatar: botInfoData.avatar,
-        short_description: botInfoData.short_description,
-        description: botInfoData.description,
-        first_name: botInfoData.firstname,
-        describe: botInfoData.describe,
-        status: botInfoData.status,
-        tg_admin: botInfoData.tg_admin,
-        reward: {
-          standard_invite: botInfoData.invite_reward || 0,
-          premium_invite: botInfoData.invite_reward_vip || 0,
-          first_deposit: botInfoData.visit_reward || 0
-        }
-      })
+      await v1UpdateBot(botPayload)
 
       // 2. 更新Site信息（客服账号和H5端开关）
       await v1UpdateSite({

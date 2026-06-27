@@ -68,6 +68,7 @@ import BotConfig from './components/BotConfig.vue'
 import {
   v1GetBotList,
   v1CreateBot,
+  v1GetBotDetail,
   v1UpdateBot,
   v1GetBotRenewPrice
 } from '@/api/management/BotManage/BotList'
@@ -75,6 +76,7 @@ import { Tips } from '@/components/Tips'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute, useRouter } from 'vue-router'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { buildBotUpdatePayload, validateBotUpdatePayload } from '@/utils/botUpdatePayload'
 
 const route = useRoute()
 const router = useRouter()
@@ -136,7 +138,7 @@ const columns = [
             v-model={data.row.status}
             activeValue={1}
             inactiveValue={2}
-            onChange={() => handleStatusChange(data.row)}
+            onChange={(value) => handleBotSwitchChange(data.row, 'status', Number(value))}
           />
         )
       }
@@ -160,7 +162,7 @@ const columns = [
             v-model={data.row.auto_renew}
             activeValue={1}
             inactiveValue={2}
-            onChange={() => handleStatusChange(data.row)}
+            onChange={(value) => handleBotSwitchChange(data.row, 'auto_renew', Number(value))}
           />
         )
       }
@@ -350,26 +352,37 @@ const handleAdd = () => {
   })
 }
 
-const handleStatusChange = async (row: any) => {
+const handleBotSwitchChange = async (row: any, field: 'status' | 'auto_renew', value: number) => {
   if (!isLoaded.value) return
-  const previousState = {
-    status: row.status === 1 ? 2 : 1,
-    auto_renew: row.auto_renew === 1 ? 2 : 1
-  }
+  const previousValue = value === 1 ? 2 : 1
 
   try {
-    const res = await v1UpdateBot(row)
+    const detailRes = await v1GetBotDetail(row.id)
+    if (detailRes.code !== '000000' || !detailRes.data) {
+      row[field] = previousValue
+      handleErrorMessage(detailRes, '获取机器人详情失败')
+      return
+    }
+
+    const payload = buildBotUpdatePayload(detailRes.data, { [field]: value })
+    const validationMessage = validateBotUpdatePayload(payload)
+
+    if (validationMessage) {
+      row[field] = previousValue
+      handleErrorMessage(validationMessage, '状态更新失败')
+      return
+    }
+
+    const res = await v1UpdateBot(payload)
     if (res.code === '000000') {
       await searchTableRef.value?.reload()
       handleSuccessMessage('状态更新成功')
     } else {
-      row.status = previousState.status
-      row.auto_renew = previousState.auto_renew
+      row[field] = previousValue
       handleErrorMessage(res, '状态更新失败')
     }
   } catch (error) {
-    row.status = previousState.status
-    row.auto_renew = previousState.auto_renew
+    row[field] = previousValue
     handleErrorMessage(error, '状态更新失败')
   }
 }
