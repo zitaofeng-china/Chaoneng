@@ -85,7 +85,7 @@
               v-model="botProfile.shortDescription"
               class="profile-textarea"
               type="textarea"
-              maxlength="200"
+              :maxlength="BOT_SHORT_DESCRIPTION_MAX_LENGTH"
               show-word-limit
               placeholder="请输入机器人简介"
             />
@@ -177,6 +177,7 @@ const botProfile = reactive({
   shortDescription: '',
   descriptionContent: ''
 })
+const BOT_SHORT_DESCRIPTION_MAX_LENGTH = 120
 
 const pendingImages = reactive<Record<'avatar', File | null>>({
   avatar: null
@@ -498,7 +499,7 @@ defineExpose({
       return {
         ...formData,
         avatar,
-        short_description: botProfile.shortDescription,
+        short_description: botProfile.shortDescription.slice(0, BOT_SHORT_DESCRIPTION_MAX_LENGTH),
         description: botProfile.descriptionContent,
         site_tg_admin: h5Config.value.site_tg_admin,
         h5_enable: h5Config.value.h5_enable,

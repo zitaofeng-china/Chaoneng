@@ -82,6 +82,21 @@
           </ElCol>
         </ElRow>
 
+        <div class="section-title">【客服】配置：</div>
+        <ElRow :gutter="24">
+          <ElCol :xs="24" :sm="12" :md="8">
+            <ElFormItem label="客服字段" prop="customer">
+              <ElInput
+                v-model="formData.customer"
+                placeholder="请输入客服账号"
+                clearable
+                @input="(value: string) => handleCustomerInput(value)"
+              />
+              <div class="field-tip">提示：不需要@符号</div>
+            </ElFormItem>
+          </ElCol>
+        </ElRow>
+
         <div class="form-actions">
           <ElButton v-if="hasEditPermission" type="primary" :loading="saving" @click="handleSave">
             保存配置
@@ -117,6 +132,7 @@ type FormField =
   | 'bandwidth_price2'
   | 'energy_minimum'
   | 'bandwidth_minimum'
+  | 'customer'
 
 type FormData = Record<FormField, string>
 
@@ -138,7 +154,8 @@ const formData = reactive<FormData>({
   energy_price2: '',
   bandwidth_price2: '',
   energy_minimum: '',
-  bandwidth_minimum: ''
+  bandwidth_minimum: '',
+  customer: ''
 })
 
 const hasEditPermission = computed(() => {
@@ -189,8 +206,17 @@ const rules = computed<FormRules>(() => ({
   bandwidth_minimum: [
     { required: true, message: '请填写带宽最低出售数量', trigger: 'blur' },
     { validator: validatePositiveNumber, trigger: 'blur' }
-  ]
+  ],
+  customer: [{ required: true, message: '请填写客服字段', trigger: 'blur' }]
 }))
+
+const sanitizeCustomerInput = (value: string) => {
+  return value.replace(/@/g, '').trim()
+}
+
+const handleCustomerInput = (value: string) => {
+  formData.customer = sanitizeCustomerInput(value)
+}
 
 const sanitizeDecimalInput = (value: string) => {
   let sanitized = value.replace(/[^\d.]/g, '')
@@ -236,6 +262,7 @@ const mapApiDataToForm = (data: FundPriceConfig) => {
   formData.bandwidth_price2 = String(data.bandwidth_price2 ?? '')
   formData.energy_minimum = String(data.energy_minimum ?? '')
   formData.bandwidth_minimum = String(data.bandwidth_minimum ?? '')
+  formData.customer = String(data.customer ?? '')
 }
 
 const mapFormToApiData = (): UpdateFundPriceConfigParams => ({
@@ -244,7 +271,8 @@ const mapFormToApiData = (): UpdateFundPriceConfigParams => ({
   energy_price2: Number(formData.energy_price2),
   bandwidth_price2: Number(formData.bandwidth_price2),
   energy_minimum: Number(formData.energy_minimum),
-  bandwidth_minimum: Number(formData.bandwidth_minimum)
+  bandwidth_minimum: Number(formData.bandwidth_minimum),
+  customer: formData.customer
 })
 
 const loadConfig = async () => {
@@ -320,6 +348,13 @@ onActivated(() => {
 .form-tip {
   font-size: 13px;
   color: var(--el-color-warning);
+}
+
+.field-tip {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-color-danger);
 }
 
 :deep(.el-form-item__label) {
