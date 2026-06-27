@@ -12,14 +12,13 @@
       >
         <!-- 搜索按钮插槽 -->
         <template #searchButtons>
-          <ElButton type="success" @click="handleBatchImport">
-            <Icon icon="ep:upload" class="mr-5px" />
-            批量导入
+          <ElButton type="primary" :loading="exporting" @click="handleExport">
+            <Icon icon="ep:download" class="mr-5px" />
+            导出
           </ElButton>
-          <!-- 添加导出模版按钮 -->
           <ElButton type="primary" plain @click="handleExportTemplate">
             <Icon icon="ep:download" class="mr-5px" />
-            下载模版
+            下载模板
           </ElButton>
         </template>
         <!-- 工具栏插槽 -->
@@ -89,11 +88,19 @@
           </ElFormItem>
           <ElFormItem label="收款地址:" prop="address">
             <ElInput
+              v-if="isAddressTextarea"
               v-model="addressForm.address"
               class="address-form-field"
-              :type="isAddressTextarea ? 'textarea' : 'text'"
-              :rows="isAddressTextarea ? 6 : undefined"
-              :placeholder="isAddressTextarea ? '请输入地址，每行一个' : '请输入地址'"
+              type="textarea"
+              :rows="6"
+              placeholder="请输入地址，每行一个"
+            />
+            <ElInput
+              v-else
+              v-model="addressForm.address"
+              class="address-form-field"
+              type="text"
+              placeholder="请输入地址"
               clearable
             />
           </ElFormItem>
@@ -121,25 +128,16 @@
           </div>
         </template>
       </Dialog>
-
-      <!-- 批量导入弹窗 -->
-      <Dialog v-model="batchImportVisible" title="批量导入地址" width="500px" max-height="200px">
-        <Form :schema="importFormSchema" @register="importFormRegister" />
-        <template #footer>
-          <div class="flex justify-end">
-            <ElButton @click="batchImportVisible = false" :disabled="submitting">取消</ElButton>
-            <ElButton type="primary" @click="submitBatchImport" :loading="submitting"
-              >确定</ElButton
-            >
-          </div>
-        </template>
-      </Dialog>
+      <div v-if="showAddressDragMask" class="global-drag-mask">
+        <div class="global-drag-mask__content">释放鼠标以解析地址模板</div>
+      </div>
     </ContentWrap>
   </div>
 </template>
 
 <script setup lang="tsx">
-import { computed, ref, reactive, nextTick, onMounted } from 'vue'
+import { computed, ref, reactive, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
+import * as XLSX from 'xlsx'
 import {
   ElButton,
   ElMessageBox,
@@ -157,8 +155,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Icon } from '@/components/Icon'
 import { Dialog } from '@/components/Dialog'
-import { Form, FormSchema } from '@/components/Form'
-import { useForm } from '@/hooks/web/useForm'
+import type { FormSchema } from '@/components/Form'
 import { BaseButton } from '@/components/Button'
 import { SearchTable } from '@/components/SearchTable'
 import type { TableColumn } from '@/components/Table'
@@ -170,7 +167,6 @@ import {
   v2UpdateAddress,
   v2DeleteAddress,
   v2ExportAddressModule,
-  v2BatchImportAddress,
   type V2AddressItem,
   type V2AddressListParams
 } from '@/api/opertion/Marketing/Payment'
@@ -185,7 +181,12 @@ import {
   type MessageAgentItem,
   type MessageBotItem
 } from '@/api/opertion/common/message'
-import { createPageParams, formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
+import {
+  createPageParams,
+  exportTableData,
+  formatTableDateTime,
+  hasSearchValue
+} from '@/utils/tableHelpers'
 import {
   ALLOWED_PAYMENT_ADDRESS_KINDS,
   PAYMENT_ADDRESS_KIND_MAP,
@@ -198,12 +199,17 @@ import type { SelectOption } from '@/utils/tableHelpers'
 // 表格和表单引用
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null) // SearchTable 引用
 const submitting = ref(false)
-const batchImportVisible = ref(false)
+const exporting = ref(false)
+const showAddressDragMask = ref(false)
+const addressDragCounter = ref(0)
 const addressDialogVisible = ref(false)
 const addressDialogMode = ref<'add' | 'edit'>('add')
 const currentAddress = ref<V2AddressItem | null>(null)
 const addressFormRef = ref<FormInstance>()
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
+const EXCEL_FILE_EXTENSIONS = ['.xlsx', '.xls']
+const TRX_ADDRESS_PATTERN = /T[1-9A-HJ-NP-Za-km-z]{33}/g
+const ADDRESS_HEADER_KEYWORDS = ['地址', 'address', 'trx']
 type AgentOption = SelectOption<number>
 type BotOption = SelectOption<number> & { agent_id: number }
 
@@ -214,17 +220,8 @@ type AddressSearchParams = Omit<V2AddressListParams, 'kind'> & {
   kind?: number | string
 }
 
-interface UploadFormData {
-  file?: Array<{ raw?: File; name?: string }>
-}
-
-const isBlobError = (error: unknown): error is { data: Blob } => {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    (error as { data?: unknown }).data instanceof Blob
-  )
-}
+type ExcelCellValue = string | number | boolean | null | undefined
+type ExcelRow = ExcelCellValue[]
 
 const addressForm = reactive({
   kind: 1,
@@ -241,9 +238,6 @@ const DEFAULT_ADDRESS_FORM = {
   address: '',
   expired_at: ''
 }
-
-// 使用表单Hook - 导入表单
-const { formRegister: importFormRegister, formMethods: importFormMethods } = useForm()
 
 const isAddressKindDisabled = computed(() => addressDialogMode.value !== 'add')
 
@@ -267,6 +261,10 @@ const isMultiAddressKind = computed(() => PAYMENT_MULTI_ADDRESS_KINDS.has(Number
 
 const isAddressTextarea = computed(
   () => addressDialogMode.value === 'add' && isMultiAddressKind.value
+)
+
+const canParseDroppedAddressFile = computed(
+  () => addressDialogVisible.value && isAddressTextarea.value
 )
 
 const isAgentRequired = computed(
@@ -423,6 +421,15 @@ const getAddressKindInfo = (kind: number | string) => {
   )
 }
 
+const formatAgentInfo = (item: V2AddressItem) => {
+  if (item.agent_name && item.email) {
+    return `${item.agent_name} (${item.email})`
+  }
+  return item.agent_name || '-'
+}
+
+const formatBotInfo = (item: V2AddressItem) => item.bot_user_name || item.bot_name || '-'
+
 const columns = ref<TableColumn[]>([
   {
     field: 'address',
@@ -434,10 +441,7 @@ const columns = ref<TableColumn[]>([
     label: '代理信息',
     minWidth: '200px',
     formatter: (row: V2AddressItem) => {
-      if (row.agent_name && row.email) {
-        return `${row.agent_name} (${row.email})`
-      }
-      return row.agent_name || '-'
+      return formatAgentInfo(row)
     }
   },
   {
@@ -445,7 +449,7 @@ const columns = ref<TableColumn[]>([
     label: '机器人',
     minWidth: '140px',
     formatter: (row: V2AddressItem) => {
-      return row.bot_user_name || row.bot_name || '——'
+      return formatBotInfo(row)
     }
   },
   {
@@ -531,19 +535,23 @@ const searchSchema = reactive<FormSchema[]>([
   }
 ])
 
+const buildAddressListParams = (params: AddressSearchParams = {}): V2AddressListParams => {
+  const processedParams: V2AddressListParams = {
+    ...createPageParams(params)
+  }
+  if (params.keyword) {
+    processedParams.keyword = params.keyword.replace(/\s*[\(（].*$/g, '').trim()
+  }
+  if (hasSearchValue(params.kind)) processedParams.kind = Number(params.kind)
+  processedParams.order = params.order || DEFAULT_CREATED_AT_ORDER
+
+  return processedParams
+}
+
 // 数据获取函数，供 SearchTable 使用
 const fetchData = async (params: AddressSearchParams = {}) => {
   try {
-    const processedParams: V2AddressListParams = {
-      ...createPageParams(params)
-    }
-    if (params.keyword) {
-      processedParams.keyword = params.keyword.replace(/\s*[\(（].*$/g, '').trim()
-    }
-    if (hasSearchValue(params.kind)) processedParams.kind = Number(params.kind)
-    processedParams.order = params.order || DEFAULT_CREATED_AT_ORDER
-
-    const res = await v2GetAddressList(processedParams)
+    const res = await v2GetAddressList(buildAddressListParams(params))
     const data = res.data || {}
     const list = (data.list || []).filter((item) =>
       ALLOWED_PAYMENT_ADDRESS_KINDS.has(Number(item.kind))
@@ -670,97 +678,187 @@ const parseAddressList = () => {
     .filter(Boolean)
 }
 
-// 批量导入按钮点击
-const handleBatchImport = () => {
-  batchImportVisible.value = true
-  // 重置表单状态
-  nextTick(() => {
-    importFormMethods.setValues({ file: [] }) // 清空已上传文件列表
+const uniqueAddressList = (list: string[]) => {
+  const addressSet = new Set<string>()
+  const result: string[] = []
+  list.forEach((address) => {
+    const value = address.trim()
+    if (!value || addressSet.has(value)) return
+    addressSet.add(value)
+    result.push(value)
   })
+  return result
 }
 
-// 提交批量导入
-const importFormSchema = reactive<FormSchema[]>([
-  {
-    field: 'file',
-    label: '选择文件',
-    component: 'Upload',
-    componentProps: {
-      limit: 1,
-      accept: '.xlsx,.xls',
-      autoUpload: false,
-      multiple: false,
-      // 添加 onExceed 处理
-      onExceed: () => {
-        handleWarningMessage('只能上传一个文件')
-      },
-      // 添加 slots 以自定义按钮和提示
-      slots: {
-        default: () => <BaseButton type="primary">选择文件</BaseButton>,
-        tip: () => (
-          <div class="el-upload__tip text-red">
-            只支持 .xlsx 或 .xls 格式的文件，不支持 .csv
-            格式。请先下载模板，按照模板格式填写后上传。
-          </div>
-        )
+const getFileExtension = (fileName: string) => {
+  const extensionIndex = fileName.lastIndexOf('.')
+  return extensionIndex >= 0 ? fileName.substring(extensionIndex).toLowerCase() : ''
+}
+
+const isExcelFile = (file: File) => EXCEL_FILE_EXTENSIONS.includes(getFileExtension(file.name))
+
+const readFileAsArrayBuffer = (file: File) =>
+  new Promise<ArrayBuffer>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (reader.result instanceof ArrayBuffer) {
+        resolve(reader.result)
+        return
       }
-    },
-    formItemProps: {
-      rules: [{ required: true, message: '请选择上传文件', trigger: 'blur' }]
-    },
-    colProps: {
-      span: 24
+      reject(new Error('文件读取失败'))
     }
+    reader.onerror = () => reject(reader.error || new Error('文件读取失败'))
+    reader.readAsArrayBuffer(file)
+  })
+
+const isAddressHeader = (value: string) => {
+  const lowerValue = value.toLowerCase()
+  return ADDRESS_HEADER_KEYWORDS.some((keyword) => lowerValue.includes(keyword))
+}
+
+const splitAddressCellText = (value: string) =>
+  value
+    .split(/[\s,，;；]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+const extractAddressCandidates = (value: string, allowRawValue: boolean) => {
+  const matchedAddresses = value.match(TRX_ADDRESS_PATTERN)
+  if (matchedAddresses?.length) {
+    return matchedAddresses
   }
-])
-// 提交批量导入
-const submitBatchImport = async () => {
-  if (submitting.value) {
+
+  if (!allowRawValue) return []
+  return splitAddressCellText(value).filter((item) => !isAddressHeader(item))
+}
+
+const extractAddressesFromWorkbook = (workbook: XLSX.WorkBook) => {
+  const addresses: string[] = []
+
+  workbook.SheetNames.forEach((sheetName) => {
+    const worksheet = workbook.Sheets[sheetName]
+    const rows = XLSX.utils.sheet_to_json(worksheet, {
+      header: 1,
+      raw: false,
+      blankrows: false,
+      defval: ''
+    }) as ExcelRow[]
+
+    const headerRowIndex = rows.findIndex((row) =>
+      row.some((cell) => isAddressHeader(String(cell || '').trim()))
+    )
+    const addressColumnIndexes = new Set<number>()
+
+    if (headerRowIndex >= 0) {
+      rows[headerRowIndex].forEach((cell, columnIndex) => {
+        if (isAddressHeader(String(cell || '').trim())) {
+          addressColumnIndexes.add(columnIndex)
+        }
+      })
+    }
+
+    rows.forEach((row, rowIndex) => {
+      row.forEach((cell, columnIndex) => {
+        const cellText = String(cell || '').trim()
+        if (!cellText) return
+
+        const allowRawValue = headerRowIndex >= 0 && rowIndex > headerRowIndex
+        addresses.push(
+          ...extractAddressCandidates(
+            cellText,
+            allowRawValue && addressColumnIndexes.has(columnIndex)
+          )
+        )
+      })
+    })
+  })
+
+  return uniqueAddressList(addresses)
+}
+
+const parseAddressExcelFile = async (file: File) => {
+  const buffer = await readFileAsArrayBuffer(file)
+  const workbook = XLSX.read(buffer, { type: 'array' })
+  return extractAddressesFromWorkbook(workbook)
+}
+
+const isFileDragEvent = (event: DragEvent) => event.dataTransfer?.types?.includes('Files')
+
+const updateAddressDragMask = (visible: boolean) => {
+  showAddressDragMask.value = visible && canParseDroppedAddressFile.value
+}
+
+const handleAddressWindowDragEnter = (event: DragEvent) => {
+  if (!canParseDroppedAddressFile.value || !isFileDragEvent(event)) return
+  event.preventDefault()
+  addressDragCounter.value += 1
+  updateAddressDragMask(true)
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'copy'
+  }
+}
+
+const handleAddressWindowDragOver = (event: DragEvent) => {
+  if (!canParseDroppedAddressFile.value || !isFileDragEvent(event)) return
+  event.preventDefault()
+  updateAddressDragMask(true)
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'copy'
+  }
+}
+
+const handleAddressWindowDragLeave = (event: DragEvent) => {
+  if (!canParseDroppedAddressFile.value || !isFileDragEvent(event)) return
+  event.preventDefault()
+  addressDragCounter.value = Math.max(0, addressDragCounter.value - 1)
+  if (addressDragCounter.value === 0) {
+    updateAddressDragMask(false)
+  }
+}
+
+const handleAddressWindowDrop = async (event: DragEvent) => {
+  if (!canParseDroppedAddressFile.value || !isFileDragEvent(event)) return
+  event.preventDefault()
+  addressDragCounter.value = 0
+  updateAddressDragMask(false)
+  const file = Array.from(event.dataTransfer?.files || [])[0]
+  if (!file) return
+
+  if (!isExcelFile(file)) {
+    handleWarningMessage('只支持 .xlsx 或 .xls 文件')
     return
   }
 
   try {
-    const formDataRaw = await importFormMethods.getFormData<UploadFormData>()
-    const fileList = formDataRaw.file
-
-    if (!fileList || fileList.length === 0) {
-      handleWarningMessage('请先选择文件')
+    const parsedAddresses = await parseAddressExcelFile(file)
+    if (parsedAddresses.length === 0) {
+      handleWarningMessage('未解析到地址')
       return
     }
 
-    const file = fileList[0]?.raw
-    if (!file) {
-      ElMessage.error('无法获取文件对象')
-      return
-    }
-
-    // 验证文件格式
-    const fileName = file.name
-    const fileExtension = fileName.substring(fileName.lastIndexOf('.')).toLowerCase()
-    if (!['.xlsx', '.xls'].includes(fileExtension)) {
-      ElMessage.error('只支持 .xlsx 或 .xls 格式的文件，不支持 .csv 格式')
-      return
-    }
-
-    const formData = new FormData()
-    formData.append('file', file) // 将文件添加到 FormData
-
-    submitting.value = true
-    await v2BatchImportAddress(formData)
-    await reloadTable()
-    batchImportVisible.value = false
-    handleSuccessMessage('批量导入成功')
-  } catch (error: unknown) {
-    // 检查是否有返回的错误文件
-    if (isBlobError(error)) {
-      downloadByData(error.data, '批量导入失败.xlsx')
-      ElMessage.error('批量导入失败，请查看下载的错误文件')
-    } else {
-      handleErrorMessage(error, '批量导入失败')
-    }
-  } finally {
-    submitting.value = false
+    addressForm.address = uniqueAddressList([...parseAddressList(), ...parsedAddresses]).join('\n')
+    await nextTick()
+    addressFormRef.value?.clearValidate('address')
+    handleSuccessMessage(`已解析 ${parsedAddresses.length} 个地址`)
+  } catch (error) {
+    handleErrorMessage(error, '解析地址文件失败')
   }
+}
+
+const registerAddressGlobalDragEvents = () => {
+  window.addEventListener('dragenter', handleAddressWindowDragEnter)
+  window.addEventListener('dragover', handleAddressWindowDragOver)
+  window.addEventListener('dragleave', handleAddressWindowDragLeave)
+  window.addEventListener('drop', handleAddressWindowDrop)
+}
+
+const unregisterAddressGlobalDragEvents = () => {
+  window.removeEventListener('dragenter', handleAddressWindowDragEnter)
+  window.removeEventListener('dragover', handleAddressWindowDragOver)
+  window.removeEventListener('dragleave', handleAddressWindowDragLeave)
+  window.removeEventListener('drop', handleAddressWindowDrop)
+  addressDragCounter.value = 0
+  updateAddressDragMask(false)
 }
 
 // 删除地址
@@ -850,24 +948,81 @@ const submitAddAddresses = async () => {
   }
 }
 
-// --- 导出模版处理函数 ---
+const handleExport = async () => {
+  if (exporting.value) return
+  exporting.value = true
+
+  try {
+    await exportTableData<V2AddressItem, AddressSearchParams, V2AddressListParams>({
+      searchTableRef,
+      filename: '地址管理列表',
+      fetchData: v2GetAddressList,
+      buildParams: buildAddressListParams,
+      getList: (res) =>
+        (res.data?.list || []).filter((item) =>
+          ALLOWED_PAYMENT_ADDRESS_KINDS.has(Number(item.kind))
+        ),
+      mapItem: (item) => {
+        const kindInfo = getAddressKindInfo(item.kind)
+        return {
+          TRX收款地址: item.address || '-',
+          代理信息: formatAgentInfo(item),
+          机器人: formatBotInfo(item),
+          创建人: item.created_by || '-',
+          收款地址类型: kindInfo.label,
+          状态: item.agent_id && item.agent_id > 0 ? '已绑定' : '未绑定',
+          创建时间: formatTableDateTime(item.created_at),
+          修改时间: formatTableDateTime(item.updated_at),
+          过期时间: formatTableDateTime(item.expired_at)
+        }
+      },
+      successMessage: '地址导出成功'
+    })
+  } catch (error) {
+    handleErrorMessage(error, '地址导出失败')
+  } finally {
+    exporting.value = false
+  }
+}
+
 const handleExportTemplate = async () => {
   try {
     const res = await v2ExportAddressModule()
-    // 使用下载工具处理 blob 数据
     if (res.data instanceof Blob) {
-      downloadByData(res.data, '地址导入模版.xlsx')
-      handleSuccessMessage('模版下载成功')
+      downloadByData(res.data, '地址导入模板.xlsx')
+      handleSuccessMessage('模板下载成功')
     } else {
       ElMessage.error('文件数据格式错误')
     }
   } catch (error) {
-    handleErrorMessage(error, '模版下载失败')
+    handleErrorMessage(error, '模板下载失败')
   }
 }
 
+watch(
+  () => addressDialogVisible.value,
+  (visible) => {
+    if (visible) {
+      registerAddressGlobalDragEvents()
+    } else {
+      unregisterAddressGlobalDragEvents()
+    }
+  }
+)
+
+watch(canParseDroppedAddressFile, (enabled) => {
+  if (!enabled) {
+    addressDragCounter.value = 0
+    updateAddressDragMask(false)
+  }
+})
+
 onMounted(() => {
   getAgentList()
+})
+
+onBeforeUnmount(() => {
+  unregisterAddressGlobalDragEvents()
 })
 </script>
 
@@ -918,5 +1073,27 @@ onMounted(() => {
 .address-form-field {
   width: 400px;
   max-width: 100%;
+}
+
+.global-drag-mask {
+  position: fixed;
+  z-index: 3000;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: rgb(0 0 0 / 28%);
+}
+
+.global-drag-mask__content {
+  padding: 16px 28px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #409eff;
+  background: #fff;
+  border: 1px dashed #409eff;
+  border-radius: 4px;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 12%);
 }
 </style>
