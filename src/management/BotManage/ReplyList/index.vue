@@ -80,6 +80,28 @@ const botOptionsForDialog = ref<BotOption[]>([])
 const botInfoMap = ref<Map<number, { user_name: string; first_name: string }>>(new Map())
 const innerButtonMap = ref<Map<number, InnerButtonItem>>(new Map())
 
+const normalizeInnerButtons = (innerButtons: any): InnerButtonItem[][] => {
+  if (!Array.isArray(innerButtons)) {
+    return []
+  }
+
+  return innerButtons
+    .map((group) => {
+      if (Array.isArray(group)) {
+        return group.filter((button) => button && typeof button.id === 'number')
+      }
+
+      return group && typeof group.id === 'number' ? [group] : []
+    })
+    .filter((group) => group.length > 0)
+}
+
+const flattenInnerButtons = (innerButtons: any): InnerButtonItem[] => {
+  return normalizeInnerButtons(innerButtons).flatMap((group) =>
+    group.filter((button) => button && typeof button.id === 'number')
+  )
+}
+
 const fetchBotOptionsForPage = async () => {
   try {
     const res = await v1GetMessageBotList()
@@ -216,7 +238,7 @@ const searchSchema = computed<FormSchema[]>(() => [
     component: 'Select',
     componentProps: {
       placeholder: '全部',
-      options: [{ label: '全部', value: '' }, ...botOptionsForDialog.value],
+      options: [{ label: '-', value: '' }, ...botOptionsForDialog.value],
       clearable: true,
       filterable: true
     }
@@ -259,8 +281,10 @@ const fetchReplyList = async (params: any) => {
         const botInfo = botInfoMap.value.get(item.bot_id)
         const userName = botInfo ? botInfo.user_name : ''
         const fullName = botInfo ? `${botInfo.user_name} (${botInfo.first_name})` : ''
-        const innerButtonIds = Array.isArray(item.inner_buttons)
-          ? item.inner_buttons.map((button: any) => button.id)
+        const normalizedInnerButtons = normalizeInnerButtons(item.inner_buttons)
+        const flattenedInnerButtons = normalizedInnerButtons.flat()
+        const innerButtonIds = flattenedInnerButtons.length
+          ? flattenedInnerButtons.map((button) => button.id)
           : item.inline_menu_ids || []
 
         return {
@@ -276,7 +300,8 @@ const fetchReplyList = async (params: any) => {
           bot_id: String(item.bot_id),
           keyword: item.key_name,
           bot_username: userName,
-          inline_menu_ids: innerButtonIds
+          inline_menu_ids: innerButtonIds,
+          inner_buttons: normalizedInnerButtons
         }
       })
 
@@ -339,7 +364,8 @@ const handleDialogSubmitted = async (data: ReplySaveParams) => {
         id: data.id,
         content: data.content || '',
         files: data.files || [],
-        inner_buttons: data.inline_menu_ids || [],
+        inner_buttons:
+          data.inner_buttons || (data.inline_menu_ids?.length ? [data.inline_menu_ids] : []),
         status: data.status
       }
       await v1UpdateReply(updateParams)
@@ -348,7 +374,8 @@ const handleDialogSubmitted = async (data: ReplySaveParams) => {
         bot_id: data.tg_bot_id,
         content: data.content || '',
         files: data.files || [],
-        inner_buttons: data.inline_menu_ids || [],
+        inner_buttons:
+          data.inner_buttons || (data.inline_menu_ids?.length ? [data.inline_menu_ids] : []),
         key_name: data.key_name,
         status: data.status
       }
@@ -367,6 +394,15 @@ const handleDialogSubmitted = async (data: ReplySaveParams) => {
   }
 }
 
+const getReplyInnerButtonLayout = (row: ReplyItem) => {
+  const normalizedInnerButtons = normalizeInnerButtons(row.inner_buttons)
+  if (normalizedInnerButtons.length > 0) {
+    return normalizedInnerButtons.map((group) => group.map((button) => button.id))
+  }
+
+  return row.inline_menu_ids?.length ? [row.inline_menu_ids.map((id) => Number(id))] : []
+}
+
 const handleStatusChange = async (row: ReplyItem, newStatus: number) => {
   if (!isLoaded.value) return
   try {
@@ -374,7 +410,7 @@ const handleStatusChange = async (row: ReplyItem, newStatus: number) => {
       id: row.id,
       content: row.content || '',
       files: row.files || [],
-      inner_buttons: row.inline_menu_ids || [],
+      inner_buttons: getReplyInnerButtonLayout(row),
       status: newStatus
     })
     await searchTableRef.value?.reload()
@@ -404,17 +440,22 @@ const handleViewContent = (row: ReplyItem) => {
       url: fileUrl,
       name: fileUrl.split('/').pop() || fileUrl
     })),
-    buttons: (row.inline_menu_ids || [])
-      .map((id) => {
-        const button = innerButtonMap.value.get(Number(id))
-        return button
-          ? {
-              id: button.id,
-              text: button.text
-            }
-          : null
-      })
-      .filter((item) => item !== null) as NonNullable<MessagePreviewData['buttons']>
+    buttons: flattenInnerButtons(row.inner_buttons).length
+      ? flattenInnerButtons(row.inner_buttons).map((button) => ({
+          id: button.id,
+          text: button.text
+        }))
+      : ((row.inline_menu_ids || [])
+          .map((id) => {
+            const button = innerButtonMap.value.get(Number(id))
+            return button
+              ? {
+                  id: button.id,
+                  text: button.text
+                }
+              : null
+          })
+          .filter((item) => item !== null) as NonNullable<MessagePreviewData['buttons']>)
   }
   viewContentDialogVisible.value = true
 }

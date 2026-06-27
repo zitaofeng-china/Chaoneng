@@ -245,6 +245,14 @@ const fetchMenuList = async () => {
   }
 }
 
+const normalizeButtonLayout = (layout?: number[][]) => {
+  if (!Array.isArray(layout)) return []
+  return layout
+    .filter((row) => Array.isArray(row) && row.length > 0)
+    .map((row) => row.map((id) => Number(id)).filter((id) => !isNaN(id)))
+    .filter((row) => row.length > 0)
+}
+
 const openInlineButtonDialog = () => {
   inlineButtonDialogVisible.value = true
 }
@@ -558,12 +566,17 @@ const handleSubmit = async () => {
   showPreviewDialog.value = true
 }
 
-const handleConfirmSubmit = async () => {
+const handleConfirmSubmit = async (buttonLayout?: number[][]) => {
   if (submitLoading.value) return
 
   submitLoading.value = true
   try {
     const uploadedFiles = await uploadSelectedFiles()
+    const normalizedButtonLayout = normalizeButtonLayout(buttonLayout)
+    const normalizedSelectedInlineButtonIds = normalizedButtonLayout.length
+      ? normalizedButtonLayout.flat()
+      : selectedInlineButtonIds.value.map((id) => Number(id)).filter((id) => !isNaN(id))
+
     let params: ReplySaveParams
 
     if (props.isEdit && props.rowData?.id) {
@@ -586,9 +599,8 @@ const handleConfirmSubmit = async () => {
         key_name: processedKeywords,
         content: formData.value.content,
         files: uploadedFiles,
-        inline_menu_ids: selectedInlineButtonIds.value
-          .map((id) => Number(id))
-          .filter((id) => !isNaN(id)),
+        inline_menu_ids: normalizedSelectedInlineButtonIds,
+        inner_buttons: normalizedButtonLayout,
         status: formData.value.status
       }
     } else {
@@ -608,9 +620,8 @@ const handleConfirmSubmit = async () => {
         key_name: processedKeywords,
         content: formData.value.content,
         files: uploadedFiles,
-        inline_menu_ids: selectedInlineButtonIds.value
-          .map((id) => Number(id))
-          .filter((id) => !isNaN(id)),
+        inline_menu_ids: normalizedSelectedInlineButtonIds,
+        inner_buttons: normalizedButtonLayout,
         status: formData.value.status
       }
     }
