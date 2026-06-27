@@ -8,8 +8,8 @@
     :close-on-click-modal="false"
   >
     <ElForm ref="elFormRef" :model="formData" :rules="formRules" label-width="100px">
-      <!-- 机器人选择（新增/编辑均可设置，可选“全部”=0） -->
-      <ElFormItem label="机器人" prop="bot_id">
+      <!-- 新增模式：机器人选择 -->
+      <ElFormItem v-if="!props.isEdit" label="机器人" prop="bot_id">
         <ElSelect
           v-model="formData.bot_id"
           placeholder="请选择机器人"
@@ -155,7 +155,7 @@ const submitLoading = ref(false)
 const dialogTitle = computed(() => (props.isEdit ? '编辑关键词回复' : '新增关键词回复'))
 
 // 机器人下拉选项：在真实机器人列表前追加“全部”(value=0)
-const ALL_BOT_OPTION: BotOption = { label: '全部', value: 0 }
+const ALL_BOT_OPTION: BotOption = { label: '-', value: 0 }
 const botSelectOptions = computed<BotOption[]>(() => [ALL_BOT_OPTION, ...props.botOptions])
 
 // 表单数据
@@ -247,6 +247,14 @@ const fetchMenuList = async () => {
     menuList.value = []
     ElMessage.error(getErrorMessage(error, '获取内联按钮列表失败'))
   }
+}
+
+const normalizeButtonLayout = (layout?: number[][]) => {
+  if (!Array.isArray(layout)) return []
+  return layout
+    .filter((row) => Array.isArray(row) && row.length > 0)
+    .map((row) => row.map((id) => Number(id)).filter((id) => !isNaN(id)))
+    .filter((row) => row.length > 0)
 }
 
 const openInlineButtonDialog = () => {
@@ -382,7 +390,7 @@ const getPreviewFiles = () => {
 
 const getPreviewBotName = () => {
   const botId = Number(formData.value.bot_id)
-  if (botId === 0) return '全部'
+  if (botId === 0) return '-'
   const matchedBot = props.botOptions.find((item) => Number(item.value) === botId)
   return matchedBot?.label || (botId ? `机器人 ID: ${botId}` : '')
 }
@@ -553,12 +561,17 @@ const handleSubmit = async () => {
   showPreviewDialog.value = true
 }
 
-const handleConfirmSubmit = async () => {
+const handleConfirmSubmit = async (buttonLayout?: number[][]) => {
   if (submitLoading.value) return
 
   submitLoading.value = true
   try {
     const uploadedFiles = await uploadSelectedFiles()
+    const normalizedButtonLayout = normalizeButtonLayout(buttonLayout)
+    const normalizedSelectedInlineButtonIds = normalizedButtonLayout.length
+      ? normalizedButtonLayout.flat()
+      : selectedInlineButtonIds.value.map((id) => Number(id)).filter((id) => !isNaN(id))
+
     let params: ReplySaveParams
 
     if (props.isEdit && props.rowData?.id) {
@@ -579,9 +592,8 @@ const handleConfirmSubmit = async () => {
         key_name: processedKeywords,
         content: formData.value.content,
         files: uploadedFiles,
-        inline_menu_ids: selectedInlineButtonIds.value
-          .map((id) => Number(id))
-          .filter((id) => !isNaN(id)),
+        inline_menu_ids: normalizedSelectedInlineButtonIds,
+        inner_buttons: normalizedButtonLayout,
         status: formData.value.status
       }
     } else {
@@ -601,9 +613,8 @@ const handleConfirmSubmit = async () => {
         key_name: processedKeywords,
         content: formData.value.content,
         files: uploadedFiles,
-        inline_menu_ids: selectedInlineButtonIds.value
-          .map((id) => Number(id))
-          .filter((id) => !isNaN(id)),
+        inline_menu_ids: normalizedSelectedInlineButtonIds,
+        inner_buttons: normalizedButtonLayout,
         status: formData.value.status
       }
     }
