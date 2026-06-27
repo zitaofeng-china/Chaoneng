@@ -5,6 +5,7 @@
         ref="botInfoTabRef"
         :tg-status="tgStatus"
         :syncing="syncing"
+        upload-api-version="v2"
         @sync-tg-status="syncTgStatus"
       />
     </div>

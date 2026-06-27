@@ -324,15 +324,6 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           }
         },
         {
-          path: 'reply_list',
-          component: () => import('@/operation/Agent/ReplyList/index.vue'),
-          name: 'AgentReplyList',
-          meta: {
-            title: '关键词回复',
-            buttonList: ['add', 'edit', 'delete']
-          }
-        },
-        {
           path: 'invite_list',
           component: () => import('@/operation/Agent/InviteList/index.vue'),
           name: 'InviteList',

@@ -142,7 +142,7 @@ import {
   ElMessage
 } from 'element-plus'
 import { v1GetSiteDetail } from '@/api/management/BotManage/common/site'
-import { uploadFile } from '@/api/management/common/upload'
+import { uploadFile, uploadFileV2 } from '@/api/management/common/upload'
 
 const props = defineProps({
   tgStatus: {
@@ -152,6 +152,10 @@ const props = defineProps({
   syncing: {
     type: Boolean,
     default: false
+  },
+  uploadApiVersion: {
+    type: String,
+    default: 'v1'
   }
 })
 
@@ -314,7 +318,8 @@ const uploadPendingImage = async (field: 'avatar') => {
 
   const formData = new FormData()
   formData.append('file', file)
-  const res = await uploadFile(formData)
+  const uploadApi = props.uploadApiVersion === 'v2' ? uploadFileV2 : uploadFile
+  const res = await uploadApi(formData)
   const fileUrl = res?.data?.filename || res?.data?.url
 
   if (!fileUrl) {
