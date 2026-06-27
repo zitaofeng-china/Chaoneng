@@ -34,15 +34,26 @@ export interface ReplyItemV1 {
   created_at: string // 创建时间
   files?: string[] // 回复携带的图片/视频
   id: number // 回复ID
-  inner_buttons?: Array<{
-    id: number
-    text: string
-    inner_type?: string
-    inner_value?: string
-    agent_id?: number
-    created_at?: string
-    updated_at?: string
-  }> // 内联按钮列表
+  inner_buttons?: Array<
+    | {
+        id: number
+        text: string
+        inner_type?: string
+        inner_value?: string
+        agent_id?: number
+        created_at?: string
+        updated_at?: string
+      }
+    | Array<{
+        id: number
+        text: string
+        inner_type?: string
+        inner_value?: string
+        agent_id?: number
+        created_at?: string
+        updated_at?: string
+      }>
+  > // 内联按钮列表/二维布局
   key_name: string // 关键词名称
   is_command?: number // 是否命令
   status: number // 状态
@@ -64,7 +75,7 @@ export interface CreateReplyParamsV1 {
   bot_id: number // 机器人ID（必填）
   content: string // 回复内容
   files?: string[] // 文件URL数组
-  inner_buttons?: number[] // 内联按钮ID数组
+  inner_buttons?: number[][] // 内联按钮二维布局
   key_name: string[] // 关键词名称数组（必填）
   status: number // 状态（必填）
 }
@@ -76,7 +87,7 @@ export interface UpdateReplyParamsV1 {
   content: string // 回复内容
   files?: string[] // 文件URL数组
   id: number // 回复ID（必填）
-  inner_buttons?: number[] // 内联按钮ID数组
+  inner_buttons?: number[][] // 内联按钮二维布局
   status: number // 状态（必填）
 }
 
@@ -136,6 +147,7 @@ export interface ReplySaveParams {
   content?: string // 回复内容 from the new dialog
   files?: string[] // 上传后的图片/视频地址
   inline_menu_ids?: number[] // 已选择的内联按钮ID
+  inner_buttons?: number[][] // 已确认的内联按钮二维布局
   status: number // 状态 from the new dialog
   // Fields like 'type', 'reply_category', 'command_action', 'menu_ids', 'inline_menu_ids', 'command' (string version)
   // are NOT part of the new simplified dialog and thus not directly in its save parameters.
