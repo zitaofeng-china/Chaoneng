@@ -85,7 +85,7 @@
         <div class="section-title">【客服】配置：</div>
         <ElRow :gutter="24">
           <ElCol :xs="24" :sm="12" :md="8">
-            <ElFormItem label="客服字段" prop="customer">
+            <ElFormItem label="客服号" prop="customer">
               <ElInput
                 v-model="formData.customer"
                 placeholder="请输入客服账号"
