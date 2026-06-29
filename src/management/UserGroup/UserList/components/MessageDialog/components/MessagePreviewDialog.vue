@@ -59,9 +59,11 @@
               <!-- 只在最后一个文件上显示文字内容和内联按钮 -->
               <template v-if="index === previewData.files.length - 1">
                 <!-- 文字内容 -->
-                <div v-if="previewData.content" class="telegram-message-text">
-                  {{ previewData.content }}
-                </div>
+                <div
+                  v-if="normalizedHtmlContent"
+                  class="telegram-message-text"
+                  v-html="normalizedHtmlContent"
+                ></div>
 
                 <!-- 内联按钮预览 -->
                 <div v-if="buttonRows.length > 0" class="telegram-inline-buttons">
@@ -87,9 +89,11 @@
           <template v-else>
             <div class="telegram-message-card text-only">
               <!-- 文字内容 -->
-              <div v-if="previewData.content" class="telegram-message-text">
-                {{ previewData.content }}
-              </div>
+              <div
+                v-if="normalizedHtmlContent"
+                class="telegram-message-text"
+                v-html="normalizedHtmlContent"
+              ></div>
               <div v-else class="telegram-message-text empty">无文字内容</div>
 
               <!-- 内联按钮预览 -->
@@ -188,6 +192,7 @@
 import { ref, computed, watch } from 'vue'
 import { ElButton, ElTag, ElDropdown, ElDropdownMenu, ElDropdownItem } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
+import { normalizeReplyContentHtml } from '@/utils/replyContent'
 
 export interface ButtonItem {
   id: number
@@ -201,6 +206,7 @@ export interface MessagePreviewData {
   recipientInfo?: string
   groupInfo?: string // 群组信息
   content?: string
+  htmlContent?: string
   files?: Array<{ type: 'image' | 'video'; url: string; name: string }>
   buttons?: ButtonItem[] // 选中的按钮列表（带 id）
   buttonRows?: Array<Array<{ text: string; url?: string }>> // 兼容旧用法
@@ -227,6 +233,10 @@ const visible = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
 })
+
+const normalizedHtmlContent = computed(() =>
+  normalizeReplyContentHtml(props.previewData.htmlContent ?? props.previewData.content)
+)
 
 // 内部行布局数据: number[][] (按钮ID的二维数组)
 const rowLayout = ref<number[][]>([])
@@ -438,6 +448,51 @@ const handleCancel = () => {
   color: #000;
   word-break: break-word;
   white-space: pre-wrap;
+}
+
+.telegram-message-text :deep(b),
+.telegram-message-text :deep(strong) {
+  font-weight: 700;
+}
+
+.telegram-message-text :deep(i),
+.telegram-message-text :deep(em) {
+  font-style: italic;
+}
+
+.telegram-message-text :deep(u) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.telegram-message-text :deep(a) {
+  color: #08c;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.telegram-message-text :deep(pre) {
+  padding: 8px 10px;
+  margin: 8px 0;
+  overflow: auto hidden;
+  font-family: Consolas, Monaco, monospace;
+  white-space: pre-wrap;
+  background: rgb(255 255 255 / 65%);
+  border-radius: 6px;
+}
+
+.telegram-message-text :deep(code) {
+  font-family: Consolas, Monaco, monospace;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.telegram-message-text :deep(p) {
+  margin: 0 0 8px;
+}
+
+.telegram-message-text :deep(p:last-child) {
+  margin-bottom: 0;
 }
 
 .telegram-message-text.empty {

@@ -33,19 +33,7 @@
               class="video-thumbnail-wrapper"
               @click="handlePreview(file)"
             >
-              <video
-                :src="file.url"
-                class="video-thumbnail"
-                muted
-                preload="metadata"
-                disablePictureInPicture
-                controlsList="nodownload nofullscreen noremoteplayback"
-              ></video>
-              <div class="play-icon-overlay">
-                <svg class="play-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path fill="currentColor" d="M8 5v14l11-7z" />
-                </svg>
-              </div>
+              <VideoPoster :src="file.url" alt="视频封面" />
               <span class="el-upload-list__item-delete" @click.stop="handleRemove(file)">
                 <svg class="el-icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
                   <path
@@ -73,6 +61,7 @@ import type { UploadUserFile } from 'element-plus'
 import { BaseButton } from '@/components/Button'
 import { handleWarningMessage } from '@/utils/messageHelper'
 import { getMessageFileType } from './utils'
+import VideoPoster from './components/VideoPoster.vue'
 
 defineProps({
   fileList: {
@@ -135,53 +124,6 @@ const handleExceed = () => {
   background: #000;
   align-items: center;
   justify-content: center;
-}
-
-.video-thumbnail {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.video-thumbnail::-webkit-media-controls-panel {
-  display: none !important;
-}
-
-/* stylelint-disable-next-line selector-pseudo-element-no-unknown */
-.video-thumbnail::--webkit-media-controls-play-button {
-  display: none !important;
-}
-
-.video-thumbnail::-webkit-media-controls {
-  display: none !important;
-}
-
-.play-icon-overlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  display: flex;
-  width: 28px;
-  height: 28px;
-  pointer-events: none;
-  background: rgb(0 0 0 / 60%);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  transition: all 0.3s ease;
-  align-items: center;
-  justify-content: center;
-}
-
-.video-thumbnail-wrapper:hover .play-icon-overlay {
-  background: rgb(0 0 0 / 75%);
-  transform: translate(-50%, -50%) scale(1.1);
-}
-
-.play-icon {
-  width: 14px;
-  height: 14px;
-  margin-left: 1px;
-  color: #fff;
 }
 
 .el-upload-list__item-delete {

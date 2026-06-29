@@ -166,6 +166,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   saved: []
+  close: []
 }>()
 
 // 表单数据
@@ -423,6 +424,7 @@ const handleSave = async () => {
     handleSuccessMessage('保存成功')
     syncOriginalData()
     emit('saved')
+    emit('close')
   } catch (error) {
     handleErrorMessage(error, '保存失败')
   } finally {
@@ -434,6 +436,7 @@ const handleSave = async () => {
 const handleReset = () => {
   Object.assign(form, originalData)
   form.orderTypes = [...originalData.orderTypes]
+  emit('close')
 }
 
 // 切换余额提醒开关只更新本地表单，最终由“保存”统一提交

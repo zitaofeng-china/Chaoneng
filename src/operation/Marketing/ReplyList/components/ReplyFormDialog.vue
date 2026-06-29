@@ -130,7 +130,7 @@ import VideoPreviewDialog from '@/operation/components/MessageDialog/components/
 import MessagePreviewDialog from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
 import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
 import { getMessageFileType } from '@/operation/components/MessageDialog/utils'
-import { uploadFile } from '@/api/opertion/common/upload'
+import { uploadFileV2 as uploadFile } from '@/api/opertion/common/upload'
 import { v1GetInnerButtonList, type InnerButtonItem } from '@/api/opertion/common/menuList'
 import { getErrorMessage } from '@/utils/messageHelper'
 import type { MessagePreviewData } from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
@@ -191,13 +191,14 @@ const { renderFormattingButtons } = useHtmlInsert(getContent, setContent, conten
 
 const normalizeFileList = (files: string[] = []) => {
   return files.map((url, index) => ({
-    name: `file-${index + 1}`,
+    name: url.split('/').pop()?.split('?')[0] || `file-${index + 1}`,
     url,
     uid: index + 1
   })) as UploadUserFile[]
 }
 
 const acceptedFilePattern = /^(image\/(png|jpeg|jpg|gif|webp)|video\/(mp4|avi|mov|quicktime))$/i
+const MAX_UPLOAD_FILES = 10
 
 const isAcceptedUploadFile = (file?: File | null) => {
   if (!file) return false
@@ -205,8 +206,8 @@ const isAcceptedUploadFile = (file?: File | null) => {
   return /\.(png|jpe?g|gif|webp|mp4|avi|mov)$/i.test(file.name || '')
 }
 
-const enforceSingleFile = (files: UploadUserFile[]) => {
-  return files.slice(-1)
+const normalizeUploadFileList = (files: UploadUserFile[]) => {
+  return files.slice(0, MAX_UPLOAD_FILES)
 }
 
 const revokeBlobUrl = (url?: string) => {
@@ -296,9 +297,9 @@ const handlePreview = (uploadFile: UploadUserFile) => {
 }
 
 const handleFileChange = (_file: UploadUserFile, fileList: UploadUserFile[]) => {
-  const nextFileList = enforceSingleFile(fileList)
-  if (fileList.length > 1) {
-    ElMessage.warning('图片和视频总共只能上传 1 个文件')
+  const nextFileList = normalizeUploadFileList(fileList)
+  if (fileList.length > MAX_UPLOAD_FILES) {
+    ElMessage.warning(`图片和视频总共只能上传 ${MAX_UPLOAD_FILES} 个文件`)
   }
 
   nextFileList.forEach((uploadFile) => {
@@ -411,8 +412,9 @@ const replaceWithDroppedFile = (file: File) => {
     return
   }
 
-  if (fileListRef.value.length > 0) {
-    cleanupBlobUrls()
+  if (fileListRef.value.length >= MAX_UPLOAD_FILES) {
+    ElMessage.warning(`图片和视频总共只能上传 ${MAX_UPLOAD_FILES} 个文件`)
+    return
   }
 
   const uploadFileItem: UploadUserFile = {
@@ -424,12 +426,11 @@ const replaceWithDroppedFile = (file: File) => {
     uid: Date.now()
   }
 
-  handleFileChange(uploadFileItem, [uploadFileItem])
+  handleFileChange(uploadFileItem, [...fileListRef.value, uploadFileItem])
 }
 
-const extractDroppedFile = (event: DragEvent) => {
-  const files = Array.from(event.dataTransfer?.files || [])
-  return files.find((file) => isAcceptedUploadFile(file)) || null
+const extractDroppedFiles = (event: DragEvent) => {
+  return Array.from(event.dataTransfer?.files || []).filter((file) => isAcceptedUploadFile(file))
 }
 
 const handleWindowDragEnter = (event: DragEvent) => {
@@ -465,13 +466,13 @@ const handleWindowDrop = (event: DragEvent) => {
   dragCounter.value = 0
   updateDragMask(false)
 
-  const file = extractDroppedFile(event)
-  if (!file) {
+  const files = extractDroppedFiles(event)
+  if (files.length === 0) {
     ElMessage.warning('未检测到可上传的图片或视频文件')
     return
   }
 
-  replaceWithDroppedFile(file)
+  files.forEach((file) => replaceWithDroppedFile(file))
 }
 
 const registerGlobalDragEvents = () => {

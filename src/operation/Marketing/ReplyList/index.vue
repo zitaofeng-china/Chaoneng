@@ -7,6 +7,7 @@
         :search-schema="searchSchema"
         :fetch-data-api="fetchReplyList"
         :fetch-del-api="deleteReplyAction"
+        :table-props="tableProps"
         :action-column="actionColumn"
         @loaded="handleDataLoaded"
         ref="searchTableRef"
@@ -44,7 +45,7 @@
 
 <script setup lang="tsx">
 import { ref, onMounted, computed } from 'vue'
-import { ElLink, ElSwitch } from 'element-plus'
+import { ElLink, ElSwitch, ElTooltip } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
@@ -74,6 +75,10 @@ import type { MessagePreviewData } from '@/operation/components/MessageDialog/co
 import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
 import { v1GetInnerButtonList, type InnerButtonItem } from '@/api/opertion/common/menuList'
 import { getMessageFileType } from '@/operation/components/MessageDialog/utils'
+import {
+  getReplyContentPreviewText as getReplyContentPreviewSummary,
+  normalizeReplyContentHtml
+} from '@/utils/replyContent'
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const replyFormDialogRef = ref<InstanceType<typeof ReplyFormDialog> | null>(null)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
@@ -84,6 +89,17 @@ const isEditMode = ref(false)
 const isLoaded = ref(false)
 const isBotlistLoaded = ref(false)
 const currentRowData = ref<ReplyItem | null>(null)
+
+const tableProps = {
+  rowStyle: () => ({
+    height: '56px'
+  }),
+  cellStyle: () => ({
+    height: '56px',
+    paddingTop: '8px',
+    paddingBottom: '8px'
+  })
+}
 
 const botOptionsForDialog = ref<BotOption[]>([])
 const botInfoMap = ref<Map<number, { user_name: string; first_name: string }>>(new Map())
@@ -158,6 +174,7 @@ const columns: TableColumn[] = [
     field: 'bot_id',
     label: '机器人ID',
     width: 120,
+    showOverflowTooltip: false,
     slots: {
       default: (data: { row: ReplyItem }) => {
         return <span>{Number(data.row.bot_id) === 0 ? '-' : data.row.bot_id}</span>
@@ -168,6 +185,7 @@ const columns: TableColumn[] = [
     field: 'bot_username',
     label: '机器人用户名',
     width: 150,
+    showOverflowTooltip: false,
     slots: {
       default: (data: { row: ReplyItem }) => {
         const name = data.row.bot_username?.trim()
@@ -179,6 +197,7 @@ const columns: TableColumn[] = [
     field: 'keyword',
     label: '关键词',
     minWidth: 180,
+    showOverflowTooltip: false,
     slots: {
       default: (data: { row: ReplyItem }) => {
         const kw = (data.row.keyword || '').toString().trim()
@@ -189,17 +208,61 @@ const columns: TableColumn[] = [
   {
     field: 'content',
     label: '回复内容',
-    minWidth: 240,
+    width: 180,
+    showOverflowTooltip: false,
     slots: {
       default: (data: { row: ReplyItem }) => {
         if (!hasReplyContent(data.row)) {
           return <span>-</span>
         }
-        const content = getReplyContentText(data.row)
+        const content = getReplyContentHtml(data.row)
+        const previewText = getReplyContentPreviewText(data.row)
         return (
-          <div class="reply-content-cell" title={content}>
-            {content}
-          </div>
+          <ElTooltip
+            effect="light"
+            placement="bottom-start"
+            popperClass="reply-content-tooltip"
+            showAfter={150}
+          >
+            {{
+              default: () => (
+                <div
+                  class="reply-content-cell"
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    overflow: 'hidden',
+                    whiteSpace: 'nowrap',
+                    textOverflow: 'ellipsis',
+                    lineHeight: '20px',
+                    height: '20px',
+                    maxHeight: '20px'
+                  }}
+                >
+                  {previewText}
+                </div>
+              ),
+              content: () => (
+                <div
+                  class="reply-content-tooltip__content"
+                  style={{
+                    display: 'inline-block',
+                    width: 'fit-content',
+                    maxWidth: 'calc(100vw - 280px)',
+                    maxHeight: 'min(320px, calc(100vh - 220px))',
+                    overflowX: 'hidden',
+                    overflowY: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: '1.5',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere',
+                    boxSizing: 'border-box'
+                  }}
+                  innerHTML={content}
+                ></div>
+              )
+            }}
+          </ElTooltip>
         )
       }
     }
@@ -446,7 +509,7 @@ const handleDialogSubmitted = async (data: ReplySaveParams) => {
         files: data.files || [],
         inner_buttons:
           data.inner_buttons || (data.inline_menu_ids?.length ? [data.inline_menu_ids] : []),
-        key_name: data.key_name,
+        key_name: [data.key_name],
         status: data.status
       }
       await v1CreateReply(createParams)
@@ -502,11 +565,12 @@ const handleDataLoaded = ({ data, total, success }) => {
 
 const viewContentDialogVisible = ref(false)
 const currentPreviewData = ref<MessagePreviewData>({})
-const getReplyContentText = (row: ReplyItem) => row.content?.trim() || ''
+const getReplyContentHtml = (row: ReplyItem) => normalizeReplyContentHtml(row.content)
+const getReplyContentPreviewText = (row: ReplyItem) => getReplyContentPreviewSummary(row.content)
 
 const getReplyPreviewFiles = (row: ReplyItem) => {
   return (row.files || []).map((fileUrl) => ({
-    type: getMessageFileType({ name: fileUrl } as File),
+    type: getMessageFileType(fileUrl),
     url: fileUrl,
     name: fileUrl.split('/').pop() || fileUrl
   }))
@@ -534,14 +598,15 @@ const getReplyInlineButtons = (row: ReplyItem) => {
     .filter((item) => item !== null) as NonNullable<MessagePreviewData['buttons']>
 }
 
-const hasReplyContent = (row: ReplyItem) => !!getReplyContentText(row)
+const hasReplyContent = (row: ReplyItem) => !!getReplyContentHtml(row)
 const hasReplyFiles = (row: ReplyItem) => getReplyPreviewFiles(row).length > 0
 const hasReplyInlineButtons = (row: ReplyItem) => getReplyInlineButtons(row).length > 0
 
 const handleViewContent = (row: ReplyItem, previewType: 'content' | 'files' | 'buttons') => {
   currentPreviewData.value = {
     botName: row.bot_username || row.bot_name,
-    content: previewType === 'content' ? getReplyContentText(row) : '',
+    content: previewType === 'content' ? getReplyContentPreviewText(row) : '',
+    htmlContent: previewType === 'content' ? getReplyContentHtml(row) : '',
     files: previewType === 'files' ? getReplyPreviewFiles(row) : [],
     buttons: previewType === 'buttons' ? getReplyInlineButtons(row) : []
   }
@@ -550,12 +615,64 @@ const handleViewContent = (row: ReplyItem, previewType: 'content' | 'files' | 'b
 </script>
 
 <style scoped>
-.reply-content-cell {
-  display: -webkit-box;
-  overflow: hidden;
-  line-height: 20px;
+.reply-content-tooltip__content {
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #000;
+  background: #dcf8c6;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
+}
+
+.reply-content-tooltip__content :deep(b),
+.reply-content-tooltip__content :deep(strong) {
+  font-weight: 700;
+}
+
+.reply-content-tooltip__content :deep(i),
+.reply-content-tooltip__content :deep(em) {
+  font-style: italic;
+}
+
+.reply-content-tooltip__content :deep(u) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.reply-content-tooltip__content :deep(a) {
+  color: var(--el-color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.reply-content-tooltip__content :deep(pre),
+.reply-content-tooltip__content :deep(code) {
   word-break: break-word;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  white-space: pre-wrap;
+}
+
+.reply-content-tooltip__content :deep(pre) {
+  padding: 8px 10px;
+  margin: 8px 0;
+  overflow: auto hidden;
+  font-family: Consolas, Monaco, monospace;
+  background: rgb(255 255 255 / 65%);
+  border-radius: 6px;
+}
+
+.reply-content-tooltip__content :deep(code) {
+  font-family: Consolas, Monaco, monospace;
+}
+
+.reply-content-tooltip__content :deep(p) {
+  margin: 0 0 8px;
+}
+
+.reply-content-tooltip__content :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.reply-content-tooltip__content :deep(br) {
+  content: '';
 }
 </style>

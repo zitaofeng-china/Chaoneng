@@ -208,6 +208,7 @@ export default defineComponent({
                     agentAccountInfo.value.order_enabled
                   }
                   onSaved={loadAgentNotifyConfig}
+                  onClose={() => (agentNotifyDialogVisible.value = false)}
                 />
               )}
             </div>

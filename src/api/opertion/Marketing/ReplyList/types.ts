@@ -76,7 +76,7 @@ export interface CreateReplyParamsV1 {
   content: string // 回复内容
   files?: string[] // 文件URL数组
   inner_buttons?: number[][] // 内联按钮二维布局
-  key_name: string // 关键词名称（必填）
+  key_name: string[] // 关键词名称数组（必填）
   status: number // 状态（必填）
 }
 

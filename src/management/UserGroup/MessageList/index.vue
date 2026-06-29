@@ -23,151 +23,25 @@
       @success="handleMessageSent"
     />
 
-    <!-- 消息详情弹窗 -->
-    <Dialog v-model="detailDialogVisible" title="消息详情" width="800px">
-      <div v-if="currentDetailRecord.id" class="detail-content">
-        <!-- 基本信息 -->
-        <div class="mb-4">
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <span class="font-semibold">消息ID：</span>
-              <span>{{ currentDetailRecord.id }}</span>
-            </div>
-            <div>
-              <span class="font-semibold">机器人：</span>
-              <span>{{ currentDetailRecord.bot_name }}</span>
-            </div>
-            <div>
-              <span class="font-semibold">成功数：</span>
-              <span>{{ currentDetailRecord.ok_num || 0 }} 个</span>
-            </div>
-            <div>
-              <span class="font-semibold">失败数：</span>
-              <span>{{ currentDetailRecord.fail_num || 0 }} 个</span>
-            </div>
-            <div>
-              <span class="font-semibold">创建时间：</span>
-              <span>{{
-                currentDetailRecord.created_at
-                  ? formatToDateTime(new Date(currentDetailRecord.created_at).getTime())
-                  : '-'
-              }}</span>
-            </div>
-            <div v-if="currentDetailRecord.send_at">
-              <span class="font-semibold">发送时间：</span>
-              <span>{{ formatToDateTime(new Date(currentDetailRecord.send_at).getTime()) }}</span>
-            </div>
-          </div>
-        </div>
+    <MessagePreviewDialog
+      v-model="detailDialogVisible"
+      :preview-data="detailPreviewData"
+      title="消息详情"
+      :submitting="false"
+      :readonly="true"
+      @confirm="detailDialogVisible = false"
+      @cancel="detailDialogVisible = false"
+    />
 
-        <ElDivider />
-
-        <!-- 消息预览 -->
-        <div class="mb-4">
-          <div class="font-semibold mb-2">消息预览：</div>
-
-          <!-- Telegram 风格的消息卡片 -->
-          <div class="message-preview-container">
-            <!-- 如果有文件，遍历显示 -->
-            <template v-if="currentDetailRecord.files && currentDetailRecord.files.length > 0">
-              <div
-                v-for="(file, index) in currentDetailRecord.files"
-                :key="`file-${index}`"
-                class="message-card"
-              >
-                <!-- 图片/视频 -->
-                <div class="media-container">
-                  <template v-if="isVideo(file)">
-                    <video
-                      :src="file"
-                      controls
-                      disablePictureInPicture
-                      controlslist="nodownload noremoteplayback"
-                      class="media-content"
-                    >
-                      您的浏览器不支持视频播放
-                    </video>
-                  </template>
-                  <template v-else>
-                    <ElImage
-                      :src="file"
-                      alt="消息图片"
-                      fit="cover"
-                      class="media-content cursor-pointer"
-                      :preview-src-list="currentDetailRecord.files"
-                      :initial-index="Number(index)"
-                    />
-                  </template>
-                </div>
-
-                <!-- 只在最后一个文件上显示文字内容和内联按钮 -->
-                <template v-if="index === currentDetailRecord.files.length - 1">
-                  <!-- 文字内容 -->
-                  <div v-if="currentDetailRecord.content" class="message-text">
-                    {{ currentDetailRecord.content }}
-                  </div>
-
-                  <!-- 内联按钮 -->
-                  <div
-                    v-if="
-                      currentDetailRecord.inner_buttons &&
-                      currentDetailRecord.inner_buttons.length > 0
-                    "
-                    class="inline-buttons"
-                  >
-                    <div
-                      v-for="(row, rowIndex) in currentDetailRecord.inner_buttons"
-                      :key="rowIndex"
-                      class="inline-button-row"
-                    >
-                      <div v-for="(button, btnIndex) in row" :key="btnIndex" class="inline-button">
-                        {{ button.text }}
-                      </div>
-                    </div>
-                  </div>
-                </template>
-              </div>
-            </template>
-
-            <!-- 如果没有文件，只显示文字和按钮 -->
-            <template v-else>
-              <div class="message-card text-only">
-                <!-- 文字内容 -->
-                <div v-if="currentDetailRecord.content" class="message-text">
-                  {{ currentDetailRecord.content }}
-                </div>
-                <div v-else class="message-text text-gray-400 italic"> 无文字内容 </div>
-
-                <!-- 内联按钮 -->
-                <div
-                  v-if="
-                    currentDetailRecord.inner_buttons &&
-                    currentDetailRecord.inner_buttons.length > 0
-                  "
-                  class="inline-buttons"
-                >
-                  <div
-                    v-for="(row, rowIndex) in currentDetailRecord.inner_buttons"
-                    :key="rowIndex"
-                    class="inline-button-row"
-                  >
-                    <div v-for="(button, btnIndex) in row" :key="btnIndex" class="inline-button">
-                      {{ button.text }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </template>
-          </div>
-        </div>
-      </div>
-      <div v-else class="text-center text-gray-500 py-8">
-        <p>暂无详情数据</p>
-      </div>
-      <template #footer>
-        <BaseButton @click="detailDialogVisible = false">关闭</BaseButton>
-      </template>
-    </Dialog>
+    <MessagePreviewDialog
+      v-model="filePreviewDialogVisible"
+      :preview-data="filePreviewData"
+      title="文件预览"
+      :submitting="false"
+      :readonly="true"
+      @confirm="filePreviewDialogVisible = false"
+      @cancel="filePreviewDialogVisible = false"
+    />
 
     <!-- 内联按钮管理弹窗 -->
     <InlineButtonDialog v-model="inlineButtonDialogVisible" />
@@ -177,22 +51,6 @@
       v-model="advancedSettingsDialogVisible"
       :row-data="currentEditRow"
       @success="handleAdvancedSettingsSuccess"
-    />
-
-    <!-- 文件预览弹窗 - 图片 -->
-    <ElImageViewer
-      v-if="filePreviewVisible && !isPreviewVideo"
-      :url-list="previewFileList"
-      :initial-index="previewInitialIndex"
-      teleported
-      @close="filePreviewVisible = false"
-    />
-
-    <!-- 文件预览弹窗 - 视频 -->
-    <VideoPreviewDialog
-      v-model:visible="filePreviewVisible"
-      :video-url="previewFileUrl"
-      v-if="isPreviewVideo"
     />
 
     <!-- 重发消息预览弹窗 -->
@@ -211,11 +69,10 @@ import { ref, computed, onMounted } from 'vue'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
-import { Dialog } from '@/components/Dialog'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { ElMessage, ElMessageBox, ElDivider, ElImage, ElImageViewer } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   v1GetMassSendList,
   v1DeleteMassSend,
@@ -226,10 +83,11 @@ import type { MassSendListParamsV1 } from '@/api/management/common/tgUser/types'
 import MessageDialog from '../UserList/components/MessageDialog/index.vue'
 import InlineButtonDialog from './components/InlineButtonDialog.vue'
 import AdvancedSettingsDialog from './components/AdvancedSettingsDialog.vue'
-import VideoPreviewDialog from '../UserList/components/MessageDialog/components/VideoPreviewDialog.vue'
 import MessagePreviewDialog from '../UserList/components/MessageDialog/components/MessagePreviewDialog.vue'
 import type { MessagePreviewData } from '../UserList/components/MessageDialog/components/MessagePreviewDialog.vue'
 import { handleErrorMessage } from '@/utils/messageHelper'
+import { getReplyContentPreviewText, normalizeReplyContentHtml } from '@/utils/replyContent'
+import { getMessageFileType } from '@/operation/components/MessageDialog/utils'
 
 // SearchTable 引用
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -245,13 +103,11 @@ const messageDialogCustomTitle = ref('')
 // 详情弹窗
 const detailDialogVisible = ref(false)
 const currentDetailRecord = ref<any>({})
+const detailPreviewData = ref<MessagePreviewData>({})
 
-// 文件预览
-const filePreviewVisible = ref(false)
-const previewFileUrl = ref('')
-const previewFileList = ref<string[]>([])
-const previewInitialIndex = ref(0)
-const isPreviewVideo = ref(false)
+const getNormalizedMessageHtml = (content?: string) => normalizeReplyContentHtml(content)
+const filePreviewDialogVisible = ref(false)
+const filePreviewData = ref<MessagePreviewData>({})
 
 // 内联按钮管理弹窗
 const inlineButtonDialogVisible = ref(false)
@@ -316,35 +172,36 @@ const goToInlineButtons = () => {
   inlineButtonDialogVisible.value = true
 }
 
-// 判断是否为视频文件
-const isVideo = (url: string): boolean => {
-  if (!url) return false
-  return /\.(mp4|avi|mov|wmv|flv|mkv|webm)$/i.test(url)
+const buildMessagePreviewFiles = (files: string[] = []) => {
+  return files.map((fileUrl) => ({
+    type: getMessageFileType(fileUrl),
+    url: fileUrl,
+    name: fileUrl.split('/').pop() || 'file'
+  }))
 }
 
-// 文件预览
-const handleFilePreview = (fileUrl: string, allFiles?: string[]) => {
-  if (!fileUrl) return
-
-  previewFileUrl.value = fileUrl
-  isPreviewVideo.value = isVideo(fileUrl)
-
-  // 如果提供了所有文件列表，过滤出所有图片
-  if (allFiles && allFiles.length > 0) {
-    const imageFiles = allFiles.filter((file) => !isVideo(file))
-    previewFileList.value = imageFiles
-    previewInitialIndex.value = imageFiles.indexOf(fileUrl)
-  } else {
-    previewFileList.value = [fileUrl]
-    previewInitialIndex.value = 0
+const handleFilePreview = (row: any) => {
+  filePreviewData.value = {
+    botName: row.bot_name || '未知机器人',
+    files: buildMessagePreviewFiles(row.files || [])
   }
-
-  filePreviewVisible.value = true
+  filePreviewDialogVisible.value = true
 }
 
 // 查看详情
 const handleViewDetail = (row: any) => {
-  currentDetailRecord.value = { ...row }
+  currentDetailRecord.value = { ...row, htmlContent: getNormalizedMessageHtml(row.content) }
+  detailPreviewData.value = {
+    botName: row.bot_name || '未知机器人',
+    content: row.content || '',
+    htmlContent: getNormalizedMessageHtml(row.content),
+    files: buildMessagePreviewFiles(row.files || []),
+    buttons: (row.inner_buttons || []).flat().map((btn: any) => ({
+      id: Number(btn.id),
+      text: btn.text || btn.name || '按钮',
+      url: btn.url
+    }))
+  }
   detailDialogVisible.value = true
 }
 
@@ -409,11 +266,8 @@ const handleResend = async (row: any) => {
       botName: row.bot_name || '未知机器人',
       recipientInfo,
       content: row.content || '',
-      files: (row.files || []).map((fileUrl: string) => ({
-        type: isVideo(fileUrl) ? 'video' : 'image',
-        url: fileUrl,
-        name: fileUrl.split('/').pop() || ''
-      })),
+      htmlContent: getNormalizedMessageHtml(row.content),
+      files: buildMessagePreviewFiles(row.files || []),
       buttons: (row.inner_buttons || []).flat().map((btn: any) => ({
         id: btn.id,
         text: btn.text || btn.name || '按钮',
@@ -590,9 +444,60 @@ const tableColumns: TableColumn[] = [
     field: 'content',
     label: '消息内容',
     minWidth: 200,
-    formatter: (row) => {
-      const content = row.content || ''
-      return content.length > 50 ? content.substring(0, 50) + '...' : content || '—'
+    showOverflowTooltip: false,
+    slots: {
+      default: ({ row }: { row: any }) => {
+        const htmlContent = getNormalizedMessageHtml(row.content)
+        const previewText = getReplyContentPreviewText(row.content)
+        if (!htmlContent) return <span>—</span>
+
+        return (
+          <ElTooltip
+            effect="light"
+            placement="bottom-start"
+            popperClass="message-content-tooltip"
+            showAfter={150}
+          >
+            {{
+              default: () => (
+                <div
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    overflow: 'hidden',
+                    whiteSpace: 'nowrap',
+                    textOverflow: 'ellipsis',
+                    lineHeight: '20px',
+                    height: '20px',
+                    maxHeight: '20px'
+                  }}
+                >
+                  {previewText}
+                </div>
+              ),
+              content: () => (
+                <div
+                  class="message-content-tooltip__content"
+                  style={{
+                    display: 'inline-block',
+                    width: 'fit-content',
+                    maxWidth: 'calc(100vw - 280px)',
+                    maxHeight: 'min(320px, calc(100vh - 220px))',
+                    overflowX: 'hidden',
+                    overflowY: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: '1.5',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere',
+                    boxSizing: 'border-box'
+                  }}
+                  innerHTML={htmlContent}
+                ></div>
+              )
+            }}
+          </ElTooltip>
+        )
+      }
     }
   },
   {
@@ -604,12 +509,12 @@ const tableColumns: TableColumn[] = [
       default: ({ row }: { row: any }) => {
         if (row.files && row.files.length > 0) {
           return (
-            <div
-              style="color: #409eff; cursor: pointer; user-select: none;"
-              onClick={() => handleFilePreview(row.files[0], row.files)}
+            <a
+              style="color: var(--el-color-primary); cursor: pointer; text-decoration: none;"
+              onClick={() => handleFilePreview(row)}
             >
-              {row.files.length} 个文件
-            </div>
+              查看
+            </a>
           )
         }
         return <div style="text-align: center;">—</div>
@@ -778,90 +683,3 @@ onMounted(() => {
   initBotList()
 })
 </script>
-
-<style scoped>
-/* Telegram 风格的消息预览样式 */
-.message-preview-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.message-card {
-  position: relative;
-  width: 100%;
-  max-width: 500px;
-  margin-bottom: 8px;
-  overflow: hidden;
-  background: #dcf8c6;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
-}
-
-.message-card.text-only {
-  width: 100%;
-  max-width: 500px;
-  padding: 8px 12px;
-}
-
-.media-container {
-  width: 100%;
-  overflow: hidden;
-  background: #000;
-  border-radius: 8px 8px 0 0;
-}
-
-.media-content {
-  display: block;
-  width: 100%;
-  max-width: 500px;
-  max-height: 400px;
-  object-fit: contain;
-}
-
-.message-text {
-  padding: 8px 12px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: #000;
-  word-break: break-word;
-  white-space: pre-wrap;
-}
-
-.inline-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 0 8px 8px;
-}
-
-.inline-button-row {
-  display: flex;
-  gap: 4px;
-}
-
-.inline-button {
-  flex: 1;
-  padding: 8px 12px;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.5;
-  color: #08c;
-  text-align: center;
-  cursor: pointer;
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  transition: background-color 0.2s;
-  user-select: none;
-}
-
-.inline-button:hover {
-  background: #f5f5f5;
-}
-
-.inline-button:active {
-  background: #e8e8e8;
-}
-</style>

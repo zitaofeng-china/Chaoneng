@@ -29,23 +29,17 @@
             >
               <div class="telegram-media-container">
                 <template v-if="file.type === 'video'">
-                  <video
-                    :src="file.url"
-                    class="telegram-media-content"
-                    muted
-                    preload="metadata"
-                    disablePictureInPicture
-                    controlslist="nodownload noremoteplayback"
-                  ></video>
-                  <div class="telegram-video-icon">▶</div>
+                  <VideoPoster :src="file.url" class="telegram-media-content" alt="视频封面" />
                 </template>
                 <img v-else :src="file.url" class="telegram-media-content" alt="图片" />
               </div>
 
               <template v-if="index === previewData.files.length - 1">
-                <div v-if="previewData.content" class="telegram-message-text">
-                  {{ previewData.content }}
-                </div>
+                <div
+                  v-if="normalizedHtmlContent"
+                  class="telegram-message-text"
+                  v-html="normalizedHtmlContent"
+                ></div>
                 <div v-if="buttonRows.length > 0" class="telegram-inline-buttons">
                   <div
                     v-for="(row, rowIndex) in buttonRows"
@@ -63,9 +57,11 @@
 
           <template v-else>
             <div class="telegram-message-card text-only">
-              <div v-if="previewData.content" class="telegram-message-text">
-                {{ previewData.content }}
-              </div>
+              <div
+                v-if="normalizedHtmlContent"
+                class="telegram-message-text"
+                v-html="normalizedHtmlContent"
+              ></div>
               <div v-else class="telegram-message-text empty">无文字内容</div>
 
               <div v-if="buttonRows.length > 0" class="telegram-inline-buttons">
@@ -148,7 +144,7 @@
         <ElButton @click="handleCancel">取消</ElButton>
         <ElButton v-if="readonly" type="primary" @click="visible = false">关闭</ElButton>
         <ElButton v-else type="primary" :loading="submitting" @click="handleConfirm">
-          确认发送
+          确认
         </ElButton>
       </div>
     </template>
@@ -159,6 +155,8 @@
 import { computed, ref, watch } from 'vue'
 import { ElButton, ElDropdown, ElDropdownItem, ElDropdownMenu, ElTag } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
+import { normalizeReplyContentHtml } from '@/utils/replyContent'
+import VideoPoster from './VideoPoster.vue'
 
 export interface ButtonItem {
   id: number
@@ -178,6 +176,7 @@ export interface MessagePreviewData {
   recipientInfo?: string
   groupInfo?: string
   content?: string
+  htmlContent?: string
   files?: MessagePreviewFile[]
   buttons?: ButtonItem[]
 }
@@ -240,6 +239,10 @@ const buttonMap = computed(() => {
   props.previewData.buttons?.forEach((btn) => map.set(btn.id, btn))
   return map
 })
+
+const normalizedHtmlContent = computed(() =>
+  normalizeReplyContentHtml(props.previewData.htmlContent ?? props.previewData.content)
+)
 
 const assignedIds = computed(() => {
   const ids = new Set<number>()
@@ -394,6 +397,51 @@ const handleCancel = () => {
   color: #000;
   word-break: break-word;
   white-space: pre-wrap;
+}
+
+.telegram-message-text :deep(b),
+.telegram-message-text :deep(strong) {
+  font-weight: 700;
+}
+
+.telegram-message-text :deep(i),
+.telegram-message-text :deep(em) {
+  font-style: italic;
+}
+
+.telegram-message-text :deep(u) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.telegram-message-text :deep(a) {
+  color: #08c;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.telegram-message-text :deep(pre) {
+  padding: 8px 10px;
+  margin: 8px 0;
+  overflow: auto hidden;
+  font-family: Consolas, Monaco, monospace;
+  white-space: pre-wrap;
+  background: rgb(255 255 255 / 65%);
+  border-radius: 6px;
+}
+
+.telegram-message-text :deep(code) {
+  font-family: Consolas, Monaco, monospace;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.telegram-message-text :deep(p) {
+  margin: 0 0 8px;
+}
+
+.telegram-message-text :deep(p:last-child) {
+  margin-bottom: 0;
 }
 
 .telegram-message-text.empty {

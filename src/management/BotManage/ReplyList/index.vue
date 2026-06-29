@@ -7,6 +7,7 @@
         :search-schema="searchSchema"
         :fetch-data-api="fetchReplyList"
         :fetch-del-api="deleteReplyAction"
+        :table-props="tableProps"
         :action-column="actionColumn"
         @loaded="handleDataLoaded"
         ref="searchTableRef"
@@ -38,7 +39,7 @@
 
 <script setup lang="tsx">
 import { ref, onMounted, computed } from 'vue'
-import { ElLink, ElSwitch } from 'element-plus'
+import { ElLink, ElSwitch, ElTooltip } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
@@ -67,6 +68,7 @@ import MessagePreviewDialog from '@/operation/components/MessageDialog/component
 import type { MessagePreviewData } from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
 import { v1GetInnerButtonList, type InnerButtonItem } from '@/api/opertion/common/menuList'
 import { getMessageFileType } from '@/operation/components/MessageDialog/utils'
+import { getReplyContentPreviewText, normalizeReplyContentHtml } from '@/utils/replyContent'
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const replyFormDialogRef = ref<InstanceType<typeof ReplyFormDialog> | null>(null)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
@@ -76,6 +78,17 @@ const isEditMode = ref(false)
 const isLoaded = ref(false)
 const isBotlistLoaded = ref(false)
 const currentRowData = ref<ReplyItem | null>(null)
+
+const tableProps = {
+  rowStyle: () => ({
+    height: '56px'
+  }),
+  cellStyle: () => ({
+    height: '56px',
+    paddingTop: '8px',
+    paddingBottom: '8px'
+  })
+}
 
 const botOptionsForDialog = ref<BotOption[]>([])
 const botInfoMap = ref<Map<number, { user_name: string; first_name: string }>>(new Map())
@@ -149,26 +162,128 @@ const columns: TableColumn[] = [
   {
     field: 'bot_id',
     label: '机器人ID',
-    width: 120
+    width: 120,
+    showOverflowTooltip: false,
+    slots: {
+      default: (data: { row: ReplyItem }) => {
+        return <span>{Number(data.row.bot_id) === 0 ? '-' : data.row.bot_id}</span>
+      }
+    }
   },
   {
     field: 'bot_username',
     label: '机器人用户名',
-    width: 150
+    width: 150,
+    showOverflowTooltip: false,
+    slots: {
+      default: (data: { row: ReplyItem }) => {
+        const name = data.row.bot_username?.trim()
+        return <span>{name ? name : '-'}</span>
+      }
+    }
   },
   {
     field: 'keyword',
     label: '关键词',
-    minWidth: 180
+    minWidth: 180,
+    showOverflowTooltip: false,
+    slots: {
+      default: (data: { row: ReplyItem }) => {
+        const kw = (data.row.keyword || '').toString().trim()
+        return <span>{kw ? kw : '-'}</span>
+      }
+    }
   },
   {
     field: 'content',
     label: '回复内容',
+    width: 180,
+    showOverflowTooltip: false,
+    slots: {
+      default: (data: { row: ReplyItem }) => {
+        if (!hasReplyContent(data.row)) {
+          return <span>-</span>
+        }
+        const content = getReplyContentHtml(data.row)
+        const previewText = getReplyContentPreviewTextForRow(data.row)
+        return (
+          <ElTooltip
+            effect="light"
+            placement="bottom-start"
+            popperClass="reply-content-tooltip"
+            showAfter={150}
+          >
+            {{
+              default: () => (
+                <div
+                  class="reply-content-cell"
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    overflow: 'hidden',
+                    whiteSpace: 'nowrap',
+                    textOverflow: 'ellipsis',
+                    lineHeight: '20px',
+                    height: '20px',
+                    maxHeight: '20px'
+                  }}
+                >
+                  {previewText}
+                </div>
+              ),
+              content: () => (
+                <div
+                  class="reply-content-tooltip__content"
+                  style={{
+                    display: 'inline-block',
+                    width: 'fit-content',
+                    maxWidth: 'calc(100vw - 280px)',
+                    maxHeight: 'min(320px, calc(100vh - 220px))',
+                    overflowX: 'hidden',
+                    overflowY: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: '1.5',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere',
+                    boxSizing: 'border-box'
+                  }}
+                  innerHTML={content}
+                ></div>
+              )
+            }}
+          </ElTooltip>
+        )
+      }
+    }
+  },
+  {
+    field: 'files',
+    label: '文件',
     width: 100,
     slots: {
       default: (data: { row: ReplyItem }) => {
+        if (!hasReplyFiles(data.row)) {
+          return <span>-</span>
+        }
         return (
-          <ElLink type="primary" onClick={() => handleViewContent(data.row)}>
+          <ElLink type="primary" onClick={() => handleViewContent(data.row, 'files')}>
+            查看
+          </ElLink>
+        )
+      }
+    }
+  },
+  {
+    field: 'inline_menu_ids',
+    label: '内联按钮',
+    width: 100,
+    slots: {
+      default: (data: { row: ReplyItem }) => {
+        if (!hasReplyInlineButtons(data.row)) {
+          return <span>-</span>
+        }
+        return (
+          <ElLink type="primary" onClick={() => handleViewContent(data.row, 'buttons')}>
             查看
           </ElLink>
         )
@@ -434,34 +549,112 @@ const handleDataLoaded = ({ data, total, success }) => {
 
 const viewContentDialogVisible = ref(false)
 const currentPreviewData = ref<MessagePreviewData>({})
-const handleViewContent = (row: ReplyItem) => {
+const getReplyContentHtml = (row: ReplyItem) => normalizeReplyContentHtml(row.content)
+const getReplyContentPreviewTextForRow = (row: ReplyItem) => getReplyContentPreviewText(row.content)
+const getReplyPreviewFiles = (row: ReplyItem) => {
+  return (row.files || []).map((fileUrl) => ({
+    type: getMessageFileType(fileUrl),
+    url: fileUrl,
+    name: fileUrl.split('/').pop() || fileUrl
+  }))
+}
+const getReplyInlineButtons = (row: ReplyItem) => {
+  const rowInnerButtons = flattenInnerButtons(row.inner_buttons)
+  if (rowInnerButtons.length > 0) {
+    return rowInnerButtons.map((button) => ({
+      id: button.id,
+      text: button.text
+    }))
+  }
+
+  return (row.inline_menu_ids || [])
+    .map((id) => {
+      const button = innerButtonMap.value.get(Number(id))
+      return button
+        ? {
+            id: button.id,
+            text: button.text
+          }
+        : null
+    })
+    .filter((item) => item !== null) as NonNullable<MessagePreviewData['buttons']>
+}
+
+const hasReplyContent = (row: ReplyItem) => !!getReplyContentHtml(row)
+const hasReplyFiles = (row: ReplyItem) => getReplyPreviewFiles(row).length > 0
+const hasReplyInlineButtons = (row: ReplyItem) => getReplyInlineButtons(row).length > 0
+
+const handleViewContent = (row: ReplyItem, previewType: 'content' | 'files' | 'buttons') => {
   currentPreviewData.value = {
     botName: row.bot_username || row.bot_name,
-    content: row.content || '',
-    files: (row.files || []).map((fileUrl) => ({
-      type: getMessageFileType({ name: fileUrl } as File),
-      url: fileUrl,
-      name: fileUrl.split('/').pop() || fileUrl
-    })),
-    buttons: flattenInnerButtons(row.inner_buttons).length
-      ? flattenInnerButtons(row.inner_buttons).map((button) => ({
-          id: button.id,
-          text: button.text
-        }))
-      : ((row.inline_menu_ids || [])
-          .map((id) => {
-            const button = innerButtonMap.value.get(Number(id))
-            return button
-              ? {
-                  id: button.id,
-                  text: button.text
-                }
-              : null
-          })
-          .filter((item) => item !== null) as NonNullable<MessagePreviewData['buttons']>)
+    content: previewType === 'content' ? getReplyContentPreviewTextForRow(row) : '',
+    htmlContent: previewType === 'content' ? getReplyContentHtml(row) : '',
+    files: previewType === 'files' ? getReplyPreviewFiles(row) : [],
+    buttons: previewType === 'buttons' ? getReplyInlineButtons(row) : []
   }
   viewContentDialogVisible.value = true
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+.reply-content-tooltip__content {
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #000;
+  background: #dcf8c6;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
+}
+
+.reply-content-tooltip__content :deep(b),
+.reply-content-tooltip__content :deep(strong) {
+  font-weight: 700;
+}
+
+.reply-content-tooltip__content :deep(i),
+.reply-content-tooltip__content :deep(em) {
+  font-style: italic;
+}
+
+.reply-content-tooltip__content :deep(u) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.reply-content-tooltip__content :deep(a) {
+  color: var(--el-color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.reply-content-tooltip__content :deep(pre),
+.reply-content-tooltip__content :deep(code) {
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.reply-content-tooltip__content :deep(pre) {
+  padding: 8px 10px;
+  margin: 8px 0;
+  overflow: auto hidden;
+  font-family: Consolas, Monaco, monospace;
+  background: rgb(255 255 255 / 65%);
+  border-radius: 6px;
+}
+
+.reply-content-tooltip__content :deep(code) {
+  font-family: Consolas, Monaco, monospace;
+}
+
+.reply-content-tooltip__content :deep(p) {
+  margin: 0 0 8px;
+}
+
+.reply-content-tooltip__content :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.reply-content-tooltip__content :deep(br) {
+  content: '';
+}
+</style>
