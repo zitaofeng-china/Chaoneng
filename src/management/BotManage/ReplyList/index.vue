@@ -27,6 +27,7 @@
     <MessagePreviewDialog
       v-model="viewContentDialogVisible"
       :preview-data="currentPreviewData"
+      title="关键词预览"
       :submitting="false"
       :readonly="true"
       @confirm="viewContentDialogVisible = false"
@@ -377,7 +378,7 @@ const handleDialogSubmitted = async (data: ReplySaveParams) => {
         files: data.files || [],
         inner_buttons:
           data.inner_buttons || (data.inline_menu_ids?.length ? [data.inline_menu_ids] : []),
-        key_name: data.key_name,
+        key_name: [data.key_name],
         status: data.status
       }
       await v1CreateReply(createParams)

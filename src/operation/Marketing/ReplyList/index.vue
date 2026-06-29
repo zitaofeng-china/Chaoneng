@@ -31,6 +31,7 @@
     <MessagePreviewDialog
       v-model="viewContentDialogVisible"
       :preview-data="currentPreviewData"
+      title="关键词预览"
       :submitting="false"
       :readonly="true"
       @confirm="viewContentDialogVisible = false"

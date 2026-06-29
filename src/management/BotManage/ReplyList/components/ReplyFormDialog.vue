@@ -89,6 +89,7 @@
   <MessagePreviewDialog
     v-model="showPreviewDialog"
     :preview-data="previewData"
+    title="关键词预览"
     :submitting="submitLoading"
     @confirm="handleConfirmSubmit"
     @cancel="showPreviewDialog = false"

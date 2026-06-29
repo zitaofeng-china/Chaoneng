@@ -55,6 +55,7 @@ const orderTypeMap = () => {
     9: '批量能量',
     10: '批量激活',
     11: '机器人付费',
+    12: '奖励',
     15: '速充能量',
     20: '托管',
     21: '托管速充'
@@ -98,6 +99,7 @@ const columns: TableColumn[] = [
             href = `${href}/quick_charge_order`
             break
           case 11: // 机器人付费
+          case 12: // 奖励
             // 机器人付费可能没有对应的订单页面
             href = ''
             break
@@ -213,7 +215,7 @@ const getList = async (params: any = {}) => {
     const queryParams: any = {
       current_page: params.current_page || params.page || 1,
       page_size: params.page_size || params.limit || 10,
-      kinds: [3, 4, 5, 6, 7, 8, 9, 10, 11], // 扣款类型
+      kinds: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12], // 扣款类型
       agent_id: props.accountId
     }
 

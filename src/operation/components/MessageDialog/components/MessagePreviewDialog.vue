@@ -1,5 +1,5 @@
 <template>
-  <Dialog v-model="visible" title="消息预览" width="650px">
+  <Dialog v-model="visible" :title="title" width="650px">
     <div class="message-preview-wrapper">
       <div v-if="botNames.length > 0" class="preview-info-item">
         <div class="info-label">发送机器人</div>
@@ -188,11 +188,13 @@ const props = withDefaults(
     previewData?: MessagePreviewData
     submitting?: boolean
     readonly?: boolean
+    title?: string
   }>(),
   {
     previewData: () => ({}),
     submitting: false,
-    readonly: false
+    readonly: false,
+    title: '消息预览'
   }
 )
 
