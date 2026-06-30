@@ -126,10 +126,23 @@ const navigateToBotList = (botId: string | number) => {
   })
 }
 
+const shouldShowCountPayId = (data?: any) => {
+  return Number(data?.kind) === 5
+}
+
+const hasPaymentAddress = (data?: any) => {
+  return String(data?.payment_address ?? '').trim() !== ''
+}
+
+const renderTransactionHashText = (data?: any) => {
+  const value = hasPaymentAddress(data) ? String(data?.pay_id ?? '').trim() : ''
+  return h('span', { class: 'transaction-hash-text' }, value || '-')
+}
+
 // --- Schemas (Keep only the main order detail schema) ---
 
 const orderDetailSchema = computed((): DescriptionsSchema[] => {
-  const schema = [
+  const schema: DescriptionsSchema[] = [
     { field: 'id', label: '订单号' },
     {
       field: 'status',
@@ -318,12 +331,23 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
     },
     { field: 'describe', label: '描述' }
   ]
+
+  if (shouldShowCountPayId(orderDetail.value)) {
+    schema.push({
+      field: 'pay_id',
+      label: '交易hash',
+      slots: {
+        default: (data: any) => renderTransactionHashText(data)
+      }
+    })
+  }
+
   return schema
 })
 </script>
 
 <template>
-  <Dialog v-model="localVisible" :title="'订单详情'" @close="handleClose">
+  <Dialog v-model="localVisible" :title="'订单详情'" width="min(1400px, 92vw)" @close="handleClose">
     <ElTabs v-if="orderDetail && orderDetail.id" v-model="activeTab">
       <!-- 基础订单详情页 -->
       <ElTabPane label="基本信息" name="order">
@@ -361,4 +385,7 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
 
 <style scoped>
 /* Styles remain unchanged or can be cleaned up if specific table styles are removed */
+.transaction-hash-text {
+  white-space: nowrap;
+}
 </style>

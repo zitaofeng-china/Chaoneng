@@ -47,6 +47,7 @@ export interface EnergyOrderItemV1 {
   coin: string // 币种
   receive_address: string // 收款钱包地址
   pay_id: string // 支付ID
+  payment_address?: string // 支付地址/能量接收地址
   describe: string // 描述
   agent_name: string // 代理名称
   bot_name: string // 机器人名称
@@ -142,6 +143,7 @@ export interface EnergyOrderDetailV1 {
   coin: string // 币种
   receive_address: string // 收款钱包地址
   pay_id: string // 支付ID
+  payment_address?: string // 支付地址/能量接收地址
   describe: string // 描述
   agent_name: string // 代理名称
   bot_user_name: string // 机器人用户名

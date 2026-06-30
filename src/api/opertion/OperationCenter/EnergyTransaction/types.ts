@@ -134,6 +134,7 @@ export interface V2OrderDetailResponse {
   coin: string // 币种
   receive_address: string // 接收地址
   pay_id: string // 支付ID
+  payment_address?: string // 支付地址/能量接收地址
   cost: string | number | null // 成本
   fee?: string | number | null // 手续费
   describe: string // 描述
