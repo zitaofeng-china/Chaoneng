@@ -2,7 +2,16 @@
   <div class="data-list">
     <div v-for="(item, idx) in sortedData" :key="item.name" class="data-list-row">
       <span class="data-list-rank">{{ idx + 1 }}</span>
-      <span class="data-list-dot" :style="{ background: colorAt(idx) }"></span>
+      <el-tooltip
+        v-if="item.tip"
+        :content="item.tip"
+        placement="top"
+        effect="light"
+        :popper-class="tooltipPopperClass"
+      >
+        <span class="data-list-help"><Icon icon="ep:question-filled" :size="13" /></span>
+      </el-tooltip>
+      <span v-else class="data-list-dot" :style="{ background: colorAt(idx) }"></span>
       <span class="data-list-name">{{ item.name }}</span>
       <div class="data-list-bar">
         <div
@@ -27,12 +36,14 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { Icon } from '@/components/Icon'
 
 interface DataItem {
   name: string
   value: number
   unit?: string
   count?: number
+  tip?: string
 }
 
 const props = withDefaults(
@@ -41,11 +52,13 @@ const props = withDefaults(
     total?: number
     unit?: string
     showPercent?: boolean
+    tooltipPopperClass?: string
   }>(),
   {
     total: 0,
     unit: '',
-    showPercent: true
+    showPercent: true,
+    tooltipPopperClass: 'data-list-help-popper'
   }
 )
 
@@ -101,6 +114,17 @@ const formatValue = (v: number) => {
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.data-list-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 8px;
+  height: 16px;
+  color: #25a8ff;
+  cursor: help;
 }
 
 .data-list-name {
@@ -175,5 +199,13 @@ const formatValue = (v: number) => {
   font-size: 13px;
   font-weight: 600;
   color: #1e40af;
+}
+
+:global(.data-list-help-popper) {
+  max-width: 520px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-line;
 }
 </style>
