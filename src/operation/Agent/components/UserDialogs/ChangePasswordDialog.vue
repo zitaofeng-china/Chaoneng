@@ -123,7 +123,8 @@ const handleSubmit = async () => {
 
     handleSuccessMessage('密码修改成功')
     emit('success')
-    handleClose()
+    dialogVisible.value = false
+    formRef.value?.resetFields()
   } catch (error) {
     if (error !== false) {
       handleErrorMessage(error, '密码修改失败')

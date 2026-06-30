@@ -290,7 +290,8 @@ const handleConfirm = async () => {
     if (res.code === '000000') {
       handleSuccessMessage('更新成功')
       emit('success')
-      handleClose()
+      dialogVisible.value = false
+      formRef.value?.resetFields()
     } else {
       handleErrorMessage(new Error(res.msg || '更新失败'), '更新失败')
     }
