@@ -145,7 +145,7 @@ const handleRecharge = async () => {
       await v1RechargeUser(params)
 
       handleSuccessMessage('充值成功')
-      close()
+      dialogVisible.value = false
       emit('success')
     } catch (error) {
       handleErrorMessage(error, '充值失败')

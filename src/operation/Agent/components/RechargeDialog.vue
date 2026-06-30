@@ -29,11 +29,7 @@ import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
 import { rechargeTrxApi } from '@/api/opertion/Agent/AgentList'
 import { createRechargeFormDefaults, createRechargeFormSchema } from './rechargeDialogShared'
-import {
-  handleErrorMessage,
-  handleSuccessMessage,
-  handleWarningMessage
-} from '@/utils/messageHelper'
+import { handleErrorMessage, handleWarningMessage } from '@/utils/messageHelper'
 
 const props = defineProps({
   visible: {
@@ -147,9 +143,8 @@ const handleRecharge = async () => {
       // 调用充值API
       await rechargeTrxApi(params)
 
-      handleSuccessMessage('充值成功')
-      close()
-      emit('success')
+      dialogVisible.value = false
+      emit('success', Number(formData.amount))
     } catch (error) {
       handleErrorMessage(error, '充值失败')
     } finally {
