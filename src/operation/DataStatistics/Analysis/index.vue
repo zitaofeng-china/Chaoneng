@@ -38,7 +38,17 @@
       <div class="kpi-grid">
         <div v-for="kpi in kpiCards" :key="kpi.key" class="kpi-card" :class="`kpi-${kpi.tone}`">
           <div class="kpi-top">
-            <span class="kpi-title">{{ kpi.title }}</span>
+            <span class="kpi-title">
+              {{ kpi.title }}
+              <el-tooltip
+                :content="kpi.tip"
+                placement="top"
+                effect="light"
+                popper-class="stats-help-popper"
+              >
+                <span class="stat-help-icon"><Icon icon="ep:question-filled" :size="15" /></span>
+              </el-tooltip>
+            </span>
             <span class="kpi-icon" :class="`kpi-icon-${kpi.tone}`">
               <Icon :icon="kpi.icon" :size="16" />
             </span>
@@ -55,7 +65,17 @@
         <!-- 资源消耗：上下滚动走马灯 -->
         <div class="kpi-card kpi-resource">
           <div class="kpi-top">
-            <span class="kpi-title">资源消耗 / 收购</span>
+            <span class="kpi-title">
+              资源消耗 / 收购
+              <el-tooltip
+                :content="HELP.resource"
+                placement="top"
+                effect="light"
+                popper-class="stats-help-popper"
+              >
+                <span class="stat-help-icon"><Icon icon="ep:question-filled" :size="15" /></span>
+              </el-tooltip>
+            </span>
             <span class="kpi-icon kpi-icon-resource">
               <Icon icon="ep:lightning" :size="16" />
             </span>
@@ -162,7 +182,11 @@
             <span class="chart-card-title">资源消耗 / 收购</span>
           </div>
           <template v-if="hasResourceData">
-            <DataList :data="resourceChartData" :show-percent="false" />
+            <DataList
+              :data="resourceChartData"
+              :show-percent="false"
+              tooltip-popper-class="stats-help-popper"
+            />
           </template>
           <div v-else class="chart-empty">暂无资源数据</div>
         </div>
@@ -247,6 +271,7 @@ interface ChartDataItem {
   value: number
   unit?: string
   count?: number
+  tip?: string
 }
 
 interface DetailRow {
@@ -358,6 +383,17 @@ const toNum = (v: unknown) => {
   return isNaN(n) ? 0 : n
 }
 
+const HELP = {
+  income:
+    '统计所有代理扣款，即销售额；包含闪兑、闪租、按时间、托管、按笔数、即用能量、激活、福利、批量下单、机器人费用的所有扣款金额。',
+  expense:
+    '统计平台所有支出费用；包含闪兑支出(U+T)、能量收购费用、第三方资源购买费用(justlend / feee / trxfee / sohu)、激活费用。',
+  profit:
+    '统计平台整理利润；包含能量利润、激活利润、闪兑利润三个部分。能量利润=能量类收入-资源补充支出-能量收购支出；激活利润=激活收入-激活支出；闪兑利润=闪兑收入USDT+闪兑收入TRX-闪兑支出TRX-闪兑支出USDT。',
+  resource:
+    '能量消耗总量：平台所有订单的能量消耗数量\n带宽消耗总量：平台所有订单的带宽消耗数量\n能量消耗笔数：平台所有订单的能量消耗笔数\n带宽消耗笔数：平台所有订单的带宽消耗笔数\n福利订单数量：福利类型的订单数量\n激活地址：激活地址数量(扣款)\n能量收购总量：能量理财的能量收购数\n带宽收购总量：能量理财的带宽收购数'
+}
+
 // ============== KPI 卡片 ==============
 const kpiCards = computed(() => [
   {
@@ -367,7 +403,8 @@ const kpiCards = computed(() => [
     unit: 'TRX',
     sub: '统计周期内全部收入',
     tone: 'income',
-    icon: 'ep:top-right'
+    icon: 'ep:top-right',
+    tip: HELP.income
   },
   {
     key: 'expense',
@@ -376,7 +413,8 @@ const kpiCards = computed(() => [
     unit: 'TRX',
     sub: '统计周期内全部支出',
     tone: 'expense',
-    icon: 'ep:bottom-right'
+    icon: 'ep:bottom-right',
+    tip: HELP.expense
   },
   {
     key: 'profit',
@@ -385,7 +423,8 @@ const kpiCards = computed(() => [
     unit: 'TRX',
     sub: '闪兑+能量+激活利润合计',
     tone: 'profit',
-    icon: 'ep:wallet'
+    icon: 'ep:wallet',
+    tip: HELP.profit
   }
 ])
 
@@ -708,18 +747,54 @@ const profitChartOption = computed(() => buildDonut('利润构成', profitData.v
 // 资源消耗/收购（柱状图）
 const resourceChartData = computed<ChartDataItem[]>(() => {
   return [
-    { name: '能量消耗笔数', value: toNum(statsData.energyCount), unit: '笔' },
-    { name: '能量消耗总量', value: toNum(statsData.energySum), unit: '' },
-    { name: '带宽消耗笔数', value: toNum(statsData.bandwidthCount), unit: '笔' },
-    { name: '带宽消耗总量', value: toNum(statsData.bandwidthSum), unit: '' },
+    {
+      name: '能量消耗笔数',
+      value: toNum(statsData.energyCount),
+      unit: '笔',
+      tip: '能量消耗笔数：平台所有订单的能量消耗笔数。'
+    },
+    {
+      name: '能量消耗总量',
+      value: toNum(statsData.energySum),
+      unit: '',
+      tip: '能量消耗总量：平台所有订单的能量消耗数量。'
+    },
+    {
+      name: '带宽消耗笔数',
+      value: toNum(statsData.bandwidthCount),
+      unit: '笔',
+      tip: '带宽消耗笔数：平台所有订单的带宽消耗笔数。'
+    },
+    {
+      name: '带宽消耗总量',
+      value: toNum(statsData.bandwidthSum),
+      unit: '',
+      tip: '带宽消耗总量：平台所有订单的带宽消耗数量。'
+    },
     {
       name: '激活地址',
       value: toNum(statsData.activeAddress),
-      unit: `个（${(toNum(statsData.activeAddress) * 1.1).toFixed(2)} TRX）`
+      unit: `个（${(toNum(statsData.activeAddress) * 1.1).toFixed(2)} TRX）`,
+      tip: '激活地址：激活地址数量(扣款)。'
     },
-    { name: '福利订单数量', value: toNum(statsData.wealCount), unit: '笔' },
-    { name: '能量收购总量', value: toNum(statsData.energyInSum), unit: '' },
-    { name: '带宽收购总量', value: toNum(statsData.bandwidthInSum), unit: '' }
+    {
+      name: '福利订单数量',
+      value: toNum(statsData.wealCount),
+      unit: '笔',
+      tip: '福利订单数量：福利类型的订单数量。'
+    },
+    {
+      name: '能量收购总量',
+      value: toNum(statsData.energyInSum),
+      unit: '',
+      tip: '能量收购总量：能量理财的能量收购数。'
+    },
+    {
+      name: '带宽收购总量',
+      value: toNum(statsData.bandwidthInSum),
+      unit: '',
+      tip: '带宽收购总量：能量理财的带宽收购数。'
+    }
   ]
 })
 const hasResourceData = computed(() => resourceChartData.value.some((d) => d.value > 0))
@@ -1044,8 +1119,28 @@ onBeforeUnmount(() => {
 }
 
 .kpi-title {
+  display: inline-flex;
+  align-items: center;
   font-size: 14px;
   color: #606266;
+}
+
+.stat-help-icon {
+  display: inline-flex;
+  margin-left: 4px;
+  color: #25a8ff;
+  vertical-align: -2px;
+  cursor: help;
+  align-items: center;
+  justify-content: center;
+}
+
+:global(.stats-help-popper) {
+  max-width: 520px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-line;
 }
 
 .kpi-icon {
