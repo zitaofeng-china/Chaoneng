@@ -132,7 +132,7 @@ const columns: TableColumn[] = [
   },
   {
     field: 'amount',
-    label: '数量',
+    label: '能量数量',
     width: 100,
     formatter: (row: V2ResourceOrderItem) => row.amount ?? '-'
   },
@@ -144,7 +144,7 @@ const columns: TableColumn[] = [
   },
   {
     field: 'profit_sum',
-    label: '累计利润',
+    label: '累计支出',
     width: 120,
     formatter: (row: V2ResourceOrderItem) => row.profit_sum || '-'
   },
@@ -338,9 +338,9 @@ const handleExport = async () => {
         来源地址: item.source || '-',
         目标地址: item.target || '-',
         接收地址: item.receiver || '-',
-        数量: item.amount ?? '-',
+        能量数量: item.amount ?? '-',
         TRX质押: formatTrxStake(item.balance),
-        累计利润: item.profit_sum || '-',
+        累计支出: item.profit_sum || '-',
         订单状态: getStatusLabel(RESOURCE_ORDER_STATUS_MAP, item.status),
         备注: item.describe || '-',
         支付时间: formatTableDateTime(item.paid_at),

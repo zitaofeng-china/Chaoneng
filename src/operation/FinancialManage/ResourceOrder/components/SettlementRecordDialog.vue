@@ -30,7 +30,7 @@
         >
           <ElTableColumn prop="order_id" label="订单ID" width="100" align="center" />
           <ElTableColumn prop="period" label="结算周期" width="140" align="center" />
-          <ElTableColumn prop="amount" label="数量" width="100" align="center" />
+          <ElTableColumn prop="amount" label="能量数量" width="100" align="center" />
           <ElTableColumn prop="price" label="SUN/天" width="120" align="center" />
           <ElTableColumn prop="duration" label="时长" width="140" align="center">
             <template #default="{ row }">
