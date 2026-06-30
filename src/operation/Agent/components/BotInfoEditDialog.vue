@@ -76,6 +76,7 @@ const submit = async () => {
 
   const success = await submitTabConfig('botInfo', formMethods)
   if (success) {
+    dialogVisible.value = false
     emit('success')
   }
 }

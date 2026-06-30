@@ -153,6 +153,7 @@ const submit = async () => {
     try {
       const success = await menuConfigTabRef.value?.saveMenuConfig()
       if (success) {
+        dialogVisible.value = false
         emit('success')
       }
     } finally {
@@ -173,6 +174,7 @@ const submit = async () => {
   const success = await submitTabConfig(activeTab.value, currentFormMethod)
 
   if (success) {
+    dialogVisible.value = false
     emit('success')
   }
 }
