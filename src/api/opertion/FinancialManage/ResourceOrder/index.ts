@@ -4,6 +4,7 @@
  */
 import request from '@/axios'
 import type {
+  V2ResourceOrderDetail,
   V2ResourceOrderListParams,
   V2ResourceOrderListResponse,
   V2SettlementRecordListParams,
@@ -22,6 +23,18 @@ export const v2GetResourceOrderList = (
   return request.get({
     url: BASE_URL,
     params
+  })
+}
+
+/**
+ * 获取理财订单详情
+ * GET /v1/fund/order/{id}
+ */
+export const v2GetResourceOrderDetail = (
+  id: number | string
+): Promise<IResponse<V2ResourceOrderDetail>> => {
+  return request.get({
+    url: `${BASE_URL}/${id}`
   })
 }
 

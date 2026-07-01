@@ -64,6 +64,21 @@ export interface ChargeLogParams {
 }
 
 /**
+ * 资源补充账单记录查询参数
+ * GET /v1/charge/bill
+ */
+export interface ChargeBillParams {
+  current_page?: number // 页码
+  page_size?: number // 每页大小
+  keyword?: string // 关键字
+  kind?: string // 账户类型
+  order?: string // 排序，单字段：column [ASC|DESC]，多字段用逗号隔开
+  status?: number // 状态：1=成功, 2=失败
+  start_time?: string // 开始时间
+  end_time?: string // 结束时间
+}
+
+/**
  * 资源补充记录项
  */
 export interface ChargeLogItem {
@@ -83,6 +98,22 @@ export interface ChargeLogItem {
   txid?: string // 交易hash
   delegated_txid?: string // 代理交易hash
   recycled_txid?: string // 回收交易hash
+  describe?: string // 描述
+}
+
+/**
+ * 资源补充账单记录项
+ */
+export interface ChargeBillItem {
+  id: number
+  created_at: number
+  updated_at: number
+  vault: string // 付款地址
+  kind: string // 账户类型，如 feee、sohu、trxfee、justlend
+  target: string // 目标地址
+  amount: number | string // 交易金额
+  txid: string // 交易哈希
+  status: number // 状态
   describe?: string // 描述
 }
 
@@ -109,4 +140,27 @@ export interface ChargeTaskParams {
 export interface ChargeLogResponse {
   list: ChargeLogItem[]
   pager: ChargePager
+}
+
+/**
+ * 资源补充账单记录响应
+ * GET /v1/charge/bill
+ */
+export interface ChargeBillResponse {
+  list: ChargeBillItem[]
+  pager: ChargePager
+  summary?: {
+    count?: number
+    total?: number
+    amount?: number | string
+    transaction_count?: number
+    transaction_amount?: number | string
+    total_amount?: number | string
+  }
+  count?: number
+  amount?: number | string
+  transaction_count?: number
+  transaction_amount?: number | string
+  total_amount?: number | string
+  amount_sum?: number | string
 }

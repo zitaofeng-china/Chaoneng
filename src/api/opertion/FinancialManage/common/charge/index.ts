@@ -4,6 +4,8 @@
  */
 import request from '@/axios'
 import type {
+  ChargeBillParams,
+  ChargeBillResponse,
   ChargeListParams,
   ChargeListResponse,
   ChargeLogParams,
@@ -33,6 +35,19 @@ export const getChargeLogList = (
 ): Promise<IResponse<ChargeLogResponse>> => {
   return request.get({
     url: `${BASE_URL}/log`,
+    params
+  })
+}
+
+/**
+ * 分页获取资源补充账单记录
+ * GET /v1/charge/bill
+ */
+export const getChargeBillList = (
+  params: ChargeBillParams
+): Promise<IResponse<ChargeBillResponse>> => {
+  return request.get({
+    url: `${BASE_URL}/bill`,
     params
   })
 }

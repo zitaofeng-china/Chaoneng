@@ -53,6 +53,12 @@ export interface V2ResourceOrderItem {
 }
 
 /**
+ * 资源订单详情响应
+ * GET /v1/fund/order/{id}
+ */
+export type V2ResourceOrderDetail = V2ResourceOrderItem
+
+/**
  * 资源订单列表响应
  */
 export interface V2ResourceOrderListResponse {

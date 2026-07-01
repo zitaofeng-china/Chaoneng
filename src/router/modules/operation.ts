@@ -69,15 +69,6 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           }
         },
         {
-          path: 'energy_outbound_order',
-          alias: '/data_statistics/energy_outbound_order',
-          component: () => import('@/operation/DataStatistics/EnergyOutboundOrder/index.vue'),
-          name: 'EnergyOutboundOrder',
-          meta: {
-            title: '能量出账订单'
-          }
-        },
-        {
           path: 'sale_by_time_report',
           alias: '/data_statistics/sale_by_time_report',
           component: () => import('@/operation/DataStatistics/SaleByTimeReport/index.vue'),
@@ -145,6 +136,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           name: 'QuickChargeOrder',
           meta: {
             title: '速充订单'
+          }
+        },
+        {
+          path: 'energy_outbound_order',
+          alias: '/data_statistics/energy_outbound_order',
+          component: () => import('@/operation/DataStatistics/EnergyOutboundOrder/index.vue'),
+          name: 'EnergyOutboundOrder',
+          meta: {
+            title: '能量出账订单'
           }
         }
       ]
@@ -267,6 +267,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           name: 'ResourceSupplementOrder',
           meta: {
             title: '资源补充记录'
+          }
+        },
+        {
+          path: 'resource_account_recharge_record',
+          component: () =>
+            import('@/operation/FinancialManage/ResourceAccountRechargeRecord/index.vue'),
+          name: 'ResourceAccountRechargeRecord',
+          meta: {
+            title: '资源账户充值记录'
           }
         }
       ]
