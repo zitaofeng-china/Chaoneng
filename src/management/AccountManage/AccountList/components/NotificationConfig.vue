@@ -67,17 +67,31 @@
 
         <!-- TG账号 -->
         <ElFormItem label="TG账号">
-          <ElInput
-            v-model="form.chatId"
-            placeholder="请输入TG账号数字ID"
-            :disabled="saving"
-            style="width: 100%"
-            maxlength="20"
-            @input="handleChatIdInput"
-          />
-          <div class="text-sm text-gray-500 mt-1"
-            >将发送给该 Telegram 账号提醒消息（仅支持数字 ID）</div
-          >
+          <div class="tg-tag-input" :class="{ 'is-disabled': saving }" @click="focusChatIdInput">
+            <ElTag
+              v-for="chatId in form.chatIds"
+              :key="chatId"
+              :closable="!saving"
+              disable-transitions
+              class="tg-tag-input__tag"
+              @close="removeChatId(chatId)"
+            >
+              {{ chatId }}
+            </ElTag>
+            <ElInput
+              ref="chatIdInputRef"
+              v-model="form.chatIdInput"
+              class="tg-tag-input__inner"
+              placeholder="请输入TG账号数字ID"
+              :disabled="saving"
+              @blur="commitChatIdInput"
+              @input="handleChatIdInput"
+              @keydown="handleChatIdKeydown"
+            />
+          </div>
+          <div class="text-sm text-gray-500 mt-1">
+            输入一个数字 ID 后按回车，或移出输入框后会生成一个 TG 账号
+          </div>
         </ElFormItem>
 
         <!-- 操作按钮 -->
@@ -102,8 +116,10 @@ import {
   ElInputNumber,
   ElCheckbox,
   ElCheckboxGroup,
-  ElButton
+  ElButton,
+  ElTag
 } from 'element-plus'
+import type { InputInstance } from 'element-plus'
 import { v1UpdateUserNotify } from '@/api/management/AccountManage/AccountList'
 import { v1GetNotifyBot } from '@/api/management/BotManage/BotList'
 import {
@@ -135,19 +151,23 @@ const ORDER_SWITCH_ACTION_WIDTH = 40
 interface NotificationFormState {
   enabled: boolean
   threshold: number | undefined
-  chatId: string
+  chatIds: number[]
+  chatIdInput: string
   orderEnabled: boolean
   orderTypes: number[]
 }
 
+type ChatIdValue = number | string | Array<number | string>
+
 interface NotifyConfigData {
-  chat_id?: number | string
+  chat_ids?: ChatIdValue
+  chat_id?: ChatIdValue
   balance_threshold?: number | string
   order_subscription?: number[] | string | null
 }
 
 interface NotifyPayload {
-  chat_id: number
+  chat_ids: number[]
   balance_threshold: number
   order_subscription?: number[] | null
 }
@@ -155,11 +175,13 @@ interface NotifyPayload {
 const props = defineProps<{
   accountId?: number
   /**
-   * 后端返回的字段：notify.balance_threshold（0 表示禁用，>0 表示启用）、notify.chat_id
+   * 后端返回的字段：notify.balance_threshold（0 表示禁用，>0 表示启用）、notify.chat_ids
    */
   notify?: NotifyConfigData | null
   notifyThreshold?: number | string
-  chatId?: number | string
+  chatIds?: ChatIdValue
+  /** 兼容旧接口字段 */
+  chatId?: ChatIdValue
   orderNotifyTypes?: number[] | string
   orderNotifyEnabled?: boolean | number | string
 }>()
@@ -173,7 +195,8 @@ const emit = defineEmits<{
 const form = reactive<NotificationFormState>({
   enabled: false,
   threshold: undefined,
-  chatId: '',
+  chatIds: [],
+  chatIdInput: '',
   orderEnabled: false,
   orderTypes: []
 })
@@ -182,13 +205,15 @@ const form = reactive<NotificationFormState>({
 const originalData = reactive<NotificationFormState>({
   enabled: false,
   threshold: undefined,
-  chatId: '',
+  chatIds: [],
+  chatIdInput: '',
   orderEnabled: false,
   orderTypes: []
 })
 
 const saving = ref(false)
 const notifyBotName = ref('')
+const chatIdInputRef = ref<InputInstance>()
 
 const notifyBotDisplayName = computed(() => {
   if (!notifyBotName.value) return ''
@@ -293,14 +318,62 @@ const getOrderSubscriptionPayload = (orderTypes: number[]) => {
   return normalizedOrderTypes
 }
 
+const normalizeChatIdInput = (value: string) => String(value || '').replace(/[^\d\s,，、;；]/g, '')
+
+const parseChatIdsFromText = (value: string) => {
+  const items = String(value || '')
+    .split(/[\s,，、;；]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+  if (items.some((item) => !/^\d+$/.test(item))) {
+    return null
+  }
+
+  const chatIds = items.map((item) => Number(item)).filter((item) => !isNaN(item) && item > 0)
+
+  if (chatIds.length !== items.length) {
+    return null
+  }
+
+  return [...new Set(chatIds)]
+}
+
+const parseChatIdsFromValue = (value: unknown): number[] => {
+  if (value === undefined || value === null || value === '') return []
+
+  if (Array.isArray(value)) {
+    const chatIds = value
+      .map((item) => String(item).trim())
+      .filter((item) => item && item !== '0')
+      .map((item) => Number(item))
+      .filter((item) => !isNaN(item) && item > 0)
+
+    return [...new Set(chatIds)]
+  }
+
+  const normalized = String(value).trim()
+  if (!normalized || normalized === '0' || normalized.toLowerCase() === 'null') return []
+
+  if (normalized.startsWith('[')) {
+    try {
+      return parseChatIdsFromValue(JSON.parse(normalized))
+    } catch (error) {
+      return []
+    }
+  }
+
+  return parseChatIdsFromText(normalized) ?? []
+}
+
 const buildNotifyPayload = (params: {
-  chatId: number
+  chatIds: number[]
   threshold: number
   orderTypes?: number[]
 }): NotifyPayload => {
   const orderSubscription = getOrderSubscriptionPayload(params.orderTypes ?? form.orderTypes)
   const notify: NotifyPayload = {
-    chat_id: params.chatId,
+    chat_ids: params.chatIds,
     balance_threshold: params.threshold,
     order_subscription: orderSubscription
   }
@@ -309,11 +382,13 @@ const buildNotifyPayload = (params: {
 
 const syncOriginalData = () => {
   Object.assign(originalData, form)
+  originalData.chatIds = [...form.chatIds]
+  originalData.chatIdInput = ''
   originalData.orderTypes = [...form.orderTypes]
 }
 
 const persistNotifyConfig = async (params: {
-  chatId: number
+  chatIds: number[]
   threshold: number
   orderTypes?: number[]
 }) => {
@@ -327,8 +402,7 @@ const persistNotifyConfig = async (params: {
 const syncFromProps = () => {
   const notify = props.notify || {}
   const threshold = Number(notify.balance_threshold ?? props.notifyThreshold ?? 0)
-  const rawChatId = notify.chat_id ?? props.chatId
-  const chatIdStr = rawChatId !== undefined && rawChatId !== null ? String(rawChatId) : ''
+  const rawChatId = notify.chat_ids ?? props.chatIds ?? notify.chat_id ?? props.chatId
   const hasNotifyOrderSubscription = Object.prototype.hasOwnProperty.call(
     notify,
     'order_subscription'
@@ -339,11 +413,11 @@ const syncFromProps = () => {
   const { orderEnabled, orderTypes } = parseOrderSubscription(orderSubscription)
   form.enabled = threshold > 0
   form.threshold = threshold > 0 ? threshold : undefined
-  form.chatId = chatIdStr === '0' ? '' : chatIdStr
+  form.chatIds = parseChatIdsFromValue(rawChatId)
+  form.chatIdInput = ''
   form.orderEnabled = orderEnabled || parseBoolean(props.orderNotifyEnabled)
   form.orderTypes = orderTypes
-  Object.assign(originalData, form)
-  originalData.orderTypes = [...form.orderTypes]
+  syncOriginalData()
 }
 
 watch(
@@ -351,6 +425,7 @@ watch(
     props.accountId,
     props.notify,
     props.notifyThreshold,
+    props.chatIds,
     props.chatId,
     props.orderNotifyTypes,
     props.orderNotifyEnabled
@@ -363,6 +438,47 @@ onMounted(() => {
   fetchNotifyBotName()
 })
 
+const focusChatIdInput = () => {
+  if (saving.value) return
+  chatIdInputRef.value?.focus()
+}
+
+const addChatIds = (chatIds: number[]) => {
+  if (chatIds.length === 0) return
+  form.chatIds = [...new Set([...form.chatIds, ...chatIds])]
+}
+
+const commitChatIdInput = () => {
+  const input = form.chatIdInput.trim()
+  if (!input) {
+    form.chatIdInput = ''
+    return true
+  }
+
+  const chatIds = parseChatIdsFromText(input)
+  if (!chatIds || chatIds.length === 0) {
+    handleWarningMessage('TG账号仅支持数字 ID')
+    return false
+  }
+
+  addChatIds(chatIds)
+  form.chatIdInput = ''
+  return true
+}
+
+const getCommittedChatIds = () => {
+  if (!commitChatIdInput()) {
+    return null
+  }
+
+  return [...form.chatIds]
+}
+
+const removeChatId = (chatId: number) => {
+  if (saving.value) return
+  form.chatIds = form.chatIds.filter((item) => item !== chatId)
+}
+
 // 保存配置
 const handleSave = async () => {
   if (saving.value) return
@@ -373,11 +489,15 @@ const handleSave = async () => {
 
   let threshold = 0
   // 关闭开关时也保留原 TG 账号，只把阈值置 0 表示禁用
-  let chatId: number = Number(String(form.chatId || '').trim()) || 0
+  const chatIds = getCommittedChatIds()
   const validOrderTypeSet = new Set(getAllOrderTypeValues())
   const orderTypes = form.orderTypes
     .map((item) => Number(item))
     .filter((item) => !isNaN(item) && validOrderTypeSet.has(item))
+
+  if (chatIds === null) {
+    return
+  }
 
   if (form.enabled) {
     if (form.threshold === undefined || form.threshold === null) {
@@ -389,24 +509,14 @@ const handleSave = async () => {
       handleWarningMessage('请输入大于 0 的提醒阈值')
       return
     }
-    const chatIdStr = String(form.chatId || '').trim()
-    if (chatIdStr === '') {
+    if (chatIds.length === 0) {
       handleWarningMessage('请输入TG账号')
-      return
-    }
-    if (!/^\d+$/.test(chatIdStr)) {
-      handleWarningMessage('TG账号仅支持数字 ID')
-      return
-    }
-    chatId = Number(chatIdStr)
-    if (isNaN(chatId) || chatId <= 0) {
-      handleWarningMessage('请输入有效的TG账号')
       return
     }
   }
 
   if (orderTypes.length > 0) {
-    if (chatId <= 0) {
+    if (chatIds.length === 0) {
       handleWarningMessage('请先填写TG账号')
       return
     }
@@ -416,7 +526,7 @@ const handleSave = async () => {
   saving.value = true
   try {
     await persistNotifyConfig({
-      chatId,
+      chatIds,
       threshold,
       orderTypes
     })
@@ -435,6 +545,8 @@ const handleSave = async () => {
 // 取消：恢复到原始数据
 const handleReset = () => {
   Object.assign(form, originalData)
+  form.chatIds = [...originalData.chatIds]
+  form.chatIdInput = ''
   form.orderTypes = [...originalData.orderTypes]
   emit('close')
 }
@@ -454,9 +566,35 @@ const handleSwitchChange = (val: boolean | string | number) => {
   form.threshold = undefined
 }
 
-// TG账号输入过滤：只保留数字
+// TG账号输入过滤：只保留数字和常见分隔符
 const handleChatIdInput = (value: string) => {
-  form.chatId = String(value || '').replace(/\D/g, '')
+  const normalized = normalizeChatIdInput(value)
+  form.chatIdInput = normalized
+
+  if (/[\s,，、;；]/.test(normalized)) {
+    commitChatIdInput()
+  }
+}
+
+const handleChatIdKeydown = (event: KeyboardEvent) => {
+  const hasInput = form.chatIdInput.trim() !== ''
+
+  if (event.key === 'Enter') {
+    if (hasInput) {
+      event.preventDefault()
+      commitChatIdInput()
+    }
+    return
+  }
+
+  if (event.key === 'Tab' && hasInput) {
+    commitChatIdInput()
+    return
+  }
+
+  if (event.key === 'Backspace' && form.chatIdInput === '' && form.chatIds.length > 0) {
+    form.chatIds = form.chatIds.slice(0, -1)
+  }
 }
 
 const handleOrderSwitchChange = (val: boolean | string | number) => {
@@ -538,5 +676,58 @@ const handleOrderTypesChange = (value: Array<number | string>) => {
 
 .order-select-switch :deep(.el-switch__inner) {
   padding: 0 10px;
+}
+
+.tg-tag-input {
+  display: flex;
+  width: 100%;
+  min-height: 32px;
+  padding: 4px 8px;
+  cursor: text;
+  background-color: #fff;
+  border: 1px solid var(--el-border-color);
+  border-radius: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  transition:
+    border-color var(--el-transition-duration),
+    box-shadow var(--el-transition-duration);
+}
+
+.tg-tag-input:focus-within {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+}
+
+.tg-tag-input.is-disabled {
+  cursor: not-allowed;
+  background-color: var(--el-disabled-bg-color);
+  border-color: var(--el-disabled-border-color);
+}
+
+.tg-tag-input__tag {
+  max-width: 100%;
+}
+
+.tg-tag-input__inner {
+  width: 180px;
+  min-width: 120px;
+  flex: 1 0 120px;
+}
+
+.tg-tag-input__inner :deep(.el-input__wrapper) {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.tg-tag-input__inner :deep(.el-input__wrapper.is-focus) {
+  box-shadow: none;
+}
+
+.tg-tag-input__inner :deep(.el-input__inner) {
+  height: 24px;
+  line-height: 24px;
 }
 </style>

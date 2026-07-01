@@ -199,6 +199,7 @@ export default defineComponent({
                   accountId={agentAccountInfo.value.id}
                   notify={agentAccountInfo.value.notify}
                   notifyThreshold={agentAccountInfo.value.notify_threshold}
+                  chatIds={agentAccountInfo.value.notify_chat_ids}
                   chatId={agentAccountInfo.value.notify_chat_id}
                   orderNotifyTypes={
                     agentAccountInfo.value.order_notify_types ?? agentAccountInfo.value.order_types
