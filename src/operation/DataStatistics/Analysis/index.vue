@@ -338,6 +338,7 @@ const statsData = reactive({
   instantEnergyIncome: 0,
   hostingIncome: 0,
   batchEnergyIncome: 0,
+  batchEnergyFeeIncome: 0,
   batchActiveIncome: 0,
   exchangeIncome: 0,
   botFeeIncome: 0,
@@ -385,7 +386,7 @@ const toNum = (v: unknown) => {
 
 const HELP = {
   income:
-    '统计所有代理扣款，即销售额；包含闪兑、闪租、按时间、托管、按笔数、即用能量、激活、福利、批量下单、机器人费用的所有扣款金额。',
+    '统计所有代理扣款，即销售额；包含闪兑、闪租、按时间、托管、按笔数、即用能量、激活、福利、批量下单、机器人费用的所有扣款金额。批量下单拆分为能量和激活，其中批量下单-激活为 batch_energy_fee，批量下单-能量为 batch_energy - batch_energy_fee。',
   expense:
     '统计平台所有支出费用；包含闪兑支出(U+T)、能量收购费用、第三方资源购买费用(justlend / feee / trxfee / sohu)、激活费用。',
   profit:
@@ -529,7 +530,8 @@ const incomeRows = computed(() => [
   { label: '闪租', value: statsData.flashIncome },
   { label: '即用能量', value: statsData.instantEnergyIncome },
   { label: '托管', value: statsData.hostingIncome },
-  { label: '批量下单', value: statsData.batchEnergyIncome },
+  { label: '批量下单-能量', value: batchOrderEnergyIncome.value },
+  { label: '批量下单-激活', value: batchOrderActiveIncome.value },
   { label: '激活', value: statsData.batchActiveIncome },
   { label: '闪兑', value: statsData.exchangeIncome },
   { label: '机器人费用', value: statsData.botFeeIncome }
@@ -543,7 +545,8 @@ const expenseRows = computed<DetailRow[]>(() => [
   { label: 'justlend', value: statsData.justlendExpense },
   { label: 'feee', value: statsData.feeExpense },
   { label: 'trxfee', value: statsData.trxfeeExpense },
-  { label: 'sohu', value: statsData.sohuExpense }
+  { label: 'sohu', value: statsData.sohuExpense },
+  { label: '激活', value: statsData.activeExpense }
 ])
 
 const profitRows = computed(() => [
@@ -627,6 +630,11 @@ const buildDonut = (title: string, data: { name: string; value: number }[]): ECh
   }
 }
 
+const batchOrderActiveIncome = computed(() => toNum(statsData.batchEnergyFeeIncome))
+const batchOrderEnergyIncome = computed(
+  () => toNum(statsData.batchEnergyIncome) - toNum(statsData.batchEnergyFeeIncome)
+)
+
 // 收入构成
 const incomeData = computed(() => [
   { name: '按时间', value: toNum(statsData.timeEnergyIncome) },
@@ -635,7 +643,8 @@ const incomeData = computed(() => [
   { name: '闪租', value: toNum(statsData.flashIncome) },
   { name: '即用能量', value: toNum(statsData.instantEnergyIncome) },
   { name: '托管', value: toNum(statsData.hostingIncome) },
-  { name: '批量下单', value: toNum(statsData.batchEnergyIncome) },
+  { name: '批量下单-能量', value: batchOrderEnergyIncome.value },
+  { name: '批量下单-激活', value: batchOrderActiveIncome.value },
   { name: '激活', value: toNum(statsData.batchActiveIncome) },
   { name: '闪兑', value: toNum(statsData.exchangeIncome) },
   { name: '机器人费用', value: toNum(statsData.botFeeIncome) }
@@ -660,7 +669,8 @@ const expenseData = computed<ChartDataItem[]>(() => [
   { name: 'justlend', value: toNum(statsData.justlendExpense), unit: 'TRX' },
   { name: 'feee', value: toNum(statsData.feeExpense), unit: 'TRX' },
   { name: 'trxfee', value: toNum(statsData.trxfeeExpense), unit: 'TRX' },
-  { name: 'sohu', value: toNum(statsData.sohuExpense), unit: 'TRX' }
+  { name: 'sohu', value: toNum(statsData.sohuExpense), unit: 'TRX' },
+  { name: '激活', value: toNum(statsData.activeExpense), unit: 'TRX' }
 ])
 const expenseTotal = computed(() => expenseData.value.reduce((s, d) => s + d.value, 0))
 // 大额数值缩写：1.2w / 3.5k
@@ -945,7 +955,8 @@ const applyStatsData = (data: V2StatsData) => {
     n(expense?.justlend) +
     n(expense?.feee) +
     n(expense?.trxfee) +
-    n(expense?.sohu)
+    n(expense?.sohu) +
+    n(expense?.activation)
 
   // 利润：直接用接口返回的利润明细合计
   const totalProfit = n(income?.exchange) + n(income?.energy) + n(income?.activation)
@@ -961,6 +972,7 @@ const applyStatsData = (data: V2StatsData) => {
     instantEnergyIncome: n(revenue?.instant_energy),
     hostingIncome: n(revenue?.hosting),
     batchEnergyIncome: n(revenue?.batch_energy),
+    batchEnergyFeeIncome: n(revenue?.batch_energy_fee),
     batchActiveIncome: n(revenue?.batch_active),
     exchangeIncome: n(revenue?.exchange),
     botFeeIncome: n(revenue?.bot_fee),
@@ -973,13 +985,15 @@ const applyStatsData = (data: V2StatsData) => {
       n(expense?.justlend) +
       n(expense?.feee) +
       n(expense?.trxfee) +
-      n(expense?.sohu),
+      n(expense?.sohu) +
+      n(expense?.activation),
     energyExpense: n(expense?.energy_reward),
     bandwidthExpense: n(expense?.bandwidth_reward),
     justlendExpense: n(expense?.justlend),
     feeExpense: n(expense?.feee),
     trxfeeExpense: n(expense?.trxfee),
     sohuExpense: n(expense?.sohu),
+    activeExpense: n(expense?.activation),
     exchangeProfit: n(income?.exchange),
     energyProfit: n(income?.energy),
     activeProfit: n(income?.activation),

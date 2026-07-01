@@ -13,6 +13,7 @@ export interface V2StatsRevenue {
   instant_energy: string
   hosting: string
   batch_energy: string
+  batch_energy_fee?: string
   batch_active: string
   bot_fee: string
 }
@@ -26,6 +27,7 @@ export interface V2StatsExpense {
   feee: string
   trxfee: string
   sohu: string
+  activation?: string
 }
 
 export interface V2StatsResource {
