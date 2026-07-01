@@ -69,6 +69,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           }
         },
         {
+          path: 'energy_outbound_order',
+          alias: '/data_statistics/energy_outbound_order',
+          component: () => import('@/operation/DataStatistics/EnergyOutboundOrder/index.vue'),
+          name: 'EnergyOutboundOrder',
+          meta: {
+            title: '能量出账订单'
+          }
+        },
+        {
           path: 'sale_by_time_report',
           alias: '/data_statistics/sale_by_time_report',
           component: () => import('@/operation/DataStatistics/SaleByTimeReport/index.vue'),
