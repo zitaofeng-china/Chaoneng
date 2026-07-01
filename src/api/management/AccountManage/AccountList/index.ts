@@ -46,11 +46,11 @@ export const getAccountListApi = (params?: any) => {
 /**
  * 更新代理通知设置
  * 接口路径：PUT /v1/user/notify
- * 参数：id（账户ID）、chat_id（TG账号）、balance_threshold（余额提醒阈值）、order_subscription（订单播报类型）
+ * 参数：id（账户ID）、chat_ids（TG账号数字ID数组）、balance_threshold（余额提醒阈值）、order_subscription（订单播报类型）
  */
 export interface UpdateNotifyParams {
   id: number
-  chat_id: number
+  chat_ids: number[]
   balance_threshold: number
   order_subscription?: number[] | null
 }

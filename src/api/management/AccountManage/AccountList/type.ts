@@ -1,5 +1,7 @@
 // ========== 账户详情类型 ==========
 
+export type NotifyChatId = number | string | Array<number | string>
+
 export interface AccountDetail {
   id: number
   username: string
@@ -11,15 +13,19 @@ export interface AccountDetail {
   price_id: number
   gift_bandwidth: boolean
   notify?: {
-    chat_id?: number | string
+    chat_ids?: NotifyChatId
+    // 兼容旧接口字段
+    chat_id?: NotifyChatId
     balance_threshold?: number | string
     // null 或不返回表示不通知，[] 表示所有类型通知，非空数组表示指定 Kind 通知
     order_subscription?: number[] | string | null
   }
   notify_threshold: number | string
-  notify_chat_id: number | string
-  order_notify_chat_id?: number | string
-  order_chat_id?: number | string
+  notify_chat_ids?: NotifyChatId
+  // 兼容旧接口字段
+  notify_chat_id: NotifyChatId
+  order_notify_chat_id?: NotifyChatId
+  order_chat_id?: NotifyChatId
   order_notify_types?: number[] | string
   order_types?: number[] | string
   order_notify_enabled?: boolean | number | string
