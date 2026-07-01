@@ -11,6 +11,7 @@ export interface EnergyOutboundOrderListParams {
   start_time?: string
   end_time?: string
   order?: string
+  order_id?: number
   status?: number
 }
 
@@ -21,6 +22,7 @@ export interface EnergyOutboundOrderItem {
   bot_name?: string
   period?: string
   settlement_period?: string
+  kind?: number
   amount?: number | string
   price?: number | string
   duration?: number | string
@@ -46,8 +48,37 @@ export interface EnergyOutboundOrderSummary {
   energy_sum?: number | string
 }
 
+export interface EnergyOutboundOrderStats {
+  sum_profit?: number | string
+  sum_energy?: number | string
+  sum_bandwidth?: number | string
+}
+
+export interface EnergyOutboundOrderDetail {
+  id: number
+  created_at: number | string
+  updated_at: number | string
+  user_id: number
+  bot_id: number
+  bot_name: string
+  agent_name: string
+  status: number
+  kind: number
+  source: string
+  target: string
+  receiver: string
+  balance: number | string
+  amount: number | string
+  paid_at: number | string
+  recycled_at: number | string | null
+  settled_at: number | string
+  profit_sum: number | string
+  describe: string
+}
+
 export interface EnergyOutboundOrderListResponse {
   list: EnergyOutboundOrderItem[]
   pager: EnergyOutboundOrderPager
   summary?: EnergyOutboundOrderSummary
+  stats?: EnergyOutboundOrderStats
 }
