@@ -3,6 +3,7 @@
     <div
       v-loading="loading"
       class="price-cards-container"
+      @focusin.capture="enableTwoDecimalEditMode"
       @keydown.capture="preventMoreThanTwoDecimalInput"
       @paste.capture="preventMoreThanTwoDecimalPaste"
     >
@@ -472,6 +473,14 @@ const controlKeys = new Set([
 const getNumberInputTarget = (target: EventTarget | null) => {
   if (!(target instanceof HTMLInputElement)) return null
   return target.closest('.el-input-number') ? target : null
+}
+
+const enableTwoDecimalEditMode = (event: FocusEvent) => {
+  const input = getNumberInputTarget(event.target)
+  if (!input) return
+
+  input.type = 'text'
+  input.inputMode = 'decimal'
 }
 
 const getNextInputValue = (input: HTMLInputElement, insertedText: string) => {
