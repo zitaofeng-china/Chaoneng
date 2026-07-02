@@ -52,6 +52,10 @@ import type { DescriptionsSchema } from '@/components/Descriptions'
 import { formatTableDateTime } from '@/utils/tableHelpers'
 import { handleErrorMessage } from '@/utils/messageHelper'
 import { renderNullableText } from '@/operation/OperationCenter/utils/displayText'
+import {
+  formatTransactionHash,
+  renderTronscanTransactionLink
+} from '@/operation/OperationCenter/utils/transactionLink'
 
 const ResourceDetails = defineAsyncComponent(() => import('./details/ResourceDetails.vue'))
 
@@ -70,7 +74,9 @@ const hasPaymentAddress = (data?: V2OrderDetailResponse | null) => {
 
 const renderTransactionHashText = (data?: V2OrderDetailResponse | null) => {
   const value = hasPaymentAddress(data) ? String(data?.pay_id ?? '').trim() : ''
-  return h('span', { class: 'transaction-hash-text' }, value || '-')
+  if (!value) return h('span', '-')
+
+  return renderTronscanTransactionLink(value, formatTransactionHash(value))
 }
 
 const commonDetailSchema = computed<DescriptionsSchema[]>(() => {
@@ -290,9 +296,5 @@ defineExpose({
   color: var(--el-text-color-secondary);
   align-items: center;
   justify-content: center;
-}
-
-.transaction-hash-text {
-  white-space: nowrap;
 }
 </style>
