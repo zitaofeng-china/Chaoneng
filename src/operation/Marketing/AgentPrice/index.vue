@@ -1,6 +1,11 @@
 <template>
   <div class="app-container">
-    <div v-loading="loading" class="price-cards-container">
+    <div
+      v-loading="loading"
+      class="price-cards-container"
+      @keydown.capture="preventMoreThanTwoDecimalInput"
+      @paste.capture="preventMoreThanTwoDecimalPaste"
+    >
       <!-- 动态渲染代理卡片 -->
       <el-card v-for="agent in priceList" :key="agent.id" shadow="never" class="agent-card">
         <template #header>
@@ -213,9 +218,8 @@
                   <el-input-number
                     v-if="editModeMap[agent.id]"
                     v-model="formDataMap[agent.id].charge"
-                    :precision="0"
-                    :step="1"
-                    step-strictly
+                    :precision="2"
+                    :step="0.1"
                     :min="0"
                     size="small"
                     controls-position="right"
@@ -445,27 +449,82 @@ const formDataMap = reactive<Record<number, PriceFormData>>({})
 
 const toNumber = (value: string | number | undefined | null) => Number(value || 0)
 
-const getChargeValue = (item: V1PriceListResponse) => Math.round(toNumber(item.charge))
+const toPriceNumber = (value: string | number | undefined | null) =>
+  Number(toNumber(value).toFixed(2))
+
+const getChargeValue = (item: V1PriceListResponse) => toPriceNumber(item.charge)
+
+const twoDecimalPattern = /^\d*(?:\.\d{0,2})?$/
+const controlKeys = new Set([
+  'Backspace',
+  'Delete',
+  'Tab',
+  'Escape',
+  'Enter',
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowUp',
+  'ArrowDown',
+  'Home',
+  'End'
+])
+
+const getNumberInputTarget = (target: EventTarget | null) => {
+  if (!(target instanceof HTMLInputElement)) return null
+  return target.closest('.el-input-number') ? target : null
+}
+
+const getNextInputValue = (input: HTMLInputElement, insertedText: string) => {
+  const value = input.value
+  const selectionStart = input.selectionStart ?? value.length
+  const selectionEnd = input.selectionEnd ?? value.length
+
+  return `${value.slice(0, selectionStart)}${insertedText}${value.slice(selectionEnd)}`
+}
+
+const preventMoreThanTwoDecimalInput = (event: KeyboardEvent) => {
+  const input = getNumberInputTarget(event.target)
+  if (!input) return
+
+  if (event.ctrlKey || event.metaKey || event.altKey || controlKeys.has(event.key)) return
+  if (event.key.length !== 1) return
+
+  const nextValue = getNextInputValue(input, event.key)
+  if (!twoDecimalPattern.test(nextValue)) {
+    event.preventDefault()
+  }
+}
+
+const preventMoreThanTwoDecimalPaste = (event: ClipboardEvent) => {
+  const input = getNumberInputTarget(event.target)
+  if (!input) return
+
+  const pastedText = event.clipboardData?.getData('text') ?? ''
+  const nextValue = getNextInputValue(input, pastedText)
+  if (!twoDecimalPattern.test(nextValue)) {
+    event.preventDefault()
+  }
+}
 
 const createPriceFormData = (item: V1PriceListResponse): PriceFormData => ({
-  active: toNumber(item.active),
-  time_1h: toNumber(item.time_1h),
-  time_1d: toNumber(item.time_1d),
-  time_3d: toNumber(item.time_3d),
-  time_7d: toNumber(item.time_7d),
-  time_15d: toNumber(item.time_15d),
-  time_30d: toNumber(item.time_30d),
-  stroke: toNumber(item.stroke),
-  flash: toNumber(item.flash),
-  hosting_65k: toNumber(item.hosting_65k),
-  hosting_131k: toNumber(item.hosting_131k),
+  active: toPriceNumber(item.active),
+  time_1h: toPriceNumber(item.time_1h),
+  time_1d: toPriceNumber(item.time_1d),
+  time_3d: toPriceNumber(item.time_3d),
+  time_7d: toPriceNumber(item.time_7d),
+  time_15d: toPriceNumber(item.time_15d),
+  time_30d: toPriceNumber(item.time_30d),
+  stroke: toPriceNumber(item.stroke),
+  flash: toPriceNumber(item.flash),
+  hosting_65k: toPriceNumber(item.hosting_65k),
+  hosting_131k: toPriceNumber(item.hosting_131k),
   trx_2_usdt: toNumber(item.trx_2_usdt),
   usdt_2_trx: toNumber(item.usdt_2_trx),
-  bot_fee: toNumber(item.bot_fee),
-  batch_flash: toNumber(item.batch_flash),
-  bandwidth: toNumber(item.bandwidth),
+  bot_fee: toPriceNumber(item.bot_fee),
+  batch_flash: toPriceNumber(item.batch_flash),
+  bandwidth: toPriceNumber(item.bandwidth),
   charge: getChargeValue(item),
-  instant: toNumber(item.instant)
+  instant: toPriceNumber(item.instant)
 })
 
 const getTrx2UsdtDisplay = (agentId: number) => {
@@ -594,24 +653,24 @@ const handleSave = async (agentId: number) => {
   try {
     await v1UpdatePrice({
       id: agentId,
-      active: formData.active,
-      time_1h: formData.time_1h,
-      time_1d: formData.time_1d,
-      time_3d: formData.time_3d,
-      time_7d: formData.time_7d,
-      time_15d: formData.time_15d,
-      time_30d: formData.time_30d,
-      stroke: formData.stroke,
-      flash: formData.flash,
-      hosting_65k: formData.hosting_65k,
-      hosting_131k: formData.hosting_131k,
+      active: toPriceNumber(formData.active),
+      time_1h: toPriceNumber(formData.time_1h),
+      time_1d: toPriceNumber(formData.time_1d),
+      time_3d: toPriceNumber(formData.time_3d),
+      time_7d: toPriceNumber(formData.time_7d),
+      time_15d: toPriceNumber(formData.time_15d),
+      time_30d: toPriceNumber(formData.time_30d),
+      stroke: toPriceNumber(formData.stroke),
+      flash: toPriceNumber(formData.flash),
+      hosting_65k: toPriceNumber(formData.hosting_65k),
+      hosting_131k: toPriceNumber(formData.hosting_131k),
       trx_2_usdt: formData.trx_2_usdt,
       usdt_2_trx: formData.usdt_2_trx,
-      bot_fee: formData.bot_fee,
-      batch_flash: formData.batch_flash,
-      bandwidth: formData.bandwidth,
-      charge: Math.round(Number(formData.charge) || 0),
-      instant: formData.instant
+      bot_fee: toPriceNumber(formData.bot_fee),
+      batch_flash: toPriceNumber(formData.batch_flash),
+      bandwidth: toPriceNumber(formData.bandwidth),
+      charge: toPriceNumber(formData.charge),
+      instant: toPriceNumber(formData.instant)
     })
 
     await loadPriceData()
