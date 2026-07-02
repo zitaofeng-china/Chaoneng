@@ -84,10 +84,8 @@ type BillRecordSearchParams = ChargeBillParams & {
   dateRange?: DateRangeValue
 }
 
-type BillDisplayAction = '租赁' | '退租' | ''
 type BillDisplayItem = ChargeBillItem & {
   display_id: string
-  display_action: BillDisplayAction
   display_amount: number
   source_record: ChargeBillItem
 }
@@ -154,32 +152,19 @@ const getTargetAddress = (row: BillDisplayItem) => normalizeText(row.target)
 
 const getTransactionHash = (row: BillDisplayItem) => normalizeText(row.txid)
 
-const getRemark = (row: BillDisplayItem) =>
-  normalizeText([row.display_action, row.describe].filter(Boolean).join(' / '))
+const getRemark = (row: BillDisplayItem) => normalizeText(row.describe)
 
 const getBillAmount = (row: BillDisplayItem) => row.display_amount
 
-const createDisplayBill = (
-  item: ChargeBillItem,
-  action: BillDisplayAction = '',
-  amount = parseAmount(item.amount)
-): BillDisplayItem => ({
+const createDisplayBill = (item: ChargeBillItem): BillDisplayItem => ({
   ...item,
-  display_id: action ? `${item.id}-${action}` : String(item.id),
-  display_action: action,
-  display_amount: amount,
+  display_id: String(item.id),
+  display_amount: parseAmount(item.amount),
   source_record: item
 })
 
 const normalizeBillList = (list: ChargeBillItem[]) => {
-  return list.flatMap((item) => {
-    if (String(item.kind || '').toLowerCase() !== 'justlend') {
-      return [createDisplayBill(item)]
-    }
-
-    const amount = Math.abs(parseAmount(item.amount))
-    return [createDisplayBill(item, '租赁', amount), createDisplayBill(item, '退租', -amount)]
-  })
+  return list.map(createDisplayBill)
 }
 
 const truncateMiddle = (value?: string | number | null, start = 10, end = 8) => {
@@ -271,9 +256,7 @@ const buildBillRecordParams = (params: BillRecordSearchParams = {}): ChargeBillP
 }
 
 const getDisplayTotal = (data: ChargeBillResponse, displayList: BillDisplayItem[]) => {
-  const sourceTotal = data.pager?.total || data.list?.length || 0
-  const justlendExtraCount = displayList.filter((item) => item.display_action === '退租').length
-  return sourceTotal + justlendExtraCount
+  return data.pager?.total || data.list?.length || displayList.length || 0
 }
 
 const resolveSummaryAmount = (data: ChargeBillResponse, displayList: BillDisplayItem[]) => {
