@@ -70,10 +70,12 @@ interface WelfareConditionForm {
 }
 
 const toNumber = (value: string | number | undefined | null) => Number(value) || 0
+const toPriceNumber = (value: string | number | undefined | null) =>
+  Number(toNumber(value).toFixed(2))
 
 const applyWelfareConfigToForm = (wealData: WelfareConfigData) => {
   priceFormMethods.setValues({
-    weal: toNumber(wealData.price)
+    weal: toPriceNumber(wealData.price)
   })
 
   welfareFormMethods.setValues({
@@ -96,7 +98,7 @@ const buildWelfarePayload = (
   priceData: WelfarePriceForm,
   welfareData: WelfareConditionForm
 ): UpdateWelfareConfigParams => ({
-  price: priceData.weal || 0,
+  price: toPriceNumber(priceData.weal),
   max_count: welfareData.max_count || 0,
   min_interval: Math.round((welfareData.min_interval || 0) * 3600),
   max_energy: welfareData.max_energy || 0,
@@ -185,7 +187,7 @@ const welfareSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请输入最小间隔',
       min: 0,
-      precision: 1
+      precision: 2
     },
     formItemProps: {
       rules: [{ required: true, message: '最小购买间隔是必填项' }]
@@ -289,7 +291,7 @@ const welfareSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请输入最小发送间隔',
       min: 0,
-      precision: 1
+      precision: 2
     },
     formItemProps: {
       rules: [{ required: true, message: '最小发送间隔是必填项' }]
