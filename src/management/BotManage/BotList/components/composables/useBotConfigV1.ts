@@ -48,6 +48,10 @@ export function useBotConfigV1() {
     return Number.isFinite(numericValue) ? numericValue : 0
   }
 
+  const toPriceNumber = (value: unknown) => Number(parsePriceValue(value).toFixed(2))
+  const toRatePercentValue = (value: unknown) => Number((parsePriceValue(value) * 100).toFixed(2))
+  const toRateValue = (value: unknown) => Number((toPriceNumber(value) / 100).toFixed(4))
+
   const getChargePrice = (priceData: Record<string, any>) => parsePriceValue(priceData.charge)
   // 缓存原始地址值（用于清空时调用删除接口）
   const addressRecordValues = reactive<Record<number, string>>({
@@ -206,21 +210,21 @@ export function useBotConfigV1() {
       // 保存成本价数据
       const systemPrice = systemPriceRes.data
       Object.assign(costPrices, {
-        flash: parsePriceValue(systemPrice.flash),
-        time_1h: parsePriceValue(systemPrice.time_1h),
-        time_1d: parsePriceValue(systemPrice.time_1d),
-        time_3d: parsePriceValue(systemPrice.time_3d),
-        time_7d: parsePriceValue(systemPrice.time_7d),
-        time_15d: parsePriceValue(systemPrice.time_15d),
-        time_30d: parsePriceValue(systemPrice.time_30d),
-        stroke: parsePriceValue(systemPrice.stroke),
-        hosting_65k: parsePriceValue(systemPrice.hosting_65k),
-        hosting_131k: parsePriceValue(systemPrice.hosting_131k),
-        batch_flash: parsePriceValue(systemPrice.batch_flash),
-        charge: getChargePrice(systemPrice),
-        bandwidth: parsePriceValue(systemPrice.bandwidth),
-        active: parsePriceValue(systemPrice.active),
-        instant: parsePriceValue(systemPrice.instant)
+        flash: toPriceNumber(systemPrice.flash),
+        time_1h: toPriceNumber(systemPrice.time_1h),
+        time_1d: toPriceNumber(systemPrice.time_1d),
+        time_3d: toPriceNumber(systemPrice.time_3d),
+        time_7d: toPriceNumber(systemPrice.time_7d),
+        time_15d: toPriceNumber(systemPrice.time_15d),
+        time_30d: toPriceNumber(systemPrice.time_30d),
+        stroke: toPriceNumber(systemPrice.stroke),
+        hosting_65k: toPriceNumber(systemPrice.hosting_65k),
+        hosting_131k: toPriceNumber(systemPrice.hosting_131k),
+        batch_flash: toPriceNumber(systemPrice.batch_flash),
+        charge: toPriceNumber(getChargePrice(systemPrice)),
+        bandwidth: toPriceNumber(systemPrice.bandwidth),
+        active: toPriceNumber(systemPrice.active),
+        instant: toPriceNumber(systemPrice.instant)
       })
 
       // 保存当前价格配置
@@ -229,26 +233,26 @@ export function useBotConfigV1() {
 
       // 设置表单值
       formMethods.setValues({
-        flash: parsePriceValue(botPriceData.flash),
-        time_1h: parsePriceValue(botPriceData.time_1h),
-        time_1d: parsePriceValue(botPriceData.time_1d),
-        time_3d: parsePriceValue(botPriceData.time_3d),
-        time_7d: parsePriceValue(botPriceData.time_7d),
-        time_15d: parsePriceValue(botPriceData.time_15d),
-        time_30d: parsePriceValue(botPriceData.time_30d),
-        stroke: parsePriceValue(botPriceData.stroke),
-        stroke_usdt: parsePriceValue(botPriceData.stroke_usdt),
-        hosting_65k: parsePriceValue(botPriceData.hosting_65k),
-        hosting_131k: parsePriceValue(botPriceData.hosting_131k),
-        batch_flash: parsePriceValue(botPriceData.batch_flash),
-        charge: getChargePrice(botPriceData),
-        active: parsePriceValue(botPriceData.active),
-        min_trx_balance: parsePriceValue(botPriceData.min_trx_balance),
-        usdt_2_trx: parsePriceValue(botPriceData.usdt_2_trx) * 100,
-        max_usdt_2_trx: parsePriceValue(botPriceData.max_usdt_2_trx),
-        trx_2_usdt: parsePriceValue(botPriceData.trx_2_usdt) * 100,
-        max_trx_2_usdt: parsePriceValue(botPriceData.max_trx_2_usdt),
-        instant: parsePriceValue(botPriceData.instant)
+        flash: toPriceNumber(botPriceData.flash),
+        time_1h: toPriceNumber(botPriceData.time_1h),
+        time_1d: toPriceNumber(botPriceData.time_1d),
+        time_3d: toPriceNumber(botPriceData.time_3d),
+        time_7d: toPriceNumber(botPriceData.time_7d),
+        time_15d: toPriceNumber(botPriceData.time_15d),
+        time_30d: toPriceNumber(botPriceData.time_30d),
+        stroke: toPriceNumber(botPriceData.stroke),
+        stroke_usdt: toPriceNumber(botPriceData.stroke_usdt),
+        hosting_65k: toPriceNumber(botPriceData.hosting_65k),
+        hosting_131k: toPriceNumber(botPriceData.hosting_131k),
+        batch_flash: toPriceNumber(botPriceData.batch_flash),
+        charge: toPriceNumber(getChargePrice(botPriceData)),
+        active: toPriceNumber(botPriceData.active),
+        min_trx_balance: toPriceNumber(botPriceData.min_trx_balance),
+        usdt_2_trx: toRatePercentValue(botPriceData.usdt_2_trx),
+        max_usdt_2_trx: toPriceNumber(botPriceData.max_usdt_2_trx),
+        trx_2_usdt: toRatePercentValue(botPriceData.trx_2_usdt),
+        max_trx_2_usdt: toPriceNumber(botPriceData.max_trx_2_usdt),
+        instant: toPriceNumber(botPriceData.instant)
       })
 
       return true
@@ -542,26 +546,26 @@ export function useBotConfigV1() {
       // 构建价格配置数据
       const priceConfig = {
         id: currentPrices.id,
-        flash: priceData.flash || 0,
-        time_1h: priceData.time_1h || 0,
-        time_1d: priceData.time_1d || 0,
-        time_3d: priceData.time_3d || 0,
-        time_7d: priceData.time_7d || 0,
-        time_15d: priceData.time_15d || 0,
-        time_30d: priceData.time_30d || 0,
-        stroke: priceData.stroke || 0,
-        stroke_usdt: priceData.stroke_usdt || 0,
-        hosting_65k: priceData.hosting_65k || 0,
-        hosting_131k: priceData.hosting_131k || 0,
-        batch_flash: priceData.batch_flash || 0,
-        charge: priceData.charge || 0,
-        active: priceData.active || 0,
-        usdt_2_trx: (priceData.usdt_2_trx || 0) / 100,
-        trx_2_usdt: (priceData.trx_2_usdt || 0) / 100,
-        min_trx_balance: priceData.min_trx_balance || 0,
-        max_usdt_2_trx: priceData.max_usdt_2_trx || 0,
-        max_trx_2_usdt: priceData.max_trx_2_usdt || 0,
-        instant: priceData.instant || 0
+        flash: toPriceNumber(priceData.flash),
+        time_1h: toPriceNumber(priceData.time_1h),
+        time_1d: toPriceNumber(priceData.time_1d),
+        time_3d: toPriceNumber(priceData.time_3d),
+        time_7d: toPriceNumber(priceData.time_7d),
+        time_15d: toPriceNumber(priceData.time_15d),
+        time_30d: toPriceNumber(priceData.time_30d),
+        stroke: toPriceNumber(priceData.stroke),
+        stroke_usdt: toPriceNumber(priceData.stroke_usdt),
+        hosting_65k: toPriceNumber(priceData.hosting_65k),
+        hosting_131k: toPriceNumber(priceData.hosting_131k),
+        batch_flash: toPriceNumber(priceData.batch_flash),
+        charge: toPriceNumber(priceData.charge),
+        active: toPriceNumber(priceData.active),
+        usdt_2_trx: toRateValue(priceData.usdt_2_trx),
+        trx_2_usdt: toRateValue(priceData.trx_2_usdt),
+        min_trx_balance: toPriceNumber(priceData.min_trx_balance),
+        max_usdt_2_trx: toPriceNumber(priceData.max_usdt_2_trx),
+        max_trx_2_usdt: toPriceNumber(priceData.max_trx_2_usdt),
+        instant: toPriceNumber(priceData.instant)
       }
 
       await v1UpdateBotPrice(priceConfig)

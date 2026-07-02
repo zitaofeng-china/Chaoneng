@@ -79,7 +79,7 @@ const priceSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请输入闪租能量价格',
       min: 0,
-      precision: 1
+      precision: 2
     },
     formItemProps: {
       rules: [
@@ -114,7 +114,7 @@ const priceSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请输入1小时租赁价格',
       min: 0,
-      precision: 1
+      precision: 2
     },
     formItemProps: {
       rules: [
@@ -141,7 +141,7 @@ const priceSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请输入1天租赁价格',
       min: 0,
-      precision: 1
+      precision: 2
     },
     formItemProps: {
       rules: [
@@ -168,7 +168,7 @@ const priceSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请输入3天租赁价格',
       min: 0,
-      precision: 1
+      precision: 2
     },
     formItemProps: {
       rules: [
@@ -195,7 +195,7 @@ const priceSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请输入7天租赁价格',
       min: 0,
-      precision: 1
+      precision: 2
     },
     formItemProps: {
       rules: [
@@ -222,7 +222,7 @@ const priceSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请输入15天租赁价格',
       min: 0,
-      precision: 1
+      precision: 2
     },
     formItemProps: {
       rules: [
@@ -249,7 +249,7 @@ const priceSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请输入30天租赁价格',
       min: 0,
-      precision: 1
+      precision: 2
     },
     formItemProps: {
       rules: [
@@ -309,12 +309,12 @@ const priceSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: {
       text: '[1笔]能量USDT',
-      tips: '只支持保留一位小数'
+      tips: '最多支持保留两位小数'
     },
     componentProps: {
       placeholder: '请输入USDT价格',
       min: 0,
-      precision: 1
+      precision: 2
     },
     formItemProps: {
       rules: [{ required: true, message: '能量USDT是必填项' }]
