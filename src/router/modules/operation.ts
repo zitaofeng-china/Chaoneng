@@ -137,15 +137,6 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           meta: {
             title: '速充订单'
           }
-        },
-        {
-          path: 'energy_outbound_order',
-          alias: '/data_statistics/energy_outbound_order',
-          component: () => import('@/operation/DataStatistics/EnergyOutboundOrder/index.vue'),
-          name: 'EnergyOutboundOrder',
-          meta: {
-            title: '能量出账订单'
-          }
         }
       ]
     },
@@ -253,6 +244,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           }
         },
         {
+          path: 'financial_settlement_record',
+          alias: ['/operation/energy_outbound_order', '/data_statistics/energy_outbound_order'],
+          component: () => import('@/operation/DataStatistics/EnergyOutboundOrder/index.vue'),
+          name: 'EnergyOutboundOrder',
+          meta: {
+            title: '理财结算记录'
+          }
+        },
+        {
           path: 'resource_supplement_config',
           component: () => import('@/operation/FinancialManage/ResourceSupplementConfig/index.vue'),
           name: 'ResourceSupplementConfig',
@@ -271,11 +271,12 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'resource_account_recharge_record',
+          alias: '/financial_manage/on_chain_in_out_record',
           component: () =>
             import('@/operation/FinancialManage/ResourceAccountRechargeRecord/index.vue'),
           name: 'ResourceAccountRechargeRecord',
           meta: {
-            title: '资源账户充值记录'
+            title: '链上出入记录'
           }
         }
       ]

@@ -477,14 +477,14 @@ const fetchEnergyOutboundOrderList = async (params: EnergyOutboundSearchParams =
       handleListMessage(
         list,
         [params.keyword, params.outbound_date].some(hasSearchValue),
-        '能量出账订单'
+        '理财结算记录'
       )
       return { list, total }
     }
     summaryStats.value = createEmptySummaryStats()
     return { list: [], total: 0 }
   } catch (error) {
-    handleErrorMessage(error, '获取能量出账订单失败')
+    handleErrorMessage(error, '获取理财结算记录失败')
     summaryStats.value = createEmptySummaryStats()
     return { list: [], total: 0 }
   }
@@ -512,7 +512,7 @@ const handleViewDetail = async (row: EnergyOutboundOrderItem) => {
       currentDetail.value = res.data
     }
   } catch (error) {
-    handleErrorMessage(error, '获取能量出账订单详情失败')
+    handleErrorMessage(error, '获取理财结算记录详情失败')
   } finally {
     detailLoading.value = false
   }

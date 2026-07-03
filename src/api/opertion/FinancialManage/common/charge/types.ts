@@ -72,6 +72,9 @@ export interface ChargeBillParams {
   page_size?: number // 每页大小
   keyword?: string // 关键字
   kind?: string // 账户类型
+  transaction_type?: string // 交易类型
+  direction?: string // 出入款方向：out=出款，in=收款
+  currency?: string // 币种
   order?: string // 排序，单字段：column [ASC|DESC]，多字段用逗号隔开
   status?: number // 状态：1=成功, 2=失败
   start_time?: string // 开始时间
@@ -115,6 +118,19 @@ export interface ChargeBillItem {
   txid: string // 交易哈希
   status: number // 状态
   describe?: string // 描述
+  order_no?: string // 订单号
+  order_id?: string | number // 关联订单ID
+  related_order_no?: string // 关联订单号
+  related_order_id?: string | number // 关联订单ID
+  transaction_type?: string // 交易类型
+  direction?: string // 出入款方向
+  currency?: string // 币种
+  from_address?: string // 出款地址
+  to_address?: string // 收款地址
+  receive_address?: string // 收款地址
+  tx_hash?: string // 交易哈希
+  chain_status?: string | number // 链上状态
+  remark?: string // 备注
 }
 
 /**
@@ -156,6 +172,12 @@ export interface ChargeBillResponse {
     transaction_count?: number
     transaction_amount?: number | string
     total_amount?: number | string
+    today_count?: number
+    today_transaction_count?: number
+    total_out_u?: number | string
+    total_out_t?: number | string
+    total_in_u?: number | string
+    total_in_t?: number | string
   }
   count?: number
   amount?: number | string
@@ -163,4 +185,10 @@ export interface ChargeBillResponse {
   transaction_amount?: number | string
   total_amount?: number | string
   amount_sum?: number | string
+  today_count?: number
+  today_transaction_count?: number
+  total_out_u?: number | string
+  total_out_t?: number | string
+  total_in_u?: number | string
+  total_in_t?: number | string
 }
