@@ -1,391 +1,372 @@
-<script setup lang="ts">
-import { ref, computed, h, watch, defineAsyncComponent } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElTabs, ElTabPane, ElTag, ElLink, ElButton } from 'element-plus'
+<template>
+  <Dialog v-model="visible" title="订单详情" width="min(1400px, 92vw)">
+    <ElTabs v-model="activeTab" class="order-detail-tabs">
+      <ElTabPane label="基本信息" name="basic">
+        <div
+          v-if="detailLoading"
+          class="order-detail-loading"
+          v-loading="true"
+          element-loading-text="正在加载订单详情..."
+        ></div>
+        <div v-else-if="currentOrder" class="order-detail">
+          <Descriptions :schema="commonDetailSchema" :data="currentOrder" :column="2" border />
+        </div>
+        <div v-else class="p-4 text-center text-gray-500">无法加载订单详情。</div>
+      </ElTabPane>
+
+      <ElTabPane
+        v-if="currentOrder && currentOrder.resources && currentOrder.resources.length > 0"
+        label="资源详情"
+        name="resources"
+      >
+        <ResourceDetails :order-data="currentOrder" />
+      </ElTabPane>
+    </ElTabs>
+    <template #footer>
+      <div class="flex justify-end">
+        <ElButton @click="visible = false">关闭</ElButton>
+      </div>
+    </template>
+  </Dialog>
+</template>
+
+<script setup lang="tsx">
+import { computed, defineAsyncComponent, h, ref } from 'vue'
+import { ElButton, ElTabPane, ElTabs, ElTag } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
-import { Descriptions } from '@/components/Descriptions'
+import Descriptions from '@/components/Descriptions/src/Descriptions.vue'
 import type { DescriptionsSchema } from '@/components/Descriptions'
-import { formatToDateTime } from '@/utils/dateUtil'
-import { getEnergyOrderKindTagType, getEnergyOrderKindText } from '@/utils/energyOrder'
-import isEmpty from 'lodash-es/isEmpty'
-import formatEnergyNum from '../../helpers/formatEnergyNum'
-// Import the new detail components (using defineAsyncComponent for lazy loading)
+import { formatToWan } from '@/utils'
+import {
+  EnergyOrderKind,
+  getEnergyOrderKindTagType,
+  getEnergyOrderKindText
+} from '@/utils/energyOrder'
+import { getStatusText, getStatusType } from '@/utils/orderStatus'
+import { getSourceTagType, getSourceText } from '@/utils/sourceFilter'
+import { formatTableDateTime } from '@/utils/tableHelpers'
+import {
+  v1GetEnergyOrderDetail,
+  type EnergyOrderDetailResponseV1
+} from '@/api/management/OrderManage/EnergyOrder'
+import { handleErrorMessage } from '@/utils/messageHelper'
+import { renderNullableText } from '@/operation/OperationCenter/utils/displayText'
+import {
+  formatTransactionHash,
+  renderTronscanTransactionLink
+} from '@/operation/OperationCenter/utils/transactionLink'
+
 const ResourceDetails = defineAsyncComponent(() => import('./details/ResourceDetails.vue'))
-const ActivationDetails = defineAsyncComponent(() => import('./details/ActivationDetails.vue'))
 
-const props = defineProps({
-  modelValue: {
-    // for v-model:visible
-    type: Boolean,
-    default: false
-  },
-  orderData: {
-    type: Object,
-    default: () => null
+const visible = ref(false)
+const currentOrder = ref<EnergyOrderDetailResponseV1 | null>(null)
+const activeTab = ref('basic')
+const detailLoading = ref(false)
+
+const hasTextValue = (value?: string | number | null) => String(value ?? '').trim() !== ''
+
+const isWalletPayment = (data?: EnergyOrderDetailResponseV1 | null) => {
+  const receiveAddress = String(data?.receive_address ?? '').trim()
+  return receiveAddress !== '' && receiveAddress !== '余额支付'
+}
+
+const shouldShowTransactionHash = (data?: EnergyOrderDetailResponseV1 | null) => {
+  return isWalletPayment(data) && hasTextValue(data?.pay_id)
+}
+
+const renderTransactionHashText = (data?: EnergyOrderDetailResponseV1 | null) => {
+  const value = String(data?.pay_id ?? '').trim()
+  if (!value) return h('span', '-')
+
+  return h('span', { class: 'transaction-hash-text' }, [
+    renderTronscanTransactionLink(value, formatTransactionHash(value))
+  ])
+}
+
+const renderSourceText = (data?: EnergyOrderDetailResponseV1 | null) => {
+  const text = getSourceText(data?.origin, data?.tg_user_name, data?.username)
+  const type = getSourceTagType(data?.origin, data?.tg_user_name, data?.username) as
+    | 'success'
+    | 'warning'
+    | 'info'
+    | 'primary'
+    | 'danger'
+
+  return h(ElTag, { type }, () => text)
+}
+
+const getEnergyRentText = (data?: EnergyOrderDetailResponseV1 | null) => {
+  if (!data) return '-'
+  if (data.kind === EnergyOrderKind.COUNT_ENERGY || data.kind === EnergyOrderKind.AUTO_HOSTING) {
+    return '长期有效'
   }
-})
 
-const emit = defineEmits(['update:modelValue'])
+  const firstResource = data.resources?.[0]
+  if (!firstResource?.expirated_at || !firstResource?.delegated_at) return '-'
 
-const router = useRouter()
-const localVisible = ref(props.modelValue)
-const activeTab = ref('order')
-const orderDetail = ref<any>({})
+  const expTime = normalizeToMs(firstResource.expirated_at)
+  const delTime = normalizeToMs(firstResource.delegated_at)
+  if (Number.isNaN(expTime) || Number.isNaN(delTime) || expTime <= delTime) return '-'
 
-// Watch for prop changes
-watch(
-  () => props.modelValue,
-  (newVal) => {
-    localVisible.value = newVal
-    // Reset tab to 'order' when dialog opens
-    if (newVal) {
-      activeTab.value = 'order'
-    }
+  const diffMs = expTime - delTime
+  const diffMinutes = Math.floor(diffMs / (1000 * 60))
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays > 0) return `${diffDays}天`
+  if (diffHours > 0) return `${diffHours}小时`
+  if (diffMinutes > 0) return `${diffMinutes}分钟`
+  return '-'
+}
+
+const normalizeToMs = (value: string | number | null | undefined) => {
+  if (value === undefined || value === null || value === '') return Number.NaN
+
+  if (typeof value === 'number') {
+    return String(Math.abs(Math.trunc(value))).length <= 10 ? value * 1000 : value
   }
-)
 
-watch(
-  () => props.orderData,
-  (newData) => {
-    if (newData) {
-      orderDetail.value = newData
-      // Reset tab when data changes
-      activeTab.value = 'order'
-    } else {
-      orderDetail.value = {}
-    }
-  },
-  { immediate: true, deep: true }
-)
-
-const handleClose = () => {
-  emit('update:modelValue', false)
-}
-
-// 根据订单类型（kind）格式化能量有效期
-const formatExpirationTime = (orderType?: number): string => {
-  // 根据订单类型返回对应的有效期
-  switch (orderType) {
-    case 4: // KindTimeEnergy - 时间能量（闪租能量，1小时有效）
-      return '1小时'
-
-    case 5: // KindStrokeEnergy - 笔数能量（长期有效，每天不用额外扣一笔，一次发放两笔，用完再扣）
-      return '一天'
-
-    case 6: // KindWealEnergy - 福利能量（打折的时间能量，有购买限制）
-      return '1小时'
-
-    case 7: // KindFlashEnergy - 快速能量（快速租用，1小时有效，用了会提前回收）
-      return '1小时'
-
-    case 8: // KindInstantEnergy - 即用能量（15分钟，用了会提前回收）
-      return '15分钟'
-
-    case 20: // KindHosting - 托管（一次发放两笔）
-      return '一天'
-
-    case 9: // KindBatchEnergy - 批量能量（带自动激活）
-      return '1小时'
-
-    default:
-      // 其他订单类型不显示有效期
-      return '-'
+  const trimmedValue = value.trim()
+  if (!trimmedValue) return Number.NaN
+  if (/^\d+$/.test(trimmedValue)) {
+    const numericValue = Number(trimmedValue)
+    return trimmedValue.length <= 10 ? numericValue * 1000 : numericValue
   }
+
+  return new Date(trimmedValue).getTime()
 }
 
-// --- Helper Functions (Keep only those used by the main schema) ---
+const createUserDetailSchemas = (
+  data?: EnergyOrderDetailResponseV1 | null
+): DescriptionsSchema[] => {
+  const userSchemas: DescriptionsSchema[] = []
 
-const getStatusText = (status: number): string => {
-  const statusMap: Record<number, string> = {
-    1: '新订单',
-    2: '已支付',
-    3: '已发送',
-    4: '已回收',
-    5: '已完成',
-    6: '失败订单',
-    7: '已退款',
-    8: '已取消',
-    9: '中止订单'
-  }
-  return statusMap[status] || '-'
-}
-
-const navigateToUserList = (userId: string | number) => {
-  if (!userId) return
-  router.push({
-    path: '/user_group/user_list',
-    query: { tg_id: userId }
-  })
-}
-
-const navigateToBotList = (botId: string | number) => {
-  if (!botId) return
-  router.push({
-    path: '/bot_manage/bot_list',
-    query: { tg_bot_id: botId }
-  })
-}
-
-const shouldShowCountPayId = (data?: any) => {
-  return Number(data?.kind) === 5
-}
-
-const hasPaymentAddress = (data?: any) => {
-  return String(data?.payment_address ?? '').trim() !== ''
-}
-
-const renderTransactionHashText = (data?: any) => {
-  const value = hasPaymentAddress(data) ? String(data?.pay_id ?? '').trim() : ''
-  return h('span', { class: 'transaction-hash-text' }, value || '-')
-}
-
-// --- Schemas (Keep only the main order detail schema) ---
-
-const orderDetailSchema = computed((): DescriptionsSchema[] => {
-  const schema: DescriptionsSchema[] = [
-    { field: 'id', label: '订单号' },
-    {
-      field: 'status',
-      label: '订单状态',
-      slots: {
-        default: (data: any) => {
-          if (!data || data.status === undefined) return h('span', '-')
-          const statusColorMap: Record<number, 'success' | 'warning' | 'danger' | 'info'> = {
-            1: 'info', // 新订单
-            2: 'warning', // 已支付
-            3: 'info', // 已发送
-            4: 'info', // 已回收
-            5: 'success', // 已完成
-            6: 'danger', // 失败订单
-            7: 'warning', // 已退款
-            8: 'info', // 已取消
-            9: 'danger' // 中止订单
-          }
-          const tagType = statusColorMap[data.status] || 'info'
-          return h(ElTag, { type: tagType, size: 'small' }, () => getStatusText(data.status))
-        }
-      }
-    },
-    {
-      field: 'kind',
-      label: '订单类型',
-      slots: {
-        default: (data: any) => {
-          if (!data || data.kind === undefined) return h('span', '-')
-          const orderTypeNum = typeof data.kind === 'string' ? parseInt(data.kind, 10) : data.kind
-          const text = getEnergyOrderKindText(orderTypeNum)
-
-          if (isNaN(orderTypeNum) || text === '未知类型') {
-            return h(ElTag, { type: 'info', size: 'small' }, () => '未知类型')
-          }
-
-          const tagType = getEnergyOrderKindTagType(orderTypeNum)
-          return h(ElTag, { type: tagType, size: 'small' }, () => text)
-        }
-      }
-    },
-    {
-      field: 'tg_user_name',
+  if (hasTextValue(data?.tg_user_name)) {
+    userSchemas.push({
       label: 'TG用户名',
+      field: 'tg_user_name',
       slots: {
-        default: (data: any) => {
-          const tgName = data?.tg_user_name
-          if (isEmpty(tgName)) return h('span', '-')
-          return h(
-            ElLink,
-            { type: 'primary', onClick: () => navigateToUserList(data.user_id) },
-            () => tgName
-          )
-        }
+        default: (row: EnergyOrderDetailResponseV1) => renderNullableText(row?.tg_user_name)
       }
-    },
-    {
-      field: 'tg_first_name',
+    })
+  }
+
+  if (hasTextValue(data?.tg_first_name)) {
+    userSchemas.push({
       label: 'TG用户昵称',
+      field: 'tg_first_name',
       slots: {
-        default: (data: any) => h('span', data?.tg_first_name || '-')
+        default: (row: EnergyOrderDetailResponseV1) => renderNullableText(row?.tg_first_name)
       }
-    },
-    {
-      field: 'username',
+    })
+  }
+
+  if (hasTextValue(data?.username)) {
+    userSchemas.push({
       label: '用户账号',
+      field: 'username',
       slots: {
-        default: (data: any) => h('span', data?.username || '-')
+        default: (row: EnergyOrderDetailResponseV1) => renderNullableText(row?.username)
       }
-    },
-    {
-      field: 'email',
+    })
+  }
+
+  if (hasTextValue(data?.email)) {
+    userSchemas.push({
       label: '用户邮箱',
+      field: 'email',
       slots: {
-        default: (data: any) => h('span', data?.email || '-')
+        default: (row: EnergyOrderDetailResponseV1) => renderNullableText(row?.email)
       }
-    },
+    })
+  }
+
+  return userSchemas
+}
+
+const commonDetailSchema = computed<DescriptionsSchema[]>(() => {
+  const detail = currentOrder.value
+  const schema: DescriptionsSchema[] = [
+    { label: '订单号', field: 'id' },
     {
-      field: 'origin',
-      label: '来源',
+      label: '订单状态',
+      field: 'status',
       slots: {
-        default: (data: any) => {
-          if (!data || data.origin === undefined) return h('span', '-')
-          return h('span', data.origin === 1 ? '机器人' : data.origin === 2 ? 'H5' : '-')
+        default: (data: EnergyOrderDetailResponseV1) => {
+          const value = Number(data?.status)
+          return h(ElTag, { type: getStatusType(value) }, () => getStatusText(value))
         }
       }
     },
     {
-      field: 'bot_user_name',
-      label: '机器人名称',
+      label: '订单类型',
+      field: 'kind',
       slots: {
-        default: (data: any) => {
-          if (isEmpty(data?.bot_user_name)) return h('span', '-')
-          return h(
-            ElLink,
-            { type: 'primary', onClick: () => navigateToBotList(data.bot_id) },
-            () => data.bot_user_name
+        default: (data: EnergyOrderDetailResponseV1) => {
+          const value = Number(data?.kind)
+          return h(ElTag, { type: getEnergyOrderKindTagType(value) }, () =>
+            getEnergyOrderKindText(value)
           )
         }
       }
     },
-    { field: 'bot_id', label: '机器人ID' },
     {
-      field: 'amount',
-      label: '订单金额',
+      label: '来源',
+      field: 'origin',
       slots: {
-        default: (data: any) => h('span', {}, `${data.amount || 0} ${data.coin || 'TRX'}`)
+        default: (data: EnergyOrderDetailResponseV1) => renderSourceText(data)
       }
     },
+    ...createUserDetailSchemas(detail),
+    { label: '机器人ID', field: 'bot_id' },
     {
-      field: 'amount',
+      label: '机器人用户名',
+      field: 'bot_user_name',
+      slots: {
+        default: (data: EnergyOrderDetailResponseV1) =>
+          renderNullableText(data?.bot_user_name || data?.bot_first_name)
+      }
+    },
+    { label: '代理名称', field: 'agent_name' },
+    {
       label: '支付金额',
+      field: 'amount',
       slots: {
-        default: (data: any) => h('span', {}, `${data.amount || 0} ${data.coin || 'TRX'}`)
+        default: (data: EnergyOrderDetailResponseV1) =>
+          renderNullableText(
+            data?.amount !== undefined && data?.amount !== null
+              ? `${data.amount} ${data.coin || ''}`
+              : '',
+            '暂无'
+          )
       }
     },
     {
-      field: 'energy_amount',
       label: (() => {
-        const kind = Number(orderDetail.value?.kind)
+        const kind = Number(currentOrder.value?.kind)
         return kind === 7 || kind === 9 ? '带宽数' : '能量数'
       })(),
+      field: 'resources',
       slots: {
-        default: (data: any) => {
-          const value =
-            data?.resources?.[0]?.amount ?? data?.summary?.energy_count ?? data.energy_amount
-          return h('span', {}, formatEnergyNum(value))
+        default: (data: EnergyOrderDetailResponseV1) => {
+          const value = data?.resources?.[0]?.amount ?? data?.summary?.energy_count
+          if (value === null || value === undefined) return renderNullableText('0')
+          return renderNullableText(Number(value) >= 10000 ? formatToWan(value) : value)
         }
       }
     },
     {
-      field: 'receive_address',
       label: '收款地址',
+      field: 'receive_address',
       slots: {
-        default: (data: any) => h('span', {}, data.receive_address || '余额支付')
+        default: (data: EnergyOrderDetailResponseV1) =>
+          renderNullableText(data?.receive_address, '余额支付')
       }
     },
     {
-      field: 'energy_rent_text',
       label: '有效时长',
+      field: 'resources',
       slots: {
-        default: (data: any) => {
-          // 使用 kind 计算有效时长，与列表保持一致
-          const calculatedTime = formatExpirationTime(data.kind)
-          return h('span', {}, calculatedTime)
-        }
+        default: (data: EnergyOrderDetailResponseV1) => renderNullableText(getEnergyRentText(data))
       }
     },
     {
-      field: 'pay_type',
-      label: '支付类型',
-      slots: {
-        default: (data: any) => h('span', {}, data.pay_type == 2 ? '波场钱包转账' : '余额支付')
-      }
-    },
-    {
-      field: 'created_at',
       label: '创建时间',
+      field: 'created_at',
       slots: {
-        default: (data: any) =>
-          h('span', {}, data.created_at ? formatToDateTime(data.created_at) : '-')
+        default: (data: EnergyOrderDetailResponseV1) =>
+          renderNullableText(formatTableDateTime(data?.created_at))
       }
     },
     {
-      field: 'paid_at',
       label: '支付时间',
+      field: 'paid_at',
       slots: {
-        default: (data: any) => h('span', {}, data.paid_at ? formatToDateTime(data.paid_at) : '-')
+        default: (data: EnergyOrderDetailResponseV1) =>
+          renderNullableText(formatTableDateTime(data?.paid_at))
       }
     },
     {
-      field: 'recycle_time',
       label: '回收时间',
+      field: 'resources',
       slots: {
-        default: (data: any) =>
-          h('span', {}, data.recycle_time ? formatToDateTime(data.recycle_time) : '-')
+        default: (data: EnergyOrderDetailResponseV1) =>
+          renderNullableText(formatTableDateTime(data?.resources?.[0]?.recycled_at))
       }
     },
     {
-      field: 'updated_at',
       label: '完成时间',
+      field: 'updated_at',
       slots: {
-        default: (data: any) =>
-          h('span', {}, data.updated_at ? formatToDateTime(data.updated_at) : '-')
+        default: (data: EnergyOrderDetailResponseV1) =>
+          renderNullableText(formatTableDateTime(data?.updated_at))
       }
-    },
-    { field: 'describe', label: '描述' }
+    }
   ]
 
-  if (shouldShowCountPayId(orderDetail.value)) {
+  if (shouldShowTransactionHash(currentOrder.value)) {
     schema.push({
-      field: 'pay_id',
       label: '交易hash',
+      field: 'pay_id',
       slots: {
-        default: (data: any) => renderTransactionHashText(data)
+        default: (data: EnergyOrderDetailResponseV1) => renderTransactionHashText(data)
       }
     })
   }
 
   return schema
 })
+
+const open = async (row: { id: string | number }) => {
+  if (!row || !row.id) {
+    return
+  }
+
+  visible.value = true
+  activeTab.value = 'basic'
+  currentOrder.value = null
+  detailLoading.value = true
+
+  try {
+    const response = await v1GetEnergyOrderDetail(String(row.id))
+
+    if (response?.data) {
+      currentOrder.value = response.data
+      return
+    }
+
+    currentOrder.value = null
+  } catch (error) {
+    handleErrorMessage(error, '获取订单详情失败')
+    currentOrder.value = null
+  } finally {
+    detailLoading.value = false
+  }
+}
+
+defineExpose({
+  open
+})
 </script>
 
-<template>
-  <Dialog v-model="localVisible" :title="'订单详情'" width="min(1400px, 92vw)" @close="handleClose">
-    <ElTabs v-if="orderDetail && orderDetail.id" v-model="activeTab">
-      <!-- 基础订单详情页 -->
-      <ElTabPane label="基本信息" name="order">
-        <Descriptions :schema="orderDetailSchema" :data="orderDetail" :column="2" border />
-      </ElTabPane>
-
-      <!-- 资源详情标签页 - 只有当 resources 数组存在且有数据时才显示 -->
-      <ElTabPane
-        label="资源详情"
-        name="resources"
-        v-if="orderDetail && orderDetail.resources && orderDetail.resources.length > 0"
-      >
-        <ResourceDetails :order-data="orderDetail" />
-      </ElTabPane>
-
-      <!-- 激活详情标签页 - 只有当 activations 数组存在且有数据时才显示 -->
-      <ElTabPane
-        label="激活详情"
-        name="activations"
-        v-if="orderDetail && orderDetail.activations && orderDetail.activations.length > 0"
-      >
-        <ActivationDetails :order-data="orderDetail" />
-      </ElTabPane>
-    </ElTabs>
-    <div v-else>
-      <p>加载订单详情中或无详情数据...</p>
-    </div>
-    <template #footer>
-      <div class="flex justify-end">
-        <ElButton @click="handleClose">关闭</ElButton>
-      </div>
-    </template>
-  </Dialog>
-</template>
-
 <style scoped>
-/* Styles remain unchanged or can be cleaned up if specific table styles are removed */
+.order-detail {
+  width: 100%;
+}
+
+.order-detail-tabs .el-tabs__content {
+  min-height: 150px;
+}
+
+.order-detail-loading {
+  display: flex;
+  min-height: 240px;
+  color: var(--el-text-color-secondary);
+  align-items: center;
+  justify-content: center;
+}
+
 .transaction-hash-text {
-  white-space: nowrap;
+  word-break: break-all;
 }
 </style>

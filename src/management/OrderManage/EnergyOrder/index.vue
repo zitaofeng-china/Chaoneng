@@ -22,8 +22,7 @@
         </template>
       </SearchTable>
 
-      <!-- 订单详情弹窗 (使用新组件) -->
-      <OrderDetailDialog v-model="orderDialogVisible" :order-data="selectedOrderDetail" />
+      <OrderDetailDialog ref="orderDetailRef" />
     </ContentWrap>
   </div>
 </template>
@@ -37,14 +36,11 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import type { TableColumn } from '@/components/Table'
-import {
-  v1GetEnergyOrderList,
-  v1GetEnergyOrderDetail
-} from '@/api/management/OrderManage/EnergyOrder'
+import { v1GetEnergyOrderList } from '@/api/management/OrderManage/EnergyOrder'
 import OrderDetailDialog from './components/OrderDetailDialog.vue'
 import formatEnergyNum from '../helpers/formatEnergyNum'
 import { Icon } from '@/components/Icon'
-import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
 import {
   ENERGY_ORDER_KIND_OPTIONS,
   getEnergyOrderKindTagType,
@@ -62,9 +58,8 @@ const isEmpty = (value: any): boolean => {
 const router = useRouter()
 const route = useRoute()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
+const orderDetailRef = ref<InstanceType<typeof OrderDetailDialog> | null>(null)
 const totalCount = ref(0)
-const orderDialogVisible = ref(false)
-const selectedOrderDetail = ref<any>(null)
 const currentSearchParams = ref({})
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 const initialSearchParams = route.query.order_id
@@ -526,74 +521,8 @@ const fetchEnergyOrderList = async (params: any) => {
 }
 
 // 查看订单详情
-const handleViewDetail = async (row: any) => {
-  const orderId = row.id
-  if (!orderId) {
-    return
-  }
-  try {
-    const response = await v1GetEnergyOrderDetail(orderId)
-
-    if (response && response.data) {
-      const detail = response.data
-
-      // 从 resources 中获取能量相关信息
-      let energyAmount = '0'
-      let energyAddress = ''
-      let energyRentText = '-'
-      let recycleTime = 0
-
-      if (detail.resources && detail.resources.length > 0) {
-        const firstResource = detail.resources[0]
-        energyAmount = String(firstResource.amount || 0)
-        energyAddress = firstResource.target || ''
-
-        // 计算有效时长
-        if (firstResource.expirated_at && firstResource.delegated_at) {
-          const expTime = firstResource.expirated_at * 1000
-          const delTime = firstResource.delegated_at * 1000
-          const diffMs = expTime - delTime
-          const diffMinutes = Math.floor(diffMs / (1000 * 60))
-          const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-          const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-          if (diffDays > 0) {
-            energyRentText = `${diffDays}天`
-          } else if (diffHours > 0) {
-            energyRentText = `${diffHours}小时`
-          } else if (diffMinutes > 0) {
-            energyRentText = `${diffMinutes}分钟`
-          }
-        }
-
-        // 回收时间
-        if (firstResource.recycled_at) {
-          recycleTime = firstResource.recycled_at * 1000
-        }
-      }
-
-      // 笔数能量(5)和托管(20)显示为长期有效
-      if (detail.kind === 5 || detail.kind === 20) {
-        energyRentText = '长期有效'
-      }
-
-      // 直接使用API原始字段，只添加必要的计算字段
-      selectedOrderDetail.value = {
-        ...detail,
-        created_at: detail.created_at * 1000, // 秒 → 毫秒
-        updated_at: detail.updated_at * 1000, // 秒 → 毫秒
-        paid_at: detail.paid_at ? detail.paid_at * 1000 : null, // 秒 → 毫秒
-        // 从 resources 计算的字段
-        energy_amount: energyAmount,
-        energy_address: energyAddress,
-        energy_rent_text: energyRentText,
-        recycle_time: recycleTime
-      }
-      orderDialogVisible.value = true
-    }
-  } catch (error) {
-    selectedOrderDetail.value = null
-  }
+const handleViewDetail = (row: any) => {
+  orderDetailRef.value?.open(row)
 }
 
 // 导出订单
