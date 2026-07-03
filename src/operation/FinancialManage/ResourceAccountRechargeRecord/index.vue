@@ -31,12 +31,12 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
-import { getChargeBillList } from '@/api/opertion/FinancialManage/common/charge'
 import type {
-  ChargeBillItem,
-  ChargeBillParams,
-  ChargeBillResponse
-} from '@/api/opertion/FinancialManage/common/charge'
+  SystemBillItem,
+  SystemBillListParams,
+  SystemBillListResponse
+} from '@/api/opertion/FinancialManage/SystemBill'
+import { v1GetSystemBillList } from '@/api/opertion/FinancialManage/SystemBill'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 import {
   createPageParams,
@@ -50,13 +50,13 @@ import {
 import { getTronscanTransactionUrl } from '@/utils/tronscan'
 
 type ChainRecordDirection = 'out' | 'in'
-type ChainRecordItem = ChargeBillItem & Record<string, unknown>
+type ChainRecordItem = SystemBillItem & Record<string, unknown>
 type ChainRecordTableSlot = TableSlot<ChainRecordItem>
-type ChainRecordSearchParams = ChargeBillParams &
+type ChainRecordSearchParams = SystemBillListParams &
   Recordable & {
-    transaction_type?: string
     direction?: ChainRecordDirection | ''
-    currency?: string
+    coin?: string
+    price_id?: number | string
     dateRange?: DateRangeValue
   }
 
@@ -79,24 +79,64 @@ const defaultParams = { order: DEFAULT_ORDER }
 const searchProps = { layout: 'inline', buttonPosition: 'center' }
 const tableProps = { defaultSort: { prop: 'created_at', order: 'descending' } }
 
-const TRANSACTION_TYPE_OPTIONS = withAllOption([
-  { label: '闪兑出款U', value: '闪兑出款U' },
-  { label: '闪兑出款T', value: '闪兑出款T' },
-  { label: '资源账户充值出款', value: '资源账户充值出款' },
-  { label: '能量收购出款', value: '能量收购出款' },
-  { label: '代理收款', value: '代理收款' },
-  { label: '自营机器人收款', value: '自营机器人收款' },
-  { label: '福利订单收款', value: '福利订单收款' }
-])
+const SYSTEM_BILL_KIND_LABEL_MAP: Record<number, string> = {
+  1: '代理充值',
+  2: '用户充值',
+  3: '闪兑',
+  4: '按时间',
+  5: '按笔数',
+  6: '福利能量',
+  7: '闪租',
+  8: '即用能量',
+  9: '批量能量',
+  10: '激活',
+  11: '机器人付费',
+  12: '奖励',
+  15: '速充能量',
+  20: '托管',
+  21: '托管速充'
+}
+
+const SYSTEM_BILL_KIND_OPTIONS = Object.entries(SYSTEM_BILL_KIND_LABEL_MAP).map(
+  ([value, label]) => ({
+    label,
+    value: Number(value)
+  })
+)
+
+const AGENT_LEVEL_LABEL_MAP: Record<number, string> = {
+  0: '系统平台',
+  1: '一级代理',
+  2: '二级代理',
+  3: '三级代理',
+  8: '自营代理'
+}
+
+const AGENT_LEVEL_OPTIONS = withAllOption(
+  Object.entries(AGENT_LEVEL_LABEL_MAP).map(([value, label]) => ({
+    label,
+    value: Number(value)
+  }))
+)
 
 const DIRECTION_OPTIONS = withAllOption([
   { label: '出款', value: 'out' },
   { label: '收款', value: 'in' }
 ])
 
+const DIRECTION_FLOW_MAP: Record<ChainRecordDirection, number> = {
+  in: 1,
+  out: 2
+}
+
+const FLOW_DIRECTION_MAP: Record<number, ChainRecordDirection> = {
+  1: 'in',
+  2: 'out'
+}
+
 const CURRENCY_OPTIONS = withAllOption([
-  { label: 'U', value: 'U' },
-  { label: 'T', value: 'T' }
+  { label: 'USDT', value: 'USDT' },
+  { label: 'TRX', value: 'TRX' }
 ])
 
 const KIND_LABEL_MAP: Record<string, string> = {
@@ -133,6 +173,14 @@ const pickValue = (record: Record<string, unknown>, keys: string[]) => {
   return undefined
 }
 
+const hasFilterValue = (value: unknown) =>
+  Array.isArray(value) ? value.length > 0 : hasSearchValue(value)
+
+const toNumberList = (value: unknown) => {
+  const values = Array.isArray(value) ? value : hasSearchValue(value) ? [value] : []
+  return values.map(Number).filter(Number.isFinite)
+}
+
 const normalizeText = (value?: unknown, fallback = '-') => {
   const text = String(value ?? '').trim()
   return text || fallback
@@ -154,7 +202,7 @@ const formatNumber = (value: number, minDigits = 0, maxDigits = 8) => {
   })
 }
 
-const formatSummaryAmount = (value: number) => formatNumber(value, 2, 2)
+const formatSummaryAmount = (value: number) => formatNumber(value, 2, 8)
 
 const truncateMiddle = (value?: unknown, start = 9, end = 6) => {
   const text = normalizeText(value, '')
@@ -197,7 +245,23 @@ const getCurrency = (row: ChainRecordItem) =>
     pickValue(row, ['transaction_type', 'business_type', 'trade_type', 'kind'])
   )
 
+const getCoinDisplay = (row: ChainRecordItem) =>
+  normalizeText(
+    pickValue(row, ['coin', 'currency', 'token', 'symbol', 'asset']) || getCurrency(row)
+  )
+
+const getAgentLevelLabel = (row: ChainRecordItem) => {
+  const value = pickValue(row, ['price_id', 'agent_level', 'level'])
+  if (!hasSearchValue(value)) return '-'
+  return AGENT_LEVEL_LABEL_MAP[Number(value)] || normalizeText(value)
+}
+
 const getDirection = (row: ChainRecordItem): ChainRecordDirection => {
+  const flow = pickValue(row, ['flow'])
+  if (hasSearchValue(flow)) {
+    return FLOW_DIRECTION_MAP[Number(flow)] || 'in'
+  }
+
   const raw = String(
     pickValue(row, ['direction', 'in_out', 'io_type', 'flow_type', 'trade_direction', 'type']) ?? ''
   ).toLowerCase()
@@ -222,7 +286,7 @@ const getDirection = (row: ChainRecordItem): ChainRecordDirection => {
 
 const getOrderNo = (row: ChainRecordItem) =>
   normalizeText(
-    pickValue(row, ['order_no', 'order_num', 'order_sn', 'order_id', 'business_order_id', 'id'])
+    pickValue(row, ['order_no', 'order_num', 'order_sn', 'order_id', 'business_order_id'])
   )
 
 const getRelatedOrderNo = (row: ChainRecordItem) =>
@@ -233,13 +297,17 @@ const getRelatedOrderNo = (row: ChainRecordItem) =>
       'relation_order_no',
       'relation_order_id',
       'associated_order_id',
-      'business_order_id',
-      'order_id',
-      'order_no'
+      'business_order_id'
     ])
   )
 
 const getTransactionType = (row: ChainRecordItem) => {
+  const kind = pickValue(row, ['kind'])
+  if (hasSearchValue(kind)) {
+    const kindLabel = SYSTEM_BILL_KIND_LABEL_MAP[Number(kind)]
+    if (kindLabel) return kindLabel
+  }
+
   const value = pickValue(row, [
     'transaction_type',
     'business_type',
@@ -256,6 +324,7 @@ const getTransactionType = (row: ChainRecordItem) => {
 const getFromAddress = (row: ChainRecordItem) =>
   normalizeText(
     pickValue(row, [
+      'from',
       'from_address',
       'out_address',
       'send_address',
@@ -270,6 +339,7 @@ const getFromAddress = (row: ChainRecordItem) =>
 const getToAddress = (row: ChainRecordItem) =>
   normalizeText(
     pickValue(row, [
+      'to',
       'to_address',
       'receive_address',
       'receiver',
@@ -279,8 +349,17 @@ const getToAddress = (row: ChainRecordItem) =>
     ])
   )
 
-const getTxid = (row: ChainRecordItem) =>
-  normalizeText(pickValue(row, ['tx_hash', 'transaction_hash', 'hash', 'txid']), '')
+const isLikelyTxid = (value?: unknown) => {
+  const text = normalizeText(value, '')
+  return /^(0x)?[a-fA-F0-9]{32,}$/.test(text)
+}
+
+const getTxid = (row: ChainRecordItem) => {
+  const txid = normalizeText(pickValue(row, ['tx_hash', 'transaction_hash', 'hash', 'txid']), '')
+  if (txid) return txid
+
+  return isLikelyTxid(row.id) ? normalizeText(row.id, '') : ''
+}
 
 const getRemark = (row: ChainRecordItem) =>
   normalizeText(pickValue(row, ['remark', 'describe', 'description', 'memo']))
@@ -296,13 +375,7 @@ const formatAmountDisplay = (row: ChainRecordItem) => {
   const direction = getDirection(row)
   const sign = direction === 'out' ? '-' : '+'
   const absAmount = Math.abs(amount)
-  const currency = getCurrency(row)
-  const decimalLength =
-    String(getAmountValue(row) ?? '')
-      .split('.')[1]
-      ?.match(/\d+/)?.[0]?.length || 0
-  const minDigits = absAmount % 1 === 0 ? 0 : Math.min(Math.max(decimalLength, 2), 8)
-  return `${sign}${formatNumber(absAmount, minDigits, 8)}${currency ? ` ${currency}` : ''}`
+  return `${sign}${formatNumber(absAmount, 2, 2)}`
 }
 
 const resolveStatusMeta = (status?: unknown): StatusMeta => {
@@ -438,16 +511,20 @@ const buildOrderParam = (params: ChainRecordSearchParams) => {
 }
 
 const buildChainRecordParams = (params: ChainRecordSearchParams = {}) => {
-  const apiParams: ChargeBillParams & Recordable = {
+  const apiParams: SystemBillListParams & Recordable = {
     ...createPageParams(params)
   }
 
   if (hasSearchValue(params.keyword)) apiParams.keyword = String(params.keyword).trim()
-  if (hasSearchValue(params.transaction_type)) {
-    apiParams.transaction_type = String(params.transaction_type)
+  const selectedKinds = toNumberList(params.kinds)
+  if (selectedKinds.length > 0) {
+    apiParams.kinds = selectedKinds
   }
-  if (hasSearchValue(params.direction)) apiParams.direction = String(params.direction)
-  if (hasSearchValue(params.currency)) apiParams.currency = String(params.currency)
+  if (hasSearchValue(params.direction)) {
+    apiParams.flow = DIRECTION_FLOW_MAP[params.direction as ChainRecordDirection]
+  }
+  if (hasSearchValue(params.coin)) apiParams.coin = String(params.coin)
+  if (hasSearchValue(params.price_id)) apiParams.price_id = Number(params.price_id)
   apiParams.order = buildOrderParam(params)
 
   Object.assign(apiParams, dateRangeToSeconds(params.dateRange))
@@ -479,7 +556,11 @@ const pickSummaryNumber = (sources: Array<Record<string, unknown> | undefined>, 
   return undefined
 }
 
-const applySummaryStats = (data: ChargeBillResponse, list: ChainRecordItem[], total: number) => {
+const applySummaryStats = (
+  data: SystemBillListResponse,
+  list: ChainRecordItem[],
+  total: number
+) => {
   const dataRecord = data as unknown as Record<string, unknown>
   const summaryRecord = isRecord(data.summary) ? data.summary : undefined
   const statsRecord = isRecord(dataRecord.stats) ? dataRecord.stats : undefined
@@ -500,6 +581,7 @@ const applySummaryStats = (data: ChargeBillResponse, list: ChainRecordItem[], to
       list.length,
     totalOutU:
       pickSummaryNumber(sources, [
+        'sum_flow_out_usdt',
         'total_out_u',
         'out_u',
         'out_amount_u',
@@ -510,6 +592,7 @@ const applySummaryStats = (data: ChargeBillResponse, list: ChainRecordItem[], to
       ]) ?? aggregate.totalOutU,
     totalOutT:
       pickSummaryNumber(sources, [
+        'sum_flow_out_trx',
         'total_out_t',
         'out_t',
         'out_amount_t',
@@ -520,6 +603,7 @@ const applySummaryStats = (data: ChargeBillResponse, list: ChainRecordItem[], to
       ]) ?? aggregate.totalOutT,
     totalInU:
       pickSummaryNumber(sources, [
+        'sum_flow_in_usdt',
         'total_in_u',
         'in_u',
         'in_amount_u',
@@ -530,6 +614,7 @@ const applySummaryStats = (data: ChargeBillResponse, list: ChainRecordItem[], to
       ]) ?? aggregate.totalInU,
     totalInT:
       pickSummaryNumber(sources, [
+        'sum_flow_in_trx',
         'total_in_t',
         'in_t',
         'in_amount_t',
@@ -543,7 +628,7 @@ const applySummaryStats = (data: ChargeBillResponse, list: ChainRecordItem[], to
 
 const fetchChainRecordList = async (params: ChainRecordSearchParams = {}) => {
   try {
-    const res = await getChargeBillList(buildChainRecordParams(params))
+    const res = await v1GetSystemBillList(buildChainRecordParams(params))
 
     if (res?.code === '000000' && res.data) {
       const list = ((res.data.list || []) as ChainRecordItem[]).map((item) => ({ ...item }))
@@ -554,11 +639,12 @@ const fetchChainRecordList = async (params: ChainRecordSearchParams = {}) => {
         list,
         [
           params.keyword,
-          params.transaction_type,
+          params.kinds,
           params.direction,
-          params.currency,
+          params.coin,
+          params.price_id,
           params.dateRange
-        ].some(hasSearchValue),
+        ].some(hasFilterValue),
         '链上出入记录'
       )
 
@@ -577,44 +663,52 @@ const fetchChainRecordList = async (params: ChainRecordSearchParams = {}) => {
 const summaryCards = computed(() => [
   {
     key: 'today-count',
-    label: '今日交易笔数',
+    label: '交易笔数',
     value: formatNumber(summaryStats.value.todayCount, 0, 0),
     valueClass: ''
   },
   {
     key: 'out-u',
-    label: '总出款金额（U）',
+    label: '总出款金额（USDT）',
     value: formatSummaryAmount(summaryStats.value.totalOutU),
     valueClass: 'negative-value'
   },
   {
     key: 'out-t',
-    label: '总出款金额（T）',
+    label: '总出款金额（TRX）',
     value: formatSummaryAmount(summaryStats.value.totalOutT),
     valueClass: 'negative-value'
   },
   {
     key: 'in-total',
     label: '总收款金额',
-    value: `${formatSummaryAmount(summaryStats.value.totalInT)} T / ${formatSummaryAmount(
+    value: `${formatSummaryAmount(summaryStats.value.totalInT)} TRX / ${formatSummaryAmount(
       summaryStats.value.totalInU
-    )} U`,
+    )} USDT`,
     valueClass: 'positive-value'
   }
 ])
 
 const columns: TableColumn[] = [
   {
-    field: 'order_no',
-    label: '订单号',
+    field: 'related_order_no',
+    label: '关联订单号',
     minWidth: 150,
-    formatter: (row: ChainRecordItem) => getOrderNo(row)
+    slots: {
+      default: ({ row }: ChainRecordTableSlot) => renderRelatedOrder(row)
+    }
   },
   {
     field: 'transaction_type',
     label: '交易类型',
     minWidth: 150,
     formatter: (row: ChainRecordItem) => getTransactionType(row)
+  },
+  {
+    field: 'price_id',
+    label: '代理等级',
+    minWidth: 120,
+    formatter: (row: ChainRecordItem) => getAgentLevelLabel(row)
   },
   {
     field: 'direction',
@@ -627,10 +721,16 @@ const columns: TableColumn[] = [
   {
     field: 'amount',
     label: '数量',
-    minWidth: 120,
+    minWidth: 110,
     slots: {
       default: ({ row }: ChainRecordTableSlot) => renderAmount(row)
     }
+  },
+  {
+    field: 'coin',
+    label: '币种',
+    width: 90,
+    formatter: (row: ChainRecordItem) => getCoinDisplay(row)
   },
   {
     field: 'from_address',
@@ -654,14 +754,6 @@ const columns: TableColumn[] = [
     minWidth: 220,
     slots: {
       default: ({ row }: ChainRecordTableSlot) => renderTxidLink(row)
-    }
-  },
-  {
-    field: 'related_order_no',
-    label: '关联订单号',
-    minWidth: 150,
-    slots: {
-      default: ({ row }: ChainRecordTableSlot) => renderRelatedOrder(row)
     }
   },
   {
@@ -692,23 +784,38 @@ const searchSchema = ref<FormSchema[]>([
     field: 'keyword',
     component: 'Input' as const,
     label: {
-      tips: '交易哈希 / 收款地址 / 出款地址 / 关联订单ID',
+      tips: '交易哈希/收款地址/出款地址/关联订单ID',
       text: '关键词'
     },
     componentProps: {
-      placeholder: '交易哈希 / 收款地址 / 出款地址 / 关联订单ID',
+      placeholder: '请输入关键词',
       clearable: true,
       style: { width: '260px' }
     }
   },
   {
-    field: 'transaction_type',
+    field: 'kinds',
     component: 'Select' as const,
     label: '交易类型',
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: TRANSACTION_TYPE_OPTIONS,
+      multiple: true,
+      collapseTags: true,
+      collapseTagsTooltip: true,
+      maxCollapseTags: 1,
+      options: SYSTEM_BILL_KIND_OPTIONS,
+      style: { width: '220px' }
+    }
+  },
+  {
+    field: 'price_id',
+    component: 'Select' as const,
+    label: '代理等级',
+    componentProps: {
+      placeholder: '全部',
+      clearable: true,
+      options: AGENT_LEVEL_OPTIONS,
       style: { width: '150px' }
     }
   },
@@ -724,7 +831,7 @@ const searchSchema = ref<FormSchema[]>([
     }
   },
   {
-    field: 'currency',
+    field: 'coin',
     component: 'Select' as const,
     label: '币种',
     componentProps: {
