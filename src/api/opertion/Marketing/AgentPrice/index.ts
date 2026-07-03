@@ -20,6 +20,12 @@ export const v1GetPriceList = (
 }
 
 // PUT /v1/price
-export const v1UpdatePrice = (data: V1UpdatePriceParams): Promise<IResponse> => {
-  return request.put({ url: `/v1/price`, data })
+export const v1UpdatePrice = (data: V1UpdatePriceParams, secret: string): Promise<IResponse> => {
+  return request.put({
+    url: `/v1/price`,
+    data,
+    headers: {
+      Secret: secret
+    }
+  })
 }

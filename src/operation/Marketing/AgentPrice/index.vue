@@ -36,6 +36,7 @@
                 <el-button
                   type="primary"
                   size="default"
+                  :loading="isAgentSavePending(agent.id)"
                   :disabled="!hasChanges(agent.id)"
                   @click="handleSave(agent.id)"
                 >
@@ -396,16 +397,62 @@
         </div>
       </el-card>
     </div>
+
+    <el-dialog
+      v-model="secondaryPasswordDialogVisible"
+      title="二级密钥验证"
+      width="420px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :show-close="!secondaryPasswordLoading"
+      @closed="resetSecondaryPasswordDialog"
+    >
+      <el-form
+        ref="secondaryPasswordFormRef"
+        :model="secondaryPasswordForm"
+        :rules="secondaryPasswordRules"
+        label-width="92px"
+        @submit.prevent
+      >
+        <el-form-item label="二级密钥" prop="secret">
+          <el-input
+            v-model="secondaryPasswordForm.secret"
+            type="password"
+            show-password
+            autocomplete="new-password"
+            placeholder="请输入二级密钥"
+            @keyup.enter="confirmSecondaryPassword"
+          />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button
+          :disabled="secondaryPasswordLoading"
+          @click="secondaryPasswordDialogVisible = false"
+        >
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="secondaryPasswordLoading"
+          @click="confirmSecondaryPassword"
+        >
+          确认
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive, computed } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, reactive, computed, nextTick } from 'vue'
+import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import {
   v1GetPriceList,
   v1UpdatePrice,
-  type V1PriceListResponse
+  type V1PriceListResponse,
+  type V1UpdatePriceParams
 } from '@/api/opertion/Marketing/AgentPrice'
 import { useRoute } from 'vue-router'
 import { getErrorMessage } from '@/utils/messageHelper'
@@ -418,6 +465,17 @@ const loading = ref(false)
 const priceList = ref<V1PriceListResponse[]>([])
 const editModeMap = reactive<Record<number, boolean>>({})
 const refreshing = ref(false)
+const pendingSaveAgentId = ref<number | null>(null)
+const savingAgentId = ref<number | null>(null)
+const secondaryPasswordDialogVisible = ref(false)
+const secondaryPasswordFormRef = ref<FormInstance>()
+const secondaryPasswordForm = reactive({
+  secret: ''
+})
+const secondaryPasswordRules: FormRules<typeof secondaryPasswordForm> = {
+  secret: [{ required: true, message: '请输入二级密钥', trigger: 'blur' }]
+}
+const secondaryPasswordLoading = computed(() => savingAgentId.value !== null)
 
 interface PriceFormData {
   active: number
@@ -441,6 +499,9 @@ interface PriceFormData {
 }
 
 const hasEditPermission = computed(() => hasRouteButtonPermission(route, 'edit'))
+
+const isAgentSavePending = (agentId: number) =>
+  pendingSaveAgentId.value === agentId || savingAgentId.value === agentId
 
 const getAgentLevelName = (id: number): string => {
   return AGENT_PRICE_LEVEL_LABELS[id] || `${id}级代理`
@@ -622,6 +683,46 @@ const formatTime = (agentId: number) => {
   return formatTableDateTime(agent?.updated_at)
 }
 
+const buildUpdatePricePayload = (
+  agentId: number,
+  formData: PriceFormData
+): V1UpdatePriceParams => ({
+  id: agentId,
+  active: toPriceNumber(formData.active),
+  time_1h: toPriceNumber(formData.time_1h),
+  time_1d: toPriceNumber(formData.time_1d),
+  time_3d: toPriceNumber(formData.time_3d),
+  time_7d: toPriceNumber(formData.time_7d),
+  time_15d: toPriceNumber(formData.time_15d),
+  time_30d: toPriceNumber(formData.time_30d),
+  stroke: toPriceNumber(formData.stroke),
+  flash: toPriceNumber(formData.flash),
+  hosting_65k: toPriceNumber(formData.hosting_65k),
+  hosting_131k: toPriceNumber(formData.hosting_131k),
+  trx_2_usdt: formData.trx_2_usdt,
+  usdt_2_trx: formData.usdt_2_trx,
+  bot_fee: toPriceNumber(formData.bot_fee),
+  batch_flash: toPriceNumber(formData.batch_flash),
+  bandwidth: toPriceNumber(formData.bandwidth),
+  charge: toPriceNumber(formData.charge),
+  instant: toPriceNumber(formData.instant)
+})
+
+const validatePriceBeforeSave = (agentId: number) => {
+  const formData = formDataMap[agentId]
+  if (!formData) {
+    ElMessage.warning('没有可保存的数据')
+    return null
+  }
+
+  if (Number(formData.hosting_65k) > Number(formData.hosting_131k)) {
+    ElMessage.error('托管的65k价格不能高于131k价格')
+    return null
+  }
+
+  return formData
+}
+
 const loadPriceData = async () => {
   loading.value = true
   try {
@@ -645,51 +746,65 @@ const loadPriceData = async () => {
 }
 
 const handleSave = async (agentId: number) => {
-  if (loading.value) return
-  const formData = formDataMap[agentId]
-  if (!formData) {
-    ElMessage.warning('没有可保存的数据')
+  if (loading.value || secondaryPasswordLoading.value) return
+  if (!validatePriceBeforeSave(agentId)) {
     return
   }
 
-  // 验证：托管的65k价格不能高于131k价格
-  if (Number(formData.hosting_65k) > Number(formData.hosting_131k)) {
-    ElMessage.error('托管的65k价格不能高于131k价格')
-    return
-  }
+  pendingSaveAgentId.value = agentId
+  secondaryPasswordForm.secret = ''
+  secondaryPasswordDialogVisible.value = true
+  await nextTick()
+  secondaryPasswordFormRef.value?.clearValidate()
+}
 
+const submitPriceUpdate = async (agentId: number, formData: PriceFormData, secret: string) => {
   loading.value = true
+  savingAgentId.value = agentId
   try {
-    await v1UpdatePrice({
-      id: agentId,
-      active: toPriceNumber(formData.active),
-      time_1h: toPriceNumber(formData.time_1h),
-      time_1d: toPriceNumber(formData.time_1d),
-      time_3d: toPriceNumber(formData.time_3d),
-      time_7d: toPriceNumber(formData.time_7d),
-      time_15d: toPriceNumber(formData.time_15d),
-      time_30d: toPriceNumber(formData.time_30d),
-      stroke: toPriceNumber(formData.stroke),
-      flash: toPriceNumber(formData.flash),
-      hosting_65k: toPriceNumber(formData.hosting_65k),
-      hosting_131k: toPriceNumber(formData.hosting_131k),
-      trx_2_usdt: formData.trx_2_usdt,
-      usdt_2_trx: formData.usdt_2_trx,
-      bot_fee: toPriceNumber(formData.bot_fee),
-      batch_flash: toPriceNumber(formData.batch_flash),
-      bandwidth: toPriceNumber(formData.bandwidth),
-      charge: toPriceNumber(formData.charge),
-      instant: toPriceNumber(formData.instant)
-    })
+    await v1UpdatePrice(buildUpdatePricePayload(agentId, formData), secret)
 
     await loadPriceData()
     editModeMap[agentId] = false
     ElMessage.success('保存成功')
+    return true
   } catch (error: unknown) {
     ElMessage.error(getErrorMessage(error, '保存失败'))
+    return false
   } finally {
     loading.value = false
+    savingAgentId.value = null
   }
+}
+
+const confirmSecondaryPassword = async () => {
+  if (secondaryPasswordLoading.value) return
+
+  const valid = await secondaryPasswordFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+
+  const agentId = pendingSaveAgentId.value
+  if (!agentId) {
+    ElMessage.warning('没有可保存的数据')
+    secondaryPasswordDialogVisible.value = false
+    return
+  }
+
+  const formData = validatePriceBeforeSave(agentId)
+  if (!formData) return
+
+  const saved = await submitPriceUpdate(agentId, formData, secondaryPasswordForm.secret)
+  if (saved) {
+    secondaryPasswordDialogVisible.value = false
+  }
+}
+
+const resetSecondaryPasswordDialog = () => {
+  if (secondaryPasswordLoading.value) return
+
+  pendingSaveAgentId.value = null
+  secondaryPasswordForm.secret = ''
+  secondaryPasswordFormRef.value?.clearValidate()
 }
 
 loadPriceData()
