@@ -18,7 +18,7 @@
           <BaseButton @click="handleRefresh">刷新</BaseButton>
         </template>
         <template #rightToolbar>
-          <BaseButton type="primary" @click="handlePreview">点我预览</BaseButton>
+          <BaseButton type="primary" @click="handleMenuSort">菜单排序</BaseButton>
           <BaseButton type="warning" @click="handleInlineButton">内联按钮</BaseButton>
         </template>
       </SearchTable>
@@ -43,7 +43,7 @@
           <ElFormItem label="排序" prop="order_num">
             <ElInputNumber
               v-model="formData.order_num"
-              placeholder="请输入排序（数字越小越靠前）"
+              placeholder="请输入排序（数字越大越靠前）"
               :min="0"
               class="w-full"
             />
@@ -93,7 +93,7 @@
         </template>
       </Dialog>
 
-      <MenuPreview v-model="previewVisible" @update:modelValue="previewHandleClose" />
+      <MenuSort v-model="menuSortVisible" @update:modelValue="menuSortHandleClose" />
       <InlineButtonDialog v-model="inlineButtonDialogVisible" />
     </ContentWrap>
   </div>
@@ -146,7 +146,7 @@ import {
   type SelectOption,
   type TableSlot
 } from '@/utils/tableHelpers'
-import MenuPreview from './components/MenuPreview.vue'
+import MenuSort from './components/MenuPreview.vue'
 import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
 
 const VISIBLE_SCOPE_ALL = 1
@@ -166,7 +166,7 @@ type AgentOption = SelectOption<number>
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const formRef = ref<FormInstance>()
-const previewVisible = ref(false)
+const menuSortVisible = ref(false)
 const inlineButtonDialogVisible = ref(false)
 const dialogVisible = ref(false)
 const dialogTitle = ref('添加菜单')
@@ -403,7 +403,12 @@ const fetchMenuList = async (params: Partial<GetBotMenuListParams> = {}) => {
 
     if (response.code === '000000' && response.data) {
       const list = Array.isArray(response.data) ? response.data : []
-      list.sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0))
+      list.sort((a, b) => {
+        const orderDiff = Number(b.order_num || 0) - Number(a.order_num || 0)
+        if (orderDiff !== 0) return orderDiff
+
+        return Number(b.created_at || 0) - Number(a.created_at || 0)
+      })
       handleListMessage(list, hasSearchValue(params.status), '菜单')
 
       return {
@@ -453,8 +458,8 @@ const handleEdit = async (row: BotMenuItem) => {
   await openMenuDialog('编辑菜单', row)
 }
 
-const handlePreview = () => {
-  previewVisible.value = true
+const handleMenuSort = () => {
+  menuSortVisible.value = true
 }
 
 const handleInlineButton = () => {
@@ -528,8 +533,8 @@ const handleSubmit = async () => {
   }
 }
 
-const previewHandleClose = () => {
-  previewVisible.value = false
+const menuSortHandleClose = () => {
+  menuSortVisible.value = false
   searchTableRef.value?.reload()
 }
 
