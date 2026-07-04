@@ -2,6 +2,7 @@
   <div class="app-container chain-record-page">
     <ContentWrap>
       <SearchTable
+        ref="searchTableRef"
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchChainRecordList"
@@ -10,6 +11,12 @@
         :search-props="searchProps"
         :table-props="tableProps"
       >
+        <template #searchButtons>
+          <BaseButton type="primary" :loading="exporting" @click="handleExport">
+            <Icon icon="ep:download" class="mr-5px" />
+            导出
+          </BaseButton>
+        </template>
         <template #beforeTable>
           <div class="summary-grid">
             <div v-for="card in summaryCards" :key="card.key" class="summary-card">
@@ -29,6 +36,9 @@ import { useRouter } from 'vue-router'
 import { ElLink, ElTag, ElTooltip } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
+import type { SearchTableExpose } from '@/components/SearchTable'
+import { BaseButton } from '@/components/Button'
+import { Icon } from '@/components/Icon'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import { v1GetSystemBillList } from '@/api/opertion/FinancialManage/SystemBill'
@@ -42,6 +52,7 @@ import { EnergyOrderKind } from '@/utils/energyOrder'
 import {
   createPageParams,
   dateRangeToSeconds,
+  exportTableData,
   formatTableDateTime,
   hasSearchValue,
   withAllOption,
@@ -49,6 +60,7 @@ import {
   type TableSlot
 } from '@/utils/tableHelpers'
 import { getTronscanTransactionUrl } from '@/utils/tronscan'
+import { OrderStatus } from '@/utils/orderStatus'
 
 type ChainRecordDirection = 'out' | 'in'
 type ChainRecordItem = SystemBillItem & Record<string, unknown>
@@ -58,6 +70,7 @@ type ChainRecordSearchParams = SystemBillListParams &
     direction?: ChainRecordDirection | ''
     coin?: string
     price_id?: number | string
+    status?: ChainRecordStatus | string
     dateRange?: DateRangeValue
     sort?: string
   }
@@ -75,11 +88,15 @@ interface StatusMeta {
   type: 'success' | 'warning' | 'info' | 'primary' | 'danger'
 }
 
+type ChainRecordStatus = 1 | 2 | 3 | 4
+
 const router = useRouter()
 const DEFAULT_ORDER = 'created_at DESC'
 const defaultParams = { order: DEFAULT_ORDER }
 const searchProps = { layout: 'inline', buttonPosition: 'center' }
 const tableProps = { defaultSort: { prop: 'created_at', order: 'descending' } }
+const searchTableRef = ref<SearchTableExpose>()
+const exporting = ref(false)
 const FLASH_EXCHANGE_KIND = 3
 const ENERGY_TRANSACTION_KINDS = new Set<number>([
   EnergyOrderKind.TIME_ENERGY,
@@ -157,11 +174,45 @@ const DIRECTION_FLOW_MAP: Record<ChainRecordDirection, number> = {
   out: 2
 }
 
-const CHAIN_STATUS_MAP: Record<number, StatusMeta> = {
-  1: { label: '成功', type: 'success' },
-  2: { label: '失败', type: 'danger' },
-  3: { label: '确认中', type: 'warning' }
+const CHAIN_RECORD_STATUS = {
+  NORMAL: 1,
+  TRANSACTION_FAILED: 2,
+  UNMATCHED: 3,
+  ORDER_ABNORMAL: 4
+} as const
+
+const CHAIN_RECORD_STATUS_MAP: Record<ChainRecordStatus, StatusMeta> = {
+  [CHAIN_RECORD_STATUS.NORMAL]: { label: '正常', type: 'success' },
+  [CHAIN_RECORD_STATUS.TRANSACTION_FAILED]: { label: '交易失败', type: 'danger' },
+  [CHAIN_RECORD_STATUS.UNMATCHED]: { label: '未匹配', type: 'warning' },
+  [CHAIN_RECORD_STATUS.ORDER_ABNORMAL]: { label: '订单异常', type: 'danger' }
 }
+
+const CHAIN_RECORD_STATUS_OPTIONS = withAllOption(
+  Object.entries(CHAIN_RECORD_STATUS_MAP).map(([value, meta]) => ({
+    label: meta.label,
+    value: Number(value) as ChainRecordStatus
+  }))
+)
+
+const FAILED_CHAIN_STATUS_VALUES = new Set<number>([2])
+const ABNORMAL_ORDER_STATUS_VALUES = new Set<number>([
+  OrderStatus.FAILED,
+  OrderStatus.REFUNDED,
+  OrderStatus.CANCELLED,
+  OrderStatus.ABORTED
+])
+const EMPTY_ORDER_VALUES = new Set([
+  '',
+  '-',
+  '0',
+  'null',
+  'undefined',
+  '无',
+  '暂无',
+  '无匹配订单',
+  '未匹配'
+])
 
 const createEmptySummary = (): ChainRecordSummary => ({
   todayCount: 0,
@@ -196,6 +247,11 @@ const normalizeText = (value?: unknown, fallback = '-') => {
   const text = String(value ?? '').trim()
   return text || fallback
 }
+
+const normalizeComparableText = (value?: unknown) =>
+  String(value ?? '')
+    .trim()
+    .toLowerCase()
 
 const parseAmount = (value?: unknown) => {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0
@@ -243,6 +299,16 @@ const getCurrency = (row: ChainRecordItem) =>
   extractCurrencyFromAmount(row.amount) ||
   normalizeCurrency(row.coin)
 
+const getCurrencyLabel = (row: ChainRecordItem) => {
+  const rawCoin = normalizeText(row.coin, '')
+  if (rawCoin) return rawCoin
+
+  const currency = getCurrency(row)
+  if (currency === 'U') return 'USDT'
+  if (currency === 'T') return 'TRX'
+  return normalizeText(currency)
+}
+
 const getDirection = (row: ChainRecordItem): ChainRecordDirection => {
   const flow = pickValue(row, ['flow'])
   if (hasSearchValue(flow)) {
@@ -271,17 +337,17 @@ const getDirection = (row: ChainRecordItem): ChainRecordDirection => {
   return parseAmount(row.amount) < 0 ? 'out' : 'in'
 }
 
-const getRelatedOrderNo = (row: ChainRecordItem) =>
-  normalizeText(
-    pickValue(row, [
-      'related_order_no',
-      'related_order_id',
-      'relation_order_no',
-      'relation_order_id',
-      'business_order_id',
-      'order_id'
-    ])
-  )
+const getRelatedOrderValue = (row: ChainRecordItem) =>
+  pickValue(row, [
+    'related_order_no',
+    'related_order_id',
+    'relation_order_no',
+    'relation_order_id',
+    'business_order_id',
+    'order_id'
+  ])
+
+const getRelatedOrderNo = (row: ChainRecordItem) => normalizeText(getRelatedOrderValue(row))
 
 const getTransactionType = (row: ChainRecordItem) => {
   const kind = pickValue(row, ['kind'])
@@ -414,9 +480,129 @@ const renderTxidLink = (row: ChainRecordItem) => {
   )
 }
 
+const getNestedOrderStatus = (row: ChainRecordItem) => {
+  const orderRecord = pickValue(row, ['order', 'related_order', 'business_order'])
+  if (!isRecord(orderRecord)) return undefined
+
+  return pickValue(orderRecord, ['status', 'order_status', 'state'])
+}
+
+const getOrderStatus = (row: ChainRecordItem) =>
+  pickValue(row, [
+    'order_status',
+    'related_order_status',
+    'business_order_status',
+    'system_order_status',
+    'matched_order_status'
+  ]) ?? getNestedOrderStatus(row)
+
+const getChainStatus = (row: ChainRecordItem) =>
+  pickValue(row, ['chain_status', 'onchain_status', 'tx_status', 'transaction_status'])
+
+const parseChainRecordStatus = (status: unknown): ChainRecordStatus | undefined => {
+  if (!hasSearchValue(status)) return undefined
+
+  const numericStatus = Number(status)
+  if (
+    Number.isFinite(numericStatus) &&
+    numericStatus >= CHAIN_RECORD_STATUS.NORMAL &&
+    numericStatus <= CHAIN_RECORD_STATUS.ORDER_ABNORMAL
+  ) {
+    return numericStatus as ChainRecordStatus
+  }
+
+  const text = normalizeComparableText(status)
+  if (['normal', 'success', 'ok', '正常'].includes(text)) return CHAIN_RECORD_STATUS.NORMAL
+  if (['transactionfailed', 'transaction_failed', '交易失败'].includes(text)) {
+    return CHAIN_RECORD_STATUS.TRANSACTION_FAILED
+  }
+  if (['unmatched', 'not_matched', '未匹配', '无匹配订单'].includes(text)) {
+    return CHAIN_RECORD_STATUS.UNMATCHED
+  }
+  if (['orderabnormal', 'order_abnormal', '订单异常'].includes(text)) {
+    return CHAIN_RECORD_STATUS.ORDER_ABNORMAL
+  }
+
+  return undefined
+}
+
+const isFailedChainStatus = (status: unknown) => {
+  if (!hasSearchValue(status)) return false
+  if (typeof status === 'boolean') return !status
+
+  const numericStatus = Number(status)
+  if (Number.isFinite(numericStatus) && FAILED_CHAIN_STATUS_VALUES.has(numericStatus)) return true
+
+  const text = normalizeComparableText(status)
+  return ['fail', 'failed', 'failure', 'error', 'revert', '失败', '交易失败'].some((keyword) =>
+    text.includes(keyword)
+  )
+}
+
+const isExplicitlyUnmatched = (row: ChainRecordItem) => {
+  const matchValue = pickValue(row, [
+    'matched',
+    'is_matched',
+    'is_match',
+    'has_order',
+    'has_related_order',
+    'match_status'
+  ])
+  if (!hasSearchValue(matchValue)) return false
+  if (typeof matchValue === 'boolean') return !matchValue
+
+  const text = normalizeComparableText(matchValue)
+  return ['0', 'false', 'no', 'none', 'unmatched', '未匹配', '无匹配'].includes(text)
+}
+
+const hasUnmatchedRemark = (row: ChainRecordItem) => {
+  const remark = getRemark(row)
+  return /无匹配|未匹配|无关联订单|没有.*(交易|订单|记录)/.test(remark)
+}
+
+const hasRelatedOrder = (row: ChainRecordItem) => {
+  const value = getRelatedOrderValue(row)
+  if (!hasSearchValue(value)) return hasSearchValue(getOrderStatus(row))
+
+  return !EMPTY_ORDER_VALUES.has(normalizeComparableText(value))
+}
+
+const isAbnormalOrderStatus = (status: unknown) => {
+  if (!hasSearchValue(status)) return false
+
+  const numericStatus = Number(status)
+  if (Number.isFinite(numericStatus) && ABNORMAL_ORDER_STATUS_VALUES.has(numericStatus)) return true
+
+  const text = normalizeComparableText(status)
+  return ['失败', '取消', '中止', '中断', '异常', '退款', 'fail', 'failed', 'cancel', 'abort'].some(
+    (keyword) => text.includes(keyword)
+  )
+}
+
+const getChainRecordStatus = (row: ChainRecordItem): ChainRecordStatus => {
+  const status = parseChainRecordStatus(row.status)
+  if (status) return status
+
+  if (isFailedChainStatus(getChainStatus(row))) {
+    return CHAIN_RECORD_STATUS.TRANSACTION_FAILED
+  }
+
+  if (isExplicitlyUnmatched(row) || hasUnmatchedRemark(row) || !hasRelatedOrder(row)) {
+    return CHAIN_RECORD_STATUS.UNMATCHED
+  }
+
+  if (isAbnormalOrderStatus(getOrderStatus(row))) {
+    return CHAIN_RECORD_STATUS.ORDER_ABNORMAL
+  }
+
+  return CHAIN_RECORD_STATUS.NORMAL
+}
+
+const getChainRecordStatusMeta = (row: ChainRecordItem) =>
+  CHAIN_RECORD_STATUS_MAP[getChainRecordStatus(row)]
+
 const renderStatus = (row: ChainRecordItem) => {
-  const status = pickValue(row, ['chain_status', 'onchain_status', 'status'])
-  const meta = CHAIN_STATUS_MAP[Number(status)] || { label: normalizeText(status), type: 'info' }
+  const meta = getChainRecordStatusMeta(row)
   return h(
     ElTag,
     {
@@ -427,6 +613,8 @@ const renderStatus = (row: ChainRecordItem) => {
     () => meta.label
   )
 }
+
+const getChainRecordStatusLabel = (row: ChainRecordItem) => getChainRecordStatusMeta(row).label
 
 const getRelatedOrderRoutePath = (row: ChainRecordItem) => {
   const kind = Number(pickValue(row, ['kind']))
@@ -507,11 +695,29 @@ const buildChainRecordParams = (params: ChainRecordSearchParams = {}) => {
   }
   if (hasSearchValue(params.coin)) apiParams.coin = String(params.coin)
   if (hasSearchValue(params.price_id)) apiParams.price_id = Number(params.price_id)
+  const selectedStatus = parseChainRecordStatus(params.status)
+  if (selectedStatus) apiParams.status = selectedStatus
   apiParams.order = buildOrderParam(params)
 
   Object.assign(apiParams, dateRangeToSeconds(params.dateRange))
 
   return apiParams
+}
+
+const filterListByStatus = (list: ChainRecordItem[], status?: unknown) => {
+  const selectedStatus = parseChainRecordStatus(status)
+  if (!selectedStatus) return list
+
+  return list.filter((item) => getChainRecordStatus(item) === selectedStatus)
+}
+
+const paginateList = (list: ChainRecordItem[], params: ChainRecordSearchParams) => {
+  const pageSize = Number(params.page_size) || 10
+  const currentPage = Number(params.current_page) || 1
+  if (pageSize <= 0 || currentPage <= 0) return list
+
+  const start = (currentPage - 1) * pageSize
+  return list.slice(start, start + pageSize)
 }
 
 const aggregateListSummary = (list: ChainRecordItem[]) =>
@@ -575,29 +781,54 @@ const applySummaryStats = (
   }
 }
 
+const applyFilteredSummaryStats = (list: ChainRecordItem[]) => {
+  const aggregate = aggregateListSummary(list)
+
+  summaryStats.value = {
+    todayCount: list.length,
+    totalOutU: aggregate.totalOutU,
+    totalOutT: aggregate.totalOutT,
+    totalInU: aggregate.totalInU,
+    totalInT: aggregate.totalInT
+  }
+}
+
 const fetchChainRecordList = async (params: ChainRecordSearchParams = {}) => {
   try {
-    const res = await v1GetSystemBillList(buildChainRecordParams(params))
+    const selectedStatus = parseChainRecordStatus(params.status)
+    const apiParams = selectedStatus
+      ? buildChainRecordParams({ ...params, current_page: -1, page_size: -1 })
+      : buildChainRecordParams(params)
+    const res = await v1GetSystemBillList(apiParams)
 
     if (res?.code === '000000' && res.data) {
       const list = ((res.data.list || []) as ChainRecordItem[]).map((item) => ({ ...item }))
-      const total = res.data.pager?.total || list.length || 0
+      const filteredList = filterListByStatus(list, params.status)
+      const tableList = selectedStatus ? paginateList(filteredList, params) : filteredList
+      const total = selectedStatus
+        ? filteredList.length
+        : res.data.pager?.total || filteredList.length || 0
 
-      applySummaryStats(res.data, list, total)
+      if (selectedStatus) {
+        applyFilteredSummaryStats(filteredList)
+      } else {
+        applySummaryStats(res.data, filteredList, total)
+      }
       handleListMessage(
-        list,
+        filteredList,
         [
           params.keyword,
           params.kinds,
           params.direction,
           params.coin,
           params.price_id,
+          params.status,
           params.dateRange
         ].some(hasFilterValue),
         '链上出入记录'
       )
 
-      return { list, total }
+      return { list: tableList, total }
     }
 
     summaryStats.value = createEmptySummary()
@@ -606,6 +837,63 @@ const fetchChainRecordList = async (params: ChainRecordSearchParams = {}) => {
     summaryStats.value = createEmptySummary()
     handleErrorMessage(error, '获取链上出入记录失败')
     return { list: [], total: 0 }
+  }
+}
+
+const fetchChainRecordExportData = async (params: SystemBillListParams & Recordable) => {
+  const res = await v1GetSystemBillList(params)
+  const selectedStatus = parseChainRecordStatus(params.status)
+  if (!selectedStatus || !res.data?.list) return res
+
+  const list = filterListByStatus(
+    ((res.data.list || []) as ChainRecordItem[]).map((item) => ({ ...item })),
+    selectedStatus
+  )
+
+  return {
+    ...res,
+    data: {
+      ...res.data,
+      list,
+      pager: res.data.pager ? { ...res.data.pager, total: list.length } : res.data.pager
+    }
+  }
+}
+
+const handleExport = async () => {
+  exporting.value = true
+  try {
+    await exportTableData<
+      ChainRecordItem,
+      ChainRecordSearchParams,
+      SystemBillListParams & Recordable
+    >({
+      searchTableRef,
+      filename: '链上出入记录',
+      fetchData: fetchChainRecordExportData,
+      buildParams: buildChainRecordParams,
+      getList: (res: IResponse<SystemBillListResponse>) =>
+        ((res.data?.list || []) as ChainRecordItem[]).map((item) => ({ ...item })),
+      mapItem: (item) => ({
+        关联订单号: getRelatedOrderNo(item),
+        交易类型: getTransactionType(item),
+        代理等级: getAgentLevelLabel(item),
+        出入款: getDirection(item) === 'out' ? '出款' : '收款',
+        数量: formatAmountDisplay(item),
+        币种: getCurrencyLabel(item),
+        出款地址: getFromAddress(item),
+        收款地址: getToAddress(item),
+        交易哈希: getTxid(item) || '-',
+        状态: getChainRecordStatusLabel(item),
+        备注: getRemark(item),
+        交易时间: formatTableDateTime(item.created_at)
+      }),
+      successMessage: '链上出入记录导出成功'
+    })
+  } catch (error) {
+    handleErrorMessage(error, '链上出入记录导出失败')
+  } finally {
+    exporting.value = false
   }
 }
 
@@ -708,7 +996,7 @@ const columns: TableColumn[] = [
   },
   {
     field: 'status',
-    label: '链上状态',
+    label: '状态',
     width: 110,
     slots: {
       default: ({ row }: ChainRecordTableSlot) => renderStatus(row)
@@ -789,6 +1077,17 @@ const searchSchema = ref<FormSchema[]>([
       clearable: true,
       options: CURRENCY_OPTIONS,
       style: { width: '140px' }
+    }
+  },
+  {
+    field: 'status',
+    component: 'Select' as const,
+    label: '状态',
+    componentProps: {
+      placeholder: '全部',
+      clearable: true,
+      options: CHAIN_RECORD_STATUS_OPTIONS,
+      style: { width: '150px' }
     }
   },
   {

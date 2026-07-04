@@ -22,6 +22,7 @@ export interface SystemBillListParams {
   order_id?: string
   page_size?: number
   price_id?: number
+  status?: number | string // 状态：1=正常，2=交易失败，3=未匹配，4=订单异常
   start_time?: string
   user_id?: number
 }
@@ -38,7 +39,7 @@ export interface SystemBillItem extends Recordable {
   kind: number // 交易类型：1-代理充值，2-用户充值，3-闪兑，4-时间能量，5-笔数能量，6-福利能量，81-补充资源，82-资源收购
   order_id: string
   price_id?: number
-  status: number
+  status: number // 状态：1=正常，2=交易失败，3=未匹配，4=订单异常
   to: string
 }
 
