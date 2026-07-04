@@ -82,7 +82,7 @@
               ref="chatIdInputRef"
               v-model="form.chatIdInput"
               class="tg-tag-input__inner"
-              placeholder="请输入TG账号数字ID"
+              placeholder="请输入TG账号数字ID，可为负数"
               :disabled="saving"
               @blur="commitChatIdInput"
               @input="handleChatIdInput"
@@ -90,7 +90,7 @@
             />
           </div>
           <div class="text-sm text-gray-500 mt-1">
-            输入一个数字 ID 后按回车，或移出输入框后会生成一个 TG 账号
+            输入一个数字 ID（可为负数）后按回车，或移出输入框后会生成一个 TG 账号
           </div>
         </ElFormItem>
 
@@ -147,6 +147,9 @@ const ORDER_SELECT_ACTIVE_TEXT = '全选'
 const ORDER_SELECT_INACTIVE_TEXT = '不选中'
 const ORDER_SWITCH_TEXT_WIDTH = 12
 const ORDER_SWITCH_ACTION_WIDTH = 40
+const CHAT_ID_SEPARATOR_PATTERN = /[\s,，、;；]+/
+const CHAT_ID_SEPARATOR_CHAR_PATTERN = /[\s,，、;；]/
+const CHAT_ID_VALUE_PATTERN = /^-?\d+$/
 
 interface NotificationFormState {
   enabled: boolean
@@ -318,19 +321,49 @@ const getOrderSubscriptionPayload = (orderTypes: number[]) => {
   return normalizedOrderTypes
 }
 
-const normalizeChatIdInput = (value: string) => String(value || '').replace(/[^\d\s,，、;；]/g, '')
+const isValidChatIdItem = (value: string) => {
+  if (!CHAT_ID_VALUE_PATTERN.test(value)) return false
+  const chatId = Number(value)
+  return !isNaN(chatId) && chatId !== 0
+}
+
+const normalizeChatIdInput = (value: string) => {
+  let normalized = ''
+  let isTokenStart = true
+
+  for (const char of String(value || '')) {
+    if (/\d/.test(char)) {
+      normalized += char
+      isTokenStart = false
+      continue
+    }
+
+    if (char === '-' && isTokenStart) {
+      normalized += char
+      isTokenStart = false
+      continue
+    }
+
+    if (CHAT_ID_SEPARATOR_CHAR_PATTERN.test(char)) {
+      normalized += char
+      isTokenStart = true
+    }
+  }
+
+  return normalized
+}
 
 const parseChatIdsFromText = (value: string) => {
   const items = String(value || '')
-    .split(/[\s,，、;；]+/)
+    .split(CHAT_ID_SEPARATOR_PATTERN)
     .map((item) => item.trim())
     .filter(Boolean)
 
-  if (items.some((item) => !/^\d+$/.test(item))) {
+  if (items.some((item) => !isValidChatIdItem(item))) {
     return null
   }
 
-  const chatIds = items.map((item) => Number(item)).filter((item) => !isNaN(item) && item > 0)
+  const chatIds = items.map((item) => Number(item))
 
   if (chatIds.length !== items.length) {
     return null
@@ -345,9 +378,8 @@ const parseChatIdsFromValue = (value: unknown): number[] => {
   if (Array.isArray(value)) {
     const chatIds = value
       .map((item) => String(item).trim())
-      .filter((item) => item && item !== '0')
+      .filter((item) => item && isValidChatIdItem(item))
       .map((item) => Number(item))
-      .filter((item) => !isNaN(item) && item > 0)
 
     return [...new Set(chatIds)]
   }
@@ -457,7 +489,7 @@ const commitChatIdInput = () => {
 
   const chatIds = parseChatIdsFromText(input)
   if (!chatIds || chatIds.length === 0) {
-    handleWarningMessage('TG账号仅支持数字 ID')
+    handleWarningMessage('TG账号仅支持数字 ID，可在首位输入负号')
     return false
   }
 
@@ -566,12 +598,12 @@ const handleSwitchChange = (val: boolean | string | number) => {
   form.threshold = undefined
 }
 
-// TG账号输入过滤：只保留数字和常见分隔符
+// TG账号输入过滤：每个 ID 仅保留首位负号、数字和常见分隔符
 const handleChatIdInput = (value: string) => {
   const normalized = normalizeChatIdInput(value)
   form.chatIdInput = normalized
 
-  if (/[\s,，、;；]/.test(normalized)) {
+  if (CHAT_ID_SEPARATOR_CHAR_PATTERN.test(normalized)) {
     commitChatIdInput()
   }
 }
