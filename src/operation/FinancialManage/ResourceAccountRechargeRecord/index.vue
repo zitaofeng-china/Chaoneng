@@ -149,6 +149,19 @@ const formatNumber = (value: number, minDigits = 0, maxDigits = 8) =>
     maximumFractionDigits: maxDigits
   })
 
+const getAmountValueClass = (amount: number) => {
+  if (amount < 0) return 'negative-value'
+  if (amount > 0) return 'positive-value'
+  return ''
+}
+
+const getAmountTableClass = (row: ResourceRechargeRecord) => {
+  const amount = parseAmount(row.amount)
+  if (amount < 0) return 'amount-negative'
+  if (amount > 0) return 'amount-positive'
+  return ''
+}
+
 const truncateMiddle = (value?: unknown, start = 9, end = 6) => {
   const text = normalizeText(value, '')
   if (!text) return '-'
@@ -286,7 +299,7 @@ const getSummaryAmount = (data: ChargeBillResponse, list: ResourceRechargeRecord
     pickValue(dataRecord, ['sum_amount', 'amount', 'total_amount'])
 
   return amount === undefined
-    ? list.reduce((sum, item) => sum + Math.abs(parseAmount(item.amount)), 0)
+    ? list.reduce((sum, item) => sum + parseAmount(item.amount), 0)
     : parseAmount(amount)
 }
 
@@ -379,8 +392,8 @@ const orderDetailSchema = computed<DescriptionsSchema[]>(() => {
   return createDetailSchema([
     { label: '账单ID', value: getRecordId(row) },
     { label: '账单类型', value: getAccountKind(row) },
-    { label: '充值金额', value: getRechargeAmount(row) },
-    { label: '充值时间', value: getRechargeTime(row) },
+    { label: '交易金额', value: getRechargeAmount(row) },
+    { label: '交易时间', value: getRechargeTime(row) },
     { label: '状态', value: getStatus(row), status: true },
     { label: '备注', value: getRemark(row) }
   ])
@@ -392,23 +405,23 @@ const addressDetailSchema = computed<DescriptionsSchema[]>(() => {
 
   return createDetailSchema([
     { label: '财务地址', value: getVaultAddress(row) },
-    { label: '充值地址', value: getTargetAddress(row) },
-    { label: '充值哈希', value: getRechargeTxid(row), link: true }
+    { label: '目标地址', value: getTargetAddress(row) },
+    { label: '交易哈希', value: getRechargeTxid(row), link: true }
   ])
 })
 
 const summaryCards = computed(() => [
   {
     key: 'count',
-    label: '充值笔数',
+    label: '交易笔数',
     value: formatNumber(summaryStats.value.count, 0, 0),
     valueClass: ''
   },
   {
     key: 'amount',
-    label: '充值金额',
+    label: '交易金额',
     value: formatNumber(summaryStats.value.amount, 2, 8),
-    valueClass: 'positive-value'
+    valueClass: getAmountValueClass(summaryStats.value.amount)
   }
 ])
 
@@ -427,11 +440,11 @@ const columns: TableColumn[] = [
   },
   {
     field: 'amount',
-    label: '充值金额',
+    label: '交易金额',
     minWidth: 120,
     slots: {
       default: ({ row }: ResourceRechargeTableSlot) =>
-        h('span', { class: 'amount-positive' }, getRechargeAmount(row))
+        h('span', { class: getAmountTableClass(row) }, getRechargeAmount(row))
     }
   },
   {
@@ -444,7 +457,7 @@ const columns: TableColumn[] = [
   },
   {
     field: 'target',
-    label: '充值地址',
+    label: '目标地址',
     minWidth: 180,
     slots: {
       default: ({ row }: ResourceRechargeTableSlot) => renderTooltipText(getTargetAddress(row), 155)
@@ -452,7 +465,7 @@ const columns: TableColumn[] = [
   },
   {
     field: 'txid',
-    label: '充值哈希',
+    label: '交易哈希',
     minWidth: 230,
     slots: {
       default: ({ row }: ResourceRechargeTableSlot) => renderTxidLink(getRechargeTxid(row))
@@ -469,7 +482,7 @@ const columns: TableColumn[] = [
   },
   {
     field: 'created_at',
-    label: '充值时间',
+    label: '交易时间',
     sortable: 'custom',
     width: 180,
     formatter: (row: ResourceRechargeRecord) => getRechargeTime(row)
@@ -506,7 +519,7 @@ const searchSchema = ref<FormSchema[]>([
     component: 'Input' as const,
     label: '关键词',
     componentProps: {
-      placeholder: '账单ID / 财务地址 / 充值地址 / 交易哈希',
+      placeholder: '账单ID / 财务地址 / 目标地址 / 交易哈希',
       clearable: true,
       style: { width: '260px' }
     }
@@ -590,6 +603,11 @@ const searchSchema = ref<FormSchema[]>([
 .positive-value,
 :deep(.amount-positive) {
   color: #67c23a;
+}
+
+.negative-value,
+:deep(.amount-negative) {
+  color: #f56c6c;
 }
 
 .table-ellipsis {

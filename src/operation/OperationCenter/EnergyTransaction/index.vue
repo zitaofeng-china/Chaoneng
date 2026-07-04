@@ -77,9 +77,10 @@ const totalCount = ref(0)
 const stoppingOrders = ref<Set<string>>(new Set())
 const stoppedOrders = ref<Set<string>>(new Set())
 const DEFAULT_ORDER = 'created_at DESC'
-const initialSearchParams: Partial<SearchFormParams> = route.query.query
-  ? { keyword: String(route.query.query) }
-  : {}
+const initialSearchParams: Partial<SearchFormParams> = (() => {
+  const keyword = route.query.keyword || route.query.query || route.query.order_id
+  return keyword ? { keyword: String(keyword) } : {}
+})()
 
 const columns = computed(() => [...getFilteredColumns(selectedSource.value), actionColumn])
 

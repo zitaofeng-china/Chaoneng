@@ -6,6 +6,7 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchExchangeTransactionList"
+        :default-params="initialSearchParams"
         :action-column="actionColumn"
         :table-props="{
           rowKey: 'id',
@@ -34,6 +35,7 @@
 
 <script setup lang="tsx">
 import { ref, reactive } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { SearchTable } from '@/components/SearchTable'
 import type { SearchTableExpose } from '@/components/SearchTable'
@@ -108,6 +110,11 @@ const buildExchangeListParams = (
 
 const searchTableRef = ref<SearchTableExpose>()
 const orderDetailRef = ref<InstanceType<typeof OrderDetail> | null>(null)
+const route = useRoute()
+const initialSearchParams: Partial<ExchangeSearchParams> = (() => {
+  const keyword = route.query.keyword || route.query.query || route.query.order_num
+  return keyword ? { keyword: String(keyword) } : {}
+})()
 
 const currentSearchParams = ref<ExchangeSearchParams>({})
 

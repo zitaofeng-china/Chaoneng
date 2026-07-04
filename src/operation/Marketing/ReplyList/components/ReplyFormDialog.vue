@@ -524,7 +524,7 @@ watch(
         )
       } else {
         formData.value = {
-          bot_id: props.botOptions.length > 0 ? (props.botOptions[0].value as number) : undefined,
+          bot_id: ALL_BOT_OPTION.value as number,
           keyword: '',
           content: '',
           status: 1

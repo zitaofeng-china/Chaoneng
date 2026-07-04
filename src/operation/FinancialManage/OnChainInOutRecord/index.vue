@@ -38,6 +38,7 @@ import type {
   SystemBillListResponse
 } from '@/api/opertion/FinancialManage/SystemBill'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
+import { EnergyOrderKind } from '@/utils/energyOrder'
 import {
   createPageParams,
   dateRangeToSeconds,
@@ -79,6 +80,21 @@ const DEFAULT_ORDER = 'created_at DESC'
 const defaultParams = { order: DEFAULT_ORDER }
 const searchProps = { layout: 'inline', buttonPosition: 'center' }
 const tableProps = { defaultSort: { prop: 'created_at', order: 'descending' } }
+const FLASH_EXCHANGE_KIND = 3
+const ENERGY_TRANSACTION_KINDS = new Set<number>([
+  EnergyOrderKind.TIME_ENERGY,
+  EnergyOrderKind.COUNT_ENERGY,
+  EnergyOrderKind.WELFARE_ENERGY,
+  EnergyOrderKind.QUICK_ENERGY,
+  EnergyOrderKind.INSTANT_ENERGY,
+  EnergyOrderKind.BATCH_ENERGY,
+  EnergyOrderKind.BATCH_ACTIVE,
+  EnergyOrderKind.AUTO_HOSTING
+])
+const QUICK_CHARGE_KINDS = new Set<number>([
+  EnergyOrderKind.MANUAL_QUICK_CHARGE,
+  EnergyOrderKind.HOSTING_QUICK_CHARGE
+])
 
 const SYSTEM_BILL_KIND_LABEL_MAP: Record<number, string> = {
   1: '代理充值',
@@ -412,24 +428,54 @@ const renderStatus = (row: ChainRecordItem) => {
   )
 }
 
-const handleGoRelatedOrder = (orderNo: string) => {
-  if (!orderNo || orderNo === '-') return
+const getRelatedOrderRoutePath = (row: ChainRecordItem) => {
+  const kind = Number(pickValue(row, ['kind']))
+  if (kind === FLASH_EXCHANGE_KIND) return '/operation/flash_exchange'
+  if (ENERGY_TRANSACTION_KINDS.has(kind)) return '/operation/energy_transaction'
+  if (QUICK_CHARGE_KINDS.has(kind)) return '/operation/quick_charge_order'
+
+  const transactionType = getTransactionType(row)
+  if (transactionType.includes('闪兑') || transactionType.includes('兑换')) {
+    return '/operation/flash_exchange'
+  }
+  if (transactionType.includes('速充')) {
+    return '/operation/quick_charge_order'
+  }
+  if (
+    transactionType.includes('能量') ||
+    transactionType.includes('托管') ||
+    transactionType.includes('激活')
+  ) {
+    return '/operation/energy_transaction'
+  }
+
+  return ''
+}
+
+const handleGoRelatedOrder = (row: ChainRecordItem) => {
+  const orderNo = getRelatedOrderNo(row)
+  const routePath = getRelatedOrderRoutePath(row)
+  if (!orderNo || orderNo === '-' || !routePath) return
+
   router.push({
-    path: '/financial_manage/resource_order',
-    query: { keyword: orderNo }
+    path: routePath,
+    query: { query: orderNo }
   })
 }
 
 const renderRelatedOrder = (row: ChainRecordItem) => {
   const orderNo = getRelatedOrderNo(row)
   if (!orderNo || orderNo === '-') return h('span', '-')
+  const routePath = getRelatedOrderRoutePath(row)
+
+  if (!routePath) return h('span', orderNo)
 
   return h(
     ElLink,
     {
       type: 'primary',
       underline: false,
-      onClick: () => handleGoRelatedOrder(orderNo)
+      onClick: () => handleGoRelatedOrder(row)
     },
     () => orderNo
   )
