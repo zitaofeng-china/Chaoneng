@@ -166,15 +166,20 @@
               <ViewToggle v-model="viewModes.profit" />
             </div>
           </div>
-          <template v-if="profitTotal > 0">
-            <Echart
-              v-if="viewModes.profit === 'chart'"
-              :options="profitChartOption"
-              height="300px"
-            />
-            <DataList v-else :data="profitData" :total="profitTotal" unit="TRX" />
+          <template v-if="viewModes.profit === 'chart'">
+            <Echart v-if="hasProfitData" :options="profitChartOption" height="300px" />
+            <div v-else class="chart-empty">暂无利润数据</div>
           </template>
-          <div v-else class="chart-empty">暂无利润数据</div>
+          <template v-else>
+            <DataList
+              v-if="hasProfitData"
+              :data="profitData"
+              :total="profitTotal"
+              unit="TRX"
+              :value-decimals="2"
+            />
+            <div v-else class="chart-empty">暂无利润数据</div>
+          </template>
         </div>
 
         <div class="chart-card">
@@ -752,7 +757,71 @@ const profitData = computed(() => [
   { name: '激活利润', value: toNum(statsData.activeProfit) }
 ])
 const profitTotal = computed(() => profitData.value.reduce((s, d) => s + d.value, 0))
-const profitChartOption = computed(() => buildDonut('利润构成', profitData.value))
+const hasProfitData = computed(() => profitData.value.some((d) => d.value !== 0))
+const profitChartOption = computed<EChartsOption>(() => {
+  const data = profitData.value
+  const yLimit = Math.max(...data.map((d) => Math.abs(d.value)), 1) * 1.2
+
+  return {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: (params: unknown) => {
+        const item = getFirstChartParam(params)
+        return `${item.name || '-'}<br/><b>${formatNumber(toNum(item.value))}</b> TRX`
+      }
+    },
+    grid: { left: 56, right: 20, top: 34, bottom: 56 },
+    xAxis: {
+      type: 'category',
+      data: data.map((d) => d.name),
+      axisTick: { alignWithLabel: true },
+      axisLine: { lineStyle: { color: '#dcdfe6' } },
+      axisLabel: { fontSize: 11, color: '#606266', interval: 0 }
+    },
+    yAxis: {
+      type: 'value',
+      min: -yLimit,
+      max: yLimit,
+      axisLabel: { fontSize: 11, color: '#909399', formatter: (v: number) => abbrNum(v) },
+      splitLine: { lineStyle: { type: 'dashed', color: '#f0f0f0' } }
+    },
+    series: [
+      {
+        name: '利润',
+        type: 'bar',
+        barWidth: '40%',
+        barMaxWidth: 46,
+        data: data.map((d) => {
+          const isNegative = d.value < 0
+          return {
+            value: d.value,
+            itemStyle: {
+              color: isNegative
+                ? barGradient('#FFB3B6', COLOR.expense)
+                : barGradient('#6E9BF5', COLOR.profit),
+              borderRadius: isNegative ? [0, 0, 4, 4] : [4, 4, 0, 0]
+            },
+            label: { position: isNegative ? 'bottom' : 'top' }
+          }
+        }),
+        label: {
+          show: true,
+          fontSize: 10,
+          color: '#909399',
+          formatter: (params: unknown) => formatNumber(toNum(getFirstChartParam(params).value))
+        },
+        markLine: {
+          silent: true,
+          symbol: 'none',
+          label: { show: false },
+          lineStyle: { color: '#909399', width: 1.2 },
+          data: [{ yAxis: 0 }]
+        }
+      }
+    ]
+  }
+})
 
 // 资源消耗/收购（柱状图）
 const resourceChartData = computed<ChartDataItem[]>(() => {

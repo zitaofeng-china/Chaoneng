@@ -52,6 +52,7 @@ const props = withDefaults(
     total?: number
     unit?: string
     showPercent?: boolean
+    valueDecimals?: number
     tooltipPopperClass?: string
   }>(),
   {
@@ -66,14 +67,14 @@ const palette = ['#1E40AF', '#3B82F6', '#22C55E', '#E6A23C', '#9333EA', '#14B8A6
 
 const sortedData = computed(() => [...props.data].sort((a, b) => b.value - a.value))
 
-const maxValue = computed(() => Math.max(...props.data.map((d) => d.value), 1))
+const maxValue = computed(() => Math.max(...props.data.map((d) => Math.abs(d.value)), 1))
 
 const colorAt = (idx: number) => palette[idx % palette.length]
 
 // 优先用每项自带的 unit，否则用全局 unit
 const unitOf = (item: DataItem) => (item.unit !== undefined ? item.unit : props.unit)
 
-const barWidth = (v: number) => `${Math.max((v / maxValue.value) * 100, 2)}%`
+const barWidth = (v: number) => `${Math.max((Math.abs(v) / maxValue.value) * 100, 2)}%`
 
 const percent = (v: number) => {
   if (!props.total) return '0.0'
@@ -81,7 +82,16 @@ const percent = (v: number) => {
 }
 
 const formatValue = (v: number) => {
-  return Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 })
+  const value = Number(v)
+
+  if (props.valueDecimals === undefined) {
+    return value.toLocaleString('en-US', { maximumFractionDigits: 2 })
+  }
+
+  return value.toLocaleString('en-US', {
+    minimumFractionDigits: props.valueDecimals,
+    maximumFractionDigits: props.valueDecimals
+  })
 }
 </script>
 
