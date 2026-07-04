@@ -16,6 +16,10 @@ export const formatTransactionHash = (
   return `${normalizedTxid.slice(0, prefixLength)}...${normalizedTxid.slice(-suffixLength)}`
 }
 
+export const isDisplayableTransactionHash = (txid?: string | number | null) => {
+  return String(txid ?? '').trim().length === 64
+}
+
 export const renderTronscanTransactionLink = (
   txid?: string | number | null,
   linkText = '点击跳转'

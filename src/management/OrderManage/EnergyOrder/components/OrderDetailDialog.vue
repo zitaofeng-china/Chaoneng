@@ -53,6 +53,7 @@ import { handleErrorMessage } from '@/utils/messageHelper'
 import { renderNullableText } from '@/operation/OperationCenter/utils/displayText'
 import {
   formatTransactionHash,
+  isDisplayableTransactionHash,
   renderTronscanTransactionLink
 } from '@/operation/OperationCenter/utils/transactionLink'
 
@@ -65,18 +66,13 @@ const detailLoading = ref(false)
 
 const hasTextValue = (value?: string | number | null) => String(value ?? '').trim() !== ''
 
-const isWalletPayment = (data?: EnergyOrderDetailResponseV1 | null) => {
-  const receiveAddress = String(data?.receive_address ?? '').trim()
-  return receiveAddress !== '' && receiveAddress !== '余额支付'
-}
-
 const shouldShowTransactionHash = (data?: EnergyOrderDetailResponseV1 | null) => {
-  return isWalletPayment(data) && hasTextValue(data?.pay_id)
+  return isDisplayableTransactionHash(data?.pay_id)
 }
 
 const renderTransactionHashText = (data?: EnergyOrderDetailResponseV1 | null) => {
   const value = String(data?.pay_id ?? '').trim()
-  if (!value) return h('span', '-')
+  if (!isDisplayableTransactionHash(value)) return h('span', '-')
 
   return h('span', { class: 'transaction-hash-text' }, [
     renderTronscanTransactionLink(value, formatTransactionHash(value))

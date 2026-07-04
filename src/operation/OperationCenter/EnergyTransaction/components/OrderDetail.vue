@@ -54,6 +54,7 @@ import { handleErrorMessage } from '@/utils/messageHelper'
 import { renderNullableText } from '@/operation/OperationCenter/utils/displayText'
 import {
   formatTransactionHash,
+  isDisplayableTransactionHash,
   renderTronscanTransactionLink
 } from '@/operation/OperationCenter/utils/transactionLink'
 
@@ -64,17 +65,13 @@ const currentOrder = ref<V2OrderDetailResponse | null>(null)
 const activeTab = ref('basic')
 const detailLoading = ref(false)
 
-const shouldShowCountPayId = (data?: V2OrderDetailResponse | null) => {
-  return Number(data?.kind) === EnergyOrderKind.COUNT_ENERGY
-}
-
-const hasPaymentAddress = (data?: V2OrderDetailResponse | null) => {
-  return String(data?.payment_address ?? '').trim() !== ''
+const shouldShowTransactionHash = (data?: V2OrderDetailResponse | null) => {
+  return isDisplayableTransactionHash(data?.pay_id)
 }
 
 const renderTransactionHashText = (data?: V2OrderDetailResponse | null) => {
-  const value = hasPaymentAddress(data) ? String(data?.pay_id ?? '').trim() : ''
-  if (!value) return h('span', '-')
+  const value = String(data?.pay_id ?? '').trim()
+  if (!isDisplayableTransactionHash(value)) return h('span', '-')
 
   return renderTronscanTransactionLink(value, formatTransactionHash(value))
 }
@@ -197,7 +194,7 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => {
     }
   ]
 
-  if (shouldShowCountPayId(currentOrder.value)) {
+  if (shouldShowTransactionHash(currentOrder.value)) {
     schema.push({
       label: '交易hash',
       field: 'pay_id',
