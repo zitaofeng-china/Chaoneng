@@ -1,10 +1,10 @@
 <template>
-  <div class="app-container chain-record-page">
+  <div class="app-container resource-recharge-record-page">
     <ContentWrap>
       <SearchTable
         :columns="columns"
         :search-schema="searchSchema"
-        :fetch-data-api="fetchChainRecordList"
+        :fetch-data-api="fetchResourceRechargeRecordList"
         :showAddButton="false"
         :default-params="defaultParams"
         :search-props="searchProps"
@@ -19,148 +19,104 @@
           </div>
         </template>
       </SearchTable>
+
+      <Dialog v-model="detailVisible" title="资源充值记录详情" width="820px">
+        <div class="detail-section-title">订单记录</div>
+        <Descriptions :schema="orderDetailSchema" :data="currentRecord" :column="2" />
+
+        <div class="detail-section-title detail-section-space">地址信息</div>
+        <Descriptions :schema="addressDetailSchema" :data="currentRecord" :column="1" />
+
+        <template #footer>
+          <div class="flex justify-end">
+            <ElButton type="primary" @click="detailVisible = false">确定</ElButton>
+          </div>
+        </template>
+      </Dialog>
     </ContentWrap>
   </div>
 </template>
 
 <script setup lang="tsx">
 import { computed, h, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElLink, ElTag, ElTooltip } from 'element-plus'
+import { ElButton, ElLink, ElTooltip } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
+import { Dialog } from '@/components/Dialog'
 import { SearchTable } from '@/components/SearchTable'
+import { BaseButton } from '@/components/Button'
+import { Descriptions } from '@/components/Descriptions'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
+import type { DescriptionsSchema } from '@/components/Descriptions'
+import { getChargeBillList } from '@/api/opertion/FinancialManage/common/charge'
 import type {
-  SystemBillItem,
-  SystemBillListParams,
-  SystemBillListResponse
-} from '@/api/opertion/FinancialManage/SystemBill'
-import { v1GetSystemBillList } from '@/api/opertion/FinancialManage/SystemBill'
+  ChargeBillItem,
+  ChargeBillParams,
+  ChargeBillResponse
+} from '@/api/opertion/FinancialManage/common/charge'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 import {
   createPageParams,
   dateRangeToSeconds,
   formatTableDateTime,
   hasSearchValue,
+  renderStatusTag,
   withAllOption,
   type DateRangeValue,
+  type StatusMeta,
   type TableSlot
 } from '@/utils/tableHelpers'
 import { getTronscanTransactionUrl } from '@/utils/tronscan'
 
-type ChainRecordDirection = 'out' | 'in'
-type ChainRecordItem = SystemBillItem & Record<string, unknown>
-type ChainRecordTableSlot = TableSlot<ChainRecordItem>
-type ChainRecordSearchParams = SystemBillListParams &
-  Recordable & {
-    direction?: ChainRecordDirection | ''
-    coin?: string
-    price_id?: number | string
-    dateRange?: DateRangeValue
-  }
+type ResourceRechargeRecord = ChargeBillItem & Record<string, unknown>
+type ResourceRechargeTableSlot = TableSlot<ResourceRechargeRecord>
+type ResourceRechargeSearchParams = Omit<ChargeBillParams, 'status'> & {
+  status?: number | string
+  dateRange?: DateRangeValue
+  sort?: string
+}
+type DateTimeLike = string | number | Date | null | undefined
 
-interface ChainRecordSummary {
-  todayCount: number
-  totalOutU: number
-  totalOutT: number
-  totalInU: number
-  totalInT: number
+interface ResourceRechargeSummary {
+  count: number
+  amount: number
 }
 
-interface StatusMeta {
+interface DetailField {
   label: string
-  type: 'success' | 'warning' | 'info' | 'primary' | 'danger'
+  value: unknown
+  link?: boolean
+  status?: boolean
 }
 
-const router = useRouter()
 const DEFAULT_ORDER = 'created_at DESC'
 const defaultParams = { order: DEFAULT_ORDER }
 const searchProps = { layout: 'inline', buttonPosition: 'center' }
 const tableProps = { defaultSort: { prop: 'created_at', order: 'descending' } }
 
-const SYSTEM_BILL_KIND_LABEL_MAP: Record<number, string> = {
-  1: '代理充值',
-  2: '用户充值',
-  3: '闪兑',
-  4: '按时间',
-  5: '按笔数',
-  6: '福利能量',
-  7: '闪租',
-  8: '即用能量',
-  9: '批量能量',
-  10: '激活',
-  11: '机器人付费',
-  12: '奖励',
-  15: '速充能量',
-  20: '托管',
-  21: '托管速充'
-}
-
-const SYSTEM_BILL_KIND_OPTIONS = Object.entries(SYSTEM_BILL_KIND_LABEL_MAP).map(
-  ([value, label]) => ({
-    label,
-    value: Number(value)
-  })
-)
-
-const AGENT_LEVEL_LABEL_MAP: Record<number, string> = {
-  0: '系统平台',
-  1: '一级代理',
-  2: '二级代理',
-  3: '三级代理',
-  8: '自营代理'
-}
-
-const AGENT_LEVEL_OPTIONS = withAllOption(
-  Object.entries(AGENT_LEVEL_LABEL_MAP).map(([value, label]) => ({
-    label,
-    value: Number(value)
-  }))
-)
-
-const DIRECTION_OPTIONS = withAllOption([
-  { label: '出款', value: 'out' },
-  { label: '收款', value: 'in' }
+const ACCOUNT_KIND_OPTIONS = withAllOption([
+  { label: 'feee', value: 'feee' },
+  { label: 'trxfee', value: 'trxfee' },
+  { label: 'sohu', value: 'sohu' },
+  { label: 'justlend', value: 'justlend' }
 ])
 
-const DIRECTION_FLOW_MAP: Record<ChainRecordDirection, number> = {
-  in: 1,
-  out: 2
-}
-
-const FLOW_DIRECTION_MAP: Record<number, ChainRecordDirection> = {
-  1: 'in',
-  2: 'out'
-}
-
-const CURRENCY_OPTIONS = withAllOption([
-  { label: 'USDT', value: 'USDT' },
-  { label: 'TRX', value: 'TRX' }
-])
-
-const KIND_LABEL_MAP: Record<string, string> = {
-  feee: 'FEEE账户',
-  sohu: 'Sohu账户',
-  trxfee: 'TRXFee账户',
-  justlend: 'JustLend账户'
-}
-
-const CHAIN_STATUS_MAP: Record<number, StatusMeta> = {
+const RESOURCE_RECHARGE_STATUS_MAP: Record<number, StatusMeta> = {
   1: { label: '成功', type: 'success' },
-  2: { label: '失败', type: 'danger' },
-  3: { label: '确认中', type: 'warning' }
+  2: { label: '失败', type: 'danger' }
 }
 
-const createEmptySummary = (): ChainRecordSummary => ({
-  todayCount: 0,
-  totalOutU: 0,
-  totalOutT: 0,
-  totalInU: 0,
-  totalInT: 0
-})
+const RESOURCE_RECHARGE_STATUS_OPTIONS = withAllOption([
+  { label: '成功', value: 1 },
+  { label: '失败', value: 2 }
+])
 
-const summaryStats = ref<ChainRecordSummary>(createEmptySummary())
+const summaryStats = ref<ResourceRechargeSummary>({
+  count: 0,
+  amount: 0
+})
+const detailVisible = ref(false)
+const currentRecord = ref<ResourceRechargeRecord | null>(null)
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
@@ -171,14 +127,6 @@ const pickValue = (record: Record<string, unknown>, keys: string[]) => {
     if (hasSearchValue(value)) return value
   }
   return undefined
-}
-
-const hasFilterValue = (value: unknown) =>
-  Array.isArray(value) ? value.length > 0 : hasSearchValue(value)
-
-const toNumberList = (value: unknown) => {
-  const values = Array.isArray(value) ? value : hasSearchValue(value) ? [value] : []
-  return values.map(Number).filter(Number.isFinite)
 }
 
 const normalizeText = (value?: unknown, fallback = '-') => {
@@ -195,14 +143,11 @@ const parseAmount = (value?: unknown) => {
   return Number.isFinite(amount) ? amount : 0
 }
 
-const formatNumber = (value: number, minDigits = 0, maxDigits = 8) => {
-  return value.toLocaleString('zh-CN', {
+const formatNumber = (value: number, minDigits = 0, maxDigits = 8) =>
+  value.toLocaleString('zh-CN', {
     minimumFractionDigits: minDigits,
     maximumFractionDigits: maxDigits
   })
-}
-
-const formatSummaryAmount = (value: number) => formatNumber(value, 2, 8)
 
 const truncateMiddle = (value?: unknown, start = 9, end = 6) => {
   const text = normalizeText(value, '')
@@ -211,194 +156,40 @@ const truncateMiddle = (value?: unknown, start = 9, end = 6) => {
   return `${text.slice(0, start)}...${text.slice(-end)}`
 }
 
-const normalizeCurrency = (value?: unknown) => {
-  const raw = String(value ?? '')
-    .trim()
-    .toUpperCase()
-  if (!raw) return ''
-  if (raw.includes('USDT') || raw === 'U') return 'U'
-  if (raw.includes('TRX') || raw === 'T') return 'T'
-  return raw
+const getRecordId = (row: ResourceRechargeRecord) =>
+  normalizeText(pickValue(row, ['order_no', 'order_id', 'id']))
+
+const getAccountKind = (row: ResourceRechargeRecord) =>
+  normalizeText(pickValue(row, ['kind', 'account', 'account_type']))
+
+const getRechargeAmount = (row: ResourceRechargeRecord) => {
+  const raw = normalizeText(row.amount, '')
+  if (!raw) return '-'
+  if (/[a-zA-Z]/.test(raw)) return raw
+
+  return formatNumber(parseAmount(raw), 2, 8)
 }
 
-const extractCurrencyFromAmount = (value?: unknown) => {
-  const matched = String(value ?? '')
-    .toUpperCase()
-    .match(/\b(USDT|TRX|U|T)\b/)
-  return normalizeCurrency(matched?.[1])
-}
+const getVaultAddress = (row: ResourceRechargeRecord) =>
+  normalizeText(pickValue(row, ['vault', 'finance_address', 'from_address']))
 
-const deriveCurrencyFromKind = (kind?: unknown) => {
-  const raw = String(kind ?? '').trim()
-  const lowerRaw = raw.toLowerCase()
-  const upperRaw = raw.toUpperCase()
-  if (upperRaw.includes('USDT') || upperRaw.endsWith('U')) return 'U'
-  if (upperRaw.includes('TRX') || upperRaw.endsWith('T')) return 'T'
-  if (lowerRaw.includes('trx') || lowerRaw.includes('fee') || lowerRaw.includes('lend')) return 'T'
-  return ''
-}
+const getTargetAddress = (row: ResourceRechargeRecord) =>
+  normalizeText(pickValue(row, ['target', 'to_address', 'receive_address']))
 
-const getCurrency = (row: ChainRecordItem) =>
-  normalizeCurrency(pickValue(row, ['currency', 'coin', 'token', 'symbol', 'asset'])) ||
-  extractCurrencyFromAmount(row.amount) ||
-  deriveCurrencyFromKind(
-    pickValue(row, ['transaction_type', 'business_type', 'trade_type', 'kind'])
-  )
+const getRechargeTxid = (row: ResourceRechargeRecord) =>
+  normalizeText(pickValue(row, ['txid', 'tx_hash', 'transaction_hash']), '')
 
-const getCoinDisplay = (row: ChainRecordItem) =>
-  normalizeText(
-    pickValue(row, ['coin', 'currency', 'token', 'symbol', 'asset']) || getCurrency(row)
-  )
+const getRemark = (row: ResourceRechargeRecord) =>
+  normalizeText(pickValue(row, ['describe', 'remark', 'memo', 'description']))
 
-const getAgentLevelLabel = (row: ChainRecordItem) => {
-  const value = pickValue(row, ['price_id', 'agent_level', 'level'])
-  if (!hasSearchValue(value)) return '-'
-  return AGENT_LEVEL_LABEL_MAP[Number(value)] || normalizeText(value)
-}
+const getCreatedAt = (row: ResourceRechargeRecord) => pickValue(row, ['created_at', 'updated_at'])
 
-const getDirection = (row: ChainRecordItem): ChainRecordDirection => {
-  const flow = pickValue(row, ['flow'])
-  if (hasSearchValue(flow)) {
-    return FLOW_DIRECTION_MAP[Number(flow)] || 'in'
-  }
+const getRechargeTime = (row: ResourceRechargeRecord) =>
+  formatTableDateTime(getCreatedAt(row) as DateTimeLike)
 
-  const raw = String(
-    pickValue(row, ['direction', 'in_out', 'io_type', 'flow_type', 'trade_direction', 'type']) ?? ''
-  ).toLowerCase()
-  if (
-    raw.includes('out') ||
-    raw.includes('withdraw') ||
-    raw.includes('send') ||
-    raw.includes('出款')
-  ) {
-    return 'out'
-  }
-  if (
-    raw.includes('in') ||
-    raw.includes('receive') ||
-    raw.includes('income') ||
-    raw.includes('收款')
-  ) {
-    return 'in'
-  }
-  return parseAmount(row.amount) < 0 ? 'out' : 'in'
-}
+const getStatus = (row: ResourceRechargeRecord) => pickValue(row, ['status', 'chain_status'])
 
-const getOrderNo = (row: ChainRecordItem) =>
-  normalizeText(
-    pickValue(row, ['order_no', 'order_num', 'order_sn', 'order_id', 'business_order_id'])
-  )
-
-const getRelatedOrderNo = (row: ChainRecordItem) =>
-  normalizeText(
-    pickValue(row, [
-      'related_order_no',
-      'related_order_id',
-      'relation_order_no',
-      'relation_order_id',
-      'associated_order_id',
-      'business_order_id'
-    ])
-  )
-
-const getTransactionType = (row: ChainRecordItem) => {
-  const kind = pickValue(row, ['kind'])
-  if (hasSearchValue(kind)) {
-    const kindLabel = SYSTEM_BILL_KIND_LABEL_MAP[Number(kind)]
-    if (kindLabel) return kindLabel
-  }
-
-  const value = pickValue(row, [
-    'transaction_type',
-    'business_type',
-    'scene',
-    'type_name',
-    'trade_type',
-    'title',
-    'kind'
-  ])
-  const text = normalizeText(value)
-  return KIND_LABEL_MAP[text.toLowerCase()] || text
-}
-
-const getFromAddress = (row: ChainRecordItem) =>
-  normalizeText(
-    pickValue(row, [
-      'from',
-      'from_address',
-      'out_address',
-      'send_address',
-      'payer_address',
-      'pay_address',
-      'vault',
-      'finance_address',
-      'source'
-    ])
-  )
-
-const getToAddress = (row: ChainRecordItem) =>
-  normalizeText(
-    pickValue(row, [
-      'to',
-      'to_address',
-      'receive_address',
-      'receiver',
-      'target_address',
-      'target',
-      'address'
-    ])
-  )
-
-const isLikelyTxid = (value?: unknown) => {
-  const text = normalizeText(value, '')
-  return /^(0x)?[a-fA-F0-9]{32,}$/.test(text)
-}
-
-const getTxid = (row: ChainRecordItem) => {
-  const txid = normalizeText(pickValue(row, ['tx_hash', 'transaction_hash', 'hash', 'txid']), '')
-  if (txid) return txid
-
-  return isLikelyTxid(row.id) ? normalizeText(row.id, '') : ''
-}
-
-const getRemark = (row: ChainRecordItem) =>
-  normalizeText(pickValue(row, ['remark', 'describe', 'description', 'memo']))
-
-const getAmountValue = (row: ChainRecordItem) =>
-  pickValue(row, ['amount', 'quantity', 'value', 'transfer_amount'])
-
-const getAmountClass = (row: ChainRecordItem) =>
-  getDirection(row) === 'out' ? 'amount-negative' : 'amount-positive'
-
-const formatAmountDisplay = (row: ChainRecordItem) => {
-  const amount = parseAmount(getAmountValue(row))
-  const direction = getDirection(row)
-  const sign = direction === 'out' ? '-' : '+'
-  const absAmount = Math.abs(amount)
-  return `${sign}${formatNumber(absAmount, 2, 2)}`
-}
-
-const resolveStatusMeta = (status?: unknown): StatusMeta => {
-  if (typeof status === 'number' || /^\d+$/.test(String(status ?? ''))) {
-    return CHAIN_STATUS_MAP[Number(status)] || { label: '未知', type: 'info' }
-  }
-
-  const text = String(status ?? '').trim()
-  const lowerText = text.toLowerCase()
-  if (!text) return { label: '-', type: 'info' }
-  if (['success', 'succeeded', 'confirmed', 'done'].some((key) => lowerText.includes(key))) {
-    return { label: '成功', type: 'success' }
-  }
-  if (['fail', 'failed', 'error'].some((key) => lowerText.includes(key))) {
-    return { label: '失败', type: 'danger' }
-  }
-  if (['pending', 'confirming', 'processing'].some((key) => lowerText.includes(key))) {
-    return { label: '确认中', type: 'warning' }
-  }
-  return { label: text, type: 'info' }
-}
-
-const renderTooltipText = (value?: unknown, width = 150) => {
+const renderTooltipText = (value?: unknown, width = 150, start = 9, end = 6) => {
   const text = normalizeText(value, '')
   if (!text) return h('span', '-')
 
@@ -415,35 +206,19 @@ const renderTooltipText = (value?: unknown, width = 150) => {
           class: 'table-ellipsis',
           style: { maxWidth: `${width}px` }
         },
-        truncateMiddle(text)
+        truncateMiddle(text, start, end)
       )
   )
 }
 
-const renderDirectionTag = (row: ChainRecordItem) => {
-  const direction = getDirection(row)
-  return h(
-    ElTag,
-    {
-      type: direction === 'out' ? 'danger' : 'success',
-      effect: 'plain',
-      class: ['direction-tag', direction === 'out' ? 'direction-out' : 'direction-in']
-    },
-    () => (direction === 'out' ? '出款' : '收款')
-  )
-}
-
-const renderAmount = (row: ChainRecordItem) =>
-  h('span', { class: getAmountClass(row) }, formatAmountDisplay(row))
-
-const renderTxidLink = (row: ChainRecordItem) => {
-  const txid = getTxid(row)
-  if (!txid) return h('span', '-')
+const renderTxidLink = (txid?: unknown, width = 185) => {
+  const normalizedTxid = normalizeText(txid, '')
+  if (!normalizedTxid) return h('span', '-')
 
   return h(
     ElTooltip,
     {
-      content: txid,
+      content: normalizedTxid,
       placement: 'top'
     },
     () =>
@@ -451,53 +226,22 @@ const renderTxidLink = (row: ChainRecordItem) => {
         ElLink,
         {
           type: 'primary',
-          href: getTronscanTransactionUrl(txid),
+          href: getTronscanTransactionUrl(normalizedTxid),
           target: '_blank',
-          underline: false
+          underline: false,
+          class: 'txid-link'
         },
-        () => truncateMiddle(txid, 10, 8)
+        () =>
+          h(
+            'span',
+            { class: 'table-ellipsis', style: { maxWidth: `${width}px` } },
+            truncateMiddle(normalizedTxid, 12, 8)
+          )
       )
   )
 }
 
-const handleGoRelatedOrder = (orderNo: string) => {
-  if (!orderNo || orderNo === '-') return
-  router.push({
-    path: '/financial_manage/resource_order',
-    query: { keyword: orderNo }
-  })
-}
-
-const renderRelatedOrder = (row: ChainRecordItem) => {
-  const orderNo = getRelatedOrderNo(row)
-  if (!orderNo || orderNo === '-') return h('span', '-')
-
-  return h(
-    ElLink,
-    {
-      type: 'primary',
-      underline: false,
-      onClick: () => handleGoRelatedOrder(orderNo)
-    },
-    () => orderNo
-  )
-}
-
-const renderStatus = (row: ChainRecordItem) => {
-  const status = pickValue(row, ['chain_status', 'onchain_status', 'status'])
-  const meta = resolveStatusMeta(status)
-  return h(
-    ElTag,
-    {
-      type: meta.type,
-      effect: 'plain',
-      class: 'status-tag'
-    },
-    () => meta.label
-  )
-}
-
-const buildOrderParam = (params: ChainRecordSearchParams) => {
+const buildOrderParam = (params: ResourceRechargeSearchParams) => {
   if (params.sort && params.order) {
     const direction = params.order === 'ascending' ? 'ASC' : 'DESC'
     return `${params.sort} ${direction}`
@@ -510,21 +254,16 @@ const buildOrderParam = (params: ChainRecordSearchParams) => {
   return DEFAULT_ORDER
 }
 
-const buildChainRecordParams = (params: ChainRecordSearchParams = {}) => {
-  const apiParams: SystemBillListParams & Recordable = {
+const buildResourceRechargeParams = (
+  params: ResourceRechargeSearchParams = {}
+): ChargeBillParams => {
+  const apiParams: ChargeBillParams = {
     ...createPageParams(params)
   }
 
   if (hasSearchValue(params.keyword)) apiParams.keyword = String(params.keyword).trim()
-  const selectedKinds = toNumberList(params.kinds)
-  if (selectedKinds.length > 0) {
-    apiParams.kinds = selectedKinds
-  }
-  if (hasSearchValue(params.direction)) {
-    apiParams.flow = DIRECTION_FLOW_MAP[params.direction as ChainRecordDirection]
-  }
-  if (hasSearchValue(params.coin)) apiParams.coin = String(params.coin)
-  if (hasSearchValue(params.price_id)) apiParams.price_id = Number(params.price_id)
+  if (hasSearchValue(params.kind)) apiParams.kind = String(params.kind)
+  if (hasSearchValue(params.status)) apiParams.status = Number(params.status)
   apiParams.order = buildOrderParam(params)
 
   Object.assign(apiParams, dateRangeToSeconds(params.dateRange))
@@ -532,228 +271,191 @@ const buildChainRecordParams = (params: ChainRecordSearchParams = {}) => {
   return apiParams
 }
 
-const aggregateListSummary = (list: ChainRecordItem[]) => {
-  return list.reduce((summary, item) => {
-    const amount = Math.abs(parseAmount(getAmountValue(item)))
-    const currency = getCurrency(item)
-    const direction = getDirection(item)
-
-    if (direction === 'out' && currency === 'U') summary.totalOutU += amount
-    if (direction === 'out' && currency === 'T') summary.totalOutT += amount
-    if (direction === 'in' && currency === 'U') summary.totalInU += amount
-    if (direction === 'in' && currency === 'T') summary.totalInT += amount
-
-    return summary
-  }, createEmptySummary())
+const getStatsRecord = (data: ChargeBillResponse) => {
+  const dataRecord = data as unknown as Record<string, unknown>
+  return isRecord(dataRecord.stats) ? dataRecord.stats : undefined
 }
 
-const pickSummaryNumber = (sources: Array<Record<string, unknown> | undefined>, keys: string[]) => {
-  for (const source of sources) {
-    if (!source) continue
-    const value = pickValue(source, keys)
-    if (hasSearchValue(value)) return parseAmount(value)
-  }
-  return undefined
+const getSummaryAmount = (data: ChargeBillResponse, list: ResourceRechargeRecord[]) => {
+  const statsRecord = getStatsRecord(data)
+  const dataRecord = data as unknown as Record<string, unknown>
+  const summaryRecord = isRecord(dataRecord.summary) ? dataRecord.summary : undefined
+  const amount =
+    pickValue(statsRecord || {}, ['sum_amount', 'amount', 'total_amount']) ??
+    pickValue(summaryRecord || {}, ['sum_amount', 'amount', 'total_amount']) ??
+    pickValue(dataRecord, ['sum_amount', 'amount', 'total_amount'])
+
+  return amount === undefined
+    ? list.reduce((sum, item) => sum + Math.abs(parseAmount(item.amount)), 0)
+    : parseAmount(amount)
 }
 
 const applySummaryStats = (
-  data: SystemBillListResponse,
-  list: ChainRecordItem[],
+  data: ChargeBillResponse,
+  list: ResourceRechargeRecord[],
   total: number
 ) => {
-  const dataRecord = data as unknown as Record<string, unknown>
-  const summaryRecord = isRecord(data.summary) ? data.summary : undefined
-  const statsRecord = isRecord(dataRecord.stats) ? dataRecord.stats : undefined
-  const sources = [summaryRecord, statsRecord, dataRecord]
-  const aggregate = aggregateListSummary(list)
-
   summaryStats.value = {
-    todayCount:
-      pickSummaryNumber(sources, [
-        'today_count',
-        'today_transaction_count',
-        'today_total',
-        'transaction_count',
-        'count',
-        'total'
-      ]) ??
-      total ??
-      list.length,
-    totalOutU:
-      pickSummaryNumber(sources, [
-        'sum_flow_out_usdt',
-        'total_out_u',
-        'out_u',
-        'out_amount_u',
-        'withdraw_u',
-        'total_withdraw_u',
-        'total_out_usdt',
-        'usdt_out'
-      ]) ?? aggregate.totalOutU,
-    totalOutT:
-      pickSummaryNumber(sources, [
-        'sum_flow_out_trx',
-        'total_out_t',
-        'out_t',
-        'out_amount_t',
-        'withdraw_t',
-        'total_withdraw_t',
-        'total_out_trx',
-        'trx_out'
-      ]) ?? aggregate.totalOutT,
-    totalInU:
-      pickSummaryNumber(sources, [
-        'sum_flow_in_usdt',
-        'total_in_u',
-        'in_u',
-        'in_amount_u',
-        'receive_u',
-        'total_receive_u',
-        'total_in_usdt',
-        'usdt_in'
-      ]) ?? aggregate.totalInU,
-    totalInT:
-      pickSummaryNumber(sources, [
-        'sum_flow_in_trx',
-        'total_in_t',
-        'in_t',
-        'in_amount_t',
-        'receive_t',
-        'total_receive_t',
-        'total_in_trx',
-        'trx_in'
-      ]) ?? aggregate.totalInT
+    count: total || list.length,
+    amount: getSummaryAmount(data, list)
   }
 }
 
-const fetchChainRecordList = async (params: ChainRecordSearchParams = {}) => {
+const hasFilterValue = (value: unknown) =>
+  Array.isArray(value) ? value.length > 0 : hasSearchValue(value)
+
+const fetchResourceRechargeRecordList = async (params: ResourceRechargeSearchParams = {}) => {
   try {
-    const res = await v1GetSystemBillList(buildChainRecordParams(params))
+    const response = await getChargeBillList(buildResourceRechargeParams(params))
 
-    if (res?.code === '000000' && res.data) {
-      const list = ((res.data.list || []) as ChainRecordItem[]).map((item) => ({ ...item }))
-      const total = res.data.pager?.total || list.length || 0
+    if (response?.code === '000000' && response.data) {
+      const list = ((response.data.list || []) as ResourceRechargeRecord[]).map((item) => ({
+        ...item
+      }))
+      const total = response.data.pager?.total || list.length || 0
 
-      applySummaryStats(res.data, list, total)
+      applySummaryStats(response.data, list, total)
       handleListMessage(
         list,
-        [
-          params.keyword,
-          params.kinds,
-          params.direction,
-          params.coin,
-          params.price_id,
-          params.dateRange
-        ].some(hasFilterValue),
-        '链上出入记录'
+        [params.keyword, params.kind, params.status, params.dateRange].some(hasFilterValue),
+        '资源充值记录'
       )
 
       return { list, total }
     }
 
-    summaryStats.value = createEmptySummary()
+    summaryStats.value = { count: 0, amount: 0 }
     return { list: [], total: 0 }
   } catch (error) {
-    summaryStats.value = createEmptySummary()
-    handleErrorMessage(error, '获取链上出入记录失败')
+    summaryStats.value = { count: 0, amount: 0 }
+    handleErrorMessage(error, '获取资源充值记录失败')
     return { list: [], total: 0 }
   }
 }
 
+const handleViewDetail = (row: ResourceRechargeRecord) => {
+  currentRecord.value = { ...row }
+  detailVisible.value = true
+}
+
+const renderDetailText = (value?: unknown) => h('span', normalizeText(value))
+
+const renderDetailLink = (value?: unknown) => {
+  const text = normalizeText(value, '')
+  if (!text) return h('span', '-')
+
+  return h(
+    ElLink,
+    {
+      type: 'primary',
+      href: getTronscanTransactionUrl(text),
+      target: '_blank',
+      underline: false
+    },
+    () => text
+  )
+}
+
+const createDetailSchema = (fields: DetailField[]): DescriptionsSchema[] =>
+  fields.map((item) => ({
+    field: item.label,
+    label: item.label,
+    span: 24,
+    slots: {
+      default: () => {
+        if (item.status) {
+          return renderStatusTag(RESOURCE_RECHARGE_STATUS_MAP, item.value as number, '未知')
+        }
+        if (item.link) return renderDetailLink(item.value)
+        return renderDetailText(item.value)
+      }
+    }
+  }))
+
+const orderDetailSchema = computed<DescriptionsSchema[]>(() => {
+  const row = currentRecord.value
+  if (!row) return []
+
+  return createDetailSchema([
+    { label: '账单ID', value: getRecordId(row) },
+    { label: '账单类型', value: getAccountKind(row) },
+    { label: '充值金额', value: getRechargeAmount(row) },
+    { label: '充值时间', value: getRechargeTime(row) },
+    { label: '状态', value: getStatus(row), status: true },
+    { label: '备注', value: getRemark(row) }
+  ])
+})
+
+const addressDetailSchema = computed<DescriptionsSchema[]>(() => {
+  const row = currentRecord.value
+  if (!row) return []
+
+  return createDetailSchema([
+    { label: '财务地址', value: getVaultAddress(row) },
+    { label: '充值地址', value: getTargetAddress(row) },
+    { label: '充值哈希', value: getRechargeTxid(row), link: true }
+  ])
+})
+
 const summaryCards = computed(() => [
   {
-    key: 'today-count',
-    label: '交易笔数',
-    value: formatNumber(summaryStats.value.todayCount, 0, 0),
+    key: 'count',
+    label: '充值笔数',
+    value: formatNumber(summaryStats.value.count, 0, 0),
     valueClass: ''
   },
   {
-    key: 'out-u',
-    label: '总出款金额（USDT）',
-    value: formatSummaryAmount(summaryStats.value.totalOutU),
-    valueClass: 'negative-value'
-  },
-  {
-    key: 'out-t',
-    label: '总出款金额（TRX）',
-    value: formatSummaryAmount(summaryStats.value.totalOutT),
-    valueClass: 'negative-value'
-  },
-  {
-    key: 'in-total',
-    label: '总收款金额',
-    value: `${formatSummaryAmount(summaryStats.value.totalInT)} TRX / ${formatSummaryAmount(
-      summaryStats.value.totalInU
-    )} USDT`,
+    key: 'amount',
+    label: '充值金额',
+    value: formatNumber(summaryStats.value.amount, 2, 8),
     valueClass: 'positive-value'
   }
 ])
 
 const columns: TableColumn[] = [
   {
-    field: 'related_order_no',
-    label: '关联订单号',
-    minWidth: 150,
-    slots: {
-      default: ({ row }: ChainRecordTableSlot) => renderRelatedOrder(row)
-    }
+    field: 'id',
+    label: '账单ID',
+    minWidth: 110,
+    formatter: (row: ResourceRechargeRecord) => getRecordId(row)
   },
   {
-    field: 'transaction_type',
-    label: '交易类型',
-    minWidth: 150,
-    formatter: (row: ChainRecordItem) => getTransactionType(row)
-  },
-  {
-    field: 'price_id',
-    label: '代理等级',
-    minWidth: 120,
-    formatter: (row: ChainRecordItem) => getAgentLevelLabel(row)
-  },
-  {
-    field: 'direction',
-    label: '出入款',
-    width: 90,
-    slots: {
-      default: ({ row }: ChainRecordTableSlot) => renderDirectionTag(row)
-    }
+    field: 'kind',
+    label: '账单类型',
+    minWidth: 110,
+    formatter: (row: ResourceRechargeRecord) => getAccountKind(row)
   },
   {
     field: 'amount',
-    label: '数量',
-    minWidth: 110,
+    label: '充值金额',
+    minWidth: 120,
     slots: {
-      default: ({ row }: ChainRecordTableSlot) => renderAmount(row)
+      default: ({ row }: ResourceRechargeTableSlot) =>
+        h('span', { class: 'amount-positive' }, getRechargeAmount(row))
     }
   },
   {
-    field: 'coin',
-    label: '币种',
-    width: 90,
-    formatter: (row: ChainRecordItem) => getCoinDisplay(row)
-  },
-  {
-    field: 'from_address',
-    label: '出款地址',
-    minWidth: 170,
+    field: 'vault',
+    label: '财务地址',
+    minWidth: 180,
     slots: {
-      default: ({ row }: ChainRecordTableSlot) => renderTooltipText(getFromAddress(row), 145)
+      default: ({ row }: ResourceRechargeTableSlot) => renderTooltipText(getVaultAddress(row), 155)
     }
   },
   {
-    field: 'to_address',
-    label: '收款地址',
-    minWidth: 170,
+    field: 'target',
+    label: '充值地址',
+    minWidth: 180,
     slots: {
-      default: ({ row }: ChainRecordTableSlot) => renderTooltipText(getToAddress(row), 145)
+      default: ({ row }: ResourceRechargeTableSlot) => renderTooltipText(getTargetAddress(row), 155)
     }
   },
   {
     field: 'txid',
-    label: '交易哈希',
-    minWidth: 220,
+    label: '充值哈希',
+    minWidth: 230,
     slots: {
-      default: ({ row }: ChainRecordTableSlot) => renderTxidLink(row)
+      default: ({ row }: ResourceRechargeTableSlot) => renderTxidLink(getRechargeTxid(row))
     }
   },
   {
@@ -761,21 +463,40 @@ const columns: TableColumn[] = [
     label: '链上状态',
     width: 110,
     slots: {
-      default: ({ row }: ChainRecordTableSlot) => renderStatus(row)
+      default: ({ row }: ResourceRechargeTableSlot) =>
+        renderStatusTag(RESOURCE_RECHARGE_STATUS_MAP, getStatus(row) as number, '未知')
     }
+  },
+  {
+    field: 'created_at',
+    label: '充值时间',
+    sortable: 'custom',
+    width: 180,
+    formatter: (row: ResourceRechargeRecord) => getRechargeTime(row)
   },
   {
     field: 'describe',
     label: '备注',
-    minWidth: 150,
-    formatter: (row: ChainRecordItem) => getRemark(row)
+    minWidth: 140,
+    formatter: (row: ResourceRechargeRecord) => getRemark(row)
   },
   {
-    field: 'created_at',
-    label: '交易时间',
-    sortable: 'custom',
-    width: 180,
-    formatter: (row: ChainRecordItem) => formatTableDateTime(row.created_at)
+    field: 'action',
+    label: '操作',
+    width: 100,
+    fixed: 'right',
+    slots: {
+      default: ({ row }: ResourceRechargeTableSlot) =>
+        h(
+          BaseButton,
+          {
+            type: 'primary',
+            size: 'small',
+            onClick: () => handleViewDetail(row)
+          },
+          () => '查看'
+        )
+    }
   }
 ]
 
@@ -783,68 +504,39 @@ const searchSchema = ref<FormSchema[]>([
   {
     field: 'keyword',
     component: 'Input' as const,
-    label: {
-      tips: '交易哈希/收款地址/出款地址/关联订单ID',
-      text: '关键词'
-    },
+    label: '关键词',
     componentProps: {
-      placeholder: '请输入关键词',
+      placeholder: '账单ID / 财务地址 / 充值地址 / 交易哈希',
       clearable: true,
       style: { width: '260px' }
     }
   },
   {
-    field: 'kinds',
+    field: 'kind',
     component: 'Select' as const,
-    label: '交易类型',
+    label: '账单类型',
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      multiple: true,
-      collapseTags: true,
-      collapseTagsTooltip: true,
-      maxCollapseTags: 1,
-      options: SYSTEM_BILL_KIND_OPTIONS,
-      style: { width: '220px' }
-    }
-  },
-  {
-    field: 'price_id',
-    component: 'Select' as const,
-    label: '代理等级',
-    componentProps: {
-      placeholder: '全部',
-      clearable: true,
-      options: AGENT_LEVEL_OPTIONS,
+      options: ACCOUNT_KIND_OPTIONS,
       style: { width: '150px' }
     }
   },
   {
-    field: 'direction',
+    field: 'status',
     component: 'Select' as const,
-    label: '出入款',
+    label: '状态',
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: DIRECTION_OPTIONS,
-      style: { width: '150px' }
-    }
-  },
-  {
-    field: 'coin',
-    component: 'Select' as const,
-    label: '币种',
-    componentProps: {
-      placeholder: '全部',
-      clearable: true,
-      options: CURRENCY_OPTIONS,
+      options: RESOURCE_RECHARGE_STATUS_OPTIONS,
       style: { width: '140px' }
     }
   },
   {
     field: 'dateRange',
     component: 'DatePicker' as const,
-    label: '交易日期',
+    label: '日期',
     componentProps: {
       type: 'daterange',
       unlinkPanels: true,
@@ -860,15 +552,15 @@ const searchSchema = ref<FormSchema[]>([
 </script>
 
 <style scoped>
-.chain-record-page {
+.resource-recharge-record-page {
   padding: 0;
 }
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(180px, 225px));
+  grid-template-columns: repeat(2, minmax(180px, 225px));
   gap: 38px;
-  margin: 14px 0 20px;
+  margin: 14px 0 30px;
 }
 
 .summary-card {
@@ -900,11 +592,6 @@ const searchSchema = ref<FormSchema[]>([
   color: #67c23a;
 }
 
-.negative-value,
-:deep(.amount-negative) {
-  color: #f56c6c;
-}
-
 .table-ellipsis {
   display: inline-block;
   overflow: hidden;
@@ -913,16 +600,24 @@ const searchSchema = ref<FormSchema[]>([
   vertical-align: middle;
 }
 
-:deep(.direction-tag),
-:deep(.status-tag) {
-  min-width: 48px;
-  justify-content: center;
+.txid-link {
+  max-width: 100%;
 }
 
-@media (width <= 1280px) {
-  .summary-grid {
-    grid-template-columns: repeat(2, minmax(180px, 225px));
-  }
+.detail-section-title {
+  padding: 0 0 14px 2px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #303133;
+}
+
+.detail-section-space {
+  padding-top: 22px;
+}
+
+:deep(.el-tag) {
+  min-width: 56px;
+  justify-content: center;
 }
 
 @media (width <= 768px) {

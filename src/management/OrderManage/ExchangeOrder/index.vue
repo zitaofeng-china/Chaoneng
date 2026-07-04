@@ -80,7 +80,6 @@ import {
   v1GetExchangeOrderDetail
 } from '@/api/management/OrderManage/ExchangeOrder'
 import { Icon } from '@/components/Icon'
-import { ExchangeOrderListItem } from '@/api/common/exchange_transaction'
 import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
 import {
   dateRangeToSeconds,
@@ -88,7 +87,10 @@ import {
   hasSearchValue,
   type DateRangeValue
 } from '@/utils/tableHelpers'
-import type { ExchangeOrderListParamsV1 } from '@/api/management/OrderManage/ExchangeOrder'
+import type {
+  ExchangeOrderItemV1,
+  ExchangeOrderListParamsV1
+} from '@/api/management/OrderManage/ExchangeOrder'
 
 // const { t } = useI18n()
 const router = useRouter()
@@ -371,13 +373,13 @@ const columns: TableColumn[] = [
     formatter: (row) => row.actual_rate || '-'
   },
   {
-    field: 'agent_profit',
-    label: '代理利润',
+    field: 'agent_cost',
+    label: '代理扣费',
     width: 120,
     showOverflowTooltip: false,
     formatter: (row) =>
-      row.agent_profit !== undefined && row.agent_profit !== null && row.agent_profit !== ''
-        ? `${row.agent_profit} TRX`
+      row.agent_cost !== undefined && row.agent_cost !== null && row.agent_cost !== ''
+        ? `${row.agent_cost} TRX`
         : '-'
   },
   {
@@ -386,7 +388,7 @@ const columns: TableColumn[] = [
     width: 140,
     showOverflowTooltip: false,
     slots: {
-      default: ({ row }: { row: ExchangeOrderListItem }) => {
+      default: ({ row }: { row: ExchangeOrderItemV1 & { order_type: number } }) => {
         const orderTypeMap: Record<number, { label: string; color: string }> = {
           1: { label: 'USDT  → TRX', color: '#67C23A' }, // 绿色
           2: { label: 'TRX  → USDT', color: '#409EFF' } // 蓝色
@@ -681,6 +683,7 @@ const handleExport = async () => {
         兑换金额: item.out_amount || '-',
         兑换币种: item.out_coin || '-',
         兑换汇率: item.actual_rate || '-',
+        代理扣费: item.agent_cost || '-',
         订单状态: getStatusText(item.status),
         备注: item.describe || '-',
         创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',

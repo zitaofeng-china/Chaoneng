@@ -271,10 +271,17 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
         },
         {
           path: 'resource_account_recharge_record',
-          alias: '/financial_manage/on_chain_in_out_record',
           component: () =>
             import('@/operation/FinancialManage/ResourceAccountRechargeRecord/index.vue'),
           name: 'ResourceAccountRechargeRecord',
+          meta: {
+            title: '资源充值记录'
+          }
+        },
+        {
+          path: 'on_chain_in_out_record',
+          component: () => import('@/operation/FinancialManage/OnChainInOutRecord/index.vue'),
+          name: 'OnChainInOutRecord',
           meta: {
             title: '链上出入记录'
           }

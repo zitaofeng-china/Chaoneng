@@ -160,6 +160,7 @@ const formatNumber = (value: unknown, fractionDigits = 0) => {
 }
 
 const formatMoney = (value: unknown) => formatNumber(value, 6).replace(/\.0+$/, '')
+const hasDisplayValue = (value: unknown) => value !== undefined && value !== null && value !== ''
 const getOrderId = (row: EnergyOutboundOrderItem) => row.order_id || row.id || 0
 const getPeriod = (row: EnergyOutboundOrderItem) => row.period || row.settlement_period || '-'
 const getExpenseAmount = (row: EnergyOutboundOrderItem) =>
@@ -251,8 +252,8 @@ const detailSections = computed<DetailDisplaySection[]>(() => {
 
   const orderId = row ? getOrderId(row) : detail?.id
   const amount = row?.amount ?? detail?.amount
-  const expenseAmount = row ? formatMoney(getExpenseAmount(row)) : '-'
-  const txid = row?.txid || ''
+  const expenseValue = (row ? getExpenseAmount(row) : undefined) ?? detail?.profit_sum
+  const expenseAmount = hasDisplayValue(expenseValue) ? formatMoney(expenseValue) : '-'
 
   return [
     {
@@ -260,28 +261,7 @@ const detailSections = computed<DetailDisplaySection[]>(() => {
       items: [
         { label: '订单ID', value: String(orderId || '-') },
         { label: '代理名称', value: detail?.agent_name || row?.agent_name || '-' },
-        { label: '机器人名称', value: detail?.bot_name || row?.bot_name || '-' },
-        { label: '结算周期', value: row ? getPeriod(row) : '-' },
-        { label: '数量', value: formatNumber(amount) },
-        { label: 'SUN/天', value: String(row?.price ?? '-') },
-        { label: '时长', value: formatDuration(row?.duration) },
-        {
-          label: '支出金额',
-          value: row ? `${expenseAmount} TRX` : '-',
-          valueClass: 'green-value'
-        },
-        {
-          label: '结算状态',
-          value: SETTLEMENT_RECORD_STATUS_MAP[Number(row?.status)]?.label || '-',
-          valueClass: row?.status ? 'green-value' : undefined
-        },
-        {
-          label: '交易哈希',
-          value: txid || '-',
-          href: getTxidHref(txid)
-        },
-        { label: '创建时间', value: row ? formatTableDateTime(row.created_at) : '-' },
-        { label: '备注', value: row ? getRemark(row) : '-' }
+        { label: '机器人', value: detail?.bot_name || row?.bot_name || '-' }
       ]
     },
     {
@@ -290,6 +270,20 @@ const detailSections = computed<DetailDisplaySection[]>(() => {
         { label: '用户发送地址', value: detail?.source || '-' },
         { label: '用户接收地址', value: detail?.receiver || '-' },
         { label: '系统结算地址', value: detail?.target || '-' }
+      ]
+    },
+    {
+      title: '结算金额',
+      items: [
+        { label: '结算周期', value: row ? getPeriod(row) : '-' },
+        { label: '数量', value: formatNumber(amount) },
+        { label: 'SUN/天', value: String(row?.price ?? '-') },
+        { label: '时长', value: formatDuration(row?.duration) },
+        {
+          label: '支出金额',
+          value: expenseAmount === '-' ? '-' : `${expenseAmount} TRX`,
+          valueClass: 'green-value'
+        }
       ]
     }
   ]
