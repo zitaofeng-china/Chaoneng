@@ -17,8 +17,8 @@ export interface BlackListParamsV1 {
   current_page?: number // 当前页码
   page_size?: number // 每页大小
   address?: string // 地址
-  keyword?: string // 关键字
-  agent_id?: number // 代理ID
+  scope?: number | string // 限制订单类型
+  status?: number | string // 状态：1启用，2禁用
   order?: string // 排序参数（例如：created_at ASC）
 }
 
@@ -33,6 +33,9 @@ export interface BlackListItemV1 {
   address: string // 地址
   describe: string // 描述
   agent_name: string // 代理名称
+  created_by?: string // 创建人
+  scopes?: number[] | string // 限制订单类型
+  status?: number | string // 状态：1启用，2禁用
 }
 
 /**
@@ -48,7 +51,22 @@ export interface BlackListResponseV1 {
  */
 export interface CreateBlackListParamsV1 {
   address: string // 地址（必填）
-  describe: string // 描述（必填）
+  agent_id?: number // 代理ID
+  describe?: string // 描述
+  scopes: number[] // 限制订单类型
+  status: number // 状态：1启用，2禁用
+}
+
+/**
+ * 更新黑名单请求参数 - 新接口 v1
+ */
+export interface UpdateBlackListParamsV1 {
+  id?: number // 黑名单ID
+  address: string // 地址（必填）
+  agent_id?: number // 代理ID
+  describe?: string // 描述
+  scopes: number[] // 限制订单类型
+  status: number // 状态：1启用，2禁用
 }
 
 /**
