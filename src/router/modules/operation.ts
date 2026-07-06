@@ -178,6 +178,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           }
         },
         {
+          path: 'address_blacklist',
+          component: () => import('@/operation/Marketing/AddressBlacklist/index.vue'),
+          name: 'AddressBlacklist',
+          meta: {
+            title: '地址黑名单',
+            buttonList: ['add', 'edit', 'delete']
+          }
+        },
+        {
           path: 'trx_address_book',
           component: () => import('@/operation/Marketing/TrxAddressBook/index.vue'),
           name: 'TrxAddressBook',
