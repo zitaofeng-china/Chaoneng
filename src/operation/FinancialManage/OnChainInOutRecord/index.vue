@@ -711,15 +711,6 @@ const filterListByStatus = (list: ChainRecordItem[], status?: unknown) => {
   return list.filter((item) => getChainRecordStatus(item) === selectedStatus)
 }
 
-const paginateList = (list: ChainRecordItem[], params: ChainRecordSearchParams) => {
-  const pageSize = Number(params.page_size) || 10
-  const currentPage = Number(params.current_page) || 1
-  if (pageSize <= 0 || currentPage <= 0) return list
-
-  const start = (currentPage - 1) * pageSize
-  return list.slice(start, start + pageSize)
-}
-
 const aggregateListSummary = (list: ChainRecordItem[]) =>
   list.reduce((summary, item) => {
     const amount = Math.abs(parseAmount(getAmountValue(item)))
@@ -806,39 +797,17 @@ const applySummaryStats = (
   }
 }
 
-const applyFilteredSummaryStats = (list: ChainRecordItem[]) => {
-  const aggregate = aggregateListSummary(list)
-
-  summaryStats.value = {
-    todayCount: list.length,
-    totalOutU: aggregate.totalOutU,
-    totalOutT: aggregate.totalOutT,
-    totalInU: aggregate.totalInU,
-    totalInT: aggregate.totalInT
-  }
-}
-
 const fetchChainRecordList = async (params: ChainRecordSearchParams = {}) => {
   try {
-    const selectedStatus = parseChainRecordStatus(params.status)
-    const apiParams = selectedStatus
-      ? buildChainRecordParams({ ...params, current_page: -1, page_size: -1 })
-      : buildChainRecordParams(params)
+    const apiParams = buildChainRecordParams(params)
     const res = await v1GetSystemBillList(apiParams)
 
     if (res?.code === '000000' && res.data) {
       const list = ((res.data.list || []) as ChainRecordItem[]).map((item) => ({ ...item }))
       const filteredList = filterListByStatus(list, params.status)
-      const tableList = selectedStatus ? paginateList(filteredList, params) : filteredList
-      const total = selectedStatus
-        ? filteredList.length
-        : res.data.pager?.total || filteredList.length || 0
+      const total = res.data.pager?.total ?? filteredList.length
 
-      if (selectedStatus) {
-        applyFilteredSummaryStats(filteredList)
-      } else {
-        applySummaryStats(res.data, filteredList, total)
-      }
+      applySummaryStats(res.data, filteredList, total)
       handleListMessage(
         filteredList,
         [
@@ -853,7 +822,7 @@ const fetchChainRecordList = async (params: ChainRecordSearchParams = {}) => {
         '链上出入记录'
       )
 
-      return { list: tableList, total }
+      return { list: filteredList, total }
     }
 
     summaryStats.value = createEmptySummary()
