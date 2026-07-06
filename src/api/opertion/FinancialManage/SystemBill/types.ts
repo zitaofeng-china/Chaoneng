@@ -53,8 +53,16 @@ export interface SystemBillSummary extends Recordable {
   total_in_t?: number | string
 }
 
+export interface SystemBillStats extends Recordable {
+  sum_flow_in_trx?: number | string
+  sum_flow_in_usdt?: number | string
+  sum_flow_out_trx?: number | string
+  sum_flow_out_usdt?: number | string
+}
+
 export interface SystemBillListResponse extends Recordable {
   list: SystemBillItem[]
   pager: SystemBillPager
   summary?: SystemBillSummary
+  stats?: SystemBillStats | SystemBillStats[]
 }

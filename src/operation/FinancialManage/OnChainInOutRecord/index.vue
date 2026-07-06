@@ -734,6 +734,11 @@ const aggregateListSummary = (list: ChainRecordItem[]) =>
     return summary
   }, createEmptySummary())
 
+const normalizeSummaryRecords = (value: unknown): Record<string, unknown>[] => {
+  if (Array.isArray(value)) return value.filter(isRecord)
+  return isRecord(value) ? [value] : []
+}
+
 const pickSummaryNumber = (sources: Array<Record<string, unknown> | undefined>, keys: string[]) => {
   for (const source of sources) {
     if (!source) continue
@@ -750,8 +755,8 @@ const applySummaryStats = (
 ) => {
   const dataRecord = data as unknown as Record<string, unknown>
   const summaryRecord = isRecord(data.summary) ? data.summary : undefined
-  const statsRecord = isRecord(dataRecord.stats) ? dataRecord.stats : undefined
-  const sources = [summaryRecord, statsRecord, dataRecord]
+  const statsRecords = normalizeSummaryRecords(dataRecord.stats)
+  const sources = [...statsRecords, summaryRecord, dataRecord]
   const aggregate = aggregateListSummary(list)
 
   summaryStats.value = {
@@ -767,17 +772,37 @@ const applySummaryStats = (
       total ??
       list.length,
     totalOutU:
-      pickSummaryNumber(sources, ['total_out_u', 'out_u', 'total_out_usdt', 'usdt_out']) ??
-      aggregate.totalOutU,
+      pickSummaryNumber(sources, [
+        'sum_flow_out_usdt',
+        'total_out_u',
+        'out_u',
+        'total_out_usdt',
+        'usdt_out'
+      ]) ?? aggregate.totalOutU,
     totalOutT:
-      pickSummaryNumber(sources, ['total_out_t', 'out_t', 'total_out_trx', 'trx_out']) ??
-      aggregate.totalOutT,
+      pickSummaryNumber(sources, [
+        'sum_flow_out_trx',
+        'total_out_t',
+        'out_t',
+        'total_out_trx',
+        'trx_out'
+      ]) ?? aggregate.totalOutT,
     totalInU:
-      pickSummaryNumber(sources, ['total_in_u', 'in_u', 'total_in_usdt', 'usdt_in']) ??
-      aggregate.totalInU,
+      pickSummaryNumber(sources, [
+        'sum_flow_in_usdt',
+        'total_in_u',
+        'in_u',
+        'total_in_usdt',
+        'usdt_in'
+      ]) ?? aggregate.totalInU,
     totalInT:
-      pickSummaryNumber(sources, ['total_in_t', 'in_t', 'total_in_trx', 'trx_in']) ??
-      aggregate.totalInT
+      pickSummaryNumber(sources, [
+        'sum_flow_in_trx',
+        'total_in_t',
+        'in_t',
+        'total_in_trx',
+        'trx_in'
+      ]) ?? aggregate.totalInT
   }
 }
 
@@ -877,7 +902,7 @@ const handleExport = async () => {
       mapItem: (item) => ({
         关联订单号: getRelatedOrderNo(item),
         交易类型: getTransactionType(item),
-        代理等级: getAgentLevelLabel(item),
+        分类: getAgentLevelLabel(item),
         出入款: getDirection(item) === 'out' ? '出款' : '收款',
         数量: formatAmountDisplay(item),
         币种: getCurrencyLabel(item),
@@ -943,7 +968,7 @@ const columns: TableColumn[] = [
   },
   {
     field: 'price_id',
-    label: '代理等级',
+    label: '分类',
     minWidth: 120,
     formatter: (row: ChainRecordItem) => getAgentLevelLabel(row)
   },
@@ -1049,7 +1074,7 @@ const searchSchema = ref<FormSchema[]>([
   {
     field: 'price_id',
     component: 'Select' as const,
-    label: '代理等级',
+    label: '分类',
     componentProps: {
       placeholder: '全部',
       clearable: true,
