@@ -86,8 +86,23 @@ type DepositSearchParams = Omit<V2DepositListParams, 'origin' | 'status'> & {
 
 type DepositExportRow = Record<string, string>
 type DepositTableSlot = TableSlot<V2DepositItem>
+type DepositOrderExchangeInfo = {
+  real_rate?: string | number | null
+  actual_rate?: string | number | null
+  agent_profit?: string | number | null
+  plate_profit?: string | number | null
+  out_amount?: string | number | null
+  out_coin?: string | null
+}
 type DepositOrderDetail = Partial<V2DepositDetail> & {
   pay_from?: string
+  real_rate?: string | number | null
+  actual_rate?: string | number | null
+  agent_profit?: string | number | null
+  plate_profit?: string | number | null
+  out_amount?: string | number | null
+  out_coin?: string | null
+  exchange?: DepositOrderExchangeInfo | null
 }
 
 const currentSearchParams = ref<DepositSearchParams>({})
@@ -139,6 +154,49 @@ const renderRechargeCoinTag = (coin?: string | null) => {
   )
 }
 
+const formatDetailText = (value?: string | number | null) => {
+  if (value === undefined || value === null || value === '') return '-'
+  return String(value)
+}
+
+const getExchangeDetailField = <K extends keyof DepositOrderExchangeInfo>(
+  row: DepositOrderDetail,
+  field: K
+) => {
+  return row.exchange?.[field] ?? row[field]
+}
+
+const formatDetailPercent = (value?: string | number | null) => {
+  const text = formatDetailText(value)
+  if (text === '-') return text
+  if (text.endsWith('%')) return text
+
+  const numericValue = Number(text)
+  if (Number.isNaN(numericValue)) return text
+
+  const percentValue = Math.abs(numericValue) <= 1 ? numericValue * 100 : numericValue
+  return `${Number(percentValue.toFixed(4)).toString()}%`
+}
+
+const getRechargeProfitText = (row: DepositOrderDetail) => {
+  const plateProfit = formatDetailPercent(getExchangeDetailField(row, 'plate_profit'))
+  const agentProfit = formatDetailPercent(getExchangeDetailField(row, 'agent_profit'))
+
+  if (plateProfit === '-' && agentProfit === '-') return '-'
+  return `${plateProfit}/${agentProfit}`
+}
+
+const getReceivedAmountText = (row: DepositOrderDetail) => {
+  const amount = getExchangeDetailField(row, 'out_amount') ?? row.cost
+  const formattedAmount = formatDetailText(amount)
+  if (formattedAmount === '-') return formattedAmount
+
+  const receivedCoin =
+    getExchangeDetailField(row, 'out_coin') || (row.coin === 'USDT' ? 'TRX' : row.coin) || 'TRX'
+
+  return `${formattedAmount} ${receivedCoin}`
+}
+
 const buildDepositListParams = (
   params: DepositSearchParams = {},
   pageSize?: number
@@ -166,12 +224,13 @@ const buildDepositListParams = (
 
 const orderDetailSchema = computed(() => {
   const schema: DescriptionsSchema[] = [
-    { field: 'id', label: '订单号' },
+    { field: 'id', label: '订单号', span: 12 },
     {
       field: 'status',
       label: '订单状态',
+      span: 12,
       slots: {
-        default: (row: V2DepositDetail) => {
+        default: (row: DepositOrderDetail) => {
           if (!row) return h('span', '-')
           const tagType = getStatusType(row.status)
           return h(ElTag, { type: tagType, size: 'small' }, () => getStatusText(row.status))
@@ -181,8 +240,9 @@ const orderDetailSchema = computed(() => {
     {
       field: 'coin',
       label: '订单类型',
+      span: 12,
       slots: {
-        default: (row: V2DepositDetail) => {
+        default: (row: DepositOrderDetail) => {
           return renderRechargeCoinTag(row.coin)
         }
       }
@@ -190,19 +250,55 @@ const orderDetailSchema = computed(() => {
     {
       field: 'amount',
       label: '金额',
+      span: 12,
       slots: {
-        default: (row: V2DepositDetail) => {
+        default: (row: DepositOrderDetail) => {
           if (!row || !row.amount) return h('span', '-')
           return h('span', `${row.amount} ${row.coin || ''}`)
         }
       }
     },
-    { field: 'describe', label: '备注' },
+    {
+      field: 'real_rate',
+      label: '实时汇率',
+      span: 12,
+      slots: {
+        default: (row: DepositOrderDetail) =>
+          h('span', formatDetailText(getExchangeDetailField(row, 'real_rate')))
+      }
+    },
+    {
+      field: 'plate_profit',
+      label: '运营/代理利润',
+      span: 12,
+      slots: {
+        default: (row: DepositOrderDetail) => h('span', getRechargeProfitText(row))
+      }
+    },
+    {
+      field: 'actual_rate',
+      label: '实际汇率',
+      span: 12,
+      slots: {
+        default: (row: DepositOrderDetail) =>
+          h('span', formatDetailText(getExchangeDetailField(row, 'actual_rate')))
+      }
+    },
+    {
+      field: 'out_amount',
+      label: '到账金额',
+      span: 12,
+      slots: {
+        default: (row: DepositOrderDetail) => h('span', getReceivedAmountText(row))
+      }
+    },
+    { field: 'describe', label: '备注', span: 12 },
     {
       field: 'created_at',
       label: '创建时间',
+      span: 12,
       slots: {
-        default: (row: V2DepositDetail) => {
+        default: (row: DepositOrderDetail) => {
           if (!row || !row.created_at) return h('span', '-')
           return h('span', formatTableDateTime(row.created_at))
         }
@@ -211,8 +307,9 @@ const orderDetailSchema = computed(() => {
     {
       field: 'paid_at',
       label: '支付时间',
+      span: 12,
       slots: {
-        default: (row: V2DepositDetail) => {
+        default: (row: DepositOrderDetail) => {
           if (!row || !row.paid_at) return h('span', '-')
           return h('span', formatTableDateTime(row.paid_at))
         }
@@ -224,7 +321,7 @@ const orderDetailSchema = computed(() => {
       label: '支付地址',
       span: 24,
       slots: {
-        default: (row: V2DepositDetail & { pay_from?: string }) => h('span', row.pay_from || '-')
+        default: (row: DepositOrderDetail) => h('span', row.pay_from || '-')
       }
     },
     {
@@ -232,7 +329,7 @@ const orderDetailSchema = computed(() => {
       label: '交易哈希',
       span: 24,
       slots: {
-        default: (row: V2DepositDetail) => {
+        default: (row: DepositOrderDetail) => {
           if (!row || !row.pay_id) return h('span', '-')
           return (
             <ElLink href={getTronscanTransactionUrl(row.pay_id)} type="primary" target="_blank">
