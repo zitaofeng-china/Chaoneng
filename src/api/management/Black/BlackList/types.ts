@@ -17,7 +17,7 @@ export interface BlackListParamsV1 {
   current_page?: number // 当前页码
   page_size?: number // 每页大小
   address?: string // 地址
-  scope?: number | string // 限制订单类型
+  scope?: number | string | Array<number | string> // 限制订单类型
   status?: number | string // 状态：1启用，2禁用
   order?: string // 排序参数（例如：created_at ASC）
 }

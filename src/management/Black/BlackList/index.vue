@@ -23,6 +23,14 @@
           <ElInput v-model="formData.address" placeholder="请输入地址" clearable />
         </ElFormItem>
         <ElFormItem label="限制订单类型" prop="scopes">
+          <ElCheckbox
+            :model-value="isAllScopesSelected"
+            :indeterminate="isScopeIndeterminate"
+            class="blacklist-scope-check-all"
+            @change="handleCheckAllScopes"
+          >
+            全选
+          </ElCheckbox>
           <ElCheckboxGroup v-model="formData.scopes" class="blacklist-scope-checkboxes">
             <ElCheckbox
               v-for="item in BLACKLIST_SCOPE_OPTIONS"
@@ -118,6 +126,19 @@ const formData = reactive({
 })
 
 const dialogTitle = computed(() => (dialogMode.value === 'add' ? '新增黑名单' : '编辑黑名单'))
+const allScopeValues = BLACKLIST_SCOPE_OPTIONS.map((item) => item.value)
+const isAllScopesSelected = computed(
+  () =>
+    formData.scopes.length === allScopeValues.length &&
+    allScopeValues.every((item) => formData.scopes.includes(item))
+)
+const isScopeIndeterminate = computed(
+  () => formData.scopes.length > 0 && !isAllScopesSelected.value
+)
+
+const handleCheckAllScopes = (checked: boolean) => {
+  formData.scopes = checked ? [...allScopeValues] : []
+}
 
 const validateScopes = (_rule: unknown, value: number[], callback: (error?: Error) => void) => {
   if (value.length > 0) {
@@ -273,6 +294,9 @@ const searchSchema: FormSchema[] = [
     componentProps: {
       placeholder: '全部',
       clearable: true,
+      multiple: true,
+      collapseTags: true,
+      collapseTagsTooltip: true,
       options: BLACKLIST_SCOPE_OPTIONS
     }
   },
@@ -288,6 +312,16 @@ const searchSchema: FormSchema[] = [
   }
 ]
 
+const normalizeSearchScopeParam = (value?: BlackListParamsV1['scope']) => {
+  if (Array.isArray(value)) {
+    const scopes = value.map(Number).filter((item) => !Number.isNaN(item))
+    return scopes.length > 0 ? scopes : undefined
+  }
+  if (!hasSearchValue(value)) return undefined
+  const scope = Number(value)
+  return Number.isNaN(scope) ? undefined : scope
+}
+
 const buildListParams = (params: BlackListParamsV1 = {}): BlackListParamsV1 => {
   const queryParams: BlackListParamsV1 = {
     ...createPageParams(params),
@@ -295,7 +329,8 @@ const buildListParams = (params: BlackListParamsV1 = {}): BlackListParamsV1 => {
   }
 
   if (hasSearchValue(params.address)) queryParams.address = String(params.address).trim()
-  if (hasSearchValue(params.scope)) queryParams.scope = Number(params.scope)
+  const scope = normalizeSearchScopeParam(params.scope)
+  if (scope !== undefined) queryParams.scope = scope
   if (hasSearchValue(params.status)) queryParams.status = Number(params.status)
 
   return queryParams
@@ -445,5 +480,10 @@ const handleDelete = async (row: BlackListItemV1) => {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px 12px;
+}
+
+.blacklist-scope-check-all {
+  display: block;
+  margin-bottom: 8px;
 }
 </style>
