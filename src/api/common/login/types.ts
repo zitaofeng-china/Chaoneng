@@ -43,6 +43,7 @@ export type PasswordLoginParams =
   | {
       username: string
       password: string
+      google_code?: string
     }
   | {
       encrypted: string

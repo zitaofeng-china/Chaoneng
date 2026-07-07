@@ -144,6 +144,7 @@ const clearForm = () => {
   formMethods.setValues({
     username: '',
     password: '',
+    google_code: '',
     phone: '',
     code: ''
   })
@@ -246,6 +247,27 @@ const accountSchema = reactive<FormSchema[]>([
       }
     }
   },
+  ...(isManagement
+    ? [
+        {
+          field: 'google_code',
+          label: '谷歌验证码',
+          component: 'Input',
+          colProps: { span: 24 },
+          componentProps: {
+            style: { width: '100%' },
+            placeholder: '请输入谷歌验证码',
+            maxlength: 6,
+            onKeydown: (_e: any) => {
+              if (_e.key === 'Enter') {
+                _e.stopPropagation()
+                signIn()
+              }
+            }
+          }
+        } as FormSchema
+      ]
+    : []),
   {
     field: 'tool',
     colProps: { span: 24 },
@@ -461,6 +483,7 @@ const signIn = async () => {
           const loginPayload = {
             username: formData.username,
             password: formData.password,
+            google_code: formData.google_code?.trim() || undefined,
             verify_code: formData.verify_code,
             code_id: captchaId.value
           }
