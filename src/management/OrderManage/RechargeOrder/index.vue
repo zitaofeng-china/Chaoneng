@@ -86,6 +86,55 @@ const formatDetailText = (value?: string | number | null) => {
   return String(value)
 }
 
+const getRechargeOrderTypeText = (coin?: string | null) => {
+  if (!coin) return '-'
+  return `充值${coin}`
+}
+
+const RECHARGE_COIN_TAG_MAP: Record<
+  string,
+  { color: string; backgroundColor: string; borderColor: string }
+> = {
+  USDT: {
+    color: '#409EFF',
+    backgroundColor: '#ECF5FF',
+    borderColor: '#B3D8FF'
+  },
+  TRX: {
+    color: '#E6A23C',
+    backgroundColor: '#FDF6EC',
+    borderColor: '#F3D19E'
+  }
+}
+
+const renderRechargeCoinTag = (coin?: string | null) => {
+  const normalizedCoin = coin?.toUpperCase()
+  if (!normalizedCoin) return h('span', '-')
+
+  const tagStyle = RECHARGE_COIN_TAG_MAP[normalizedCoin]
+  if (!tagStyle) return h('span', normalizedCoin)
+
+  return h(
+    ElTag,
+    {
+      size: 'small',
+      effect: 'light',
+      style: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: '76px',
+        height: '28px',
+        color: tagStyle.color,
+        backgroundColor: tagStyle.backgroundColor,
+        borderColor: tagStyle.borderColor,
+        padding: '0 16px'
+      }
+    },
+    () => normalizedCoin
+  )
+}
+
 const getExchangeDetailField = (row: any, field: string) => {
   return row?.exchange?.[field] ?? row?.[field]
 }
@@ -137,15 +186,7 @@ const orderDetailSchema = computed(() => {
       field: 'order_type',
       label: '订单类型',
       slots: {
-        default: (row: any) => {
-          return (
-            <>
-              <span style={{ color: '#409EFF', cursor: 'pointer' }}>
-                充值{row.order_type == 1 ? 'TRX' : 'USDT'}
-              </span>
-            </>
-          )
-        }
+        default: (row: any) => renderRechargeCoinTag(row.coin)
       }
     },
     { field: 'user_id', label: 'TG用户ID' },
@@ -393,7 +434,10 @@ const columns = computed<TableColumn[]>(() => {
     {
       field: 'order_type',
       label: '订单类型',
-      formatter: (row) => (row.order_type == 1 ? '充值TRX' : '充值USDT')
+      width: 120,
+      slots: {
+        default: ({ row }) => renderRechargeCoinTag(row.coin)
+      }
     },
     {
       field: 'amount',
@@ -745,7 +789,7 @@ const handleExport = async () => {
         用户邮箱: item.email || '-',
         来源: item.origin === 1 ? '机器人' : item.origin === 2 ? 'H5' : '-',
         机器人名称: item.bot_name || '-',
-        订单类型: item.coin === 'TRX' ? '充值TRX' : '充值USDT',
+        订单类型: getRechargeOrderTypeText(item.coin),
         金额: item.amount || '-',
         币种: item.coin || '-',
         订单状态: getStatusText(item.status),
