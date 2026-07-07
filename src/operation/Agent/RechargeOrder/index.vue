@@ -95,6 +95,50 @@ const currentSearchParams = ref<DepositSearchParams>({})
 const dialogVisible = ref(false)
 const orderDetail = ref<DepositOrderDetail>({})
 
+const RECHARGE_COIN_TAG_MAP: Record<
+  string,
+  { color: string; backgroundColor: string; borderColor: string }
+> = {
+  USDT: {
+    color: '#409EFF',
+    backgroundColor: '#ECF5FF',
+    borderColor: '#B3D8FF'
+  },
+  TRX: {
+    color: '#E6A23C',
+    backgroundColor: '#FDF6EC',
+    borderColor: '#F3D19E'
+  }
+}
+
+const renderRechargeCoinTag = (coin?: string | null) => {
+  const normalizedCoin = coin?.toUpperCase()
+  if (!normalizedCoin) return h('span', '-')
+
+  const tagStyle = RECHARGE_COIN_TAG_MAP[normalizedCoin]
+  if (!tagStyle) return h('span', normalizedCoin)
+
+  return h(
+    ElTag,
+    {
+      size: 'small',
+      effect: 'light',
+      style: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: '76px',
+        height: '28px',
+        color: tagStyle.color,
+        backgroundColor: tagStyle.backgroundColor,
+        borderColor: tagStyle.borderColor,
+        padding: '0 16px'
+      }
+    },
+    () => normalizedCoin
+  )
+}
+
 const buildDepositListParams = (
   params: DepositSearchParams = {},
   pageSize?: number
@@ -139,11 +183,7 @@ const orderDetailSchema = computed(() => {
       label: '订单类型',
       slots: {
         default: (row: V2DepositDetail) => {
-          return (
-            <>
-              <span style={{ color: '#409EFF', cursor: 'pointer' }}>充值{row.coin || '-'}</span>
-            </>
-          )
+          return renderRechargeCoinTag(row.coin)
         }
       }
     },
@@ -226,7 +266,9 @@ const columns = computed(() => {
       field: 'coin',
       label: '订单类型',
       width: 120,
-      formatter: (row: V2DepositItem) => (row.coin ? `充值${row.coin}` : '-')
+      slots: {
+        default: ({ row }: DepositTableSlot) => renderRechargeCoinTag(row.coin)
+      }
     },
     {
       field: 'amount',
