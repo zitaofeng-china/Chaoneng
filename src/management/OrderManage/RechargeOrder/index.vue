@@ -81,6 +81,44 @@ const activeTab = ref('order')
 const orderDetail = ref<any>({})
 const rechargeDetail = ref<any>({})
 
+const formatDetailText = (value?: string | number | null) => {
+  if (value === undefined || value === null || value === '') return '-'
+  return String(value)
+}
+
+const getExchangeDetailField = (row: any, field: string) => {
+  return row?.exchange?.[field] ?? row?.[field]
+}
+
+const formatDetailPercent = (value?: string | number | null) => {
+  const text = formatDetailText(value)
+  if (text === '-') return text
+  if (text.endsWith('%')) return text
+
+  const numericValue = Number(text)
+  if (Number.isNaN(numericValue)) return text
+
+  const percentValue = Math.abs(numericValue) <= 1 ? numericValue * 100 : numericValue
+  return `${Number(percentValue.toFixed(4)).toString()}%`
+}
+
+const getAgentProfitText = (row: any) => {
+  return formatDetailPercent(
+    getExchangeDetailField(row, 'agent_profit') ?? getExchangeDetailField(row, 'profit')
+  )
+}
+
+const getReceivedAmountText = (row: any) => {
+  const amount = getExchangeDetailField(row, 'out_amount') ?? row?.cost
+  const formattedAmount = formatDetailText(amount)
+  if (formattedAmount === '-') return formattedAmount
+
+  const receivedCoin =
+    getExchangeDetailField(row, 'out_coin') || (row?.coin === 'USDT' ? 'TRX' : row?.coin) || 'TRX'
+
+  return `${formattedAmount} ${receivedCoin}`
+}
+
 // 订单详情schema
 const orderDetailSchema = computed(() => {
   const schema: DescriptionsSchema[] = [
@@ -153,6 +191,35 @@ const orderDetailSchema = computed(() => {
           if (!row || !row.amount) return h('span', '-')
           return h('span', `${row.amount} ${row.coin || ''}`)
         }
+      }
+    },
+    {
+      field: 'real_rate',
+      label: '实时汇率',
+      slots: {
+        default: (row: any) => h('span', formatDetailText(getExchangeDetailField(row, 'real_rate')))
+      }
+    },
+    {
+      field: 'agent_profit',
+      label: '利润',
+      slots: {
+        default: (row: any) => h('span', getAgentProfitText(row))
+      }
+    },
+    {
+      field: 'actual_rate',
+      label: '实际汇率',
+      slots: {
+        default: (row: any) =>
+          h('span', formatDetailText(getExchangeDetailField(row, 'actual_rate')))
+      }
+    },
+    {
+      field: 'out_amount',
+      label: '到账金额',
+      slots: {
+        default: (row: any) => h('span', getReceivedAmountText(row))
       }
     },
     { field: 'describe', label: '备注' },
