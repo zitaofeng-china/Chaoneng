@@ -60,6 +60,10 @@ import {
   hasSearchValue,
   type TableSlot
 } from '@/utils/tableHelpers'
+import {
+  formatTransactionHash,
+  renderTronscanTransactionLink
+} from '@/operation/OperationCenter/utils/transactionLink'
 import { getTronscanTransactionUrl } from '@/utils/tronscan'
 
 const router = useRouter()
@@ -405,7 +409,10 @@ const columns = computed(() => {
       label: '交易哈希',
       minWidth: 220,
       showOverflowTooltip: true,
-      formatter: (row: V2DepositItem) => row.pay_id || '-'
+      slots: {
+        default: ({ row }: DepositTableSlot) =>
+          renderTronscanTransactionLink(row.pay_id, formatTransactionHash(row.pay_id, 10, 8))
+      }
     },
     {
       field: 'describe',
