@@ -55,6 +55,8 @@ export interface DepositItemV1 {
   email: string // 用户邮箱（H5用户）
   pay_address: string // 支付地址
   cost?: string // 成本（可选）
+  fee?: string // 手续费（可选）
+  user_bill?: DepositUserBill // 用户账单（可选）
 }
 
 /**
@@ -77,6 +79,15 @@ export interface PayTransaction {
   height: number // 区块高度
   time: number // 交易时间（时间戳-秒）
   handled: boolean // 是否已处理
+}
+
+export interface DepositUserBill {
+  id?: string
+  amount?: string
+  balance?: string
+  coin?: string
+  kind?: number
+  describe?: string
 }
 
 /**
@@ -107,6 +118,8 @@ export interface DepositDetailV1 {
   username: string // 用户账号（H5用户）
   email: string // 用户邮箱（H5用户）
   pay_transaction?: PayTransaction // 支付交易详情（可选）
+  fee?: string // 手续费（可选）
+  user_bill?: DepositUserBill // 用户账单（可选）
 }
 
 export type DepositDetailResponseV1 = DepositDetailV1

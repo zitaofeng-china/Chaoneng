@@ -51,6 +51,9 @@ export interface V2DepositItem {
   username?: string // 用户账号
   email?: string // 用户邮箱
   origin?: number // 来源（1=机器人，2=H5）
+  fee?: string // 手续费
+  user_bill?: V2DepositUserBill | null // 用户账单
+  agent_bill?: V2DepositUserBill | null // 代理账单
 }
 
 /**
@@ -98,6 +101,18 @@ export interface V2DepositDetail {
   username?: string // 用户账号
   email?: string // 用户邮箱
   origin?: number // 来源（1=机器人，2=H5）
+  fee?: string // 手续费
+  user_bill?: V2DepositUserBill | null // 用户账单
+  agent_bill?: V2DepositUserBill | null // 代理账单
+}
+
+export interface V2DepositUserBill {
+  id?: string
+  amount?: string
+  balance?: string
+  coin?: string
+  kind?: number
+  describe?: string
 }
 
 /**

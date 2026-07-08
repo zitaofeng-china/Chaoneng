@@ -76,6 +76,13 @@ import {
 import { getTelegramUserUrl } from '@/utils/telegram'
 import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import { RECHARGE_COIN_OPTIONS } from './constants'
+import {
+  formatRechargeFeeText,
+  getRechargeActualRateText,
+  getRechargeProfitText,
+  getRechargeReceivedAmountText,
+  isUsdtRechargeOrder
+} from '@/utils/rechargeOrder'
 
 const router = useRouter()
 const route = useRoute()
@@ -240,6 +247,35 @@ const orderDetailSchema = computed(() => {
       }
     }
   ]
+
+  if (isUsdtRechargeOrder(orderDetail.value)) {
+    schema.splice(
+      9,
+      0,
+      {
+        field: 'profit',
+        label: '利润',
+        slots: {
+          default: (row: V2DepositDetail) => h('span', getRechargeProfitText(row))
+        }
+      },
+      {
+        field: 'actual_rate',
+        label: '实际汇率',
+        slots: {
+          default: (row: V2DepositDetail) => h('span', getRechargeActualRateText(row))
+        }
+      },
+      {
+        field: 'received_amount',
+        label: '到账金额',
+        slots: {
+          default: (row: V2DepositDetail) => h('span', getRechargeReceivedAmountText(row))
+        }
+      }
+    )
+  }
+
   return schema
 })
 
@@ -360,6 +396,12 @@ const columns = computed(() => {
       sortable: 'custom',
       minWidth: 120,
       formatter: (row: V2DepositItem) => (row.amount ? `${row.amount} ${row.coin || 'TRX'}` : '-')
+    },
+    {
+      field: 'fee',
+      label: '手续费',
+      minWidth: 120,
+      formatter: (row: V2DepositItem) => formatRechargeFeeText(row)
     },
     {
       field: 'status',
@@ -537,7 +579,11 @@ const handleViewDetail = async (row: V2DepositItem) => {
     const response = await v2GetDepositDetail(row.id)
     const detail = response.data
 
-    orderDetail.value = detail
+    orderDetail.value = {
+      ...detail,
+      fee: detail.fee ?? row.fee,
+      user_bill: detail.user_bill ?? row.user_bill
+    }
 
     if (detail.pay_transaction) {
       rechargeDetail.value = detail.pay_transaction
@@ -586,6 +632,7 @@ const handleExport = async () => {
           来源: getSourceText(item.origin, item.tg_user_name, item.username),
           订单类型: item.coin ? `充值${item.coin}` : '-',
           金额: item.amount ? `${item.amount} ${item.coin || ''}` : '-',
+          手续费: formatRechargeFeeText(item),
           订单状态: getRechargeOrderStatusText(item.status),
           收款地址: item.receive_address || '-',
           支付地址: item.pay_address || '-',

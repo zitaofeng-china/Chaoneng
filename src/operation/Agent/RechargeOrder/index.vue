@@ -46,8 +46,7 @@ import {
   v2GetDepositDetail,
   type V2DepositDetail,
   type V2DepositItem,
-  type V2DepositListParams,
-  type V2PayTransaction
+  type V2DepositListParams
 } from '@/api/opertion/OperationCenter/RechargeOrder'
 import { ElLink } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
@@ -65,6 +64,13 @@ import {
   renderTronscanTransactionLink
 } from '@/operation/OperationCenter/utils/transactionLink'
 import { getTronscanTransactionUrl } from '@/utils/tronscan'
+import {
+  formatRechargeFeeText,
+  getRechargeActualRateText,
+  getRechargeProfitText,
+  getRechargeReceivedAmountText,
+  isUsdtRechargeOrder
+} from '@/utils/rechargeOrder'
 
 const router = useRouter()
 const route = useRoute()
@@ -90,23 +96,8 @@ type DepositSearchParams = Omit<V2DepositListParams, 'origin' | 'status'> & {
 
 type DepositExportRow = Record<string, string>
 type DepositTableSlot = TableSlot<V2DepositItem>
-type DepositOrderExchangeInfo = {
-  real_rate?: string | number | null
-  actual_rate?: string | number | null
-  agent_profit?: string | number | null
-  plate_profit?: string | number | null
-  out_amount?: string | number | null
-  out_coin?: string | null
-}
 type DepositOrderDetail = Partial<V2DepositDetail> & {
   pay_from?: string
-  real_rate?: string | number | null
-  actual_rate?: string | number | null
-  agent_profit?: string | number | null
-  plate_profit?: string | number | null
-  out_amount?: string | number | null
-  out_coin?: string | null
-  exchange?: DepositOrderExchangeInfo | null
 }
 
 const currentSearchParams = ref<DepositSearchParams>({})
@@ -156,49 +147,6 @@ const renderRechargeCoinTag = (coin?: string | null) => {
     },
     () => normalizedCoin
   )
-}
-
-const formatDetailText = (value?: string | number | null) => {
-  if (value === undefined || value === null || value === '') return '-'
-  return String(value)
-}
-
-const getExchangeDetailField = <K extends keyof DepositOrderExchangeInfo>(
-  row: DepositOrderDetail,
-  field: K
-) => {
-  return row.exchange?.[field] ?? row[field]
-}
-
-const formatDetailPercent = (value?: string | number | null) => {
-  const text = formatDetailText(value)
-  if (text === '-') return text
-  if (text.endsWith('%')) return text
-
-  const numericValue = Number(text)
-  if (Number.isNaN(numericValue)) return text
-
-  const percentValue = Math.abs(numericValue) <= 1 ? numericValue * 100 : numericValue
-  return `${Number(percentValue.toFixed(4)).toString()}%`
-}
-
-const getRechargeProfitText = (row: DepositOrderDetail) => {
-  const plateProfit = formatDetailPercent(getExchangeDetailField(row, 'plate_profit'))
-  const agentProfit = formatDetailPercent(getExchangeDetailField(row, 'agent_profit'))
-
-  if (plateProfit === '-' && agentProfit === '-') return '-'
-  return `${plateProfit}/${agentProfit}`
-}
-
-const getReceivedAmountText = (row: DepositOrderDetail) => {
-  const amount = getExchangeDetailField(row, 'out_amount') ?? row.cost
-  const formattedAmount = formatDetailText(amount)
-  if (formattedAmount === '-') return formattedAmount
-
-  const receivedCoin =
-    getExchangeDetailField(row, 'out_coin') || (row.coin === 'USDT' ? 'TRX' : row.coin) || 'TRX'
-
-  return `${formattedAmount} ${receivedCoin}`
 }
 
 const buildDepositListParams = (
@@ -262,40 +210,6 @@ const orderDetailSchema = computed(() => {
         }
       }
     },
-    {
-      field: 'real_rate',
-      label: '实时汇率',
-      span: 12,
-      slots: {
-        default: (row: DepositOrderDetail) =>
-          h('span', formatDetailText(getExchangeDetailField(row, 'real_rate')))
-      }
-    },
-    {
-      field: 'plate_profit',
-      label: '运营/代理利润',
-      span: 12,
-      slots: {
-        default: (row: DepositOrderDetail) => h('span', getRechargeProfitText(row))
-      }
-    },
-    {
-      field: 'actual_rate',
-      label: '实际汇率',
-      span: 12,
-      slots: {
-        default: (row: DepositOrderDetail) =>
-          h('span', formatDetailText(getExchangeDetailField(row, 'actual_rate')))
-      }
-    },
-    {
-      field: 'out_amount',
-      label: '到账金额',
-      span: 12,
-      slots: {
-        default: (row: DepositOrderDetail) => h('span', getReceivedAmountText(row))
-      }
-    },
     { field: 'describe', label: '备注', span: 12 },
     {
       field: 'created_at',
@@ -344,6 +258,40 @@ const orderDetailSchema = computed(() => {
       }
     }
   ]
+
+  if (isUsdtRechargeOrder(orderDetail.value)) {
+    schema.splice(
+      4,
+      0,
+      {
+        field: 'profit',
+        label: '利润',
+        span: 12,
+        slots: {
+          default: (row: DepositOrderDetail) => h('span', getRechargeProfitText(row))
+        }
+      },
+      {
+        field: 'actual_rate',
+        label: '汇率',
+        span: 12,
+        slots: {
+          default: (row: DepositOrderDetail) =>
+            h('span', getRechargeActualRateText(row, 'agent_bill'))
+        }
+      },
+      {
+        field: 'received_amount',
+        label: '到账金额',
+        span: 12,
+        slots: {
+          default: (row: DepositOrderDetail) =>
+            h('span', getRechargeReceivedAmountText(row, 'agent_bill'))
+        }
+      }
+    )
+  }
+
   return schema
 })
 
@@ -377,6 +325,12 @@ const columns = computed(() => {
       sortable: 'custom',
       minWidth: 120,
       formatter: (row: V2DepositItem) => (row.amount ? `${row.amount} ${row.coin || 'TRX'}` : '-')
+    },
+    {
+      field: 'fee',
+      label: '手续费',
+      minWidth: 120,
+      formatter: (row: V2DepositItem) => formatRechargeFeeText(row)
     },
     {
       field: 'status',
@@ -543,10 +497,14 @@ const handleViewDetail = async (row: V2DepositItem) => {
     orderDetail.value = detail.pay_transaction
       ? {
           ...detail,
+          fee: detail.fee ?? row.fee,
+          user_bill: detail.user_bill ?? row.user_bill,
           pay_from: detail.pay_transaction.from || '-'
         }
       : {
           ...detail,
+          fee: detail.fee ?? row.fee,
+          user_bill: detail.user_bill ?? row.user_bill,
           pay_from: '-'
         }
 
@@ -584,6 +542,7 @@ const handleExport = async () => {
           ...baseData,
           订单类型: item.coin ? `充值${item.coin}` : '-',
           金额: item.amount ? `${item.amount} ${item.coin || ''}` : '-',
+          手续费: formatRechargeFeeText(item),
           订单状态: getStatusText(item.status),
           收款地址: item.receive_address || '-',
           支付地址: item.pay_address || '-',

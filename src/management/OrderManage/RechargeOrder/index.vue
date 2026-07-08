@@ -59,8 +59,15 @@ import type { DescriptionsSchema } from '@/components/Descriptions'
 import { v1GetDepositList, v1GetDepositDetail } from '@/api/management/OrderManage/RechargeOrder'
 import { ElLink } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
-import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
 import { dateRangeToSeconds, exportTableData } from '@/utils/tableHelpers'
+import {
+  formatRechargeFeeText,
+  getRechargeActualRateText,
+  getRechargeProfitText,
+  getRechargeReceivedAmountText,
+  isUsdtRechargeOrder
+} from '@/utils/rechargeOrder'
 
 const router = useRouter()
 const route = useRoute()
@@ -80,11 +87,6 @@ const dialogVisible = ref(false)
 const activeTab = ref('order')
 const orderDetail = ref<any>({})
 const rechargeDetail = ref<any>({})
-
-const formatDetailText = (value?: string | number | null) => {
-  if (value === undefined || value === null || value === '') return '-'
-  return String(value)
-}
 
 const getRechargeOrderTypeText = (coin?: string | null) => {
   if (!coin) return '-'
@@ -133,39 +135,6 @@ const renderRechargeCoinTag = (coin?: string | null) => {
     },
     () => normalizedCoin
   )
-}
-
-const getExchangeDetailField = (row: any, field: string) => {
-  return row?.exchange?.[field] ?? row?.[field]
-}
-
-const formatDetailPercent = (value?: string | number | null) => {
-  const text = formatDetailText(value)
-  if (text === '-') return text
-  if (text.endsWith('%')) return text
-
-  const numericValue = Number(text)
-  if (Number.isNaN(numericValue)) return text
-
-  const percentValue = Math.abs(numericValue) <= 1 ? numericValue * 100 : numericValue
-  return `${Number(percentValue.toFixed(4)).toString()}%`
-}
-
-const getAgentProfitText = (row: any) => {
-  return formatDetailPercent(
-    getExchangeDetailField(row, 'agent_profit') ?? getExchangeDetailField(row, 'profit')
-  )
-}
-
-const getReceivedAmountText = (row: any) => {
-  const amount = getExchangeDetailField(row, 'out_amount') ?? row?.cost
-  const formattedAmount = formatDetailText(amount)
-  if (formattedAmount === '-') return formattedAmount
-
-  const receivedCoin =
-    getExchangeDetailField(row, 'out_coin') || (row?.coin === 'USDT' ? 'TRX' : row?.coin) || 'TRX'
-
-  return `${formattedAmount} ${receivedCoin}`
 }
 
 // 订单详情schema
@@ -234,35 +203,6 @@ const orderDetailSchema = computed(() => {
         }
       }
     },
-    {
-      field: 'real_rate',
-      label: '实时汇率',
-      slots: {
-        default: (row: any) => h('span', formatDetailText(getExchangeDetailField(row, 'real_rate')))
-      }
-    },
-    {
-      field: 'agent_profit',
-      label: '利润',
-      slots: {
-        default: (row: any) => h('span', getAgentProfitText(row))
-      }
-    },
-    {
-      field: 'actual_rate',
-      label: '实际汇率',
-      slots: {
-        default: (row: any) =>
-          h('span', formatDetailText(getExchangeDetailField(row, 'actual_rate')))
-      }
-    },
-    {
-      field: 'out_amount',
-      label: '到账金额',
-      slots: {
-        default: (row: any) => h('span', getReceivedAmountText(row))
-      }
-    },
     { field: 'describe', label: '备注' },
     {
       field: 'created_at',
@@ -298,6 +238,35 @@ const orderDetailSchema = computed(() => {
       }
     }
   ]
+
+  if (isUsdtRechargeOrder(orderDetail.value)) {
+    schema.splice(
+      12,
+      0,
+      {
+        field: 'profit',
+        label: '利润',
+        slots: {
+          default: (row: any) => h('span', getRechargeProfitText(row))
+        }
+      },
+      {
+        field: 'actual_rate',
+        label: '实际汇率',
+        slots: {
+          default: (row: any) => h('span', getRechargeActualRateText(row))
+        }
+      },
+      {
+        field: 'received_amount',
+        label: '到账金额',
+        slots: {
+          default: (row: any) => h('span', getRechargeReceivedAmountText(row))
+        }
+      }
+    )
+  }
+
   return schema
 })
 
@@ -445,6 +414,12 @@ const columns = computed<TableColumn[]>(() => {
       sortable: 'custom',
       minWidth: 120,
       formatter: (row) => (row.amount ? `${row.amount} ${row.coin || 'TRX'}` : '-')
+    },
+    {
+      field: 'fee',
+      label: '手续费',
+      minWidth: 120,
+      formatter: (row) => formatRechargeFeeText(row)
     },
     {
       field: 'status',
@@ -736,6 +711,8 @@ const handleViewDetail = async (row: any) => {
       ...detail, // 保留所有原始字段
       order_type: detail.coin === 'TRX' ? 1 : 2, // 计算订单类型
       statusText: getStatusText(detail.status),
+      fee: detail.fee ?? row.fee,
+      user_bill: detail.user_bill ?? row.user_bill,
       // 补充列表中的字段（如果详情接口没有返回）
       tg_user_name: detail.tg_user_name || row.tg_user_name || '',
       tg_first_name: detail.tg_first_name || row.tg_first_name || '-',
@@ -792,6 +769,7 @@ const handleExport = async () => {
         订单类型: getRechargeOrderTypeText(item.coin),
         金额: item.amount || '-',
         币种: item.coin || '-',
+        手续费: formatRechargeFeeText(item),
         订单状态: getStatusText(item.status),
         收款地址: item.receive_address || '-',
         支付地址: item.pay_address || '-',
