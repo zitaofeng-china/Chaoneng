@@ -137,6 +137,12 @@ const renderRechargeCoinTag = (coin?: string | null) => {
   )
 }
 
+const getRechargeOriginText = (origin?: number | null) => {
+  if (origin === 1) return '机器人'
+  if (origin === 2) return 'H5'
+  return '-'
+}
+
 // 订单详情schema
 const orderDetailSchema = computed(() => {
   const schema: DescriptionsSchema[] = [
@@ -187,7 +193,7 @@ const orderDetailSchema = computed(() => {
       slots: {
         default: (row: any) => {
           if (!row || row.origin === undefined) return h('span', '-')
-          return h('span', row.origin === 1 ? '机器人' : row.origin === 2 ? 'H5' : '-')
+          return h('span', getRechargeOriginText(row.origin))
         }
       }
     },
@@ -239,9 +245,22 @@ const orderDetailSchema = computed(() => {
     }
   ]
 
+  const filteredSchema = schema.filter((item) => {
+    if (orderDetail.value.origin === 1) {
+      return item.field !== 'username' && item.field !== 'email'
+    }
+
+    if (orderDetail.value.origin === 2) {
+      return item.field !== 'tg_user_name' && item.field !== 'tg_first_name'
+    }
+
+    return true
+  })
+
   if (isUsdtRechargeOrder(orderDetail.value)) {
-    schema.splice(
-      12,
+    const metricsInsertIndex = filteredSchema.findIndex((item) => item.field === 'describe')
+    filteredSchema.splice(
+      metricsInsertIndex >= 0 ? metricsInsertIndex : filteredSchema.length,
       0,
       {
         field: 'profit',
@@ -267,7 +286,7 @@ const orderDetailSchema = computed(() => {
     )
   }
 
-  return schema
+  return filteredSchema
 })
 
 // 充值详情schema
@@ -709,6 +728,7 @@ const handleViewDetail = async (row: any) => {
     // 使用API原始字段，只补充必要的计算字段
     orderDetail.value = {
       ...detail, // 保留所有原始字段
+      origin: detail.origin ?? row.origin,
       order_type: detail.coin === 'TRX' ? 1 : 2, // 计算订单类型
       statusText: getStatusText(detail.status),
       fee: detail.fee ?? row.fee,
@@ -716,6 +736,8 @@ const handleViewDetail = async (row: any) => {
       // 补充列表中的字段（如果详情接口没有返回）
       tg_user_name: detail.tg_user_name || row.tg_user_name || '',
       tg_first_name: detail.tg_first_name || row.tg_first_name || '-',
+      username: detail.username || row.username || '',
+      email: detail.email || row.email || '-',
       bot_name: detail.bot_name || row.bot_name || ''
     }
 
