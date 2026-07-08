@@ -870,9 +870,9 @@ const handleRecharge = (row: AgentItem) => {
   rechargeDialogVisible.value = true
 }
 
-const handleRechargeSuccess = async (amount: number) => {
+const handleRechargeSuccess = async ({ amount, coin }: { amount: number; coin: string }) => {
   await searchTableRef.value?.reload()
-  ElMessage.success(`充值成功 ${amount} TRX`)
+  ElMessage.success(`充值成功 ${amount} ${coin}`)
 }
 
 const handleAgentSuccess = () => {

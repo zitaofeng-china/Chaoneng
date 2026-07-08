@@ -42,7 +42,22 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:visible', 'success'])
+interface RechargeFormData {
+  amount?: number
+  coin?: string
+  secret?: string
+  describe?: string
+}
+
+interface RechargeSuccessPayload {
+  amount: number
+  coin: string
+}
+
+const emit = defineEmits<{
+  (e: 'update:visible', value: boolean): void
+  (e: 'success', payload: RechargeSuccessPayload): void
+}>()
 
 // 表单校验
 const { required } = useValidator()
@@ -129,14 +144,16 @@ const handleRecharge = async () => {
 
     try {
       // 获取表单数据
-      const formData = await formMethods.getFormData()
+      const formData = await formMethods.getFormData<RechargeFormData>()
+      const coin = formData.coin || 'TRX'
+      const amount = Number(formData.amount)
 
       // 构建参数（符合API要求的类型）
       const params = {
         agent_id: userAccount.value.id,
-        amount: formData.amount,
-        coin: formData.coin,
-        secret: formData.secret,
+        amount,
+        coin,
+        secret: formData.secret || '',
         describe: formData.describe
       }
 
@@ -144,7 +161,10 @@ const handleRecharge = async () => {
       await rechargeTrxApi(params)
 
       dialogVisible.value = false
-      emit('success', Number(formData.amount))
+      emit('success', {
+        amount,
+        coin
+      })
     } catch (error) {
       handleErrorMessage(error, '充值失败')
     } finally {

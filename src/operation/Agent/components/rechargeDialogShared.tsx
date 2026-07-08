@@ -18,6 +18,11 @@ export const createRechargeFormSchema = ({
   includeSecret = false,
   required
 }: CreateRechargeFormSchemaOptions): FormSchema[] => {
+  const coinOptions = [
+    { label: '充值TRX', value: 'TRX' },
+    { label: '充值USDT', value: 'USDT' }
+  ]
+
   const schema: FormSchema[] = [
     {
       field: 'coin',
@@ -25,7 +30,7 @@ export const createRechargeFormSchema = ({
       label: '充值类型',
       value: 'TRX',
       componentProps: {
-        options: [{ label: includeSecret ? '充值余额' : '充值TRX', value: 'TRX' }]
+        options: coinOptions
       }
     },
     {
