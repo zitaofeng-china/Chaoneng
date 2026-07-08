@@ -66,7 +66,7 @@ import {
 import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import {
   formatRechargeFeeText,
-  getRechargeActualRateText,
+  formatRechargeMetricNumber,
   getRechargeProfitText,
   getRechargeReceivedAmountText,
   isUsdtRechargeOrder
@@ -98,12 +98,19 @@ type DepositExportRow = Record<string, string>
 type DepositTableSlot = TableSlot<V2DepositItem>
 type DepositOrderDetail = Partial<V2DepositDetail> & {
   pay_from?: string
+  actual_rate?: string
+}
+
+interface BinanceTickerPriceResponse {
+  symbol: string
+  price: string
 }
 
 const currentSearchParams = ref<DepositSearchParams>({})
 
 const dialogVisible = ref(false)
 const orderDetail = ref<DepositOrderDetail>({})
+const BINANCE_TRX_USDT_URL = 'https://api.binance.com/api/v3/ticker/price?symbol=TRXUSDT'
 
 const RECHARGE_COIN_TAG_MAP: Record<
   string,
@@ -147,6 +154,29 @@ const renderRechargeCoinTag = (coin?: string | null) => {
     },
     () => normalizedCoin
   )
+}
+
+const toFiniteNumber = (value?: string | number | null) => {
+  if (value === undefined || value === null || value === '') return undefined
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) ? numberValue : undefined
+}
+
+const fetchBinanceTrxUsdtPrice = async () => {
+  const response = await fetch(BINANCE_TRX_USDT_URL)
+  if (!response.ok) {
+    throw new Error(`获取币安 TRXUSDT 汇率失败: ${response.status}`)
+  }
+
+  const data = (await response.json()) as BinanceTickerPriceResponse
+  return data.price
+}
+
+const formatBinanceUsdtToTrxRate = (trxUsdtPrice?: string | number | null) => {
+  const marketPrice = toFiniteNumber(trxUsdtPrice)
+  if (marketPrice === undefined || marketPrice <= 0) return '-'
+
+  return formatRechargeMetricNumber(1 / marketPrice, 6)
 }
 
 const buildDepositListParams = (
@@ -273,11 +303,10 @@ const orderDetailSchema = computed(() => {
       },
       {
         field: 'actual_rate',
-        label: '汇率',
+        label: '实际汇率',
         span: 12,
         slots: {
-          default: (row: DepositOrderDetail) =>
-            h('span', getRechargeActualRateText(row, 'agent_bill'))
+          default: (row: DepositOrderDetail) => h('span', row.actual_rate || '-')
         }
       },
       {
@@ -491,20 +520,37 @@ const fetchRechargeOrderList = async (
 
 const handleViewDetail = async (row: V2DepositItem) => {
   try {
-    const response = await v2GetDepositDetail(row.id)
-    const detail = response.data
+    const shouldFetchActualRate = isUsdtRechargeOrder(row)
+    const [detailResult, priceResult] = await Promise.allSettled([
+      v2GetDepositDetail(row.id),
+      shouldFetchActualRate ? fetchBinanceTrxUsdtPrice() : Promise.resolve(undefined)
+    ])
+
+    if (detailResult.status !== 'fulfilled') {
+      throw detailResult.reason
+    }
+
+    const detail = detailResult.value.data
+    const actualRate =
+      shouldFetchActualRate && priceResult.status === 'fulfilled'
+        ? formatBinanceUsdtToTrxRate(priceResult.value)
+        : '-'
 
     orderDetail.value = detail.pay_transaction
       ? {
           ...detail,
           fee: detail.fee ?? row.fee,
           user_bill: detail.user_bill ?? row.user_bill,
+          agent_bill: detail.agent_bill ?? row.agent_bill,
+          actual_rate: actualRate,
           pay_from: detail.pay_transaction.from || '-'
         }
       : {
           ...detail,
           fee: detail.fee ?? row.fee,
           user_bill: detail.user_bill ?? row.user_bill,
+          agent_bill: detail.agent_bill ?? row.agent_bill,
+          actual_rate: actualRate,
           pay_from: '-'
         }
 
