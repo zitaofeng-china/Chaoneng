@@ -19,27 +19,12 @@
         </template>
       </SearchTable>
 
-      <!-- 详情弹窗 -->
-      <Dialog v-model="dialogVisible" :title="'订单详情'">
-        <ElTabs v-model="activeTab">
-          <ElTabPane label="订单详情" name="order">
-            <Descriptions :schema="orderDetailSchema" :data="orderDetail" :column="2" border />
-          </ElTabPane>
-          <ElTabPane label="充值详情" name="recharge">
-            <Descriptions
-              :schema="rechargeDetailSchema"
-              :data="rechargeDetail"
-              :column="2"
-              border
-            />
-          </ElTabPane>
-        </ElTabs>
-        <template #footer>
-          <div class="flex justify-end">
-            <ElButton @click="dialogVisible = false">关闭</ElButton>
-          </div>
-        </template>
-      </Dialog>
+      <RechargeOrderDetailDialog
+        v-model="dialogVisible"
+        mode="user"
+        :order-detail="orderDetail"
+        :recharge-detail="rechargeDetail"
+      />
     </ContentWrap>
   </div>
 </template>
@@ -47,27 +32,21 @@
 <script setup lang="tsx">
 import { ref, h, computed } from 'vue'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { ElButton, ElTag, ElTabs, ElTabPane } from 'element-plus'
+import { ElTag } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
-import { Dialog } from '@/components/Dialog'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
-import { Descriptions } from '@/components/Descriptions'
 import type { TableColumn } from '@/components/Table'
-import type { DescriptionsSchema } from '@/components/Descriptions'
 import { v1GetDepositList, v1GetDepositDetail } from '@/api/management/OrderManage/RechargeOrder'
-import { ElLink } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
 import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
 import { dateRangeToSeconds, exportTableData } from '@/utils/tableHelpers'
+import { formatRechargeFeeText } from '@/utils/rechargeOrder'
 import {
-  formatRechargeFeeText,
-  getRechargeActualRateText,
-  getRechargeProfitText,
-  getRechargeReceivedAmountText,
-  isUsdtRechargeOrder
-} from '@/utils/rechargeOrder'
+  RechargeOrderDetailDialog,
+  renderRechargeCoinTag
+} from '@/components/business/recharge-order'
 
 const router = useRouter()
 const route = useRoute()
@@ -84,7 +63,6 @@ const selectedSource = ref<number | string>('')
 
 // 订单详情相关
 const dialogVisible = ref(false)
-const activeTab = ref('order')
 const orderDetail = ref<any>({})
 const rechargeDetail = ref<any>({})
 
@@ -93,250 +71,11 @@ const getRechargeOrderTypeText = (coin?: string | null) => {
   return `充值${coin}`
 }
 
-const RECHARGE_COIN_TAG_MAP: Record<
-  string,
-  { color: string; backgroundColor: string; borderColor: string }
-> = {
-  USDT: {
-    color: '#409EFF',
-    backgroundColor: '#ECF5FF',
-    borderColor: '#B3D8FF'
-  },
-  TRX: {
-    color: '#E6A23C',
-    backgroundColor: '#FDF6EC',
-    borderColor: '#F3D19E'
-  }
-}
-
-const renderRechargeCoinTag = (coin?: string | null) => {
-  const normalizedCoin = coin?.toUpperCase()
-  if (!normalizedCoin) return h('span', '-')
-
-  const tagStyle = RECHARGE_COIN_TAG_MAP[normalizedCoin]
-  if (!tagStyle) return h('span', normalizedCoin)
-
-  return h(
-    ElTag,
-    {
-      size: 'small',
-      effect: 'light',
-      style: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minWidth: '76px',
-        height: '28px',
-        color: tagStyle.color,
-        backgroundColor: tagStyle.backgroundColor,
-        borderColor: tagStyle.borderColor,
-        padding: '0 16px'
-      }
-    },
-    () => normalizedCoin
-  )
-}
-
 const getRechargeOriginText = (origin?: number | null) => {
   if (origin === 1) return '机器人'
   if (origin === 2) return 'H5'
   return '-'
 }
-
-// 订单详情schema
-const orderDetailSchema = computed(() => {
-  const schema: DescriptionsSchema[] = [
-    { field: 'id', label: '订单号' },
-    {
-      field: 'status',
-      label: '订单状态',
-      slots: {
-        default: (row: any) => {
-          if (!row) return h('span', '-')
-          return h(ElTag, { type: getStatusType(row.status), size: 'small' }, () => row.statusText)
-        }
-      }
-    },
-    {
-      field: 'order_type',
-      label: '订单类型',
-      slots: {
-        default: (row: any) => renderRechargeCoinTag(row.coin)
-      }
-    },
-    { field: 'user_id', label: 'TG用户ID' },
-    { field: 'tg_user_name', label: 'TG用户名' },
-    { field: 'tg_first_name', label: 'TG用户昵称' },
-    {
-      field: 'username',
-      label: '用户账号',
-      slots: {
-        default: (row: any) => {
-          if (!row || !row.username) return h('span', '-')
-          return h('span', row.username)
-        }
-      }
-    },
-    {
-      field: 'email',
-      label: '用户邮箱',
-      slots: {
-        default: (row: any) => {
-          if (!row || !row.email) return h('span', '-')
-          return h('span', row.email)
-        }
-      }
-    },
-    {
-      field: 'origin',
-      label: '来源',
-      slots: {
-        default: (row: any) => {
-          if (!row || row.origin === undefined) return h('span', '-')
-          return h('span', getRechargeOriginText(row.origin))
-        }
-      }
-    },
-    { field: 'bot_id', label: '机器人ID' },
-    { field: 'bot_name', label: '机器人名称' },
-    {
-      field: 'amount',
-      label: '金额',
-      slots: {
-        default: (row: any) => {
-          if (!row || !row.amount) return h('span', '-')
-          return h('span', `${row.amount} ${row.coin || ''}`)
-        }
-      }
-    },
-    { field: 'describe', label: '备注' },
-    {
-      field: 'created_at',
-      label: '创建时间',
-      span: 24,
-      slots: {
-        default: (row: any) => {
-          if (!row || !row.created_at) return h('span', '-')
-          return h('span', formatToDateTime(row.created_at * 1000))
-        }
-      }
-    },
-    {
-      field: 'paid_at',
-      label: '支付时间',
-      span: 24,
-      slots: {
-        default: (row: any) => {
-          if (!row || !row.paid_at) return h('span', '-')
-          return h('span', formatToDateTime(row.paid_at * 1000))
-        }
-      }
-    },
-    {
-      field: 'paid_at',
-      label: '完成时间',
-      span: 24,
-      slots: {
-        default: (row: any) => {
-          if (!row || !row.paid_at) return h('span', '-')
-          return h('span', formatToDateTime(row.paid_at * 1000))
-        }
-      }
-    }
-  ]
-
-  const filteredSchema = schema.filter((item) => {
-    if (orderDetail.value.origin === 1) {
-      return item.field !== 'username' && item.field !== 'email'
-    }
-
-    if (orderDetail.value.origin === 2) {
-      return item.field !== 'tg_user_name' && item.field !== 'tg_first_name'
-    }
-
-    return true
-  })
-
-  if (isUsdtRechargeOrder(orderDetail.value)) {
-    const metricsInsertIndex = filteredSchema.findIndex((item) => item.field === 'describe')
-    filteredSchema.splice(
-      metricsInsertIndex >= 0 ? metricsInsertIndex : filteredSchema.length,
-      0,
-      {
-        field: 'profit',
-        label: '利润',
-        slots: {
-          default: (row: any) => h('span', getRechargeProfitText(row))
-        }
-      },
-      {
-        field: 'actual_rate',
-        label: '实际汇率',
-        slots: {
-          default: (row: any) => h('span', getRechargeActualRateText(row))
-        }
-      },
-      {
-        field: 'received_amount',
-        label: '到账金额',
-        slots: {
-          default: (row: any) => h('span', getRechargeReceivedAmountText(row))
-        }
-      }
-    )
-  }
-
-  return filteredSchema
-})
-
-// 充值详情schema
-const rechargeDetailSchema = computed(() => {
-  const schema: DescriptionsSchema[] = [
-    { field: 'receive_address', label: '收款地址', span: 24 },
-    {
-      field: 'pay_from',
-      label: '支付地址',
-      span: 24,
-      slots: {
-        default: (row: any) => {
-          if (!row || !row.pay_from) return h('span', '-')
-          return h('span', row.pay_from)
-        }
-      }
-    },
-    {
-      field: 'pay_to',
-      label: '接收地址',
-      span: 24,
-      slots: {
-        default: (row: any) => {
-          if (!row || !row.pay_to) return h('span', '-')
-          return h('span', row.pay_to)
-        }
-      }
-    },
-    {
-      field: 'pay_id',
-      label: '交易哈希',
-      span: 24,
-      slots: {
-        default: (row: any) => {
-          if (!row || !row.pay_id) return h('span', '-')
-          return (
-            <ElLink
-              href={`${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${row.pay_id}`}
-              type="primary"
-              target="_blank"
-            >
-              {row.pay_id}
-            </ElLink>
-          )
-        }
-      }
-    }
-  ]
-  return schema
-})
 
 // 表格列配置 - 使用 computed 实现动态显示/隐藏
 const columns = computed<TableColumn[]>(() => {
@@ -741,15 +480,13 @@ const handleViewDetail = async (row: any) => {
       bot_name: detail.bot_name || row.bot_name || ''
     }
 
-    // 充值详情：从 pay_transaction 对象中提取地址信息
-    rechargeDetail.value = {
-      ...detail,
-      pay_from: detail.pay_transaction?.from || '-', // 支付地址（发送方）
-      pay_to: detail.pay_transaction?.to || '-' // 接收地址（接收方）
+    rechargeDetail.value = detail.pay_transaction || {
+      id: detail.pay_id || '',
+      from: '-',
+      to: detail.receive_address || '-'
     }
 
     dialogVisible.value = true
-    activeTab.value = 'order'
   } catch (error) {
     handleErrorMessage(error, '获取充值详情失败')
   }

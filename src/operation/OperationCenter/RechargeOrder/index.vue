@@ -17,50 +17,31 @@
         </template>
       </SearchTable>
 
-      <!-- 详情弹窗 -->
-      <Dialog v-model="dialogVisible" :title="'订单详情'">
-        <ElTabs v-model="activeTab">
-          <ElTabPane label="订单详情" name="order">
-            <Descriptions :schema="orderDetailSchema" :data="orderDetail" :column="2" border />
-          </ElTabPane>
-          <ElTabPane label="充值详情" name="recharge">
-            <Descriptions
-              :schema="rechargeDetailSchema"
-              :data="rechargeDetail"
-              :column="2"
-              border
-            />
-          </ElTabPane>
-        </ElTabs>
-        <template #footer>
-          <div class="flex justify-end">
-            <ElButton @click="dialogVisible = false">关闭</ElButton>
-          </div>
-        </template>
-      </Dialog>
+      <RechargeOrderDetailDialog
+        v-model="dialogVisible"
+        mode="user"
+        :order-detail="orderDetail"
+        :recharge-detail="rechargeDetail"
+      />
     </ContentWrap>
   </div>
 </template>
 
 <script setup lang="tsx">
 import { ref, h, computed } from 'vue'
-import { ElButton, ElTag, ElTabs, ElTabPane } from 'element-plus'
+import { ElTag } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
-import { Dialog } from '@/components/Dialog'
 import { SearchTable } from '@/components/SearchTable'
 import type { SearchTableExpose } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
-import { Descriptions } from '@/components/Descriptions'
 import type { TableColumn } from '@/components/Table'
-import type { DescriptionsSchema } from '@/components/Descriptions'
 import {
   v2GetDepositList,
   v2GetDepositDetail,
   type V2DepositDetail,
   type V2DepositItem,
-  type V2DepositListParams,
-  type V2PayTransaction
+  type V2DepositListParams
 } from '@/api/opertion/OperationCenter/RechargeOrder'
 import { ElLink } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
@@ -74,15 +55,9 @@ import {
   type TableSlot
 } from '@/utils/tableHelpers'
 import { getTelegramUserUrl } from '@/utils/telegram'
-import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import { RECHARGE_COIN_OPTIONS } from './constants'
-import {
-  formatRechargeFeeText,
-  getRechargeActualRateText,
-  getRechargeProfitText,
-  getRechargeReceivedAmountText,
-  isUsdtRechargeOrder
-} from '@/utils/rechargeOrder'
+import { formatRechargeFeeText } from '@/utils/rechargeOrder'
+import { RechargeOrderDetailDialog } from '@/components/business/recharge-order'
 
 const router = useRouter()
 const route = useRoute()
@@ -122,9 +97,8 @@ type DepositTableSlot = TableSlot<V2DepositItem>
 const currentSearchParams = ref<DepositSearchParams>({})
 
 const dialogVisible = ref(false)
-const activeTab = ref('order')
 const orderDetail = ref<Partial<V2DepositDetail>>({})
-const rechargeDetail = ref<Partial<V2PayTransaction>>({})
+const rechargeDetail = ref<Recordable>({})
 
 const getRechargeOrderStatusText = (status: number | undefined) => {
   if (status === undefined || status === null) return '-'
@@ -160,147 +134,6 @@ const buildDepositListParams = (
 
   return adaptedParams
 }
-
-const orderDetailSchema = computed(() => {
-  const schema: DescriptionsSchema[] = [
-    { field: 'id', label: '订单号' },
-    {
-      field: 'status',
-      label: '订单状态',
-      slots: {
-        default: (row: V2DepositDetail) => {
-          if (!row) return h('span', '-')
-          const tagType = getRechargeOrderStatusType(row.status)
-          return h(ElTag, { type: tagType, size: 'small' }, () =>
-            getRechargeOrderStatusText(row.status)
-          )
-        }
-      }
-    },
-    {
-      field: 'coin',
-      label: '订单类型',
-      slots: {
-        default: (row: V2DepositDetail) => {
-          return (
-            <>
-              <span style={{ color: '#409EFF', cursor: 'pointer' }}>充值{row.coin || '-'}</span>
-            </>
-          )
-        }
-      }
-    },
-    { field: 'user_id', label: 'TG用户ID' },
-    {
-      field: 'tg_user_name',
-      label: '用户账号',
-      slots: {
-        default: (row: V2DepositDetail) => h('span', row.tg_user_name || row.username || '-')
-      }
-    },
-    {
-      field: 'tg_first_name',
-      label: '用户邮箱',
-      slots: {
-        default: (row: V2DepositDetail) => h('span', row.tg_first_name || row.email || '-')
-      }
-    },
-    { field: 'bot_id', label: '机器人ID' },
-    {
-      field: 'bot_user_name',
-      label: '机器人名称',
-      slots: {
-        default: (row: V2DepositDetail) => {
-          return h('span', row.bot_user_name || row.bot_first_name || '-')
-        }
-      }
-    },
-    {
-      field: 'amount',
-      label: '金额',
-      slots: {
-        default: (row: V2DepositDetail) => {
-          if (!row || !row.amount) return h('span', '-')
-          return h('span', `${row.amount} ${row.coin || ''}`)
-        }
-      }
-    },
-    { field: 'describe', label: '备注' },
-    {
-      field: 'created_at',
-      label: '创建时间',
-      slots: {
-        default: (row: V2DepositDetail) => {
-          if (!row || !row.created_at) return h('span', '-')
-          return h('span', formatTableDateTime(row.created_at))
-        }
-      }
-    },
-    {
-      field: 'paid_at',
-      label: '支付时间',
-      slots: {
-        default: (row: V2DepositDetail) => {
-          if (!row || !row.paid_at) return h('span', '-')
-          return h('span', formatTableDateTime(row.paid_at))
-        }
-      }
-    }
-  ]
-
-  if (isUsdtRechargeOrder(orderDetail.value)) {
-    schema.splice(
-      9,
-      0,
-      {
-        field: 'profit',
-        label: '利润',
-        slots: {
-          default: (row: V2DepositDetail) => h('span', getRechargeProfitText(row))
-        }
-      },
-      {
-        field: 'actual_rate',
-        label: '实际汇率',
-        slots: {
-          default: (row: V2DepositDetail) => h('span', getRechargeActualRateText(row))
-        }
-      },
-      {
-        field: 'received_amount',
-        label: '到账金额',
-        slots: {
-          default: (row: V2DepositDetail) => h('span', getRechargeReceivedAmountText(row))
-        }
-      }
-    )
-  }
-
-  return schema
-})
-
-const rechargeDetailSchema = computed(() => {
-  const schema: DescriptionsSchema[] = [
-    { field: 'to', label: '收款地址', span: 24 },
-    { field: 'from', label: '支付地址', span: 24 },
-    {
-      field: 'id',
-      label: '交易哈希',
-      span: 24,
-      slots: {
-        default: (row: V2PayTransaction) => {
-          if (!row || !row.id) return h('span', '-')
-          return (
-            <ElLink href={getTronscanTransactionUrl(row.id)} type="primary" target="_blank">
-              {row.id}
-            </ElLink>
-          )
-        }
-      }
-    }
-  ]
-  return schema
-})
 
 // 当前选择的来源
 const selectedSource = ref<number | string>('')
@@ -596,7 +429,6 @@ const handleViewDetail = async (row: V2DepositItem) => {
     }
 
     dialogVisible.value = true
-    activeTab.value = 'order'
   } catch (error) {
     handleErrorMessage(error, '获取充值详情失败')
   }

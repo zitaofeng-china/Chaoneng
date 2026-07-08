@@ -17,30 +17,26 @@
         </template>
       </SearchTable>
 
-      <Dialog v-model="dialogVisible" :title="'订单详情'">
-        <Descriptions :schema="orderDetailSchema" :data="orderDetail" :column="2" border />
-        <template #footer>
-          <div class="flex justify-end">
-            <ElButton @click="dialogVisible = false">关闭</ElButton>
-          </div>
-        </template>
-      </Dialog>
+      <RechargeOrderDetailDialog
+        v-model="dialogVisible"
+        mode="agent"
+        :order-detail="orderDetail"
+        received-bill-field="agent_bill"
+        actual-rate-source="field"
+      />
     </ContentWrap>
   </div>
 </template>
 
 <script setup lang="tsx">
 import { ref, h, computed } from 'vue'
-import { ElButton, ElTag } from 'element-plus'
+import { ElTag } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
-import { Dialog } from '@/components/Dialog'
 import { SearchTable } from '@/components/SearchTable'
 import type { SearchTableExpose } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
-import { Descriptions } from '@/components/Descriptions'
 import type { TableColumn } from '@/components/Table'
-import type { DescriptionsSchema } from '@/components/Descriptions'
 import {
   v2GetDepositList,
   v2GetDepositDetail,
@@ -48,7 +44,6 @@ import {
   type V2DepositItem,
   type V2DepositListParams
 } from '@/api/opertion/OperationCenter/RechargeOrder'
-import { ElLink } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
 import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
 import { getStatusText, getStatusType } from '@/utils/orderStatus'
@@ -63,7 +58,6 @@ import {
   formatTransactionHash,
   renderTronscanTransactionLink
 } from '@/operation/OperationCenter/utils/transactionLink'
-import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import {
   formatRechargeFeeText,
   formatRechargeMetricNumber,
@@ -71,6 +65,10 @@ import {
   getRechargeReceivedAmountText,
   isUsdtRechargeOrder
 } from '@/utils/rechargeOrder'
+import {
+  RechargeOrderDetailDialog,
+  renderRechargeCoinTag
+} from '@/components/business/recharge-order'
 
 const router = useRouter()
 const route = useRoute()
@@ -111,50 +109,6 @@ const currentSearchParams = ref<DepositSearchParams>({})
 const dialogVisible = ref(false)
 const orderDetail = ref<DepositOrderDetail>({})
 const BINANCE_TRX_USDT_URL = 'https://api.binance.com/api/v3/ticker/price?symbol=TRXUSDT'
-
-const RECHARGE_COIN_TAG_MAP: Record<
-  string,
-  { color: string; backgroundColor: string; borderColor: string }
-> = {
-  USDT: {
-    color: '#409EFF',
-    backgroundColor: '#ECF5FF',
-    borderColor: '#B3D8FF'
-  },
-  TRX: {
-    color: '#E6A23C',
-    backgroundColor: '#FDF6EC',
-    borderColor: '#F3D19E'
-  }
-}
-
-const renderRechargeCoinTag = (coin?: string | null) => {
-  const normalizedCoin = coin?.toUpperCase()
-  if (!normalizedCoin) return h('span', '-')
-
-  const tagStyle = RECHARGE_COIN_TAG_MAP[normalizedCoin]
-  if (!tagStyle) return h('span', normalizedCoin)
-
-  return h(
-    ElTag,
-    {
-      size: 'small',
-      effect: 'light',
-      style: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minWidth: '76px',
-        height: '28px',
-        color: tagStyle.color,
-        backgroundColor: tagStyle.backgroundColor,
-        borderColor: tagStyle.borderColor,
-        padding: '0 16px'
-      }
-    },
-    () => normalizedCoin
-  )
-}
 
 const toFiniteNumber = (value?: string | number | null) => {
   if (value === undefined || value === null || value === '') return undefined
@@ -207,126 +161,6 @@ const buildDepositListParams = (
 
   return adaptedParams
 }
-
-const orderDetailSchema = computed(() => {
-  const schema: DescriptionsSchema[] = [
-    { field: 'id', label: '订单号', span: 12 },
-    {
-      field: 'status',
-      label: '订单状态',
-      span: 12,
-      slots: {
-        default: (row: DepositOrderDetail) => {
-          if (!row) return h('span', '-')
-          const tagType = getStatusType(row.status)
-          return h(ElTag, { type: tagType, size: 'small' }, () => getStatusText(row.status))
-        }
-      }
-    },
-    {
-      field: 'coin',
-      label: '订单类型',
-      span: 12,
-      slots: {
-        default: (row: DepositOrderDetail) => {
-          return renderRechargeCoinTag(row.coin)
-        }
-      }
-    },
-    {
-      field: 'amount',
-      label: '金额',
-      span: 12,
-      slots: {
-        default: (row: DepositOrderDetail) => {
-          if (!row || !row.amount) return h('span', '-')
-          return h('span', `${row.amount} ${row.coin || ''}`)
-        }
-      }
-    },
-    { field: 'describe', label: '备注', span: 12 },
-    {
-      field: 'created_at',
-      label: '创建时间',
-      span: 12,
-      slots: {
-        default: (row: DepositOrderDetail) => {
-          if (!row || !row.created_at) return h('span', '-')
-          return h('span', formatTableDateTime(row.created_at))
-        }
-      }
-    },
-    {
-      field: 'paid_at',
-      label: '支付时间',
-      span: 12,
-      slots: {
-        default: (row: DepositOrderDetail) => {
-          if (!row || !row.paid_at) return h('span', '-')
-          return h('span', formatTableDateTime(row.paid_at))
-        }
-      }
-    },
-    { field: 'receive_address', label: '收款地址', span: 24 },
-    {
-      field: 'pay_from',
-      label: '支付地址',
-      span: 24,
-      slots: {
-        default: (row: DepositOrderDetail) => h('span', row.pay_from || '-')
-      }
-    },
-    {
-      field: 'pay_id',
-      label: '交易哈希',
-      span: 24,
-      slots: {
-        default: (row: DepositOrderDetail) => {
-          if (!row || !row.pay_id) return h('span', '-')
-          return (
-            <ElLink href={getTronscanTransactionUrl(row.pay_id)} type="primary" target="_blank">
-              {row.pay_id}
-            </ElLink>
-          )
-        }
-      }
-    }
-  ]
-
-  if (isUsdtRechargeOrder(orderDetail.value)) {
-    schema.splice(
-      4,
-      0,
-      {
-        field: 'profit',
-        label: '利润',
-        span: 12,
-        slots: {
-          default: (row: DepositOrderDetail) => h('span', getRechargeProfitText(row))
-        }
-      },
-      {
-        field: 'actual_rate',
-        label: '实际汇率',
-        span: 12,
-        slots: {
-          default: (row: DepositOrderDetail) => h('span', row.actual_rate || '-')
-        }
-      },
-      {
-        field: 'received_amount',
-        label: '到账金额',
-        span: 12,
-        slots: {
-          default: (row: DepositOrderDetail) =>
-            h('span', getRechargeReceivedAmountText(row, 'agent_bill'))
-        }
-      }
-    )
-  }
-
-  return schema
-})
 
 const selectedSource = ref<number | string>('')
 
