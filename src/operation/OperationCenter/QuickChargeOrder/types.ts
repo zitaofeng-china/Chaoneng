@@ -31,62 +31,9 @@ export interface QuickChargeSearchParams extends Recordable {
   order?: string
 }
 
-export interface QuickChargeOrderSummary {
-  order_id: string
-  gift_bandwidth: boolean
-  active_count: number
-  energy_count: number
-  used_count: number
-}
-
-export interface QuickChargeResource {
-  id: number
-  amount: string | number
-  target: string
-  code: number
-  source: string
-  balance: number
-  expirated_at: string | number | null
-  used_txid: string
-  delegated_txid: string
-  delegated_at: string | number | null
-  recycled_txid: string
-  recycled_at: string | number | null
-}
-
-export interface QuickChargeActivation {
-  target: string
-  actived_txid: string
-  actived_at: string | number | null
-}
-
-export interface QuickChargeOrderDetail extends Recordable {
-  id: string
-  order_num: string
-  tg_name: string
-  bot_id: string | number
-  bot_name: string
-  username: string
-  order_type: number
-  order_amount: string
-  pay_unit: string
-  energy_num: string
-  receive_address: string
-  energy_address: string
-  status: number
-  recycle_time: number
-  create_time: number
-  finish_time: number
-  pay_time: number
-  stop_time: null
-  stroke_num: number
-  txid: string
-  from_address: string
-  recycle_txid: string
-  used_txid: string
-  flash_price: string
-  kind?: number
-  summary: QuickChargeOrderSummary
-  resources: QuickChargeResource[]
-  activations: QuickChargeActivation[]
-}
+export type {
+  QuickChargeActivation,
+  QuickChargeOrderDetail,
+  QuickChargeOrderSummary,
+  QuickChargeResource
+} from '@/components/QuickChargeOrderDetail/types'

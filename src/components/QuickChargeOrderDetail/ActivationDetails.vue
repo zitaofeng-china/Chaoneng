@@ -5,11 +5,13 @@ import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
 import { formatTableDateTime, type TableSlot } from '@/utils/tableHelpers'
-import { renderActivationStatusTag } from '@/operation/OperationCenter/utils/activationStatus'
-import { renderSummaryCountText } from '@/operation/OperationCenter/utils/summaryText'
-import { renderTronscanTransactionLink } from '@/operation/OperationCenter/utils/transactionLink'
-import { useLocalPagination } from '@/operation/OperationCenter/utils/useLocalPagination'
-import type { QuickChargeActivation, QuickChargeOrderDetail } from '../../types'
+import {
+  renderActivationStatusTag,
+  renderSummaryCountText,
+  renderTronscanTransactionLink,
+  useLocalPagination
+} from './helpers'
+import type { QuickChargeActivation, QuickChargeOrderDetail } from './types'
 
 const props = withDefaults(defineProps<{ orderData: QuickChargeOrderDetail | null }>(), {
   orderData: null
@@ -41,9 +43,7 @@ const activationTableSchema = computed((): TableColumn[] => [
     align: 'center',
     width: 100,
     slots: {
-      default: ({ row }: ActivationTableSlot) => {
-        return renderActivationStatusTag(row.actived_txid)
-      }
+      default: ({ row }: ActivationTableSlot) => renderActivationStatusTag(row.actived_txid)
     }
   },
   {
@@ -52,9 +52,7 @@ const activationTableSchema = computed((): TableColumn[] => [
     width: 200,
     align: 'center',
     slots: {
-      default: ({ row }: ActivationTableSlot) => {
-        return renderTronscanTransactionLink(row.actived_txid)
-      }
+      default: ({ row }: ActivationTableSlot) => renderTronscanTransactionLink(row.actived_txid)
     }
   },
   {

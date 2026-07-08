@@ -9,9 +9,8 @@ import {
   getResourceTypeText
 } from '@/utils/energyOrder'
 import { formatTableDateTime, type TableSlot } from '@/utils/tableHelpers'
-import { renderTronscanTransactionLink } from '@/operation/OperationCenter/utils/transactionLink'
-import { useLocalPagination } from '@/operation/OperationCenter/utils/useLocalPagination'
-import type { QuickChargeOrderDetail, QuickChargeResource } from '../../types'
+import { renderTronscanTransactionLink, useLocalPagination } from './helpers'
+import type { QuickChargeOrderDetail, QuickChargeResource } from './types'
 
 const props = withDefaults(defineProps<{ orderData: QuickChargeOrderDetail | null }>(), {
   orderData: null
@@ -52,9 +51,7 @@ const resourceTableSchema = computed((): TableColumn[] => [
     width: 120,
     align: 'center',
     slots: {
-      default: ({ row }: ResourceTableSlot) => {
-        return renderTronscanTransactionLink(row.delegated_txid)
-      }
+      default: ({ row }: ResourceTableSlot) => renderTronscanTransactionLink(row.delegated_txid)
     }
   },
   {
@@ -63,9 +60,7 @@ const resourceTableSchema = computed((): TableColumn[] => [
     width: 120,
     align: 'center',
     slots: {
-      default: ({ row }: ResourceTableSlot) => {
-        return renderTronscanTransactionLink(row.recycled_txid)
-      }
+      default: ({ row }: ResourceTableSlot) => renderTronscanTransactionLink(row.recycled_txid)
     }
   },
   {
@@ -98,21 +93,19 @@ const {
 
 <template>
   <div v-if="orderData">
-    <div>
-      <Table
-        :columns="resourceTableSchema"
-        :data="paginatedResourceList"
-        :border="true"
-        :showOverflowTooltip="true"
-        :pagination="{
-          total: totalCount,
-          currentPage: currentPage,
-          pageSize: pageSize
-        }"
-        @update:current-page="handlePageChange"
-        @update:page-size="handleSizeChange"
-      />
-    </div>
+    <Table
+      :columns="resourceTableSchema"
+      :data="paginatedResourceList"
+      :border="true"
+      :showOverflowTooltip="true"
+      :pagination="{
+        total: totalCount,
+        currentPage: currentPage,
+        pageSize: pageSize
+      }"
+      @update:current-page="handlePageChange"
+      @update:page-size="handleSizeChange"
+    />
   </div>
   <div v-else>加载中...</div>
 </template>
