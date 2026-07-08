@@ -172,11 +172,15 @@ const fetchBinanceTrxUsdtPrice = async () => {
   return data.price
 }
 
-const formatBinanceUsdtToTrxRate = (trxUsdtPrice?: string | number | null) => {
+const formatBinanceActualRate = (trxUsdtPrice?: string | number | null) => {
   const marketPrice = toFiniteNumber(trxUsdtPrice)
   if (marketPrice === undefined || marketPrice <= 0) return '-'
 
-  return formatRechargeMetricNumber(1 / marketPrice, 6)
+  if (typeof trxUsdtPrice === 'string' && trxUsdtPrice.trim()) {
+    return trxUsdtPrice
+  }
+
+  return formatRechargeMetricNumber(marketPrice, 8)
 }
 
 const buildDepositListParams = (
@@ -533,7 +537,7 @@ const handleViewDetail = async (row: V2DepositItem) => {
     const detail = detailResult.value.data
     const actualRate =
       shouldFetchActualRate && priceResult.status === 'fulfilled'
-        ? formatBinanceUsdtToTrxRate(priceResult.value)
+        ? formatBinanceActualRate(priceResult.value)
         : '-'
 
     orderDetail.value = detail.pay_transaction
