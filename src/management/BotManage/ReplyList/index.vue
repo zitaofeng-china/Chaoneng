@@ -67,7 +67,7 @@ import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/u
 import MessagePreviewDialog from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
 import type { MessagePreviewData } from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
 import { v1GetInnerButtonList, type InnerButtonItem } from '@/api/opertion/common/menuList'
-import { getMessageFileType } from '@/operation/components/MessageDialog/utils'
+import { getMessageFileType } from '@/components/business/message/MessageDialog/messageFile'
 import { getReplyContentPreviewText, normalizeReplyContentHtml } from '@/utils/replyContent'
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const replyFormDialogRef = ref<InstanceType<typeof ReplyFormDialog> | null>(null)

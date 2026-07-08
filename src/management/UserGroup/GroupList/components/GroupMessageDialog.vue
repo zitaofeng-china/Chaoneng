@@ -219,6 +219,7 @@ import InlineButtonDialog from '../../MessageList/components/InlineButtonDialog.
 import { getChatTypeText } from '../../utils/chat'
 import type { MessagePreviewData } from '../../UserList/components/MessageDialog/components/MessagePreviewDialog.vue'
 import type { SelectOption } from '@/utils/tableHelpers'
+import { getMessageFileType } from '@/components/business/message/MessageDialog/messageFile'
 
 interface GroupMessageTarget {
   id: number | string
@@ -330,16 +331,6 @@ const setContent = async (newContent: string) => {
 }
 const textareaRef = computed(() => messageContentEditorRef.value?.textareaRef)
 const { renderFormattingButtons } = useHtmlInsert(getContent, setContent, textareaRef)
-
-const getMessageFileType = (file: File | UploadUserFile): 'image' | 'video' => {
-  const fileName = file.name || ''
-  const fileType = (file as File).type || (file as UploadUserFile).raw?.type || ''
-
-  if (fileType.startsWith('video/') || /\.(mp4|avi|mov|wmv|flv|mkv)$/i.test(fileName)) {
-    return 'video'
-  }
-  return 'image'
-}
 
 // 文件预览
 const handlePreview = (uploadFile: UploadUserFile) => {

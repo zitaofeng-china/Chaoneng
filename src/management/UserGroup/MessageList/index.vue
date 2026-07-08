@@ -87,7 +87,7 @@ import MessagePreviewDialog from '../UserList/components/MessageDialog/component
 import type { MessagePreviewData } from '../UserList/components/MessageDialog/components/MessagePreviewDialog.vue'
 import { handleErrorMessage } from '@/utils/messageHelper'
 import { getReplyContentPreviewText, normalizeReplyContentHtml } from '@/utils/replyContent'
-import { getMessageFileType } from '@/operation/components/MessageDialog/utils'
+import { getMessageFileType } from '@/components/business/message/MessageDialog/messageFile'
 
 // SearchTable 引用
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)

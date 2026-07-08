@@ -41,15 +41,7 @@
               <!-- 图片/视频 -->
               <div class="telegram-media-container">
                 <template v-if="file.type === 'video'">
-                  <video
-                    :src="file.url"
-                    class="telegram-media-content"
-                    muted
-                    preload="metadata"
-                    disablePictureInPicture
-                    controlslist="nodownload noremoteplayback"
-                  ></video>
-                  <div class="telegram-video-icon">▶</div>
+                  <VideoPoster :src="file.url" class="telegram-media-content" alt="视频封面" />
                 </template>
                 <template v-else>
                   <img :src="file.url" class="telegram-media-content" alt="图片" />
@@ -193,6 +185,7 @@ import { ref, computed, watch } from 'vue'
 import { ElButton, ElTag, ElDropdown, ElDropdownMenu, ElDropdownItem } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { normalizeReplyContentHtml } from '@/utils/replyContent'
+import VideoPoster from '@/components/business/message/MessageDialog/components/VideoPoster.vue'
 
 export interface ButtonItem {
   id: number

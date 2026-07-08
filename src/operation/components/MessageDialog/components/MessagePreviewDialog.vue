@@ -156,7 +156,7 @@ import { computed, ref, watch } from 'vue'
 import { ElButton, ElDropdown, ElDropdownItem, ElDropdownMenu, ElTag } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { normalizeReplyContentHtml } from '@/utils/replyContent'
-import VideoPoster from './VideoPoster.vue'
+import VideoPoster from '@/components/business/message/MessageDialog/components/VideoPoster.vue'
 
 export interface ButtonItem {
   id: number

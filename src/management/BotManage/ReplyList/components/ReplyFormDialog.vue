@@ -129,7 +129,7 @@ import InlineButtonSelector from '@/operation/components/MessageDialog/InlineBut
 import VideoPreviewDialog from '@/operation/components/MessageDialog/components/VideoPreviewDialog.vue'
 import MessagePreviewDialog from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
 import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
-import { getMessageFileType } from '@/operation/components/MessageDialog/utils'
+import { getMessageFileType } from '@/components/business/message/MessageDialog/messageFile'
 import { uploadFile } from '@/api/management/common/upload'
 import { v1GetInnerButtonList, type InnerButtonItem } from '@/api/opertion/common/menuList'
 import { getErrorMessage } from '@/utils/messageHelper'
