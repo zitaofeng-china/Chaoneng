@@ -113,6 +113,9 @@
             <Icon icon="cryptocurrency-color:trx" :size="24" />
             <div class="text-sm text-gray-500">（可转入大于 1TRX 的任意金额）</div>
           </div>
+          <div class="mt-1 text-sm text-gray-500"
+            >支持USDT，汇率1USDT ≈ {{ usdtExchangeRate }} TRX</div
+          >
         </div>
       </div>
       <div v-else class="py-4 text-center text-red-500"> 该账户未设置收款地址，请联系管理员。 </div>
@@ -148,6 +151,7 @@ import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { UnixTime } from '@/components/UnixTime'
 import { getAccountListApi } from '@/api/management/AccountManage/AccountList'
+import { v1GetSystemPrice } from '@/api/management/BotManage/BotList'
 import { useValidator } from '@/hooks/web/useValidator'
 import RechargeRecordDialog from './components/RechargeRecordDialog.vue'
 import DeductionRecordDialog from './components/DeductionRecordDialog.vue'
@@ -161,6 +165,14 @@ import {
   handleSuccessMessage,
   handleWarningMessage
 } from '@/utils/messageHelper'
+import { formatRechargeMetricNumber } from '@/utils/rechargeOrder'
+
+interface BinanceTickerPriceResponse {
+  symbol: string
+  price: string
+}
+
+const BINANCE_TRX_USDT_URL = 'https://api.binance.com/api/v3/ticker/price?symbol=TRXUSDT'
 
 // 表单校验
 const { required } = useValidator()
@@ -182,6 +194,7 @@ const rechargeDialogVisible = ref(false)
 
 // 收款地址生成的二维码 DataURL
 const qrCodeDataUrl = ref('')
+const usdtExchangeRate = ref('-')
 
 const ensureAccountReady = (message: string) => {
   if (!userData.value.id) {
@@ -196,6 +209,38 @@ const resetPasswordFormState = () => {
   resetForm.password = ''
   resetForm.confirmPassword = ''
   resetForm.email = userData.value.email || ''
+}
+
+const toFiniteNumber = (value?: string | number | null) => {
+  if (value === undefined || value === null || value === '') return undefined
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) ? numberValue : undefined
+}
+
+const fetchBinanceTrxUsdtPrice = async () => {
+  const response = await fetch(BINANCE_TRX_USDT_URL)
+  if (!response.ok) {
+    throw new Error(`获取币安 TRXUSDT 汇率失败: ${response.status}`)
+  }
+
+  const data = (await response.json()) as BinanceTickerPriceResponse
+  return data.price
+}
+
+const updateUsdtExchangeRate = (
+  systemUsdtToTrxRate?: string | number | null,
+  trxUsdtPrice?: string | number | null
+) => {
+  const systemRate = toFiniteNumber(systemUsdtToTrxRate)
+  const marketPrice = toFiniteNumber(trxUsdtPrice)
+
+  if (systemRate === undefined || marketPrice === undefined || marketPrice <= 0) {
+    usdtExchangeRate.value = '-'
+    return
+  }
+
+  const calculatedRate = (1 / marketPrice) * (1 - systemRate)
+  usdtExchangeRate.value = formatRechargeMetricNumber(calculatedRate, 6)
 }
 
 // 根据收款地址生成二维码
@@ -429,15 +474,25 @@ const openRechargeDialog = async () => {
   }
 
   try {
-    const response = await getAccountListApi({ address: true })
+    const [accountResult, priceResult, binancePriceResult] = await Promise.allSettled([
+      getAccountListApi({ address: true }),
+      v1GetSystemPrice(),
+      fetchBinanceTrxUsdtPrice()
+    ])
 
-    if (response && response.data) {
-      const data = response.data as any
+    if (accountResult.status === 'fulfilled' && accountResult.value?.data) {
+      const data = accountResult.value.data as any
       // 更新 userData，包含充值地址（兼容 address / pay_address 字段）
       const address = data.address || data.pay_address || userData.value.address
       userData.value = {
         ...userData.value,
         address
+      }
+
+      if (priceResult.status === 'fulfilled' && binancePriceResult.status === 'fulfilled') {
+        updateUsdtExchangeRate(priceResult.value?.data?.usdt_2_trx, binancePriceResult.value)
+      } else {
+        updateUsdtExchangeRate(undefined, undefined)
       }
 
       // 根据收款地址生成二维码
