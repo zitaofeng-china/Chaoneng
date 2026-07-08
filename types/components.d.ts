@@ -13,6 +13,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     ActionButton: typeof import('./../src/components/Search/src/components/ActionButton.vue')['default']
+    ActivationDetails: typeof import('./../src/components/QuickChargeOrderDetail/ActivationDetails.vue')['default']
     Avatars: typeof import('./../src/components/Avatars/src/Avatars.vue')['default']
     Backtop: typeof import('./../src/components/Backtop/src/Backtop.vue')['default']
     Breadcrumb: typeof import('./../src/components/Breadcrumb/src/Breadcrumb.vue')['default']
@@ -63,9 +64,12 @@ declare module 'vue' {
     LockPage: typeof import('./../src/components/UserInfo/src/components/LockPage.vue')['default']
     Logo: typeof import('./../src/components/Logo/src/Logo.vue')['default']
     Menu: typeof import('./../src/components/Menu/src/Menu.vue')['default']
+    MessageFileUploader: typeof import('./../src/components/business/message/MessageDialog/components/MessageFileUploader.vue')['default']
     Permission: typeof import('./../src/components/Permission/src/Permission.vue')['default']
     Qrcode: typeof import('./../src/components/Qrcode/src/Qrcode.vue')['default']
+    QuickChargeOrderDetail: typeof import('./../src/components/QuickChargeOrderDetail/QuickChargeOrderDetail.vue')['default']
     ResizeDialog: typeof import('./../src/components/Dialog/src/ResizeDialog.vue')['default']
+    ResourceDetails: typeof import('./../src/components/QuickChargeOrderDetail/ResourceDetails.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Screenfull: typeof import('./../src/components/Screenfull/src/Screenfull.vue')['default']
@@ -84,6 +88,7 @@ declare module 'vue' {
     UserInfo: typeof import('./../src/components/UserInfo/src/UserInfo.vue')['default']
     VideoPlayer: typeof import('./../src/components/VideoPlayer/src/VideoPlayer.vue')['default']
     VideoPlayerViewer: typeof import('./../src/components/VideoPlayerViewer/src/VideoPlayerViewer.vue')['default']
+    VideoPoster: typeof import('./../src/components/business/message/MessageDialog/components/VideoPoster.vue')['default']
     Waterfall: typeof import('./../src/components/Waterfall/src/Waterfall.vue')['default']
   }
   export interface GlobalDirectives {
@@ -94,6 +99,7 @@ declare module 'vue' {
 // For TSX support
 declare global {
   const ActionButton: typeof import('./../src/components/Search/src/components/ActionButton.vue')['default']
+  const ActivationDetails: typeof import('./../src/components/QuickChargeOrderDetail/ActivationDetails.vue')['default']
   const Avatars: typeof import('./../src/components/Avatars/src/Avatars.vue')['default']
   const Backtop: typeof import('./../src/components/Backtop/src/Backtop.vue')['default']
   const Breadcrumb: typeof import('./../src/components/Breadcrumb/src/Breadcrumb.vue')['default']
@@ -144,9 +150,12 @@ declare global {
   const LockPage: typeof import('./../src/components/UserInfo/src/components/LockPage.vue')['default']
   const Logo: typeof import('./../src/components/Logo/src/Logo.vue')['default']
   const Menu: typeof import('./../src/components/Menu/src/Menu.vue')['default']
+  const MessageFileUploader: typeof import('./../src/components/business/message/MessageDialog/components/MessageFileUploader.vue')['default']
   const Permission: typeof import('./../src/components/Permission/src/Permission.vue')['default']
   const Qrcode: typeof import('./../src/components/Qrcode/src/Qrcode.vue')['default']
+  const QuickChargeOrderDetail: typeof import('./../src/components/QuickChargeOrderDetail/QuickChargeOrderDetail.vue')['default']
   const ResizeDialog: typeof import('./../src/components/Dialog/src/ResizeDialog.vue')['default']
+  const ResourceDetails: typeof import('./../src/components/QuickChargeOrderDetail/ResourceDetails.vue')['default']
   const RouterLink: typeof import('vue-router')['RouterLink']
   const RouterView: typeof import('vue-router')['RouterView']
   const Screenfull: typeof import('./../src/components/Screenfull/src/Screenfull.vue')['default']
@@ -165,5 +174,6 @@ declare global {
   const UserInfo: typeof import('./../src/components/UserInfo/src/UserInfo.vue')['default']
   const VideoPlayer: typeof import('./../src/components/VideoPlayer/src/VideoPlayer.vue')['default']
   const VideoPlayerViewer: typeof import('./../src/components/VideoPlayerViewer/src/VideoPlayerViewer.vue')['default']
+  const VideoPoster: typeof import('./../src/components/business/message/MessageDialog/components/VideoPoster.vue')['default']
   const Waterfall: typeof import('./../src/components/Waterfall/src/Waterfall.vue')['default']
 }
