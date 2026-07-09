@@ -605,7 +605,8 @@ const buildDonut = (title: string, data: { name: string; value: number }[]): ECh
         itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
         label: { show: false },
         emphasis: {
-          label: { show: true, fontSize: 14, fontWeight: 'bold', formatter: '{b}\n{d}%' }
+          // 悬停仅保留 tooltip 弹窗，不在扇区旁展示「名称 + 百分比」标签
+          label: { show: false }
         },
         labelLine: { show: false },
         data
