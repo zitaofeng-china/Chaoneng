@@ -166,13 +166,7 @@ import {
   handleWarningMessage
 } from '@/utils/messageHelper'
 import { formatRechargeMetricNumber } from '@/utils/rechargeOrder'
-
-interface BinanceTickerPriceResponse {
-  symbol: string
-  price: string
-}
-
-const BINANCE_TRX_USDT_URL = 'https://api.binance.com/api/v3/ticker/price?symbol=TRXUSDT'
+import { fetchTrxUsdtTickerPrice } from '@/utils/trxTickerPrice'
 
 // 表单校验
 const { required } = useValidator()
@@ -215,16 +209,6 @@ const toFiniteNumber = (value?: string | number | null) => {
   if (value === undefined || value === null || value === '') return undefined
   const numberValue = Number(value)
   return Number.isFinite(numberValue) ? numberValue : undefined
-}
-
-const fetchBinanceTrxUsdtPrice = async () => {
-  const response = await fetch(BINANCE_TRX_USDT_URL)
-  if (!response.ok) {
-    throw new Error(`获取币安 TRXUSDT 汇率失败: ${response.status}`)
-  }
-
-  const data = (await response.json()) as BinanceTickerPriceResponse
-  return data.price
 }
 
 const updateUsdtExchangeRate = (
@@ -475,10 +459,10 @@ const openRechargeDialog = async () => {
   }
 
   try {
-    const [accountResult, priceResult, binancePriceResult] = await Promise.allSettled([
+    const [accountResult, priceResult, tickerPriceResult] = await Promise.allSettled([
       getAccountListApi({ address: true }),
       v1GetSystemPrice(),
-      fetchBinanceTrxUsdtPrice()
+      fetchTrxUsdtTickerPrice()
     ])
 
     if (accountResult.status === 'fulfilled' && accountResult.value?.data) {
@@ -490,8 +474,8 @@ const openRechargeDialog = async () => {
         address
       }
 
-      if (priceResult.status === 'fulfilled' && binancePriceResult.status === 'fulfilled') {
-        updateUsdtExchangeRate(priceResult.value?.data?.usdt_2_trx, binancePriceResult.value)
+      if (priceResult.status === 'fulfilled' && tickerPriceResult.status === 'fulfilled') {
+        updateUsdtExchangeRate(priceResult.value?.data?.usdt_2_trx, tickerPriceResult.value)
       } else {
         updateUsdtExchangeRate(undefined, undefined)
       }

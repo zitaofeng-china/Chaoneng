@@ -69,6 +69,7 @@ import {
   RechargeOrderDetailDialog,
   renderRechargeCoinTag
 } from '@/components/business/recharge-order'
+import { fetchTrxUsdtTickerPrice } from '@/utils/trxTickerPrice'
 
 const router = useRouter()
 const route = useRoute()
@@ -99,16 +100,10 @@ type DepositOrderDetail = Partial<V2DepositDetail> & {
   actual_rate?: string
 }
 
-interface BinanceTickerPriceResponse {
-  symbol: string
-  price: string
-}
-
 const currentSearchParams = ref<DepositSearchParams>({})
 
 const dialogVisible = ref(false)
 const orderDetail = ref<DepositOrderDetail>({})
-const BINANCE_TRX_USDT_URL = 'https://api.binance.com/api/v3/ticker/price?symbol=TRXUSDT'
 
 const toFiniteNumber = (value?: string | number | null) => {
   if (value === undefined || value === null || value === '') return undefined
@@ -116,17 +111,7 @@ const toFiniteNumber = (value?: string | number | null) => {
   return Number.isFinite(numberValue) ? numberValue : undefined
 }
 
-const fetchBinanceTrxUsdtPrice = async () => {
-  const response = await fetch(BINANCE_TRX_USDT_URL)
-  if (!response.ok) {
-    throw new Error(`获取币安 TRXUSDT 汇率失败: ${response.status}`)
-  }
-
-  const data = (await response.json()) as BinanceTickerPriceResponse
-  return data.price
-}
-
-const formatBinanceActualRate = (trxUsdtPrice?: string | number | null) => {
+const formatTickerActualRate = (trxUsdtPrice?: string | number | null) => {
   const marketPrice = toFiniteNumber(trxUsdtPrice)
   if (marketPrice === undefined || marketPrice <= 0) return '-'
 
@@ -361,7 +346,7 @@ const handleViewDetail = async (row: V2DepositItem) => {
     const shouldFetchActualRate = isUsdtRechargeOrder(row)
     const [detailResult, priceResult] = await Promise.allSettled([
       v2GetDepositDetail(row.id),
-      shouldFetchActualRate ? fetchBinanceTrxUsdtPrice() : Promise.resolve(undefined)
+      shouldFetchActualRate ? fetchTrxUsdtTickerPrice() : Promise.resolve(undefined)
     ])
 
     if (detailResult.status !== 'fulfilled') {
@@ -371,7 +356,7 @@ const handleViewDetail = async (row: V2DepositItem) => {
     const detail = detailResult.value.data
     const actualRate =
       shouldFetchActualRate && priceResult.status === 'fulfilled'
-        ? formatBinanceActualRate(priceResult.value)
+        ? formatTickerActualRate(priceResult.value)
         : '-'
 
     orderDetail.value = detail.pay_transaction
