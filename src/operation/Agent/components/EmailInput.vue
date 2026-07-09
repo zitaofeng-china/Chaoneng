@@ -4,6 +4,9 @@
     :fetch-suggestions="querySearch"
     placeholder="请输入邮箱"
     class="email-autocomplete"
+    :disabled="disabled"
+    :autocomplete="autocomplete"
+    :name="name"
     @select="handleSelect"
     @input="handleInput"
     @blur="handleBlur"
@@ -22,6 +25,9 @@ import { ElAutocomplete } from 'element-plus'
 
 const props = defineProps<{
   modelValue?: string
+  disabled?: boolean
+  autocomplete?: string
+  name?: string
 }>()
 
 const emit = defineEmits<{

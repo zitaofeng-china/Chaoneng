@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="tsx">
 import { ref, watch, computed } from 'vue'
 import type { PropType } from 'vue'
 import { Form, FormSchema } from '@/components/Form'
@@ -11,6 +11,7 @@ import type { RoleItem } from '@/api/opertion/Authorization/common/role'
 import type { ManageUserItem } from '@/api/opertion/Authorization/User'
 import { handleErrorMessage } from '@/utils/messageHelper'
 import type { SelectOption } from '@/utils/tableHelpers'
+import EmailInput from '@/operation/Agent/components/EmailInput.vue'
 
 const { t } = useI18n()
 
@@ -22,6 +23,7 @@ type FormValidateCallback = (error?: Error) => void
 export interface ManageUserFormData {
   id?: number
   username: string
+  email?: string
   password?: string
   role_id: number
   status: number
@@ -131,6 +133,26 @@ const validatePassword = (_rule: unknown, value: unknown, callback: FormValidate
   callback()
 }
 
+const validateUsername = (_rule: unknown, value: unknown, callback: FormValidateCallback) => {
+  if (String(value || '').includes('@')) {
+    callback(new Error('用户名不能包含@符号'))
+    return
+  }
+  callback()
+}
+
+const validateEmail = (_rule: unknown, value: unknown, callback: FormValidateCallback) => {
+  if (!value) {
+    callback()
+    return
+  }
+  if (!/^(\w-*\.*)+@(\w-?)+(\.\w{2,})+$/.test(String(value))) {
+    callback(new Error('请输入正确的邮箱'))
+    return
+  }
+  callback()
+}
+
 const formSchema = computed<FormSchema[]>(() => {
   const isDisabledForNonSuperAdminEdit = props.actionType === 'edit' && !userStore.isSuperAdmin
   const isDisabledForPasswordField = !shouldShowPasswordFields.value
@@ -142,7 +164,58 @@ const formSchema = computed<FormSchema[]>(() => {
       component: 'Input',
       componentProps: {
         placeholder: '请输入英文或数字组合，至少4位',
+        disabled: isDisabledForNonSuperAdminEdit,
+        autocomplete: 'off',
+        name: 'operation-user-name-no-autofill'
+      }
+    },
+    {
+      field: 'email',
+      label: '邮箱',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入邮箱',
         disabled: isDisabledForNonSuperAdminEdit
+      },
+      formItemProps: {
+        slots: {
+          default: (formModel: ManageUserFormData) => (
+            <EmailInput
+              v-model={formModel.email}
+              disabled={isDisabledForNonSuperAdminEdit}
+              autocomplete="off"
+              name="operation-user-email-no-autofill"
+              style={{ width: '100%' }}
+            />
+          )
+        }
+      }
+    },
+    {
+      field: 'password',
+      label: t('userDemo.password'),
+      component: 'Input',
+      componentProps: {
+        type: 'password',
+        showPassword: true,
+        placeholder: t('userDemo.passwordPlaceholder', '请输入密码 (至少8位，不能纯数字)'),
+        onInput: (val: string) => (passwordRef.value = val),
+        disabled: isDisabledForPasswordField,
+        autocomplete: 'new-password',
+        name: 'operation-user-password-no-autofill'
+      }
+    },
+    {
+      field: 'confirmPassword',
+      label: '新密码',
+      component: 'Input',
+      componentProps: {
+        type: 'password',
+        showPassword: true,
+        placeholder: t('userDemo.passwordPlaceholder', '请输入密码 (至少8位，不能纯数字)'),
+        disabled: isDisabledForPasswordField,
+        autocomplete: 'new-password',
+        name: 'operation-user-new-password-no-autofill'
       }
     },
     {
@@ -166,29 +239,6 @@ const formSchema = computed<FormSchema[]>(() => {
           { label: t('userDemo.disable'), value: 2 }
         ]
       }
-    },
-    {
-      field: 'password',
-      label: t('userDemo.password'),
-      component: 'Input',
-      componentProps: {
-        type: 'password',
-        showPassword: true,
-        placeholder: t('userDemo.passwordPlaceholder', '请输入密码 (至少8位，不能纯数字)'),
-        onInput: (val: string) => (passwordRef.value = val),
-        disabled: isDisabledForPasswordField
-      }
-    },
-    {
-      field: 'confirmPassword',
-      label: t('userDemo.confirmPassword'),
-      component: 'Input',
-      componentProps: {
-        type: 'password',
-        showPassword: true,
-        placeholder: t('userDemo.passwordPlaceholder', '请输入密码 (至少8位，不能纯数字)'),
-        disabled: isDisabledForPasswordField
-      }
     }
   ]
 })
@@ -200,8 +250,14 @@ const rules = {
       message: t('userDemo.username') + t('common.isRequired', '不能为空'),
       trigger: 'blur'
     },
-    { min: 4, message: t('userDemo.usernameLengthError', '用户名长度不能少于4位'), trigger: 'blur' }
+    {
+      min: 4,
+      message: t('userDemo.usernameLengthError', '用户名长度不能少于4位'),
+      trigger: 'blur'
+    },
+    { validator: validateUsername, trigger: 'blur' }
   ],
+  email: [{ validator: validateEmail, trigger: 'blur' }],
   role_id: [
     {
       required: true,
@@ -225,9 +281,24 @@ const open = () => {
   passwordRef.value = ''
   roleOptions.value = []
   if (!props.currentRow) {
-    setValues({ username: '', status: 1, role_id: undefined, password: '', confirmPassword: '' })
+    setValues({
+      username: '',
+      email: '',
+      status: 1,
+      role_id: undefined,
+      password: '',
+      confirmPassword: ''
+    })
   } else {
-    setValues({ ...props.currentRow, password: '', confirmPassword: '' })
+    setValues({
+      id: props.currentRow.id,
+      username: props.currentRow.username || '',
+      email: props.currentRow.email || '',
+      role_id: props.currentRow.role_id,
+      status: props.currentRow.status,
+      password: '',
+      confirmPassword: ''
+    })
   }
 }
 const close = () => {
@@ -243,6 +314,7 @@ const submit = async () => {
     return {
       id: formData.id ? Number(formData.id) : undefined,
       username: String(formData.username || ''),
+      email: formData.email ? String(formData.email) : undefined,
       password: formData.password ? String(formData.password) : undefined,
       role_id: Number(formData.role_id),
       status: Number(formData.status)

@@ -58,6 +58,11 @@ const columns: TableColumn[] = [
     label: t('userDemo.username')
   },
   {
+    field: 'email',
+    label: '邮箱',
+    formatter: (row: ManageUserItem) => row.email || '-'
+  },
+  {
     field: 'role_name',
     label: t('userDemo.role'),
     formatter: (row: ManageUserItem) => getRoleName(row.role_id)
@@ -185,6 +190,7 @@ const save = async () => {
         const payload: UpdateManageUserPayload = {
           id: Number(formData.id),
           username: formData.username,
+          email: formData.email,
           password: formData.password || undefined,
           role_id: formData.role_id,
           status: formData.status
@@ -193,6 +199,7 @@ const save = async () => {
       } else {
         const payload: AddManageUserPayload = {
           username: formData.username,
+          email: formData.email,
           password: formData.password || '',
           role_id: formData.role_id,
           status: formData.status

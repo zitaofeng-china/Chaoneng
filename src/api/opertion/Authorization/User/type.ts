@@ -39,6 +39,7 @@ export interface ManageUserListResponse {
  */
 export interface AddManageUserPayload {
   username: string // 用户名
+  email?: string // 邮箱
   password: string // 密码
   role_id: number // 角色ID
   status: number // 状态 (1:启用, 2:禁用)
@@ -50,6 +51,7 @@ export interface AddManageUserPayload {
 export interface UpdateManageUserPayload {
   id: number // 运营用户ID
   username?: string // 用户名
+  email?: string // 邮箱
   password?: string // 密码（留空不修改）
   role_id?: number // 角色ID
   status?: number // 状态 (1:启用, 2:禁用)
