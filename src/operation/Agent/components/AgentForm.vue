@@ -52,7 +52,7 @@ interface AgentFormValues {
   price_id: number
 }
 
-const { required, lengthRange } = useValidator()
+const { required, lengthRange, noAtSymbol } = useValidator()
 const { formRegister, formMethods } = useForm()
 const { formRegister: formRegister2, formMethods: formMethods2 } = useForm()
 
@@ -191,7 +191,7 @@ const formRules = computed<FormRules>(() => {
   ]
 
   return {
-    username: addModeOnly([required('代理名称不能为空')]),
+    username: addModeOnly([required('代理名称不能为空'), noAtSymbol('代理名称不能包含@符号')]),
     price_id: addModeOnly([required('请选择代理等级')]),
     password: isEdit.value ? passwordRules : [required('登录密码不能为空'), ...passwordRules],
     email: addModeOnly(emailRules)

@@ -55,14 +55,16 @@ export interface VerifyCodeLoginParams {
 }
 
 /**
- * 修改密码参数（代理用户，通过邮箱验证码重置）
- * 接口路径：POST /v1/user/changepasswd
+ * 重置账号参数（通过邮箱验证码重置密码或动态验证码）
+ * 接口路径：POST /v1/reset
  */
 export interface ChangePasswordParams {
+  username?: string // 用户名
   email?: string // 邮箱
   phone?: string // 手机号
-  password: string // 新密码
+  password?: string // 新密码；为空时不更新密码
   verify_code: string // 验证码
+  clear_secret?: boolean // 是否清除动态验证码密钥
 }
 
 /**
@@ -73,9 +75,15 @@ export interface ChangeManagePasswordParams {
   new_password: string // 新密码
 }
 
+export interface CaptchaParams {
+  username: string
+  email?: string
+}
+
 export interface EmailCodeParams {
   email: string
-  channel: 'login' | 'register' | 'change_passwd'
+  username?: string
+  channel?: 'login' | 'register' | 'change_passwd'
 }
 
 export interface PhoneCodeParams {

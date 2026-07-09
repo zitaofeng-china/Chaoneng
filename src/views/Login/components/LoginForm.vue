@@ -25,7 +25,7 @@ import {
 import { ElMessage } from 'element-plus'
 import { routePreloader } from '@/utils/preloadRoutes'
 
-const { required, phone, noChinese, lengthRange } = useValidator()
+const { required, phone, noChinese, noAtSymbol, lengthRange } = useValidator()
 
 const emit = defineEmits(['to-register'])
 
@@ -40,8 +40,13 @@ const { currentRoute, addRoute, push, replace } = useRouter()
 const { t } = useI18n()
 
 const isManagement = isManagementSystem()
+const resetAccountText = computed(() => (isManagement ? t('login.forgetPassword') : '账号重置'))
 // 添加登录类型切换
 const loginType = ref('account') // 'account' 或 'phone'
+type AccountCaptchaMode = 'none' | 'dynamic' | 'image'
+const operationCaptchaMode = ref<AccountCaptchaMode>('none')
+const operationCaptchaCheckKey = ref('')
+const operationCaptchaLoading = ref(false)
 
 // 根据登录类型使用不同的验证规则
 const rules = computed(() => {
@@ -68,9 +73,21 @@ const rules = computed(() => {
 
   return loginType.value === 'account'
     ? {
-        username: [required()],
+        username: isManagement ? [required(), noAtSymbol()] : [required()],
         password: passwordRules,
-        verify_code: [required(), noChinese()]
+        ...(isManagement
+          ? {
+              verify_code: [required(), noChinese()]
+            }
+          : operationCaptchaMode.value === 'dynamic'
+            ? {
+                google_code: [required(), noChinese()]
+              }
+            : operationCaptchaMode.value === 'image'
+              ? {
+                  verify_code: [required(), noChinese()]
+                }
+              : {})
       }
     : {
         phone: [required(), phone()],
@@ -111,6 +128,7 @@ const sendCode = async () => {
     if (isEmail) {
       await sendEmailCodeApi({
         email: formData.phone,
+        username: formData.username,
         channel: 'login'
       })
     } else if (isPhone) {
@@ -145,9 +163,11 @@ const clearForm = () => {
     username: '',
     password: '',
     google_code: '',
+    verify_code: '',
     phone: '',
     code: ''
   })
+  resetOperationCaptchaMode()
 }
 
 // 图形验证码相关状态
@@ -157,16 +177,120 @@ const captchaId = ref('')
 // 获取图形验证码
 const fetchCaptcha = async () => {
   try {
-    const res = await getCaptchaApi()
-    if (res.data && res.code === '000000') {
-      captchaImg.value = res.data.data
-      captchaId.value = res.data.id
+    const formData = await getFormData()
+    const username = formData.username?.trim()
+    if (!username) {
+      captchaImg.value = ''
+      captchaId.value = ''
+      ElMessage.warning('请先输入用户名')
+      return
+    }
+    if (isManagement && username.includes('@')) {
+      captchaImg.value = ''
+      captchaId.value = ''
+      ElMessage.warning('用户名不能包含@符号')
+      return
+    }
+
+    const res = await getCaptchaApi({ username })
+    if (res.code === '000000') {
+      const { image, id } = extractCaptchaImage(res.data)
+      captchaImg.value = image
+      captchaId.value = id
+      if (!isManagement) {
+        operationCaptchaMode.value = image ? 'image' : 'dynamic'
+      }
     } else {
       ElMessage.error('获取验证码失败')
     }
   } catch (e) {
     ElMessage.error('获取验证码失败')
   }
+}
+
+const extractCaptchaImage = (data: any) => {
+  if (!data) {
+    return { image: '', id: '' }
+  }
+  if (typeof data === 'string') {
+    return { image: data, id: '' }
+  }
+  return {
+    image: data.data || '',
+    id: data.id || ''
+  }
+}
+
+const resetOperationCaptchaMode = () => {
+  if (isManagement) return
+  operationCaptchaMode.value = 'none'
+  operationCaptchaCheckKey.value = ''
+  captchaImg.value = ''
+  captchaId.value = ''
+  formMethods.setValues({
+    google_code: '',
+    verify_code: ''
+  })
+}
+
+const checkOperationCaptchaMode = async () => {
+  if (isManagement || loginType.value !== 'account') {
+    return operationCaptchaMode.value
+  }
+
+  const formData = await getFormData()
+  const username = formData.username?.trim()
+  const password = formData.password?.trim()
+
+  if (!username || !password) {
+    resetOperationCaptchaMode()
+    return operationCaptchaMode.value
+  }
+
+  const checkKey = `${username}::${password}`
+  if (operationCaptchaCheckKey.value === checkKey && operationCaptchaMode.value !== 'none') {
+    return operationCaptchaMode.value
+  }
+
+  operationCaptchaLoading.value = true
+  try {
+    const res = await getCaptchaApi({ username })
+    if (res.code !== '000000') {
+      ElMessage.error(res.msg || '获取验证码失败')
+      resetOperationCaptchaMode()
+      return operationCaptchaMode.value
+    }
+
+    const { image, id } = extractCaptchaImage(res.data)
+    operationCaptchaCheckKey.value = checkKey
+    captchaImg.value = image
+    captchaId.value = id
+    operationCaptchaMode.value = image ? 'image' : 'dynamic'
+    await formMethods.setValues({
+      google_code: '',
+      verify_code: ''
+    })
+    return operationCaptchaMode.value
+  } catch (error) {
+    resetOperationCaptchaMode()
+    ElMessage.error('获取验证码失败')
+    return operationCaptchaMode.value
+  } finally {
+    operationCaptchaLoading.value = false
+  }
+}
+
+const handleAccountInput = () => {
+  startPreloadOnInput()
+  resetOperationCaptchaMode()
+}
+
+const handleAccountBlur = () => {
+  if (isManagement) {
+    fetchCaptcha()
+    return
+  }
+  checkOperationCaptchaMode()
 }
 
 // 监听表单输入，开始预加载（需要在 schema 之前声明）
@@ -205,8 +329,9 @@ const accountSchema = reactive<FormSchema[]>([
     component: 'Input',
     colProps: { span: 24 },
     componentProps: {
-      placeholder: '支持用户名/邮箱登录',
-      onInput: startPreloadOnInput // 监听输入，触发预加载
+      placeholder: isManagement ? '请输入用户名' : '请输入邮箱/用户名',
+      onInput: handleAccountInput, // 监听输入，触发预加载
+      onBlur: handleAccountBlur
     }
   },
   {
@@ -217,22 +342,27 @@ const accountSchema = reactive<FormSchema[]>([
     componentProps: {
       style: { width: '100%' },
       placeholder: '请输入密码',
-      onInput: startPreloadOnInput // 监听输入，触发预加载
+      onInput: handleAccountInput, // 监听输入，触发预加载
+      onBlur: handleAccountBlur
     }
   },
   {
     field: 'verify_code',
-    label: '验证码',
+    label: isManagement ? '验证码' : '图片验证码',
     component: 'Input',
     colProps: { span: 24 },
+    formItemProps: {
+      class: 'captcha-animated-form-item'
+    },
+    hidden: () => !isManagement && operationCaptchaMode.value !== 'image',
     componentProps: {
       style: { width: '100%' },
-      placeholder: '请输入验证码',
+      placeholder: isManagement ? '请输入验证码' : '请输入图片验证码',
       slots: {
         append: () => (
           <img
             src={captchaImg.value}
-            style="height:32px;cursor:pointer;vertical-align:middle;"
+            class="captcha-image"
             onClick={fetchCaptcha}
             title="点击刷新验证码"
             alt="captcha"
@@ -246,28 +376,28 @@ const accountSchema = reactive<FormSchema[]>([
         }
       }
     }
-  },
-  ...(isManagement
-    ? [
-        {
-          field: 'google_code',
-          label: '谷歌验证码',
-          component: 'Input',
-          colProps: { span: 24 },
-          componentProps: {
-            style: { width: '100%' },
-            placeholder: '请输入谷歌验证码',
-            maxlength: 6,
-            onKeydown: (_e: any) => {
-              if (_e.key === 'Enter') {
-                _e.stopPropagation()
-                signIn()
-              }
-            }
-          }
-        } as FormSchema
-      ]
-    : []),
+  } as FormSchema,
+  {
+    field: 'google_code',
+    label: '动态验证码',
+    component: 'Input',
+    colProps: { span: 24 },
+    formItemProps: {
+      class: 'captcha-animated-form-item'
+    },
+    hidden: () => isManagement || operationCaptchaMode.value !== 'dynamic',
+    componentProps: {
+      style: { width: '100%' },
+      placeholder: '请输入动态验证码',
+      maxlength: 6,
+      onKeydown: (_e: any) => {
+        if (_e.key === 'Enter') {
+          _e.stopPropagation()
+          signIn()
+        }
+      }
+    }
+  } as FormSchema,
   {
     field: 'tool',
     colProps: { span: 24 },
@@ -278,11 +408,9 @@ const accountSchema = reactive<FormSchema[]>([
             <>
               <div class="flex justify-between items-center w-[100%]">
                 <ElCheckbox v-model={remember.value} label={t('login.remember')} size="small" />
-                {isManagement && (
-                  <ElLink type="primary" underline={false} onClick={toResetPassword}>
-                    {t('login.forgetPassword')}
-                  </ElLink>
-                )}
+                <ElLink type="primary" underline={false} onClick={toResetPassword}>
+                  {resetAccountText.value}
+                </ElLink>
               </div>
             </>
           )
@@ -393,7 +521,7 @@ const phoneSchema = reactive<FormSchema[]>([
               <div class="flex justify-between items-center w-[100%]">
                 <ElCheckbox v-model={remember.value} label={t('login.remember')} size="small" />
                 <ElLink type="primary" underline={false} onClick={toResetPassword}>
-                  {t('login.forgetPassword')}
+                  {resetAccountText.value}
                 </ElLink>
               </div>
             </>
@@ -435,18 +563,28 @@ const phoneSchema = reactive<FormSchema[]>([
 
 const remember = ref(userStore.getRememberMe)
 
-const initLoginInfo = () => {
+const initLoginInfo = async () => {
   const loginInfo = userStore.getLoginInfo
   console.log('loginInfo', loginInfo)
   if (loginInfo) {
     const { username, password } = loginInfo
-    setValues({ username, password })
+    await setValues({ username, password })
   }
 }
 
-onMounted(() => {
-  initLoginInfo()
-  fetchCaptcha()
+onMounted(async () => {
+  await initLoginInfo()
+  if (isManagement) {
+    const formData = await getFormData()
+    if (formData.username) {
+      fetchCaptcha()
+    }
+  } else {
+    const formData = await getFormData()
+    if (formData.username && formData.password) {
+      checkOperationCaptchaMode()
+    }
+  }
 })
 
 const { formRegister, formMethods } = useForm()
@@ -476,16 +614,45 @@ const signIn = async () => {
       const formData = await getFormData()
 
       try {
+        const currentOperationCaptchaMode =
+          !isManagement && loginType.value === 'account'
+            ? await checkOperationCaptchaMode()
+            : operationCaptchaMode.value
+
+        if (!isManagement && loginType.value === 'account') {
+          if (currentOperationCaptchaMode === 'dynamic' && !formData.google_code) {
+            ElMessage.warning('请输入动态验证码')
+            return
+          }
+          if (currentOperationCaptchaMode === 'image' && !formData.verify_code) {
+            ElMessage.warning('请输入图片验证码')
+            return
+          }
+        }
+
         // 根据登录类型调用不同的登录接口
         let res
+        const isImageCaptchaLogin =
+          !isManagement && loginType.value === 'account' && currentOperationCaptchaMode === 'image'
         if (loginType.value === 'account') {
           // 账号密码登录
           const loginPayload = {
             username: formData.username,
             password: formData.password,
-            google_code: formData.google_code?.trim() || undefined,
-            verify_code: formData.verify_code,
-            code_id: captchaId.value
+            ...(isManagement
+              ? {
+                  verify_code: formData.verify_code,
+                  code_id: captchaId.value
+                }
+              : isImageCaptchaLogin
+                ? {
+                    verify_code: formData.verify_code,
+                    code_id: captchaId.value
+                  }
+                : {
+                    google_code: formData.google_code?.trim() || undefined,
+                    verify_code: formData.google_code?.trim() || undefined
+                  })
           }
           res = await passwordLoginApi(loginPayload)
         } else {
@@ -543,6 +710,9 @@ const signIn = async () => {
           // 保存到store
           userStore.setToken(token)
           userStore.setTokenExpiredAt(expiredAt)
+          if (isImageCaptchaLogin) {
+            sessionStorage.setItem('forceGoogleAuthenticatorSetup', '1')
+          }
 
           // 获取用户信息（运营端需要先获取权限）
           if (!isManagement) {
@@ -587,6 +757,9 @@ const signIn = async () => {
           }
 
           ElMessage.success('登录成功')
+          if (isImageCaptchaLogin) {
+            ElMessage.warning('请在右上角菜单中设置谷歌验证码')
+          }
         } else {
           if (!isManagement && hasStartedPreload.value) {
             routePreloader.pausePreload()
@@ -595,7 +768,9 @@ const signIn = async () => {
           // 登录失败，显示错误信息并刷新验证码
           const errorMsg = res?.msg || '登录失败'
           ElMessage.error(errorMsg)
-          fetchCaptcha() // 只要失败就刷新验证码
+          if (isManagement) {
+            fetchCaptcha() // 图片验证码登录失败后刷新验证码
+          }
         }
       } catch (error: any) {
         if (!isManagement && hasStartedPreload.value) {
@@ -607,7 +782,9 @@ const signIn = async () => {
         // API 调用本身失败 (网络等)，显示通用错误信息，也刷新验证码以防万一
         const errorMsg = error?.response?.data?.msg || error?.message || '登录失败，请检查网络连接'
         ElMessage.error(errorMsg)
-        fetchCaptcha() // 也刷新验证码
+        if (isManagement) {
+          fetchCaptcha() // 图片验证码登录失败后刷新验证码
+        }
       } finally {
         loading.value = false
       }
@@ -673,5 +850,36 @@ const toResetPassword = () => {
 <style scoped>
 .send-code-btn {
   width: 120px;
+}
+
+:deep(.captcha-animated-form-item) {
+  animation: captcha-field-enter 0.48s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: top center;
+}
+
+:deep(.captcha-image) {
+  height: 32px;
+  vertical-align: middle;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    filter 0.18s ease;
+}
+
+:deep(.captcha-image:hover) {
+  filter: brightness(1.05);
+  transform: scale(1.04);
+}
+
+@keyframes captcha-field-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

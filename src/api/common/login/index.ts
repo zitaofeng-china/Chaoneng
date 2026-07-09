@@ -8,18 +8,17 @@ import type {
   VerifyCodeLoginParams,
   ChangePasswordParams,
   ChangeManagePasswordParams,
+  CaptchaParams,
   EmailCodeParams,
   PhoneCodeParams,
   LoginResponse
 } from './types'
-import { isManagementSystem } from '@/utils/system'
 import { encryptAESCTR } from '@/utils/encrypt'
 
 interface RoleParams {
   roleName: string
 }
 
-const isManagement = isManagementSystem()
 // 旧的API接口，保留供兼容
 export const loginApi = (data: UserType): Promise<IResponse<UserType>> => {
   // TODO：需要修改为后端接口
@@ -66,7 +65,7 @@ export const phoneRegisterApi = (data: PhoneRegisterParams): Promise<IResponse> 
  * @param data 注册参数
  */
 export const emailRegisterApi = (data: EmailRegisterParams): Promise<IResponse> => {
-  return request.post({ url: '/v1/user/email/register', data })
+  return request.post({ url: '/v1/register', data })
 }
 
 // 登录相关API
@@ -77,13 +76,9 @@ export const emailRegisterApi = (data: EmailRegisterParams): Promise<IResponse> 
 export const passwordLoginApi = (
   data: PasswordLoginParams & { verify_code?: string; code_id?: string }
 ): Promise<IResponse<LoginResponse>> => {
-  let url = '/v1/user/login'
-  if (!isManagement) {
-    url = '/manage/user/login'
-  }
   // 整体序列化加密，iv 拼接在密文前16位
   const encrypted = encryptAESCTR(JSON.stringify(data))
-  return request.post({ url, data: { data: encrypted } })
+  return request.post({ url: '/v1/login', data: { data: encrypted } })
 }
 
 /**
@@ -100,20 +95,16 @@ export const verifyCodeLoginApi = (
  * 退出登录
  */
 export const logoutApi = (): Promise<IResponse> => {
-  let url = '/v1/user/logout'
-  if (!isManagement) {
-    url = '/manage/user/logout'
-  }
-  return request.post({ url })
+  return request.post({ url: '/v1/logout' })
 }
 
 // 修改密码相关API
 /**
- * 修改密码
- * @param data 修改密码参数
+ * 重置账号
+ * @param data 重置账号参数
  */
 export const changePasswordApi = (data: ChangePasswordParams): Promise<IResponse> => {
-  return request.post({ url: '/v1/user/changepasswd', data })
+  return request.post({ url: '/v1/reset', data })
 }
 
 /**
@@ -131,7 +122,8 @@ export const changeManagePasswordApiV2 = (data: ChangeManagePasswordParams): Pro
  * @param data 发送验证码参数
  */
 export const sendEmailCodeApi = (data: EmailCodeParams): Promise<IResponse> => {
-  return request.post({ url: '/user/email/code', data })
+  const { email, username } = data
+  return request.get({ url: '/v1/captcha', params: { email, ...(username ? { username } : {}) } })
 }
 
 /**
@@ -145,8 +137,10 @@ export const sendPhoneCodeApi = (data: PhoneCodeParams): Promise<IResponse> => {
 /**
  * 获取图形验证码
  */
-export const getCaptchaApi = (): Promise<IResponse<{ id: string; data: string }>> => {
-  return request.get({ url: '/v1/user/captcha/captcha' })
+export const getCaptchaApi = (
+  params: CaptchaParams
+): Promise<IResponse<{ id: string; data: string }>> => {
+  return request.get({ url: '/v1/captcha', params })
 }
 
 /**
@@ -154,4 +148,19 @@ export const getCaptchaApi = (): Promise<IResponse<{ id: string; data: string }>
  */
 export const getUserInfoApi = (): Promise<IResponse<UserInfoResponse>> => {
   return request.get({ url: '/v2/manage/user/use_info' })
+}
+
+/**
+ * 获取管理账户谷歌动态验证码 key_url
+ * 接口返回 otpauth://totp/... 字符串，前端用于生成二维码
+ */
+export const getGoogleKeyUrlApi = (): Promise<IResponse<string>> => {
+  return request.get({ url: '/v1/key_url' })
+}
+
+/**
+ * 更新管理账户谷歌动态验证码 key_url
+ */
+export const updateGoogleKeyUrlApi = (): Promise<IResponse<string>> => {
+  return request.put({ url: '/v1/key_url' })
 }

@@ -379,6 +379,7 @@ const debouncedApiCall = debounce(async () => {
     // 发送邮箱验证码
     await sendEmailCodeApi({
       email: resetForm.email,
+      username: userData.value.username,
       channel: 'change_passwd'
     })
 

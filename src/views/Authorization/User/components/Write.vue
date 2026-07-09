@@ -5,7 +5,7 @@ import { PropType, reactive, watch } from 'vue'
 import { DepartmentUserItem } from '@/api/common/department/types'
 import { useValidator } from '@/hooks/web/useValidator'
 
-const { required } = useValidator()
+const { required, noAtSymbol } = useValidator()
 
 const props = defineProps({
   currentRow: {
@@ -19,7 +19,7 @@ const props = defineProps({
 })
 
 const rules = reactive({
-  username: [required()],
+  username: [required(), noAtSymbol()],
   account: [required()],
   'department.id': [required()]
 })

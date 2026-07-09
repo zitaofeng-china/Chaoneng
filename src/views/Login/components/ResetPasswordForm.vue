@@ -8,6 +8,8 @@ import { useValidator } from '@/hooks/web/useValidator'
 import { BaseButton } from '@/components/Button'
 import { useRouter } from 'vue-router'
 import { changePasswordApi, sendPhoneCodeApi, sendEmailCodeApi } from '@/api/common/login'
+import { isManagementSystem } from '@/utils/system'
+import EmailInput from '@/operation/Agent/components/EmailInput.vue'
 
 defineOptions({
   name: 'ResetPasswordForm'
@@ -16,25 +18,59 @@ defineOptions({
 const { required, email, phone } = useValidator()
 const { push } = useRouter()
 const { t } = useI18n()
+const isManagement = isManagementSystem()
+const resetAccountTitle = computed(() =>
+  isManagement ? t('resetPassword.resetPassword') : '账号重置'
+)
+type ResetType = 'phone' | 'email' | 'captcha'
 
 // 重置密码方式切换
-const resetType = ref('email') // 'phone' 或 'email'
+const resetType = ref<ResetType>('email') // 代理端邮箱重置；运营端密码重置/动态验证码重置
+const resetTabs = computed(() =>
+  isManagement
+    ? [{ label: t('resetPassword.emailReset'), name: 'email' }]
+    : [
+        { label: '密码重置', name: 'email' },
+        { label: '动态验证码重置', name: 'captcha' }
+      ]
+)
+const noAutofillProps = {
+  autocomplete: 'off',
+  name: 'account-reset-no-autofill'
+}
+const noPasswordAutofillProps = {
+  autocomplete: 'new-password',
+  name: 'account-reset-new-password'
+}
+
+const renderEmailInput = (formModel: Record<string, any>, name: string) => (
+  <EmailInput v-model={formModel.email} autocomplete="off" name={name} style={{ width: '100%' }} />
+)
 
 // 根据重置类型使用不同的验证规则
 const rules = computed(() => {
-  return resetType.value === 'phone'
-    ? {
-        phone: [required(), phone()],
-        code: [required()],
-        password: [required()],
-        confirmPassword: [required()]
-      }
-    : {
-        email: [required(), email()],
-        code: [required()],
-        password: [required()],
-        confirmPassword: [required()]
-      }
+  if (resetType.value === 'phone') {
+    return {
+      phone: [required(), phone()],
+      code: [required()],
+      password: [required()],
+      confirmPassword: [required()]
+    }
+  }
+
+  if (resetType.value === 'captcha') {
+    return {
+      email: [required(), email()],
+      code: [required()]
+    }
+  }
+
+  return {
+    email: [required(), email()],
+    code: [required()],
+    password: [required()],
+    confirmPassword: [required()]
+  }
 })
 
 // 倒计时相关
@@ -105,7 +141,9 @@ const sendCode = async () => {
 
 // 修改 schema 使用计算属性，根据当前重置类型返回对应表单
 const schema = computed(() => {
-  return resetType.value === 'phone' ? phoneSchema : emailSchema
+  if (resetType.value === 'phone') return phoneSchema
+  if (resetType.value === 'captcha') return captchaSchema
+  return emailSchema
 })
 
 const handleTabChange = () => {
@@ -122,6 +160,17 @@ const clearForm = () => {
   })
 }
 
+const renderResetHeader = () => (
+  <>
+    <h2 class="text-2xl font-bold text-center w-[100%] mb-4">{resetAccountTitle.value}</h2>
+    <ElTabs v-model={resetType.value} class="w-[100%]" onTabChange={handleTabChange}>
+      {resetTabs.value.map((tab) => (
+        <ElTabPane key={tab.name} label={tab.label} name={tab.name}></ElTabPane>
+      ))}
+    </ElTabs>
+  </>
+)
+
 // 手机号重置表单
 const phoneSchema = reactive<FormSchema[]>([
   {
@@ -130,17 +179,7 @@ const phoneSchema = reactive<FormSchema[]>([
     formItemProps: {
       slots: {
         default: () => {
-          return (
-            <>
-              <h2 class="text-2xl font-bold text-center w-[100%] mb-4">
-                {t('resetPassword.resetPassword')}
-              </h2>
-              <ElTabs v-model={resetType.value} class="w-[100%]" onTabChange={handleTabChange}>
-                {/* <ElTabPane label={t('resetPassword.phoneReset')} name="phone"></ElTabPane> */}
-                <ElTabPane label={t('resetPassword.emailReset')} name="email"></ElTabPane>
-              </ElTabs>
-            </>
-          )
+          return renderResetHeader()
         }
       }
     }
@@ -151,7 +190,9 @@ const phoneSchema = reactive<FormSchema[]>([
     component: 'Input',
     colProps: { span: 24 },
     componentProps: {
-      placeholder: t('resetPassword.inputPhoneNumber')
+      placeholder: t('resetPassword.inputPhoneNumber'),
+      autocomplete: 'off',
+      name: 'account-reset-phone-no-autofill'
     }
   },
   {
@@ -162,6 +203,8 @@ const phoneSchema = reactive<FormSchema[]>([
     componentProps: {
       style: { width: '100%' },
       placeholder: t('resetPassword.inputVerificationCode'),
+      autocomplete: 'off',
+      name: 'account-reset-phone-code-no-autofill',
       slots: {
         append: () => (
           <BaseButton
@@ -183,7 +226,8 @@ const phoneSchema = reactive<FormSchema[]>([
     colProps: { span: 24 },
     componentProps: {
       style: { width: '100%' },
-      placeholder: t('resetPassword.inputNewPassword')
+      placeholder: t('resetPassword.inputNewPassword'),
+      ...noPasswordAutofillProps
     }
   },
   {
@@ -193,7 +237,9 @@ const phoneSchema = reactive<FormSchema[]>([
     colProps: { span: 24 },
     componentProps: {
       style: { width: '100%' },
-      placeholder: t('resetPassword.inputConfirmPassword')
+      placeholder: t('resetPassword.inputConfirmPassword'),
+      autocomplete: 'new-password',
+      name: 'account-reset-confirm-password'
     }
   },
   {
@@ -235,17 +281,7 @@ const emailSchema = reactive<FormSchema[]>([
     formItemProps: {
       slots: {
         default: () => {
-          return (
-            <>
-              <h2 class="text-2xl font-bold text-center w-[100%] mb-4">
-                {t('resetPassword.resetPassword')}
-              </h2>
-              <ElTabs v-model={resetType.value} class="w-[100%]" onTabChange={handleTabChange}>
-                {/* <ElTabPane label={t('resetPassword.phoneReset')} name="phone"></ElTabPane> */}
-                <ElTabPane label={t('resetPassword.emailReset')} name="email"></ElTabPane>
-              </ElTabs>
-            </>
-          )
+          return renderResetHeader()
         }
       }
     }
@@ -256,7 +292,15 @@ const emailSchema = reactive<FormSchema[]>([
     component: 'Input',
     colProps: { span: 24 },
     componentProps: {
-      placeholder: t('resetPassword.inputEmail')
+      placeholder: t('resetPassword.inputEmail'),
+      autocomplete: 'off',
+      name: 'account-reset-email-no-autofill'
+    },
+    formItemProps: {
+      slots: {
+        default: (formModel: Record<string, any>) =>
+          renderEmailInput(formModel, 'account-reset-email-no-autofill')
+      }
     }
   },
   {
@@ -267,6 +311,7 @@ const emailSchema = reactive<FormSchema[]>([
     componentProps: {
       style: { width: '100%' },
       placeholder: t('resetPassword.inputVerificationCode'),
+      ...noAutofillProps,
       slots: {
         append: () => (
           <BaseButton
@@ -288,7 +333,8 @@ const emailSchema = reactive<FormSchema[]>([
     colProps: { span: 24 },
     componentProps: {
       style: { width: '100%' },
-      placeholder: t('resetPassword.inputNewPassword')
+      placeholder: t('resetPassword.inputNewPassword'),
+      ...noPasswordAutofillProps
     }
   },
   {
@@ -298,7 +344,94 @@ const emailSchema = reactive<FormSchema[]>([
     colProps: { span: 24 },
     componentProps: {
       style: { width: '100%' },
-      placeholder: t('resetPassword.inputConfirmPassword')
+      placeholder: t('resetPassword.inputConfirmPassword'),
+      autocomplete: 'new-password',
+      name: 'account-reset-email-confirm-password'
+    }
+  },
+  {
+    field: 'submit',
+    colProps: { span: 24 },
+    formItemProps: {
+      slots: {
+        default: () => {
+          return (
+            <>
+              <div class="w-[100%]">
+                <BaseButton
+                  loading={loading.value}
+                  type="primary"
+                  class="w-[100%]"
+                  onClick={resetPassword}
+                >
+                  {t('resetPassword.confirmReset')}
+                </BaseButton>
+              </div>
+              <div class="w-[100%] mt-15px">
+                <BaseButton class="w-[100%]" onClick={backToLogin}>
+                  {t('resetPassword.backToLogin')}
+                </BaseButton>
+              </div>
+            </>
+          )
+        }
+      }
+    }
+  }
+])
+
+// 动态验证码重置表单（运营端）
+const captchaSchema = reactive<FormSchema[]>([
+  {
+    field: 'title',
+    colProps: { span: 24 },
+    formItemProps: {
+      slots: {
+        default: () => {
+          return renderResetHeader()
+        }
+      }
+    }
+  },
+  {
+    field: 'email',
+    label: t('resetPassword.email'),
+    component: 'Input',
+    colProps: { span: 24 },
+    componentProps: {
+      placeholder: t('resetPassword.inputEmail'),
+      autocomplete: 'off',
+      name: 'account-reset-captcha-email-no-autofill'
+    },
+    formItemProps: {
+      slots: {
+        default: (formModel: Record<string, any>) =>
+          renderEmailInput(formModel, 'account-reset-captcha-email-no-autofill')
+      }
+    }
+  },
+  {
+    field: 'code',
+    label: t('resetPassword.verificationCode'),
+    component: 'Input',
+    colProps: { span: 24 },
+    componentProps: {
+      style: { width: '100%' },
+      placeholder: t('resetPassword.inputVerificationCode'),
+      autocomplete: 'off',
+      name: 'account-reset-captcha-code-no-autofill',
+      slots: {
+        append: () => (
+          <BaseButton
+            type="primary"
+            class="send-code-btn"
+            disabled={isCounting.value}
+            onClick={sendCode}
+          >
+            {isCounting.value ? `${countdown.value}秒` : t('resetPassword.getCode')}
+          </BaseButton>
+        )
+      }
     }
   },
   {
@@ -346,6 +479,22 @@ const resetPassword = async () => {
       const formData = await getFormData()
 
       try {
+        if (resetType.value === 'captcha') {
+          const res = await changePasswordApi({
+            email: formData.email,
+            verify_code: formData.code,
+            clear_secret: true
+          })
+
+          if (res && res.code === '000000') {
+            ElMessage.success(res.msg || '动态验证码重置成功')
+            backToLogin()
+          } else {
+            ElMessage.error(res?.msg || '动态验证码重置失败')
+          }
+          return
+        }
+
         // 检查确认密码是否一致
         if (formData.password !== formData.confirmPassword) {
           ElMessage.error(t('resetPassword.passwordNotMatch'))

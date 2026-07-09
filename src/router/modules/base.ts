@@ -7,6 +7,7 @@ import NotFound from '@/views/Error/404.vue'
 // Rely on global AppRouteRecordRaw type
 
 const { t } = useI18n()
+const isManagement = import.meta.env.VITE_SYSTEM_TYPE === 'Management'
 
 const baseRoutes: AppRouteRecordRaw[] = [
   // Note: Root route ('/') is kept in index.ts
@@ -52,7 +53,7 @@ const baseRoutes: AppRouteRecordRaw[] = [
     name: 'ResetPassword',
     meta: {
       hidden: true,
-      title: t('router.resetPassword'),
+      title: isManagement ? t('router.resetPassword') : '账号重置',
       noTagsView: true
     }
   },

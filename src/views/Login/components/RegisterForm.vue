@@ -22,7 +22,7 @@ const { getElFormExpose } = formMethods
 
 const { t } = useI18n()
 
-const { required, email, phone } = useValidator()
+const { required, email, phone, noAtSymbol } = useValidator()
 
 // 添加注册类型切换
 const registerType = ref('email') // 'phone' 或 'email'
@@ -114,14 +114,14 @@ const clearForm = () => {
 const rules = computed<FormRules>(() => {
   return registerType.value === 'phone'
     ? {
-        username: [required()],
+        username: [required(), noAtSymbol()],
         password: [required()],
         check_password: [required()],
         phone: [required(), phone()]
         // code: [required()] // 暂时注释掉验证码验证
       }
     : {
-        username: [required()],
+        username: [required(), noAtSymbol()],
         password: [required()],
         check_password: [required()],
         email: [required(), email()]

@@ -76,6 +76,19 @@ export const useValidator = () => {
     }
   }
 
+  const noAtSymbol = (message?: string): FormItemRule => {
+    return {
+      validator: (_, val, callback) => {
+        if (!val) return callback()
+        if (String(val).includes('@')) {
+          callback(new Error(message || '用户名不能包含@符号'))
+        } else {
+          callback()
+        }
+      }
+    }
+  }
+
   const phone = (message?: string): FormItemRule => {
     return {
       validator: (_, val, callback) => {
@@ -132,6 +145,7 @@ export const useValidator = () => {
     notSpace,
     notSpecialCharacters,
     noChinese,
+    noAtSymbol,
     phone,
     email,
     maxlength,
