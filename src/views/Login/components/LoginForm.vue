@@ -240,14 +240,13 @@ const checkOperationCaptchaMode = async () => {
 
   const formData = await getFormData()
   const username = formData.username?.trim()
-  const password = formData.password?.trim()
 
-  if (!username || !password) {
+  if (!username) {
     resetOperationCaptchaMode()
     return operationCaptchaMode.value
   }
 
-  const checkKey = `${username}::${password}`
+  const checkKey = username
   if (operationCaptchaCheckKey.value === checkKey && operationCaptchaMode.value !== 'none') {
     return operationCaptchaMode.value
   }
@@ -285,12 +284,22 @@ const handleAccountInput = () => {
   resetOperationCaptchaMode()
 }
 
+const handlePasswordInput = () => {
+  startPreloadOnInput()
+}
+
 const handleAccountBlur = () => {
   if (isManagement) {
     fetchCaptcha()
     return
   }
   checkOperationCaptchaMode()
+}
+
+const handlePasswordBlur = () => {
+  if (isManagement) {
+    fetchCaptcha()
+  }
 }
 
 // 监听表单输入，开始预加载（需要在 schema 之前声明）
@@ -342,8 +351,8 @@ const accountSchema = reactive<FormSchema[]>([
     componentProps: {
       style: { width: '100%' },
       placeholder: '请输入密码',
-      onInput: handleAccountInput, // 监听输入，触发预加载
-      onBlur: handleAccountBlur
+      onInput: handlePasswordInput, // 监听输入，触发预加载
+      onBlur: handlePasswordBlur
     }
   },
   {
@@ -581,7 +590,7 @@ onMounted(async () => {
     }
   } else {
     const formData = await getFormData()
-    if (formData.username && formData.password) {
+    if (formData.username) {
       checkOperationCaptchaMode()
     }
   }
