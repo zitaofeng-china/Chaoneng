@@ -277,8 +277,8 @@ bot-frontend/
 
 - token 和用户信息通过 Pinia 持久化到本地
 - 路由守卫会同时校验 store 和 localStorage 中的过期时间
-- 运营端登录接口为 `/manage/user/login`
-- 代理端登录接口为 `/v1/user/login`
+- 运营端和代理端统一使用登录接口 `/v1/login`
+- 运营端和代理端统一使用退出接口 `/v1/logout`
 - 退出登录会清空用户、权限、标签页和本地缓存
 
 ## 请求层
