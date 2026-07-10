@@ -37,6 +37,8 @@
   - 通用统计接口。
 - `src/api/common/customer_service`:
   - 当前仍被公共页面引用的客服接口。
+- `src/api/common/ticker`:
+  - 行情价格接口（`GET /v1/ticker/price`，域名走项目 baseURL）。
 - `src/api/common/exchange_transaction`:
   - 当前仍被公共页面引用的兑换交易接口。
 

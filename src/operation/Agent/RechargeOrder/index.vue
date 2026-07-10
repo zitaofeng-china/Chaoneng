@@ -69,7 +69,7 @@ import {
   RechargeOrderDetailDialog,
   renderRechargeCoinTag
 } from '@/components/business/recharge-order'
-import { fetchTrxUsdtTickerPrice } from '@/utils/trxTickerPrice'
+import { getTrxUsdtTickerPrice } from '@/api/common/ticker'
 
 const router = useRouter()
 const route = useRoute()
@@ -346,7 +346,7 @@ const handleViewDetail = async (row: V2DepositItem) => {
     const shouldFetchActualRate = isUsdtRechargeOrder(row)
     const [detailResult, priceResult] = await Promise.allSettled([
       v2GetDepositDetail(row.id),
-      shouldFetchActualRate ? fetchTrxUsdtTickerPrice() : Promise.resolve(undefined)
+      shouldFetchActualRate ? getTrxUsdtTickerPrice() : Promise.resolve(undefined)
     ])
 
     if (detailResult.status !== 'fulfilled') {

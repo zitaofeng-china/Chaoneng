@@ -1,10 +1,29 @@
-const API_BASE_URL = 'http://47.84.135.181:8888'
+/**
+ * Netlify 代理：后端域名从环境变量读取，禁止写死 IP
+ * 本地/部署请配置 API_BASE_URL 或 VITE_API_BASE_PATH
+ */
+const API_BASE_URL =
+  process.env.API_BASE_URL || process.env.VITE_API_BASE_PATH || process.env.URL || ''
 
 exports.handler = async (event, context) => {
+  if (!API_BASE_URL) {
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({
+        code: 500,
+        msg: '未配置 API_BASE_URL / VITE_API_BASE_PATH，无法代理请求'
+      })
+    }
+  }
+
   const path = event.path.replace('/.netlify/functions/api', '')
 
   // 构建完整的 URL,包括查询参数
-  let apiUrl = `${API_BASE_URL}${path}`
+  let apiUrl = `${API_BASE_URL.replace(/\/$/, '')}${path}`
   if (event.queryStringParameters && Object.keys(event.queryStringParameters).length > 0) {
     const queryString = new URLSearchParams(event.queryStringParameters).toString()
     apiUrl += `?${queryString}`

@@ -111,7 +111,7 @@
           <img :src="qrCodeDataUrl" alt="收款二维码" class="recharge-qrcode" />
           <div class="flex items-center justify-center mt-2">
             <Icon icon="cryptocurrency-color:trx" :size="24" />
-            <div class="text-sm text-gray-500">（可转入大于 1TRX 的任意金额）</div>
+            <div class="text-sm text-gray-500">（可转入大于 0.01 TRX 或 USDT 的任意金额）</div>
           </div>
           <div class="mt-1 text-sm text-gray-500"
             >支持USDT，汇率1USDT ≈ {{ usdtExchangeRate }} TRX</div
@@ -166,7 +166,7 @@ import {
   handleWarningMessage
 } from '@/utils/messageHelper'
 import { formatRechargeMetricNumber } from '@/utils/rechargeOrder'
-import { fetchTrxUsdtTickerPrice } from '@/utils/trxTickerPrice'
+import { getTrxUsdtTickerPrice } from '@/api/common/ticker'
 
 // 表单校验
 const { required } = useValidator()
@@ -462,7 +462,7 @@ const openRechargeDialog = async () => {
     const [accountResult, priceResult, tickerPriceResult] = await Promise.allSettled([
       getAccountListApi({ address: true }),
       v1GetSystemPrice(),
-      fetchTrxUsdtTickerPrice()
+      getTrxUsdtTickerPrice()
     ])
 
     if (accountResult.status === 'fulfilled' && accountResult.value?.data) {
