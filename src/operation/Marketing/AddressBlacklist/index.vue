@@ -266,6 +266,7 @@ const renderScopeTags = (scopes: number[]) => {
 const getOperator = (row: AddressBlacklistItem) => row.created_by || row.operator || '-'
 const getDescribe = (row: AddressBlacklistItem) => row.describe || '-'
 const getAgentText = (row: AddressBlacklistItem) => {
+  if (Number(row.agent_id) === BLACKLIST_PLATFORM_AGENT_ID) return '平台'
   if (row.agent_name)
     return row.agent_id ? `${row.agent_name}（ID: ${row.agent_id}）` : row.agent_name
   return row.agent_id ? `ID: ${row.agent_id}` : '-'
