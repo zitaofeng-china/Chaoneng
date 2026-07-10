@@ -23,23 +23,25 @@
           <ElInput v-model="formData.address" placeholder="请输入地址" clearable />
         </ElFormItem>
         <ElFormItem label="限制订单类型" prop="scopes">
-          <ElCheckbox
-            :model-value="isAllScopesSelected"
-            :indeterminate="isScopeIndeterminate"
-            class="blacklist-scope-check-all"
-            @change="handleCheckAllScopes"
-          >
-            全选
-          </ElCheckbox>
-          <ElCheckboxGroup v-model="formData.scopes" class="blacklist-scope-checkboxes">
+          <div class="blacklist-scope-checkboxes">
             <ElCheckbox
-              v-for="item in BLACKLIST_SCOPE_OPTIONS"
-              :key="item.value"
-              :label="item.value"
+              :model-value="isAllScopesSelected"
+              :indeterminate="isScopeIndeterminate"
+              class="blacklist-scope-check-all"
+              @change="handleCheckAllScopes"
             >
-              {{ item.label }}
+              全选
             </ElCheckbox>
-          </ElCheckboxGroup>
+            <ElCheckboxGroup v-model="formData.scopes" class="blacklist-scope-options">
+              <ElCheckbox
+                v-for="item in BLACKLIST_SCOPE_OPTIONS"
+                :key="item.value"
+                :label="item.value"
+              >
+                {{ item.label }}
+              </ElCheckbox>
+            </ElCheckboxGroup>
+          </div>
         </ElFormItem>
         <ElFormItem label="状态" prop="status">
           <ElSwitch
@@ -70,7 +72,7 @@
 </template>
 
 <script setup lang="tsx">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import {
   ElButton,
   ElCheckbox,
@@ -81,7 +83,8 @@ import {
   ElInput,
   ElMessageBox,
   ElSwitch,
-  ElTag
+  ElTag,
+  ElTooltip
 } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
@@ -100,17 +103,33 @@ import type {
   BlackListParamsV1,
   CreateBlackListParamsV1
 } from '@/api/management/Black/BlackList/types'
+import { v1GetMessageAgentList, type MessageAgentItem } from '@/api/management/common/message'
 import {
   BLACKLIST_DEFAULT_STATUS,
+  BLACKLIST_PLATFORM_AGENT_ID,
   BLACKLIST_SCOPE_LABEL_MAP,
   BLACKLIST_SCOPE_OPTIONS,
   BLACKLIST_STATUS_OPTIONS
 } from '@/constants/blacklist'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import { createPageParams, formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
+import {
+  createPageParams,
+  formatTableDateTime,
+  hasSearchValue,
+  type SelectOption
+} from '@/utils/tableHelpers'
+
+type AgentOption = SelectOption<number>
+type BlackListSearchParams = BlackListParamsV1 & {
+  agent_id?: number | string
+}
 
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
+const platformAgentOption: AgentOption = {
+  label: '平台',
+  value: BLACKLIST_PLATFORM_AGENT_ID
+}
 
 const dialogVisible = ref(false)
 const submitting = ref(false)
@@ -127,11 +146,8 @@ const formData = reactive({
 
 const dialogTitle = computed(() => (dialogMode.value === 'add' ? '新增黑名单' : '编辑黑名单'))
 const allScopeValues = BLACKLIST_SCOPE_OPTIONS.map((item) => item.value)
-const isAllScopesSelected = computed(
-  () =>
-    formData.scopes.length === allScopeValues.length &&
-    allScopeValues.every((item) => formData.scopes.includes(item))
-)
+const hasAllScopes = (scopes: number[]) => allScopeValues.every((item) => scopes.includes(item))
+const isAllScopesSelected = computed(() => hasAllScopes(formData.scopes))
 const isScopeIndeterminate = computed(
   () => formData.scopes.length > 0 && !isAllScopesSelected.value
 )
@@ -139,6 +155,9 @@ const isScopeIndeterminate = computed(
 const handleCheckAllScopes = (checked: boolean) => {
   formData.scopes = checked ? [...allScopeValues] : []
 }
+
+/** 提交用：全选时传空数组 */
+const toSubmitScopes = (scopes: number[]) => (hasAllScopes(scopes) ? [] : [...scopes])
 
 const validateScopes = (_rule: unknown, value: number[], callback: (error?: Error) => void) => {
   if (value.length > 0) {
@@ -163,12 +182,72 @@ const formRules: FormRules = {
 
 const normalizeScopes = (value: BlackListItemV1 | number[] | string | undefined) => {
   const rawValue = Array.isArray(value) || typeof value === 'string' ? value : value?.scopes || []
-  if (Array.isArray(rawValue)) return rawValue.map(Number).filter((item) => !Number.isNaN(item))
-  if (!rawValue) return []
-  return String(rawValue)
-    .split(/[,，\s]+/)
-    .map((item) => Number(item))
-    .filter((item) => !Number.isNaN(item))
+  const scopes = Array.isArray(rawValue)
+    ? rawValue.map(Number)
+    : String(rawValue || '')
+        .split(/[,，\s]+/)
+        .map((item) => Number(item))
+
+  return [...new Set(scopes)].filter((item) => !Number.isNaN(item) && allScopeValues.includes(item))
+}
+
+/** 列表中最多直接展示的标签数，超出部分折叠为 +N */
+const MAX_VISIBLE_SCOPE_TAGS = 2
+
+const renderScopeTag = (item: number, opts?: { emphasis?: boolean }) => (
+  <ElTag
+    key={item}
+    size="small"
+    effect={opts?.emphasis ? 'light' : 'plain'}
+    type={opts?.emphasis ? 'primary' : undefined}
+    class={opts?.emphasis ? 'blacklist-scope-tooltip-tag' : undefined}
+  >
+    {BLACKLIST_SCOPE_LABEL_MAP[item] || `未知类型(${item})`}
+  </ElTag>
+)
+
+const renderScopeTags = (scopes: number[]) => {
+  // 空数组或全选均表示限制全部类型
+  if (scopes.length === 0 || hasAllScopes(scopes)) {
+    return (
+      <ElTag size="small" effect="plain">
+        全部
+      </ElTag>
+    )
+  }
+
+  const visibleScopes = scopes.slice(0, MAX_VISIBLE_SCOPE_TAGS)
+  const hiddenCount = scopes.length - visibleScopes.length
+
+  const tagsNode = (
+    <div class="blacklist-type-tags">
+      {visibleScopes.map((item) => renderScopeTag(item))}
+      {hiddenCount > 0 && (
+        <ElTag size="small" type="primary" effect="plain" class="blacklist-scope-more">
+          +{hiddenCount}
+        </ElTag>
+      )}
+    </div>
+  )
+
+  // 有折叠时：整列标签区域都可悬停弹出完整类型
+  if (hiddenCount <= 0) return tagsNode
+
+  return (
+    <ElTooltip placement="top" effect="light" popperClass="blacklist-scope-tooltip" showAfter={80}>
+      {{
+        default: () => tagsNode,
+        content: () => (
+          <div class="blacklist-scope-tooltip-panel">
+            <div class="blacklist-scope-tooltip-title">限制订单类型</div>
+            <div class="blacklist-scope-tooltip-tags">
+              {scopes.map((item) => renderScopeTag(item, { emphasis: true }))}
+            </div>
+          </div>
+        )
+      }}
+    </ElTooltip>
+  )
 }
 
 const getDescribe = (row: BlackListItemV1) => row.describe || '-'
@@ -187,20 +266,9 @@ const columns: TableColumn[] = [
   {
     field: 'scopes',
     label: '限制订单类型',
-    minWidth: 260,
-    formatter: (row: BlackListItemV1) => (
-      <div class="blacklist-type-tags">
-        {normalizeScopes(row).length === 0 ? (
-          <span>-</span>
-        ) : (
-          normalizeScopes(row).map((item) => (
-            <ElTag key={item} size="small" effect="plain">
-              {BLACKLIST_SCOPE_LABEL_MAP[item] || `未知类型(${item})`}
-            </ElTag>
-          ))
-        )}
-      </div>
-    )
+    minWidth: 220,
+    showOverflowTooltip: false,
+    formatter: (row: BlackListItemV1) => renderScopeTags(normalizeScopes(row))
   },
   {
     field: 'status',
@@ -277,7 +345,7 @@ const columns: TableColumn[] = [
   }
 ]
 
-const searchSchema: FormSchema[] = [
+const searchSchema = reactive<FormSchema[]>([
   {
     field: 'address',
     label: '地址',
@@ -285,6 +353,16 @@ const searchSchema: FormSchema[] = [
     componentProps: {
       placeholder: '请输入地址',
       clearable: true
+    }
+  },
+  {
+    field: 'agent_id',
+    label: '代理',
+    component: 'Select',
+    componentProps: {
+      placeholder: '全部',
+      clearable: true,
+      options: [platformAgentOption]
     }
   },
   {
@@ -310,7 +388,31 @@ const searchSchema: FormSchema[] = [
       options: BLACKLIST_STATUS_OPTIONS
     }
   }
-]
+])
+
+const setAgentOptions = (options: AgentOption[]) => {
+  const agentField = searchSchema.find((item) => item.field === 'agent_id')
+  if (agentField?.componentProps) {
+    agentField.componentProps.options = options
+  }
+}
+
+const loadAgentOptions = async () => {
+  try {
+    const response = await v1GetMessageAgentList()
+    const agentOptions: AgentOption[] = (response.data || [])
+      .filter((agent: MessageAgentItem) => Number(agent.id) !== BLACKLIST_PLATFORM_AGENT_ID)
+      .map((agent: MessageAgentItem) => ({
+        label: agent.username || agent.email || `代理 ${agent.id}`,
+        value: Number(agent.id)
+      }))
+
+    setAgentOptions([platformAgentOption, ...agentOptions])
+  } catch (error) {
+    setAgentOptions([platformAgentOption])
+    handleErrorMessage(error, '获取代理列表失败')
+  }
+}
 
 const normalizeSearchScopeParam = (value?: BlackListParamsV1['scope']) => {
   if (Array.isArray(value)) {
@@ -322,13 +424,14 @@ const normalizeSearchScopeParam = (value?: BlackListParamsV1['scope']) => {
   return Number.isNaN(scope) ? undefined : scope
 }
 
-const buildListParams = (params: BlackListParamsV1 = {}): BlackListParamsV1 => {
+const buildListParams = (params: BlackListSearchParams = {}): BlackListParamsV1 => {
   const queryParams: BlackListParamsV1 = {
     ...createPageParams(params),
     order: params.order || DEFAULT_CREATED_AT_ORDER
   }
 
   if (hasSearchValue(params.address)) queryParams.address = String(params.address).trim()
+  if (hasSearchValue(params.agent_id)) queryParams.agent_id = Number(params.agent_id)
   const scope = normalizeSearchScopeParam(params.scope)
   if (scope !== undefined) queryParams.scope = scope
   if (hasSearchValue(params.status)) queryParams.status = Number(params.status)
@@ -336,14 +439,19 @@ const buildListParams = (params: BlackListParamsV1 = {}): BlackListParamsV1 => {
   return queryParams
 }
 
-const fetchBlackListData = async (params: BlackListParamsV1 = {}) => {
+const fetchBlackListData = async (params: BlackListSearchParams = {}) => {
   try {
     const queryParams = buildListParams(params)
     const res = await v1GetBlackList(queryParams)
 
     if (res.code === '000000' && res.data) {
       const list = res.data.list || []
-      const hasSearchCondition = !!(queryParams.address || queryParams.scope || queryParams.status)
+      const hasSearchCondition = !!(
+        queryParams.address ||
+        queryParams.agent_id ||
+        queryParams.scope ||
+        queryParams.status
+      )
       handleListMessage(list, hasSearchCondition, '黑名单')
 
       return {
@@ -364,7 +472,13 @@ const resetForm = (row?: BlackListItemV1) => {
   formData.id = row?.id
   formData.address = row?.address || ''
   formData.agent_id = row?.agent_id
-  formData.scopes = row ? normalizeScopes(row) : []
+  // 后端空数组表示全选，表单回显为全部勾选
+  if (row) {
+    const scopes = normalizeScopes(row)
+    formData.scopes = scopes.length === 0 ? [...allScopeValues] : scopes
+  } else {
+    formData.scopes = []
+  }
   formData.status = Number(row?.status) === 2 ? 2 : BLACKLIST_DEFAULT_STATUS
   formData.describe = row?.describe || ''
 }
@@ -389,7 +503,7 @@ const buildSavePayload = (): CreateBlackListParamsV1 => ({
   address: formData.address.trim(),
   agent_id: formData.agent_id,
   describe: formData.describe.trim(),
-  scopes: [...formData.scopes],
+  scopes: toSubmitScopes(formData.scopes),
   status: formData.status
 })
 
@@ -426,7 +540,7 @@ const handleStatusChange = async (row: BlackListItemV1, enabled: boolean) => {
       address: row.address,
       agent_id: row.agent_id,
       describe: row.describe || '',
-      scopes: normalizeScopes(row),
+      scopes: toSubmitScopes(normalizeScopes(row)),
       status: nextStatus
     })
     handleSuccessMessage(nextStatus === 1 ? '启用成功' : '禁用成功')
@@ -452,14 +566,26 @@ const handleDelete = async (row: BlackListItemV1) => {
     }
   }
 }
+
+onMounted(() => {
+  loadAgentOptions()
+})
 </script>
 
 <style scoped>
 .blacklist-type-tags {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
+  max-width: 100%;
+  cursor: default;
+}
+
+.blacklist-scope-more {
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
 }
 
 .blacklist-action-buttons {
@@ -478,12 +604,66 @@ const handleDelete = async (row: BlackListItemV1) => {
 
 .blacklist-scope-checkboxes {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 4px 12px;
 }
 
+.blacklist-scope-options {
+  display: contents;
+}
+
 .blacklist-scope-check-all {
-  display: block;
-  margin-bottom: 8px;
+  margin-right: 0;
+}
+</style>
+
+<!-- Tooltip 挂载到 body，样式需非 scoped -->
+<style>
+.blacklist-scope-tooltip.el-popper {
+  max-width: none !important;
+  padding: 0 !important;
+  background: #fff !important;
+  border: 1px solid var(--el-color-primary-light-5) !important;
+  border-radius: 8px !important;
+  box-shadow:
+    0 6px 16px rgb(64 158 255 / 14%),
+    0 2px 8px rgb(0 0 0 / 8%) !important;
+}
+
+.blacklist-scope-tooltip.el-popper .el-popper__arrow::before {
+  background: #fff !important;
+  border: 1px solid var(--el-color-primary-light-5) !important;
+}
+
+.blacklist-scope-tooltip-panel {
+  max-width: 360px;
+  min-width: 240px;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, #f5f9ff 0%, #fff 48%);
+  border-radius: 8px;
+}
+
+.blacklist-scope-tooltip-title {
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--el-color-primary);
+  border-bottom: 1px dashed var(--el-color-primary-light-5);
+}
+
+.blacklist-scope-tooltip .blacklist-scope-tooltip-tags {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  align-items: center;
+}
+
+.blacklist-scope-tooltip .blacklist-scope-tooltip-tag {
+  justify-content: center;
+  width: 100%;
+  margin: 0;
+  font-weight: 500;
 }
 </style>

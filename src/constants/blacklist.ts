@@ -1,19 +1,12 @@
 export const BLACKLIST_SCOPE_OPTIONS = [
-  { label: '代理充值', value: 1 },
-  { label: '用户充值', value: 2 },
-  { label: '闪兑', value: 3 },
-  { label: '时间能量', value: 4 },
-  { label: '笔数能量', value: 5 },
-  { label: '福利能量', value: 6 },
-  { label: '快速能量', value: 7 },
+  { label: '闪兑订单', value: 3 },
+  { label: '按时间订单', value: 4 },
+  { label: '按笔数', value: 5 },
+  { label: '闪租', value: 7 },
   { label: '即用能量', value: 8 },
-  { label: '批量能量', value: 9 },
-  { label: '批量激活', value: 10 },
-  { label: '机器人付费', value: 11 },
-  { label: '奖励', value: 12 },
-  { label: '速充能量', value: 15 },
-  { label: '能量托管', value: 20 },
-  { label: '托管速充', value: 21 },
+  { label: '托管订单', value: 20 },
+  { label: '激活', value: 10 },
+  { label: '速充订单', value: 15 },
   { label: '理财订单', value: 82 }
 ]
 
