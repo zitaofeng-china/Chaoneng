@@ -8,6 +8,7 @@ export interface AddressBlacklistListParams {
   current_page?: number
   page_size?: number
   address?: string
+  agent_id?: number | string
   scope?: number | string | Array<number | string>
   status?: number | string
   order?: string
