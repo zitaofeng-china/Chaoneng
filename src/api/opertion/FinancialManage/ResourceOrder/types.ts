@@ -43,6 +43,7 @@ export interface V2ResourceOrderItem {
   receiver: string // 接收地址
   balance: number // 余额（sun）
   amount: number // 数量
+  offset_price: number // 价格浮动
   paid_at: number // 支付时间（Unix时间戳-秒）
   recycled_at: number | null // 回收时间（Unix时间戳-秒）
   settled_at: number // 结算时间（Unix时间戳-秒）
@@ -50,6 +51,15 @@ export interface V2ResourceOrderItem {
   bot_name: string // 机器人名称
   agent_name: string // 代理名称
   describe: string // 备注
+}
+
+/**
+ * 更新理财订单参数
+ * PUT /v1/fund/order
+ */
+export interface V2UpdateResourceOrderParams {
+  id: number // 订单ID
+  offset_price: number // 价格浮动
 }
 
 /**

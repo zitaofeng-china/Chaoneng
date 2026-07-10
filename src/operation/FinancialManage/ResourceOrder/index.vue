@@ -29,7 +29,8 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, h, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import type { SearchTableExpose } from '@/components/SearchTable'
@@ -39,11 +40,12 @@ import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import {
   v2GetResourceOrderList,
+  v2UpdateResourceOrder,
   type V2ResourceOrderItem,
   type V2ResourceOrderListParams
 } from '@/api/opertion/FinancialManage/ResourceOrder'
 import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
-import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
+import { handleErrorMessage, handleListMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import { getEnergyOrderKindText } from '@/utils/energyOrder'
 import {
   createPageParams,
@@ -68,6 +70,7 @@ const searchTableRef = ref<SearchTableExpose | null>(null)
 const settlementRecordDialogRef = ref<InstanceType<typeof SettlementRecordDialog> | null>(null)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 const exporting = ref(false)
+const updatingOrderId = ref<number | null>(null)
 const defaultParams = {
   order: DEFAULT_CREATED_AT_ORDER
 }
@@ -92,6 +95,11 @@ const formatTrxStake = (balance: number | null | undefined) => {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   })
+}
+
+const formatOffsetPrice = (offsetPrice: number | null | undefined) => {
+  if (offsetPrice == null || offsetPrice === 0) return '-'
+  return offsetPrice > 0 ? `+${offsetPrice}` : String(offsetPrice)
 }
 
 const columns: TableColumn[] = [
@@ -149,6 +157,12 @@ const columns: TableColumn[] = [
     formatter: (row: V2ResourceOrderItem) => row.profit_sum || '-'
   },
   {
+    field: 'offset_price',
+    label: '价格浮动',
+    width: 100,
+    formatter: (row: V2ResourceOrderItem) => formatOffsetPrice(row.offset_price)
+  },
+  {
     field: 'status',
     label: '订单状态',
     width: 100,
@@ -180,17 +194,24 @@ const columns: TableColumn[] = [
   {
     field: 'action',
     label: '操作',
-    width: 150,
+    width: 280,
     fixed: 'right',
     slots: {
       default: ({ row }: ResourceOrderTableSlot) => {
-        return h(
-          BaseButton,
-          {
-            type: 'primary',
-            onClick: () => handleViewSettlement(row)
-          },
-          () => '查看结算记录'
+        return (
+          <div class="action-buttons">
+            <BaseButton type="primary" onClick={() => handleViewSettlement(row)}>
+              查看结算记录
+            </BaseButton>
+            <BaseButton
+              type="warning"
+              loading={updatingOrderId.value === row.id}
+              disabled={updatingOrderId.value !== null && updatingOrderId.value !== row.id}
+              onClick={() => handleEditOffsetPrice(row)}
+            >
+              编辑浮动价格
+            </BaseButton>
+          </div>
         )
       }
     }
@@ -312,6 +333,52 @@ const handleViewSettlement = (row: V2ResourceOrderItem) => {
   settlementRecordDialogRef.value?.open(row)
 }
 
+const validateOffsetPrice = (value: string) => {
+  const normalizedValue = value.trim()
+  if (!/^[+-]?\d+$/.test(normalizedValue)) {
+    return '请输入正整数、0或负整数'
+  }
+
+  return Number.isSafeInteger(Number(normalizedValue)) || '价格浮动超出有效范围'
+}
+
+const handleEditOffsetPrice = async (row: V2ResourceOrderItem) => {
+  if (updatingOrderId.value !== null) return
+
+  const currentOffsetPrice = row.offset_price ?? 0
+
+  try {
+    const { value } = await ElMessageBox.prompt(`请输入订单 ${row.id} 的价格浮动`, '编辑价格浮动', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputValue: String(currentOffsetPrice),
+      inputPlaceholder: '请输入价格浮动',
+      inputValidator: validateOffsetPrice
+    })
+    const offsetPrice = Number(value.trim())
+
+    if (offsetPrice === currentOffsetPrice) {
+      ElMessage.info('价格浮动未发生变化')
+      return
+    }
+
+    updatingOrderId.value = row.id
+    await v2UpdateResourceOrder({
+      id: row.id,
+      offset_price: offsetPrice
+    })
+    await searchTableRef.value?.reload()
+    handleSuccessMessage('价格浮动更新成功')
+  } catch (error) {
+    // 请求错误已由 Axios 拦截器统一提示，取消和关闭无需处理。
+    if (error !== 'cancel' && error !== 'close') return
+  } finally {
+    if (updatingOrderId.value === row.id) {
+      updatingOrderId.value = null
+    }
+  }
+}
+
 const handleExport = async () => {
   exporting.value = true
   try {
@@ -341,6 +408,7 @@ const handleExport = async () => {
         能量数量: item.amount ?? '-',
         TRX质押: formatTrxStake(item.balance),
         累计支出: item.profit_sum || '-',
+        价格浮动: formatOffsetPrice(item.offset_price),
         订单状态: getStatusLabel(RESOURCE_ORDER_STATUS_MAP, item.status),
         备注: item.describe || '-',
         支付时间: formatTableDateTime(item.paid_at),
@@ -360,5 +428,14 @@ const handleExport = async () => {
 <style scoped>
 .app-container {
   padding: 0;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.action-buttons :deep(.el-button + .el-button) {
+  margin-left: 0;
 }
 </style>

@@ -8,7 +8,8 @@ import type {
   V2ResourceOrderListParams,
   V2ResourceOrderListResponse,
   V2SettlementRecordListParams,
-  V2SettlementRecordListResponse
+  V2SettlementRecordListResponse,
+  V2UpdateResourceOrderParams
 } from './types'
 
 const BASE_URL = '/v1/fund/order'
@@ -35,6 +36,19 @@ export const v2GetResourceOrderDetail = (
 ): Promise<IResponse<V2ResourceOrderDetail>> => {
   return request.get({
     url: `${BASE_URL}/${id}`
+  })
+}
+
+/**
+ * 更新理财订单
+ * PUT /v1/fund/order
+ */
+export const v2UpdateResourceOrder = (
+  data: V2UpdateResourceOrderParams
+): Promise<IResponse<unknown>> => {
+  return request.put({
+    url: BASE_URL,
+    data
   })
 }
 
