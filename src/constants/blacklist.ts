@@ -2,6 +2,7 @@ export const BLACKLIST_SCOPE_OPTIONS = [
   { label: '闪兑订单', value: 3 },
   { label: '按时间订单', value: 4 },
   { label: '按笔数', value: 5 },
+  { label: '福利', value: 6 },
   { label: '闪租', value: 7 },
   { label: '即用能量', value: 8 },
   { label: '托管订单', value: 20 },

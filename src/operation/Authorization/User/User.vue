@@ -18,7 +18,7 @@ import { Table, type TableColumn } from '@/components/Table'
 import { useTable } from '@/hooks/web/useTable'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import Write from './components/Write.vue'
-import type { ManageUserFormData } from './components/Write.vue'
+import type { ManageUserFormData, ManageUserOpenOptions } from './components/Write.vue'
 import { BaseButton } from '@/components/Button'
 import { UnixTime } from '@/components/UnixTime'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
@@ -30,7 +30,7 @@ const { t } = useI18n()
 type UserActionType = 'add' | 'edit'
 type ManageUserTableSlot = TableSlot<ManageUserItem>
 interface ManageUserWriteExpose {
-  open: () => void
+  open: (options?: ManageUserOpenOptions) => void | Promise<void>
   close: () => void
   submit: () => Promise<ManageUserFormData | null>
 }
@@ -132,15 +132,12 @@ const currentRow = ref<ManageUserItem | undefined>()
 const actionType = ref<UserActionType>('add')
 const writeRef = ref<ManageUserWriteExpose | null>(null)
 
-const openWriteDialog = () => {
-  writeRef.value?.open()
-}
-
 const AddAction = () => {
   dialogTitle.value = t('exampleDemo.add')
   currentRow.value = undefined
   actionType.value = 'add'
-  openWriteDialog()
+  // 显式传入 mode/row，避免 props 未同步导致表单仍显示上一次编辑数据
+  void writeRef.value?.open({ mode: 'add', row: null })
 }
 
 const delLoading = ref(false)
@@ -174,8 +171,9 @@ const delData = async (row?: ManageUserItem) => {
 const action = (row: ManageUserItem, type: UserActionType) => {
   dialogTitle.value = t('exampleDemo.edit')
   actionType.value = type
-  currentRow.value = { ...row }
-  openWriteDialog()
+  const rowData = { ...row }
+  currentRow.value = rowData
+  void writeRef.value?.open({ mode: type, row: rowData })
 }
 
 const saveLoading = ref(false)
@@ -183,37 +181,52 @@ const saveLoading = ref(false)
 const save = async () => {
   const write = writeRef.value
   const formData = await write?.submit()
-  if (formData) {
-    saveLoading.value = true
-    try {
-      if (actionType.value === 'edit') {
-        const payload: UpdateManageUserPayload = {
-          id: Number(formData.id),
-          username: formData.username,
-          email: formData.email,
-          password: formData.password || undefined,
-          role_id: formData.role_id,
-          status: formData.status
-        }
-        await updateManageUserApiV2(payload)
-      } else {
-        const payload: AddManageUserPayload = {
-          username: formData.username,
-          email: formData.email,
-          password: formData.password || '',
-          role_id: formData.role_id,
-          status: formData.status
-        }
-        await addManageUserApiV2(payload)
+  if (!formData) return
+
+  // 新增时密码必填
+  if (actionType.value === 'add' && !formData.password) {
+    handleErrorMessage('请输入密码')
+    return
+  }
+  if (!formData.role_id || Number.isNaN(formData.role_id)) {
+    handleErrorMessage('请选择角色')
+    return
+  }
+
+  saveLoading.value = true
+  try {
+    if (actionType.value === 'edit') {
+      if (!formData.id) {
+        handleErrorMessage('缺少用户 ID，无法编辑')
+        return
       }
-      writeRef.value?.close()
-      await getList()
-      handleSuccessMessage(actionType.value === 'edit' ? '编辑成功' : '添加成功')
-    } catch (error) {
-      handleErrorMessage(error, actionType.value === 'edit' ? '编辑失败' : '添加失败')
-    } finally {
-      saveLoading.value = false
+      const payload: UpdateManageUserPayload = {
+        id: Number(formData.id),
+        username: formData.username,
+        email: formData.email,
+        // 留空不传，后端不修改密码
+        password: formData.password || undefined,
+        role_id: formData.role_id,
+        status: formData.status
+      }
+      await updateManageUserApiV2(payload)
+    } else {
+      const payload: AddManageUserPayload = {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password || '',
+        role_id: formData.role_id,
+        status: formData.status
+      }
+      await addManageUserApiV2(payload)
     }
+    writeRef.value?.close()
+    await getList()
+    handleSuccessMessage(actionType.value === 'edit' ? '编辑成功' : '添加成功')
+  } catch (error) {
+    handleErrorMessage(error, actionType.value === 'edit' ? '编辑失败' : '添加失败')
+  } finally {
+    saveLoading.value = false
   }
 }
 
