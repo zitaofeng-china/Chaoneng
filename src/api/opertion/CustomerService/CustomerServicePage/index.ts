@@ -15,30 +15,30 @@ export type {
   UpdateCustomerServiceParams
 } from './type'
 
-const CUSTOMER_SERVICE_BASE = '/v2/manage/customer/'
+const CUSTOMER_SERVICE_BASE = '/v1/customer'
 
 /**
- * 获取客服列表（运营端接口 v2）
- * GET /v2/manage/customer/list
+ * 获取客服列表
+ * GET /v1/customer
  */
 export const getCustomerServiceListApi = (
   params: CustomerServiceQueryParams
 ): Promise<IResponse<CustomerServiceListResponse>> => {
-  return request.get({ url: `${CUSTOMER_SERVICE_BASE}list`, params })
+  return request.get({ url: CUSTOMER_SERVICE_BASE, params })
 }
 
 /**
- * 创建客服（新接口 v2）
- * POST /v2/manage/customer/add
+ * 创建客服
+ * POST /v1/customer
  */
 export const createCustomerServiceApi = (data: CreateCustomerServiceParams): Promise<IResponse> => {
-  return request.post({ url: `${CUSTOMER_SERVICE_BASE}add`, data })
+  return request.post({ url: CUSTOMER_SERVICE_BASE, data })
 }
 
 /**
- * 更新客服信息（新接口 v2）
- * POST /v2/manage/customer/update
+ * 更新客服信息
+ * PUT /v1/customer
  */
 export const updateCustomerServiceApi = (data: UpdateCustomerServiceParams): Promise<IResponse> => {
-  return request.post({ url: `${CUSTOMER_SERVICE_BASE}update`, data })
+  return request.put({ url: CUSTOMER_SERVICE_BASE, data })
 }
