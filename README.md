@@ -7,7 +7,27 @@ TRX 机器人后台前端项目，基于 Vue 3、TypeScript、Element Plus 和 V
 - `Management`：超能代理端
 - `Operation`：超能运营端
 
-当前代码以 `src/views` + `src/management` 承载代理端页面，以 `src/operation` 承载运营端页面。历史运营端旧实现已归档到 `archive/`，不参与当前业务开发。
+当前代码以 `src/management` 承载代理端页面，以 `src/operation` 承载运营端页面。公共页（登录/个人中心等）在 `src/views`。历史实现已归档到 `archive/`，不参与当前业务开发。
+
+## 文档导航
+
+| 文档                                                   | 用途                                 |
+| ------------------------------------------------------ | ------------------------------------ |
+| [docs/README.md](./docs/README.md)                     | 工程文档总索引                       |
+| [docs/refactor/README.md](./docs/refactor/README.md)   | 重构规则 / 批次 / 待办 / 已完成      |
+| [src/api/README.md](./src/api/README.md)               | API 目录分区与归属规则               |
+| [src/management/README.md](./src/management/README.md) | 代理端页面目录约定                   |
+| [src/operation/README.md](./src/operation/README.md)   | 运营端页面目录约定                   |
+| [页面快速定位表.md](../页面快速定位表.md)              | 页面/组件/API 快速定位（权威映射表） |
+| [页面按钮权限.txt](../页面按钮权限.txt)                | 运营端菜单与按钮权限码               |
+| [项目状态权限.txt](../项目状态权限.txt)                | 业务枚举 Kind / Status 等            |
+| [项目交接文档.md](../项目交接文档.md)                  | 简要交接与启动说明                   |
+
+路径约定：
+
+- 页面组件：`src/management/**`、`src/operation/**`
+- 接口与类型：`src/api/management/**`、`src/api/opertion/**`（运营 API 目录名为历史拼写 `opertion`）
+- 列表页主路径：优先使用 `SearchTable` 组件
 
 ## 技术栈
 
@@ -147,7 +167,7 @@ VITE_TRONSCAN_URL=https://nile.tronscan.org
 说明：
 
 - `VITE_SYSTEM_TYPE` 决定路由、标题、端口、构建输出目录和首页菜单。
-- `vite.config.ts` 中本地代理目前指向 `http://192.168.31.16:2404`，如果本地后端地址变更，需要同步修改。
+- 开发代理读取 `VITE_DEV_PROXY_TARGET`，未设置时回退 `VITE_API_BASE_PATH`（见 `.env.example`）。
 - `base` 会根据系统类型切换为 `/management` 或 `/operation`。
 
 ## 项目结构
@@ -165,7 +185,7 @@ bot-frontend/
 │  ├─ hooks/                  # hooks
 │  ├─ layout/                 # 布局组件
 │  ├─ locales/                # 国际化资源
-│  ├─ management/             # 管理端补充模块
+│  ├─ management/             # 代理端业务页面
 │  ├─ modules/                # 通用模块
 │  ├─ operation/              # 运营端页面与业务组件
 │  ├─ plugins/                # 插件注册
@@ -173,7 +193,7 @@ bot-frontend/
 │  ├─ store/                  # Pinia 状态管理
 │  ├─ styles/                 # 全局样式
 │  ├─ utils/                  # 工具函数
-│  └─ views/                  # 管理端页面
+│  └─ views/                  # 公共页（登录等）与模板页
 ├─ mock/                      # Mock 数据
 ├─ archive/                   # 历史归档代码，不参与当前开发
 ├─ docs/                      # 项目补充文档
@@ -194,7 +214,7 @@ bot-frontend/
 
 主要页面目录：
 
-- `src/views/`
+- `src/management/`
 
 当前主要模块：
 
@@ -269,7 +289,7 @@ bot-frontend/
 
 相关文件：
 
-- `src/api/login/index.ts`
+- `src/api/common/login/index.ts`
 - `src/store/modules/user.ts`
 - `src/permission.ts`
 
@@ -340,6 +360,7 @@ git commit -m "docs: 更新项目 README"
 - `archive/operationView-legacy/` 仅做历史参考，不要继续在其中开发新功能
 - 路由和按钮权限变更时，需要同步检查权限说明文档和角色权限树
 - 运营端菜单顺序以 `src/router/modules/operation.ts` 为准
+- 新增或迁移页面/API 后，同步更新 [页面快速定位表.md](../页面快速定位表.md)
 
 ## 常见排查点
 
