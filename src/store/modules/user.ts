@@ -18,6 +18,14 @@ interface UserState {
   loginInfo?: UserLoginType
 }
 
+const stripUserInfoPassword = (userInfo?: UserType): UserType | undefined => {
+  if (!userInfo || typeof userInfo !== 'object' || !('password' in userInfo)) {
+    return userInfo
+  }
+  const { password: _password, ...rest } = userInfo
+  return rest
+}
+
 export const useUserStore = defineStore('user', {
   state: (): UserState => {
     return {
@@ -68,7 +76,8 @@ export const useUserStore = defineStore('user', {
       this.tokenExpiredAt = expiredAt
     },
     setUserInfo(userInfo?: UserType) {
-      this.userInfo = userInfo
+      // userInfo 不落盘密码；「记住我」走 loginInfo
+      this.userInfo = stripUserInfoPassword(userInfo)
     },
     setRoleRouters(roleRouters: string[] | AppCustomRouteRecordRaw[]) {
       this.roleRouters = roleRouters
@@ -132,7 +141,24 @@ export const useUserStore = defineStore('user', {
       this.loginInfo = loginInfo
     }
   },
-  persist: true
+  persist: {
+    pick: [
+      'userInfo',
+      'tokenKey',
+      'token',
+      'tokenExpiredAt',
+      'roleRouters',
+      'rememberMe',
+      'loginInfo'
+    ],
+    afterHydrate: (ctx) => {
+      // 仅清理误写入 userInfo 的密码；loginInfo（记住我）保持原样
+      const state = ctx.store.$state as UserState
+      if (state.userInfo && 'password' in state.userInfo) {
+        state.userInfo = stripUserInfoPassword(state.userInfo)
+      }
+    }
+  }
 })
 
 export const useUserStoreWithOut = () => {

@@ -32,8 +32,8 @@ router.beforeEach(async (to, from, next) => {
         const userData = JSON.parse(localStorageData)
         localExpiredAt = userData.tokenExpiredAt
       }
-    } catch (e) {
-      console.error('[路由守卫] localStorage 数据解析失败:', e)
+    } catch {
+      // localStorage 损坏时忽略，仅依赖 store
     }
 
     // 使用两者中较早的过期时间（更严格的验证）
@@ -46,7 +46,6 @@ router.beforeEach(async (to, from, next) => {
     if (expiredAt) {
       const now = Math.floor(Date.now() / 1000) // 当前时间（秒）
       if (now >= expiredAt) {
-        console.log('[路由守卫] Token已过期，自动退出登录')
         ElMessage.warning('登录已过期，请重新登录')
         userStore.logout()
         next(`/login?redirect=${to.path}`)
@@ -60,7 +59,6 @@ router.beforeEach(async (to, from, next) => {
       if (permissionStore.getIsAddRouters) {
         // 检查路由是否存在
         if (to.matched.length === 0) {
-          console.log('🚫 路由不存在，跳转到 404:', to.path)
           next('/404')
           return
         }
@@ -85,7 +83,6 @@ router.beforeEach(async (to, from, next) => {
 
       // 确保路由列表不为空
       if (addRouters.length === 0) {
-        console.error('路由生成失败：addRouters 为空')
         next('/login')
         return
       }

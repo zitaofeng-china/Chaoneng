@@ -574,7 +574,6 @@ const remember = ref(userStore.getRememberMe)
 
 const initLoginInfo = async () => {
   const loginInfo = userStore.getLoginInfo
-  console.log('loginInfo', loginInfo)
   if (loginInfo) {
     const { username, password } = loginInfo
     await setValues({ username, password })
@@ -688,9 +687,6 @@ const signIn = async () => {
           }
           userStore.setRememberMe(unref(remember))
 
-          // 设置Token和过期时间
-          console.log('[登录] 后端响应:', res)
-
           // 提取token和过期时间
           let token
           let expiredAt
@@ -706,14 +702,8 @@ const signIn = async () => {
             // 注意：后端字段名拼写为 expirated_at（错误拼写），同时兼容正确拼写 expired_at
             expiredAt = res.data.expirated_at || res.data.expired_at
           } else {
-            console.error('[登录] 后端返回的数据格式异常:', res.data)
             token = ''
             expiredAt = undefined
-          }
-
-          console.log('[登录] Token 已保存')
-          if (expiredAt) {
-            console.log('[登录] 过期时间:', new Date(expiredAt * 1000).toLocaleString('zh-CN'))
           }
 
           // 保存到store
@@ -736,7 +726,8 @@ const signIn = async () => {
               })
             }
           } else {
-            userStore.setUserInfo({ username: formData.username, password: formData.password })
+            // 代理端不落盘密码
+            userStore.setUserInfo({ username: formData.username })
           }
 
           // 确保设置为false
@@ -786,9 +777,6 @@ const signIn = async () => {
           routePreloader.pausePreload()
         }
 
-        // Keep type any for easier access in generic error message
-        console.error('登录失败:', error)
-        // API 调用本身失败 (网络等)，显示通用错误信息，也刷新验证码以防万一
         const errorMsg = error?.response?.data?.msg || error?.message || '登录失败，请检查网络连接'
         ElMessage.error(errorMsg)
         if (isManagement) {
@@ -839,7 +827,6 @@ const toRegister = () => {
 
 // 跳转到重置密码页面
 const toResetPassword = () => {
-  console.log('跳转到重置密码页面')
   push('/reset-password')
 }
 </script>

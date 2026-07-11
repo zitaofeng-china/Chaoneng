@@ -5,7 +5,8 @@ export interface UserLoginType {
 
 export interface UserType {
   username: string
-  password?: string // 改为可选
+  /** @deprecated 勿写入 store / localStorage，仅历史兼容 */
+  password?: string
   permissions?: string[]
   role?: string
   roleId?: string

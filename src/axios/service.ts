@@ -4,19 +4,51 @@ import { AxiosInstance, InternalAxiosRequestConfig, RequestConfig, AxiosResponse
 import { ElMessage } from 'element-plus'
 import { REQUEST_TIMEOUT } from '@/constants'
 import qs from 'qs'
-// Remove system store import
-// import { useAppStore } from '@/store/modules/app' // Keep app store if used elsewhere, remove if not
-// import { useSystemStore } from '@/store/modules/system'
 
 export const PATH_URL =
   (window as any).APP_CONFIG?.API_BASE_URL || import.meta.env.VITE_API_BASE_PATH
 
-const abortControllerMap: Map<string, AbortController> = new Map()
+type PendingRequest = {
+  controller: AbortController
+  method: string
+  url: string
+}
+
+const pendingRequests = new Map<string, PendingRequest>()
+let requestSeq = 0
+
+const buildRequestKey = (method: string, url: string) => {
+  requestSeq += 1
+  return `${method.toUpperCase()} ${url}#${requestSeq}`
+}
+
+const getRequestMeta = (config?: { method?: string; url?: string; headers?: any }) => {
+  const method = (config?.method || 'get').toUpperCase()
+  const url = config?.url || ''
+  const requestKey =
+    (config?.headers as any)?.['X-Request-Key'] || (config?.headers as any)?.['x-request-key'] || ''
+  return { method, url, requestKey: String(requestKey || '') }
+}
+
+const clearPending = (config?: { method?: string; url?: string; headers?: any }) => {
+  const { requestKey } = getRequestMeta(config)
+  if (requestKey) {
+    pendingRequests.delete(requestKey)
+  }
+}
+
+const isCanceledError = (error: AxiosError) => {
+  return (
+    axios.isCancel(error) ||
+    error.code === 'ERR_CANCELED' ||
+    error.name === 'CanceledError' ||
+    error.name === 'AbortError'
+  )
+}
 
 const axiosInstance: AxiosInstance = axios.create({
   timeout: REQUEST_TIMEOUT,
-  baseURL: PATH_URL, // 如果使用mock，则不使用API基础路径
-  // 配置参数序列化：数组参数序列化为 kinds=1&kinds=2 格式
+  baseURL: PATH_URL,
   paramsSerializer: {
     serialize: (params) => {
       return qs.stringify(params, { arrayFormat: 'repeat' })
@@ -28,37 +60,18 @@ axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const controller = new AbortController()
   const originalUrl = config.url || ''
 
-  // --- 处理 keyboards 参数：确保只传递 ID 数组 ---
-  if (config.data && config.data.keyboards && Array.isArray(config.data.keyboards)) {
-    config.data.keyboards = config.data.keyboards
-      .map((item: any) => {
-        // 如果是对象，提取 id 属性
-        if (typeof item === 'object' && item !== null) {
-          return Number(item.id || item)
-        }
-        // 如果是数字或字符串，直接转换
-        return Number(item)
-      })
-      .filter((id: number) => !isNaN(id) && id > 0)
-  }
-
   // --- Mock 逻辑判断 ---
   const MOCK_LIST = (import.meta.env.VITE_MOCK_LIST || '').split(',')
   const useMock = import.meta.env.VITE_USE_MOCK === 'true'
-  const isMockRequest = useMock && MOCK_LIST.some((item) => item && originalUrl.includes(item)) // 确保 item 非空
+  const isMockRequest = useMock && MOCK_LIST.some((item) => item && originalUrl.includes(item))
 
   if (isMockRequest) {
-    // 如果是 Mock 请求, 修改 URL 并设置 baseURL 为空
     config.url = '/mock' + originalUrl
     config.baseURL = ''
   } else {
-    // --- 非 Mock 请求: 添加 API 版本前缀 ---
     const systemType = import.meta.env.VITE_SYSTEM_TYPE
-    // 根据环境变量 VITE_SYSTEM_TYPE 决定前缀
     const prefix = systemType === 'Management' ? '/v1' : '/v2'
-    const currentUrl = config.url || '' // 获取当前 config 中的 url
-
-    // 如果当前 url 没有 /v1 或 /v2 前缀, 则添加
+    const currentUrl = config.url || ''
 
     if (
       !currentUrl.includes('/public') &&
@@ -67,58 +80,80 @@ axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     ) {
       config.url = `${prefix}${currentUrl}`
     }
-    // 可选: 如果已有 *错误* 的前缀, 可以加日志警告
-    else if (
-      (systemType === 'Management' && currentUrl.startsWith('/v2')) ||
-      (systemType !== 'Management' && currentUrl.startsWith('/v1'))
-    ) {
-      console.warn(`请求 URL [${currentUrl}] 可能包含错误的版本前缀 (当前系统: ${systemType})`)
-    }
   }
 
-  // --- 设置 AbortController ---
-  const finalUrl = config.url || '' // 使用最终确定的 URL
+  const method = (config.method || 'get').toUpperCase()
+  const finalUrl = config.url || ''
+  const requestKey = buildRequestKey(method, finalUrl)
+
   config.signal = controller.signal
-  abortControllerMap.set(finalUrl, controller)
+  config.headers = config.headers || ({} as any)
+  ;(config.headers as any)['X-Request-Key'] = requestKey
+  pendingRequests.set(requestKey, { controller, method, url: finalUrl })
 
   return config
 })
 
-// Response interceptor remains the same (handles abort cleanup)
 axiosInstance.interceptors.response.use(
   (res: AxiosResponse) => {
-    const url = res.config.url || ''
-    abortControllerMap.delete(url)
+    clearPending(res.config)
     return res
   },
   (error: AxiosError) => {
-    console.log('err： ' + error) // for debug
-    const url = error.config?.url || ''
-    if (url) {
-      abortControllerMap.delete(url)
+    clearPending(error.config)
+
+    // 主动取消：静默
+    if (isCanceledError(error)) {
+      return Promise.reject(error)
     }
-    ElMessage.error('网络错误，稍后重试')
+
+    // HTTP 4xx/5xx：协议层提示（业务码错误走 success 分支的 defaultResponseInterceptors）
+    if (error.response) {
+      const skipErrorHandler = (error.config as any)?.skipErrorHandler
+      if (!skipErrorHandler) {
+        const status = error.response.status
+        const data: any = error.response.data
+        const msg =
+          (typeof data === 'object' && data && (data.msg || data.message)) ||
+          (status >= 500 ? '服务异常，请稍后重试' : `请求失败（${status}）`)
+        ElMessage.error(String(msg))
+      }
+      return Promise.reject(error)
+    }
+
+    // 纯网络层：超时 / 断网
+    if (error.code === 'ECONNABORTED' || String(error.message || '').includes('timeout')) {
+      ElMessage.error('请求超时，请稍后重试')
+    } else {
+      ElMessage.error('网络错误，稍后重试')
+    }
     return Promise.reject(error)
   }
 )
 
-// Apply default interceptors (assuming they don't depend on Pinia)
 axiosInstance.interceptors.request.use(defaultRequestInterceptors)
 axiosInstance.interceptors.response.use(defaultResponseInterceptors)
 
-// Export the configured instance
-// The service object might need adjustment if its methods relied on the prefix being added here
+const matchesCancelTarget = (pendingUrl: string, target: string) => {
+  if (!target) return false
+  // 兼容旧调用：传 path 或带版本前缀的 url
+  return (
+    pendingUrl === target ||
+    pendingUrl.endsWith(target) ||
+    pendingUrl.includes(target) ||
+    target.endsWith(pendingUrl)
+  )
+}
+
 const service = {
   request: <T = any>(config: RequestConfig): Promise<T> => {
-    // Keep explicit Promise type
     return new Promise((resolve, reject) => {
-      // Apply per-request interceptors if provided
       if (config.interceptors?.requestInterceptors) {
         config = config.interceptors.requestInterceptors(config as InternalAxiosRequestConfig)
       }
 
       axiosInstance
-        .request<any, T>(config) // Use the globally configured axiosInstance
+        .request<any, T>(config)
         .then((res) => {
           resolve(res)
         })
@@ -129,19 +164,20 @@ const service = {
   },
   cancelRequest: (url: string | string[]) => {
     const urlList = Array.isArray(url) ? url : [url]
-    for (const _url of urlList) {
-      abortControllerMap.get(_url)?.abort()
-      abortControllerMap.delete(_url)
+    for (const [key, pending] of [...pendingRequests.entries()]) {
+      if (urlList.some((target) => matchesCancelTarget(pending.url, target))) {
+        pending.controller.abort()
+        pendingRequests.delete(key)
+      }
     }
   },
   cancelAllRequest() {
-    for (const [_, controller] of abortControllerMap) {
-      controller.abort()
+    for (const [, pending] of pendingRequests) {
+      pending.controller.abort()
     }
-    abortControllerMap.clear()
+    pendingRequests.clear()
   }
 }
 
-// Export both the instance (for adding interceptors later) and the service object
 export { axiosInstance }
 export default service
