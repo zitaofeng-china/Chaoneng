@@ -714,15 +714,26 @@ const signIn = async () => {
           }
 
           // 获取用户信息（运营端需要先获取权限）
+          // 路由守卫以 userInfo 是否存在判定登录态：即使 use_info 失败也要写入最小 userInfo，避免登录成功后被踢回登录页
           if (!isManagement) {
-            const userInfo = await getUserInfoApi()
-            if (userInfo && userInfo.code === '000000') {
-              const { permissions, name, role_ID, role_name } = userInfo.data
+            try {
+              const userInfo = await getUserInfoApi()
+              if (userInfo && userInfo.code === '000000' && userInfo.data) {
+                const { permissions, name, role_ID, role_name } = userInfo.data
+                userStore.setUserInfo({
+                  permissions,
+                  username: name,
+                  role_ID,
+                  role_name
+                })
+              } else {
+                userStore.setUserInfo({
+                  username: formData.username || formData.phone
+                })
+              }
+            } catch {
               userStore.setUserInfo({
-                permissions,
-                username: name,
-                role_ID,
-                role_name
+                username: formData.username || formData.phone
               })
             }
           } else {
@@ -777,8 +788,21 @@ const signIn = async () => {
           routePreloader.pausePreload()
         }
 
-        const errorMsg = error?.response?.data?.msg || error?.message || '登录失败，请检查网络连接'
-        ElMessage.error(errorMsg)
+        // 业务失败 reject 形态为 { code, msg }；HTTP/网络失败为 AxiosError
+        // 上述两类已由 axios 拦截器提示，这里只处理取消与未覆盖异常
+        const isCanceled =
+          error?.code === 'ERR_CANCELED' ||
+          error?.name === 'CanceledError' ||
+          error?.name === 'AbortError' ||
+          /cancel|abort/i.test(String(error?.message || ''))
+        const alreadyHandled =
+          typeof error?.msg === 'string' ||
+          !!error?.response ||
+          error?.code === 'ECONNABORTED' ||
+          error?.message === 'Network Error'
+        if (!isCanceled && !alreadyHandled) {
+          ElMessage.error(error?.message || '登录失败，请检查网络连接')
+        }
         if (isManagement) {
           fetchCaptcha() // 图片验证码登录失败后刷新验证码
         }

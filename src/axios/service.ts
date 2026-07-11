@@ -17,21 +17,21 @@ type PendingRequest = {
 const pendingRequests = new Map<string, PendingRequest>()
 let requestSeq = 0
 
+// 请求唯一 key 挂在 config 上，不要写成 HTTP 头（避免跨域预检失败）
+const REQUEST_KEY = '__requestKey'
+
 const buildRequestKey = (method: string, url: string) => {
   requestSeq += 1
   return `${method.toUpperCase()} ${url}#${requestSeq}`
 }
 
-const getRequestMeta = (config?: { method?: string; url?: string; headers?: any }) => {
-  const method = (config?.method || 'get').toUpperCase()
-  const url = config?.url || ''
-  const requestKey =
-    (config?.headers as any)?.['X-Request-Key'] || (config?.headers as any)?.['x-request-key'] || ''
-  return { method, url, requestKey: String(requestKey || '') }
+const getRequestKey = (config?: { [key: string]: any } | null) => {
+  if (!config) return ''
+  return String(config[REQUEST_KEY] || '')
 }
 
-const clearPending = (config?: { method?: string; url?: string; headers?: any }) => {
-  const { requestKey } = getRequestMeta(config)
+const clearPending = (config?: { [key: string]: any } | null) => {
+  const requestKey = getRequestKey(config)
   if (requestKey) {
     pendingRequests.delete(requestKey)
   }
@@ -87,8 +87,7 @@ axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const requestKey = buildRequestKey(method, finalUrl)
 
   config.signal = controller.signal
-  config.headers = config.headers || ({} as any)
-  ;(config.headers as any)['X-Request-Key'] = requestKey
+  ;(config as any)[REQUEST_KEY] = requestKey
   pendingRequests.set(requestKey, { controller, method, url: finalUrl })
 
   return config
@@ -96,11 +95,11 @@ axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 axiosInstance.interceptors.response.use(
   (res: AxiosResponse) => {
-    clearPending(res.config)
+    clearPending(res.config as any)
     return res
   },
   (error: AxiosError) => {
-    clearPending(error.config)
+    clearPending(error.config as any)
 
     // 主动取消：静默
     if (isCanceledError(error)) {
