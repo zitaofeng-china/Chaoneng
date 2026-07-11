@@ -2,15 +2,22 @@ node_modules
 .DS_Store
 dist
 dist-ssr
+dist-management
+dist-operation
 *.local
 /dist*
 pnpm-debug
 stats.html
 .idea
-.env.base
 deploy.sh
 测试
-docs
+# docs/ is tracked engineering documentation (was previously ignored)
+# docs
+
+# Environment files — keep secrets out of git; use .env.example as template
+.env
+.env.*
+!.env.example
 
 # Netlify 配置文件（仅测试仓库使用）
 netlify.toml
@@ -22,3 +29,8 @@ netlify-operation.toml
 types/auto-imports.d.ts
 types/components.d.ts
 .eslintrc-auto-import.json
+
+# Local debug artifacts
+.playwright-cli/
+output/
+

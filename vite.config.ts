@@ -206,24 +206,27 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
         ]
       },
       proxy: {
-        // 选项写法
-
-        '/v1': {
-          target: 'http://192.168.31.16:2404',
-          changeOrigin: true,
-          rewrite: (path) => path
-        },
-        '/v2': {
-          target: 'http://192.168.31.16:2404',
-          changeOrigin: true,
-          rewrite: (path) => path
-        },
-
-        '/api': {
-          target: 'http://192.168.31.16:2404',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, '')
-        },
+        // 开发代理目标：优先 VITE_DEV_PROXY_TARGET，其次 VITE_API_BASE_PATH
+        // 未配置时不启用转发，避免把内网 IP 写死进仓库
+        ...(env.VITE_DEV_PROXY_TARGET || env.VITE_API_BASE_PATH
+          ? {
+              '/v1': {
+                target: env.VITE_DEV_PROXY_TARGET || env.VITE_API_BASE_PATH,
+                changeOrigin: true,
+                rewrite: (path: string) => path
+              },
+              '/v2': {
+                target: env.VITE_DEV_PROXY_TARGET || env.VITE_API_BASE_PATH,
+                changeOrigin: true,
+                rewrite: (path: string) => path
+              },
+              '/api': {
+                target: env.VITE_DEV_PROXY_TARGET || env.VITE_API_BASE_PATH,
+                changeOrigin: true,
+                rewrite: (path: string) => path.replace(/^\/api/, '')
+              }
+            }
+          : {}),
         // 为/mock请求配置代理，确保它们不会发送到外部服务器
         '/mock': {
           target: 'http://localhost:4000',
