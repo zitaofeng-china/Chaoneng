@@ -96,10 +96,15 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
         include: ['src/**/*.vue', 'src/**/*.ts', 'src/**/*.tsx'], // 检查的文件
         exclude: ['**/node_modules/**', '**/dist/**']
       }),
+      // 注意：不要对 src/locales/**/*.ts 做消息预编译。
+      // unplugin-vue-i18n 会 patch vite:esbuild，在 Vite 6 下偶发把其它模块内容
+      // 当成语言包编译（如模板里的 @mouseenter），触发 Invalid linked format → 500，
+      // 进而导致 Failed to fetch dynamically imported module: .../locales/zh-CN.ts
+      // 语言包以普通 TS 模块加载，配合 runtimeOnly:false（完整 vue-i18n）运行时编译即可。
       VueI18nPlugin({
-        runtimeOnly: true,
+        runtimeOnly: false,
         compositionOnly: true,
-        include: [resolve(__dirname, 'src/locales/**')]
+        include: [resolve(__dirname, 'src/locales/**/*.{json,json5,yaml,yml}')]
       }),
       createSvgIconsPlugin({
         iconDirs: [pathResolve('src/assets/svgs')],
