@@ -48,3 +48,10 @@ export const renderTronscanTransactionLink = (
     }
   )
 }
+
+export const renderDisplayableTransactionHash = (txid?: string | number | null) => {
+  const normalizedTxid = String(txid ?? '').trim()
+  if (!isDisplayableTransactionHash(normalizedTxid)) return h('span', '-')
+
+  return renderTronscanTransactionLink(normalizedTxid, formatTransactionHash(normalizedTxid))
+}
