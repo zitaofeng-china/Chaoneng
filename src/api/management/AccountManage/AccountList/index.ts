@@ -8,7 +8,7 @@ import type { BillListParamsV1, BillListResponseV1, AccountDetail } from './type
  * 接口路径：GET /v1/bill/agent
  * 用途：通过 kinds 参数区分充值记录和扣款记录
  * - 充值记录：kinds = [1, 2] (1-代理充值, 2-用户充值)
- * - 扣款记录：kinds = [3, 4, 5, 6, 7, 8, 9, 10, 11]
+ * - 扣款记录：kinds = [3, 4, 5, 6, 7, 8, 9, 10, 11, 15, 20, 21]
  */
 export const v1GetBillList = (params: BillListParamsV1) => {
   // 处理 kinds 参数：如果是数组，转换为多个同名参数
