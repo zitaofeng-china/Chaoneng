@@ -62,6 +62,7 @@ export interface BillListParamsV1 {
   end_time?: string // 结束时间
   keyword?: string // 关键字
   kinds?: number[] // 类型数组：1-代理充值, 2-用户充值, 3-兑换, 4-按时间, 5-按笔数, 6-福利能量, 7-快速能量, 8-即用能量, 9-批量能量, 10-批量激活, 11-机器人付费, 12-奖励, 15-速充能量, 20-托管, 21-托管速充
+  order?: string // 排序参数，例如 created_at DESC
   order_id?: string // 订单ID
   page_size?: number // 每页大小
   start_time?: string // 开始时间

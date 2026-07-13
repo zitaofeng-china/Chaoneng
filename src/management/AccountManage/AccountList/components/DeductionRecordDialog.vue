@@ -37,6 +37,7 @@ import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
 
 const router = useRouter()
 const DEDUCTION_KINDS = [3, 4, 5, 6, 7, 8, 9, 10, 11, 15, 20, 21]
+const DEDUCTION_ORDER = 'created_at DESC'
 const props = defineProps({
   accountId: {
     type: Number,
@@ -215,6 +216,7 @@ const getList = async (params: any = {}) => {
       current_page: params.current_page || params.page || 1,
       page_size: params.page_size || params.limit || 10,
       kinds: DEDUCTION_KINDS,
+      order: DEDUCTION_ORDER,
       agent_id: props.accountId
     }
 
