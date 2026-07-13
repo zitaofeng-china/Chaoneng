@@ -402,6 +402,16 @@ const searchSchema = ref<FormSchema[]>([
     }
   },
   {
+    field: 'txid',
+    component: 'Input' as const,
+    label: '交易哈希',
+    componentProps: {
+      placeholder: '请输入交易哈希',
+      clearable: true,
+      style: { width: '260px' }
+    }
+  },
+  {
     field: 'outbound_date',
     component: 'DatePicker' as const,
     label: '出账日期',
@@ -423,6 +433,7 @@ const buildEnergyOutboundOrderParams = (
 ): EnergyOutboundOrderListParams => {
   const apiParams: EnergyOutboundOrderListParams = { ...createPageParams(params) }
   if (hasSearchValue(params.keyword)) apiParams.keyword = String(params.keyword).trim()
+  if (hasSearchValue(params.txid)) apiParams.txid = String(params.txid).trim()
   if (hasSearchValue(params.order_id)) apiParams.order_id = Number(params.order_id)
   if (hasSearchValue(params.status)) apiParams.status = Number(params.status)
   Object.assign(apiParams, dateRangeToSeconds(params.outbound_date))
@@ -470,7 +481,7 @@ const fetchEnergyOutboundOrderList = async (params: EnergyOutboundSearchParams =
       applySummaryStats(res.data, list, total)
       handleListMessage(
         list,
-        [params.keyword, params.outbound_date].some(hasSearchValue),
+        [params.keyword, params.txid, params.outbound_date].some(hasSearchValue),
         '理财结算记录'
       )
       return { list, total }

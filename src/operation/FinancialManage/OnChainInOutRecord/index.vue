@@ -869,6 +869,7 @@ const handleExport = async () => {
       getList: (res: IResponse<SystemBillListResponse>) =>
         ((res.data?.list || []) as ChainRecordItem[]).map((item) => ({ ...item })),
       mapItem: (item) => ({
+        交易哈希: getTxid(item) || '-',
         关联订单号: getRelatedOrderNo(item),
         交易类型: getTransactionType(item),
         分类: getAgentLevelLabel(item),
@@ -877,7 +878,6 @@ const handleExport = async () => {
         币种: getCurrencyLabel(item),
         出款地址: getFromAddress(item),
         收款地址: getToAddress(item),
-        交易哈希: getTxid(item) || '-',
         状态: getChainRecordStatusLabel(item),
         备注: getRemark(item),
         交易时间: formatTableDateTime(item.created_at)
@@ -921,6 +921,14 @@ const summaryCards = computed(() => [
 ])
 
 const columns: TableColumn[] = [
+  {
+    field: 'txid',
+    label: '交易哈希',
+    minWidth: 220,
+    slots: {
+      default: ({ row }: ChainRecordTableSlot) => renderTxidLink(row)
+    }
+  },
   {
     field: 'related_order_no',
     label: '关联订单号',
@@ -978,14 +986,6 @@ const columns: TableColumn[] = [
     minWidth: 170,
     slots: {
       default: ({ row }: ChainRecordTableSlot) => renderTooltipText(getToAddress(row), 145)
-    }
-  },
-  {
-    field: 'txid',
-    label: '交易哈希',
-    minWidth: 220,
-    slots: {
-      default: ({ row }: ChainRecordTableSlot) => renderTxidLink(row)
     }
   },
   {

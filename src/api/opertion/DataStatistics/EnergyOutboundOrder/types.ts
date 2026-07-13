@@ -8,6 +8,7 @@ export interface EnergyOutboundOrderListParams {
   current_page?: number
   page_size?: number
   keyword?: string
+  txid?: string
   start_time?: string
   end_time?: string
   order?: string
