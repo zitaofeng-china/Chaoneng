@@ -34,7 +34,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { SearchTable } from '@/components/SearchTable'
@@ -60,11 +60,15 @@ import {
   getStatusLabel,
   hasSearchValue,
   renderStatusTag,
+  withAllOption,
   type DateRangeValue,
+  type SelectOption,
   type TableSlot
 } from '@/utils/tableHelpers'
 import { ExchangeOrderType, getExchangeOrderType } from '@/utils/exchangeOrder'
 import { EXCHANGE_COIN_OPTIONS, EXCHANGE_STATUS_MAP, EXCHANGE_STATUS_OPTIONS } from './constants'
+import { renderDisplayableTransactionHash } from '@/operation/OperationCenter/utils/transactionLink'
+import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
 
 type ExchangeSearchParams = V2ExchangeListParams & {
   dateRange?: DateRangeValue
@@ -101,6 +105,7 @@ const buildExchangeListParams = (
 
   Object.assign(apiParams, dateRangeToSeconds(params.dateRange))
   if (params.keyword) apiParams.keyword = params.keyword
+  if (hasSearchValue(params.bot_id)) apiParams.bot_id = Number(params.bot_id)
   if (params.coin) apiParams.coin = params.coin
   if (hasSearchValue(params.status)) apiParams.status = params.status
   apiParams.order = params.order || DEFAULT_CREATED_AT_ORDER
@@ -111,6 +116,7 @@ const buildExchangeListParams = (
 const searchTableRef = ref<SearchTableExpose>()
 const orderDetailRef = ref<InstanceType<typeof OrderDetail> | null>(null)
 const route = useRoute()
+const botOptions = ref<SelectOption<number | string>[]>(withAllOption<number | string>([]))
 const initialSearchParams: Partial<ExchangeSearchParams> = (() => {
   const keyword = route.query.keyword || route.query.query || route.query.order_num
   return keyword ? { keyword: String(keyword) } : {}
@@ -238,6 +244,14 @@ const columns = reactive<TableColumn[]>([
     }
   },
   {
+    field: 'pay_id',
+    label: '交易哈希',
+    minWidth: 220,
+    slots: {
+      default: ({ row }: ExchangeTableSlot) => renderDisplayableTransactionHash(row.pay_id)
+    }
+  },
+  {
     field: 'status',
     label: '交易状态',
     minWidth: 100,
@@ -262,17 +276,28 @@ const columns = reactive<TableColumn[]>([
 ])
 
 // 搜索表单配置 - 使用后端字段名
-const searchSchema = reactive<FormSchema[]>([
+const searchSchema = computed<FormSchema[]>(() => [
   {
     field: 'keyword',
     component: 'Input',
     label: {
       text: '关键词',
-      tips: '订单号/代理名称/机器人用户名'
+      tips: '订单号/代理名称/机器人名称/交易哈希'
     },
     componentProps: {
-      placeholder: '请输入关键字搜索',
+      placeholder: '关键词/机器人名称/交易哈希',
       clearable: true
+    }
+  },
+  {
+    field: 'bot_id',
+    component: 'Select',
+    label: '机器人',
+    componentProps: {
+      placeholder: '请选择机器人',
+      options: botOptions.value,
+      clearable: true,
+      filterable: true
     }
   },
   {
@@ -308,6 +333,22 @@ const searchSchema = reactive<FormSchema[]>([
     }
   }
 ])
+
+const loadBotOptions = async () => {
+  try {
+    const response = await v1GetMessageBotList()
+    const options = (response.data || []).map((bot: MessageBotItem) => ({
+      label: bot.user_name || `机器人${bot.id}`,
+      value: bot.id
+    }))
+    botOptions.value = withAllOption(options)
+  } catch (error) {
+    handleErrorMessage(error, '加载机器人列表失败')
+    botOptions.value = withAllOption<number | string>([])
+  }
+}
+
+onMounted(loadBotOptions)
 
 // 操作列配置 - 使用后端字段名
 const actionColumn = {
@@ -374,6 +415,7 @@ const fetchExchangeTransactionList = async (params: ExchangeSearchParams) => {
 
       const hasSearchCondition = [
         params.keyword,
+        params.bot_id,
         params.coin,
         params.status,
         params.dateRange

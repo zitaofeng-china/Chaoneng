@@ -41,6 +41,7 @@ import {
   withAllOption,
   type SelectOption
 } from '@/utils/tableHelpers'
+import { renderDisplayableTransactionHash } from '@/operation/OperationCenter/utils/transactionLink'
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const currentRowForDelete = ref<HostingItemV2 | null>(null)
@@ -186,6 +187,14 @@ const columns = computed(() => {
       formatter: (row: HostingItemV2) => row.address || '-'
     },
     {
+      field: 'pay_id',
+      label: '交易哈希',
+      minWidth: 220,
+      slots: {
+        default: ({ row }: { row: HostingItemV2 }) => renderDisplayableTransactionHash(row.pay_id)
+      }
+    },
+    {
       field: 'minimum',
       label: '最小值',
       width: 120,
@@ -262,12 +271,12 @@ const searchSchema = computed<FormSchema[]>(() => [
   {
     field: 'keyword',
     label: {
-      tips: '用户名/用户账号/用户邮箱/托管地址',
+      tips: '用户名/机器人名称/用户账号/用户邮箱/托管地址/交易哈希',
       text: '关键词'
     },
     component: 'Input',
     componentProps: {
-      placeholder: '请输入关键词'
+      placeholder: '关键词/机器人名称/交易哈希'
     }
   },
   {

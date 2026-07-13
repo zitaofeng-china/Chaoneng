@@ -8,6 +8,7 @@
  * 充值订单查询参数
  */
 export interface V2DepositListParams {
+  bot_id?: number // 机器人ID
   current_page?: number // 当前页码
   end_time?: string // 结束时间
   keyword?: string // 关键字

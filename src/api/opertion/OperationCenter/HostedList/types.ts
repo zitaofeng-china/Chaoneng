@@ -41,6 +41,7 @@ export interface HostingItemV2 {
   email?: string // 用户邮箱
   id: number // 托管ID
   order_id: string // 订单ID
+  pay_id?: string // 支付交易哈希
   updated_at: number | string // 更新时间（Unix 时间戳或日期字符串）
   user_id: number // 用户ID
   tg_user_name: string // 用户名

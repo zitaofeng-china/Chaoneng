@@ -22,6 +22,10 @@ export function buildEnergyListParams(params: SearchFormParams): EnergyListParam
     apiParams.keyword = params.keyword
   }
 
+  if (hasSearchValue(params.bot_id)) {
+    apiParams.bot_id = Number(params.bot_id)
+  }
+
   if (hasSearchValue(params.origin)) {
     apiParams.origin = Number(params.origin)
   }
@@ -116,6 +120,7 @@ export function filterVisibleEnergyOrders(orders: EnergyOrder[]): EnergyOrder[] 
 export function hasSearchCondition(params: SearchFormParams): boolean {
   return [
     params.keyword,
+    params.bot_id,
     params.origin,
     params.receive_address,
     params.energy_address,

@@ -1,5 +1,6 @@
 export interface QuickChargeOrder {
   id: string
+  pay_id: string
   bot_user_name: string
   agent_name: string
   receive_address: string

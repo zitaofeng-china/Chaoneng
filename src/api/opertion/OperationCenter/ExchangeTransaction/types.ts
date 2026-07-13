@@ -4,6 +4,7 @@
  * 闪兑订单查询参数
  */
 export interface V2ExchangeListParams {
+  bot_id?: number // 机器人ID
   bot_name?: string // 机器人名称
   coin?: string // 币种（USDT/TRX）
   current_page?: number // 当前页码

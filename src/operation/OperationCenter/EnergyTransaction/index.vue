@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import type { SearchTableExpose } from '@/components/SearchTable'
@@ -48,12 +48,15 @@ import { useRoute } from 'vue-router'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import { ORDER_STATUS_OPTIONS } from '@/utils/orderStatus'
 import { SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'
+import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
 import {
   buildBackendOrder,
   createDefaultDateTimeRange,
   createPageParams,
   exportTableData,
-  hasSearchValue
+  hasSearchValue,
+  withAllOption,
+  type SelectOption
 } from '@/utils/tableHelpers'
 import { ENERGY_ORDER_KIND_OPTIONS } from '@/utils/energyOrder'
 import { getFilteredColumns } from './columns'
@@ -71,6 +74,7 @@ import type { EnergyOrder, SearchFormParams, EnergyListParams } from './types'
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const orderDetailRef = ref<InstanceType<typeof OrderDetail> | null>(null)
 const route = useRoute()
+const botOptions = ref<SelectOption<number | string>[]>(withAllOption<number | string>([]))
 
 const selectedSource = ref<number | string>('')
 const totalCount = ref(0)
@@ -115,17 +119,28 @@ const actionColumn = {
   }
 }
 
-const searchSchema = [
+const searchSchema = computed(() => [
   {
     field: 'keyword',
     component: 'Input' as const,
     label: {
-      tips: '订单ID/代理名称/机器人名称/TG用户名/TG用户昵称/用户账号/用户邮箱',
+      tips: '订单ID/代理名称/机器人名称/TG用户名/TG用户昵称/用户账号/用户邮箱/交易哈希',
       text: '关键词'
     },
     componentProps: {
-      placeholder: '请输入关键词',
+      placeholder: '关键词/机器人名称/交易哈希',
       clearable: true
+    }
+  },
+  {
+    field: 'bot_id',
+    component: 'Select' as const,
+    label: '机器人',
+    componentProps: {
+      placeholder: '请选择机器人',
+      clearable: true,
+      filterable: true,
+      options: botOptions.value
     }
   },
   {
@@ -187,7 +202,23 @@ const searchSchema = [
       defaultTime: createDefaultDateTimeRange()
     }
   }
-]
+])
+
+const loadBotOptions = async () => {
+  try {
+    const response = await v1GetMessageBotList()
+    const options = (response.data || []).map((bot: MessageBotItem) => ({
+      label: bot.user_name || `机器人${bot.id}`,
+      value: bot.id
+    }))
+    botOptions.value = withAllOption(options)
+  } catch (error) {
+    handleErrorMessage(error, '加载机器人列表失败')
+    botOptions.value = withAllOption<number | string>([])
+  }
+}
+
+onMounted(loadBotOptions)
 
 const fetchDataWrapper = async (
   params: SearchFormParams & { current_page?: number; page_size?: number; order?: string }

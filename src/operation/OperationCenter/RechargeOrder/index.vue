@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, h, computed } from 'vue'
+import { ref, h, computed, onMounted } from 'vue'
 import { ElTag } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
@@ -47,21 +47,26 @@ import { ElLink } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
 import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
 import { getSourceText, SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'
+import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
 import {
   createPageParams,
   exportTableData,
   formatTableDateTime,
   hasSearchValue,
+  withAllOption,
+  type SelectOption,
   type TableSlot
 } from '@/utils/tableHelpers'
 import { getTelegramUserUrl } from '@/utils/telegram'
 import { RECHARGE_COIN_OPTIONS } from './constants'
 import { formatRechargeFeeText } from '@/utils/rechargeOrder'
 import { RechargeOrderDetailDialog } from '@/components/business/recharge-order'
+import { renderDisplayableTransactionHash } from '@/operation/OperationCenter/utils/transactionLink'
 
 const router = useRouter()
 const route = useRoute()
 const searchTableRef = ref<SearchTableExpose | null>(null)
+const botOptions = ref<SelectOption<number | string>[]>(withAllOption<number | string>([]))
 const initialSearchParams = route.query.order_num
   ? {
       order_id: String(route.query.order_num)
@@ -86,7 +91,8 @@ const RECHARGE_ORDER_STATUS_OPTIONS = [
   { label: '已取消', value: 8 }
 ]
 
-type DepositSearchParams = Omit<V2DepositListParams, 'origin' | 'status'> & {
+type DepositSearchParams = Omit<V2DepositListParams, 'bot_id' | 'origin' | 'status'> & {
+  bot_id?: number | string
   origin?: number | string
   status?: number | string
 }
@@ -120,6 +126,7 @@ const buildDepositListParams = (
   }
 
   if (params.keyword) adaptedParams.keyword = params.keyword
+  if (hasSearchValue(params.bot_id)) adaptedParams.bot_id = Number(params.bot_id)
   if (params.order_id) adaptedParams.order_id = params.order_id
   if (params.status !== undefined && params.status !== '')
     adaptedParams.status = Number(params.status)
@@ -263,6 +270,14 @@ const columns = computed(() => {
       formatter: (row: V2DepositItem) => row.pay_address || '-'
     },
     {
+      field: 'pay_id',
+      label: '交易哈希',
+      minWidth: 220,
+      slots: {
+        default: ({ row }: DepositTableSlot) => renderDisplayableTransactionHash(row.pay_id)
+      }
+    },
+    {
       field: 'describe',
       label: '备注',
       minWidth: 150,
@@ -308,7 +323,7 @@ const columns = computed(() => {
   return filteredCols
 })
 
-const searchSchema = [
+const searchSchema = computed(() => [
   {
     field: 'order_id',
     component: 'Input' as const,
@@ -330,11 +345,22 @@ const searchSchema = [
     field: 'keyword',
     component: 'Input' as const,
     label: {
-      tips: 'TG用户名/TG用户昵称/机器人名称/代理名称/用户账号/用户邮箱',
+      tips: 'TG用户名/TG用户昵称/机器人名称/代理名称/用户账号/用户邮箱/交易哈希',
       text: '关键词'
     },
     componentProps: {
-      placeholder: '请输入关键词'
+      placeholder: '关键词/机器人名称/交易哈希'
+    }
+  },
+  {
+    field: 'bot_id',
+    component: 'Select' as const,
+    label: '机器人',
+    componentProps: {
+      options: botOptions.value,
+      placeholder: '请选择机器人',
+      clearable: true,
+      filterable: true
     }
   },
   {
@@ -371,7 +397,23 @@ const searchSchema = [
       placeholder: '请输入支付地址'
     }
   }
-]
+])
+
+const loadBotOptions = async () => {
+  try {
+    const response = await v1GetMessageBotList()
+    const options = (response.data || []).map((bot: MessageBotItem) => ({
+      label: bot.user_name || `机器人${bot.id}`,
+      value: bot.id
+    }))
+    botOptions.value = withAllOption(options)
+  } catch (error) {
+    handleErrorMessage(error, '加载机器人列表失败')
+    botOptions.value = withAllOption<number | string>([])
+  }
+}
+
+onMounted(loadBotOptions)
 
 const fetchRechargeOrderList = async (
   params: DepositSearchParams = {}
@@ -390,6 +432,7 @@ const fetchRechargeOrderList = async (
       params.order_id,
       params.status,
       params.keyword,
+      params.bot_id,
       params.origin,
       params.coin,
       params.receive_address,

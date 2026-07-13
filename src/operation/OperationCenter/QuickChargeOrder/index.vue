@@ -69,6 +69,7 @@ import {
   getQuickChargeOrderTypeText,
   QUICK_CHARGE_RESOURCE_TYPE_OPTIONS
 } from './constants'
+import { renderDisplayableTransactionHash } from '@/operation/OperationCenter/utils/transactionLink'
 
 const QUICK_CHARGE_ORDER_KINDS = [15, 21]
 const DEFAULT_START_TIME_ORDER = 'delegated_at DESC'
@@ -129,6 +130,14 @@ const columns: TableColumn[] = [
   },
   { field: 'amount', label: '数量', width: 130 },
   { field: 'unit_price', label: '单价（sun/天）', width: 130 },
+  {
+    field: 'pay_id',
+    label: '交易哈希',
+    minWidth: 220,
+    slots: {
+      default: ({ row }: QuickChargeTableSlot) => renderDisplayableTransactionHash(row.pay_id)
+    }
+  },
   { field: 'start_time', label: '开始时间', width: 170 },
   { field: 'end_time', label: '结束时间', width: 170 },
   {
@@ -165,10 +174,10 @@ const searchSchema = ref<FormSchema[]>([
     component: 'Input',
     label: {
       text: '关键词',
-      tips: '订单号/机器人用户名/代理'
+      tips: '订单号/机器人名称/代理/交易哈希'
     },
     componentProps: {
-      placeholder: '订单号/机器人用户名/代理',
+      placeholder: '订单号/机器人名称/代理/交易哈希',
       clearable: true,
       style: { width: '330px' }
     }
@@ -264,6 +273,7 @@ const mapEnergyOrderToQuickChargeOrder = (item: EnergyOrder): QuickChargeOrder =
 
   return {
     id: normalizeText(item.id),
+    pay_id: normalizeText(item.pay_id),
     bot_user_name: normalizeText(item.bot_user_name || item.bot_name),
     agent_name: normalizeText(item.agent_name),
     receive_address: normalizeText(targetAddress),

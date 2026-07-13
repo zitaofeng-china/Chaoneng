@@ -15,6 +15,7 @@ import {
 } from '@/utils/energyOrder'
 import { getStatusText, getStatusType } from '@/utils/orderStatus'
 import { formatTableDateTime } from '@/utils/tableHelpers'
+import { renderDisplayableTransactionHash } from '@/operation/OperationCenter/utils/transactionLink'
 
 /**
  * 列配置项
@@ -148,6 +149,14 @@ export function getAllColumns(): ColumnConfig[] {
       label: '能量接收地址',
       minWidth: 200,
       formatter: (row) => row.energy_address || '-'
+    },
+    {
+      field: 'pay_id',
+      label: '交易哈希',
+      minWidth: 220,
+      slots: {
+        default: ({ row }) => renderDisplayableTransactionHash(row.pay_id)
+      }
     },
     {
       field: 'energy_count',

@@ -11,6 +11,7 @@ export type EnergyDateRange = DateRangeValue
 
 export interface SearchFormParams {
   keyword?: string
+  bot_id?: number | string
   origin?: number | string
   kind?: number | number[]
   receive_address?: string
