@@ -1,6 +1,7 @@
 // Import necessary dependencies
 import { h, type Ref } from 'vue'
 import { ElMessageBox, ElLink } from 'element-plus'
+import { getTelegramUserUrl } from '@/utils/telegram'
 
 // Type for tag types
 type TagType = 'b' | 'i' | 'u' | 'precode'
@@ -172,7 +173,7 @@ export function useHtmlInsert(
       )
 
       const linkText = text || selectedText || username
-      const userLinkHtml = `<a href="https://t.me/${username.trim()}">${linkText.trim()}</a>`
+      const userLinkHtml = `<a href="${getTelegramUserUrl(username)}">${linkText.trim()}</a>`
       await insertOrReplaceText(userLinkHtml, !!selectedText)
     } catch (action) {
       // Handle cancel or error silently

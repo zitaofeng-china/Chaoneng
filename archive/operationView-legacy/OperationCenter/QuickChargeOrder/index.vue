@@ -140,7 +140,10 @@ const columns: TableColumn[] = [
     minWidth: 130,
     slots: {
       default: ({ row }: any) => (
-        <ElLink type="primary" onClick={() => window.open(`https://t.me/${row.bot_user_name}`)}>
+        <ElLink
+          type="primary"
+          onClick={() => window.open(`https://telegram.me/${row.bot_user_name}`)}
+        >
           {row.bot_user_name}
         </ElLink>
       )

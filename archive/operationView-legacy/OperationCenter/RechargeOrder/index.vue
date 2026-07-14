@@ -219,7 +219,7 @@ const columns = computed(() => {
         default: ({ row }) => {
           if (!row.tg_user_name) return <span>-</span>
           return (
-            <ElLink href={`https://t.me/${row.tg_user_name}`} type="primary" target="_blank">
+            <ElLink href={`https://telegram.me/${row.tg_user_name}`} type="primary" target="_blank">
               {row.tg_user_name}
             </ElLink>
           )

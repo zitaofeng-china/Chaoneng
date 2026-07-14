@@ -127,6 +127,7 @@ import {
   handleSuccessMessage,
   handleWarningMessage
 } from '@/utils/messageHelper'
+import { getTelegramUserUrl } from '@/utils/telegram'
 
 const ORDER_NOTIFY_TYPE_OPTIONS = [
   { label: '用户充值', value: 2 },
@@ -223,10 +224,7 @@ const notifyBotDisplayName = computed(() => {
   return notifyBotName.value.startsWith('@') ? notifyBotName.value : `@${notifyBotName.value}`
 })
 
-const notifyBotLink = computed(() => {
-  const username = notifyBotName.value.replace(/^@/, '')
-  return username ? `https://t.me/${username}` : ''
-})
+const notifyBotLink = computed(() => getTelegramUserUrl(notifyBotName.value))
 
 const orderSwitchWidth = computed(() => {
   const maxTextLength = Math.max(ORDER_SELECT_ACTIVE_TEXT.length, ORDER_SELECT_INACTIVE_TEXT.length)

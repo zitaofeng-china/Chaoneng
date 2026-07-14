@@ -118,7 +118,7 @@ const notifyBotDisplayName = computed(() => {
 
 const notifyBotLink = computed(() => {
   const username = notifyBotName.value.replace(/^@/, '')
-  return username ? `https://t.me/${username}` : ''
+  return username ? `https://telegram.me/${username}` : ''
 })
 
 const fetchNotifyBotName = async () => {

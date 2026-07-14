@@ -171,7 +171,10 @@ const columns: TableColumn[] = [
         const username = data.row.bot_user_name
         if (!username) return <span>-</span>
         return (
-          <ElLink type="primary" onClick={() => window.open(`https://t.me/${username}`, '_blank')}>
+          <ElLink
+            type="primary"
+            onClick={() => window.open(`https://telegram.me/${username}`, '_blank')}
+          >
             {username}
           </ElLink>
         )

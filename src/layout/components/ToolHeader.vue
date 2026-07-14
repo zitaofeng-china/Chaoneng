@@ -18,6 +18,7 @@ import { BaseButton } from '@/components/Button'
 import { Dialog } from '@/components/Dialog'
 import { ElMessage, ElSkeleton, ElTooltip } from 'element-plus'
 import { isManagementSystem } from '@/utils/system'
+import { openTelegramUser } from '@/utils/telegram'
 
 const { getPrefixCls, variables } = useDesign()
 
@@ -101,13 +102,9 @@ export default defineComponent({
 
         if (res.data.list && res.data.list.length > 0) {
           const firstCustomerService = res.data.list[0]
-          let tgName = firstCustomerService.tg_name
-
-          if (tgName.startsWith('@')) {
-            tgName = tgName.substring(1)
+          if (!openTelegramUser(firstCustomerService.tg_name)) {
+            ElMessage.warning('客服 Telegram 用户名无效')
           }
-
-          window.open(`https://t.me/${tgName}`, '_blank')
         } else {
           ElMessage.warning('暂无可用客服')
         }

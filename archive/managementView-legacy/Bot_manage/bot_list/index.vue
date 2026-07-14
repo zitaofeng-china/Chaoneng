@@ -109,7 +109,7 @@ const columns = [
         return (
           <ElLink
             type="primary"
-            onClick={() => window.open(`https://t.me/${username}`, '_blank')}
+            onClick={() => window.open(`https://telegram.me/${username}`, '_blank')}
             style="cursor: pointer"
           >
             {username}

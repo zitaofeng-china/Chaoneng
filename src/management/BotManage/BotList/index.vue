@@ -77,6 +77,7 @@ import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute, useRouter } from 'vue-router'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 import { buildBotUpdatePayload, validateBotUpdatePayload } from '@/utils/botUpdatePayload'
+import { openTelegramUser } from '@/utils/telegram'
 
 const route = useRoute()
 const router = useRouter()
@@ -110,11 +111,7 @@ const columns = [
       default: (data: any) => {
         const username = data.row.user_name
         return (
-          <ElLink
-            type="primary"
-            onClick={() => window.open(`https://t.me/${username}`, '_blank')}
-            style="cursor: pointer"
-          >
+          <ElLink type="primary" onClick={() => openTelegramUser(username)} style="cursor: pointer">
             {username}
           </ElLink>
         )
