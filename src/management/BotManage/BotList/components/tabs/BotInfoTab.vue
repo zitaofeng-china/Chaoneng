@@ -21,7 +21,14 @@
       <ElRow :gutter="20">
         <ElCol :span="8">
           <ElFormItem label="地址：">
-            <ElInput v-model="h5Config.url" placeholder="请输入H5地址" disabled />
+            <div class="h5-url-copy-wrap" title="点击复制地址" @click="handleCopyH5Url">
+              <ElInput
+                v-model="h5Config.url"
+                class="h5-url-input"
+                placeholder="请输入H5地址"
+                disabled
+              />
+            </div>
           </ElFormItem>
         </ElCol>
         <ElCol :span="8">
@@ -143,6 +150,7 @@ import {
 } from 'element-plus'
 import { v1GetSiteDetail } from '@/api/management/BotManage/common/site'
 import { uploadFile, uploadFileV2 } from '@/api/management/common/upload'
+import { useClipboard } from '@/hooks/web/useClipboard'
 
 const props = defineProps({
   tgStatus: {
@@ -171,6 +179,18 @@ const h5Config = ref({
   url: '',
   site_tg_admin: ''
 })
+
+const { copy } = useClipboard()
+
+const handleCopyH5Url = () => {
+  const url = h5Config.value.url?.trim()
+  if (!url) {
+    ElMessage.warning('地址为空，无法复制')
+    return
+  }
+  copy(url)
+  ElMessage.success('地址复制成功')
+}
 
 const botProfile = reactive({
   avatar: '',
@@ -699,9 +719,38 @@ defineExpose({
   border-top: 1px solid var(--el-border-color-lighter);
 }
 
+/* 真正 disabled 保持灰色；外层接管点击以支持复制，宽度与同行字段一致 */
+.h5-url-copy-wrap {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  cursor: pointer;
+  box-sizing: border-box;
+
+  :deep(.el-input) {
+    display: block;
+    width: 100% !important;
+    pointer-events: none;
+  }
+
+  :deep(.el-input__wrapper) {
+    width: 100%;
+    cursor: pointer;
+  }
+
+  :deep(.el-input__inner) {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+}
+
 .h5-config-section :deep(.el-form-item) {
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
 .h5-config-section :deep(.el-form-item__label) {
@@ -712,6 +761,8 @@ defineExpose({
 }
 
 .h5-config-section :deep(.el-form-item__content) {
+  display: block;
+  width: 100%;
   margin-left: 0 !important;
 }
 </style>
