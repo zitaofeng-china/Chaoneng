@@ -174,10 +174,10 @@ const searchSchema = ref<FormSchema[]>([
     component: 'Input',
     label: {
       text: '关键词',
-      tips: '订单号/机器人名称/代理/交易哈希'
+      tips: '订单号/代理/交易哈希'
     },
     componentProps: {
-      placeholder: '订单号/机器人名称/代理/交易哈希',
+      placeholder: '关键词',
       clearable: true,
       style: { width: '330px' }
     }

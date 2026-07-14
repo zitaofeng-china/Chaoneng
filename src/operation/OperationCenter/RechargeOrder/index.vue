@@ -2,6 +2,7 @@
   <div class="app-container">
     <ContentWrap>
       <SearchTable
+        v-if="isBotOptionsLoaded"
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchRechargeOrderList"
@@ -67,6 +68,8 @@ const router = useRouter()
 const route = useRoute()
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const botOptions = ref<SelectOption<number | string>[]>(withAllOption<number | string>([]))
+/** 机器人选项加载完成后再挂载 SearchTable，避免 schema 初始化时 options 被写死为空 */
+const isBotOptionsLoaded = ref(false)
 const initialSearchParams = route.query.order_num
   ? {
       order_id: String(route.query.order_num)
@@ -345,11 +348,11 @@ const searchSchema = computed(() => [
     field: 'keyword',
     component: 'Input' as const,
     label: {
-      tips: 'TG用户名/TG用户昵称/机器人名称/代理名称/用户账号/用户邮箱/交易哈希',
+      tips: 'TG用户名/TG用户昵称/代理名称/用户账号/用户邮箱/交易哈希',
       text: '关键词'
     },
     componentProps: {
-      placeholder: '关键词/机器人名称/交易哈希'
+      placeholder: '关键词'
     }
   },
   {
@@ -399,17 +402,28 @@ const searchSchema = computed(() => [
   }
 ])
 
+const normalizeMessageBotList = (data: unknown): MessageBotItem[] => {
+  if (Array.isArray(data)) return data
+  if (data && typeof data === 'object' && Array.isArray((data as { list?: unknown }).list)) {
+    return (data as { list: MessageBotItem[] }).list
+  }
+  return []
+}
+
 const loadBotOptions = async () => {
   try {
     const response = await v1GetMessageBotList()
-    const options = (response.data || []).map((bot: MessageBotItem) => ({
-      label: bot.user_name || `机器人${bot.id}`,
+    const list = normalizeMessageBotList(response?.data)
+    const options = list.map((bot) => ({
+      label: bot.user_name || bot.first_name || `机器人${bot.id}`,
       value: bot.id
     }))
     botOptions.value = withAllOption(options)
   } catch (error) {
     handleErrorMessage(error, '加载机器人列表失败')
     botOptions.value = withAllOption<number | string>([])
+  } finally {
+    isBotOptionsLoaded.value = true
   }
 }
 
