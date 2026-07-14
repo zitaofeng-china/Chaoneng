@@ -79,7 +79,7 @@ import {
   type EnergyOutboundOrderListResponse,
   type EnergyOutboundOrderSummary
 } from '@/api/opertion/DataStatistics/EnergyOutboundOrder'
-import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
+import { handleErrorMessage, handleListMessage, handleWarningMessage } from '@/utils/messageHelper'
 import {
   createPageParams,
   dateRangeToSeconds,
@@ -394,7 +394,10 @@ const searchSchema = ref<FormSchema[]>([
   {
     field: 'keyword',
     component: 'Input' as const,
-    label: '关键词',
+    label: {
+      text: '关键词',
+      tips: '订单ID/代理名称/机器人名称'
+    },
     componentProps: {
       placeholder: '订单ID/代理名称/机器人名称',
       clearable: true,
@@ -402,13 +405,14 @@ const searchSchema = ref<FormSchema[]>([
     }
   },
   {
+    // 与表格列 field 一致：txid
     field: 'txid',
     component: 'Input' as const,
     label: '交易哈希',
     componentProps: {
       placeholder: '请输入交易哈希',
       clearable: true,
-      style: { width: '260px' }
+      style: { width: '320px' }
     }
   },
   {
@@ -428,12 +432,32 @@ const searchSchema = ref<FormSchema[]>([
   }
 ])
 
+/** 规范化交易哈希（与列字段 txid 一致）：去空格、去掉 0x，拒绝脱敏串 */
+const normalizeTxidQuery = (value: unknown) => {
+  const raw = String(value ?? '')
+    .trim()
+    .replace(/\s+/g, '')
+  if (!raw) return ''
+  // 列表脱敏展示为 前缀******后缀，不能作为查询条件
+  if (raw.includes('*')) return ''
+  return raw.replace(/^0x/i, '')
+}
+
 const buildEnergyOutboundOrderParams = (
   params: EnergyOutboundSearchParams = {}
 ): EnergyOutboundOrderListParams => {
   const apiParams: EnergyOutboundOrderListParams = { ...createPageParams(params) }
-  if (hasSearchValue(params.keyword)) apiParams.keyword = String(params.keyword).trim()
-  if (hasSearchValue(params.txid)) apiParams.txid = String(params.txid).trim()
+
+  if (hasSearchValue(params.keyword)) {
+    apiParams.keyword = String(params.keyword).trim()
+  }
+
+  // 筛选字段与表格列一致，仅按 txid 提交
+  const txid = normalizeTxidQuery(params.txid)
+  if (txid) {
+    apiParams.txid = txid
+  }
+
   if (hasSearchValue(params.order_id)) apiParams.order_id = Number(params.order_id)
   if (hasSearchValue(params.status)) apiParams.status = Number(params.status)
   Object.assign(apiParams, dateRangeToSeconds(params.outbound_date))
@@ -473,6 +497,11 @@ const applySummaryStats = (
 
 const fetchEnergyOutboundOrderList = async (params: EnergyOutboundSearchParams = {}) => {
   try {
+    const rawTxid = hasSearchValue(params.txid) ? String(params.txid).trim() : ''
+    if (rawTxid.includes('*')) {
+      handleWarningMessage('交易哈希请粘贴完整值，不要使用列表中的脱敏展示（含 ******）')
+    }
+
     const apiParams = buildEnergyOutboundOrderParams(params)
     const res = await getEnergyOutboundOrderList(apiParams)
     if (res?.code === '000000' && res.data) {

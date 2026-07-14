@@ -83,10 +83,14 @@ export interface V2ResourceOrderListResponse {
 export interface V2SettlementRecordListParams {
   current_page?: number // 页码
   page_size?: number // 每页大小
-  keyword?: string // 关键字
+  keyword?: string // 关键字（订单ID/代理/机器人等）
+  /** 交易哈希，与列表字段 txid 一致 */
+  txid?: string
   order?: string // 排序
   order_id?: number // 订单ID
   status?: number // 状态
+  start_time?: string
+  end_time?: string
 }
 
 /**
