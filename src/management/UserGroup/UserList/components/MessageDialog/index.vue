@@ -243,11 +243,12 @@
   <!-- 内联按钮管理弹窗 -->
   <InlineButtonDialog v-model="inlineButtonDialogVisible" @success="fetchMenuList" />
 
-  <!-- 消息预览对话框 -->
+  <!-- 消息预览对话框（内联按钮布局与运营端统一） -->
   <MessagePreviewDialog
     v-model="showMessagePreview"
     :preview-data="messagePreviewData"
     :submitting="submitting"
+    confirm-button-text="确认发送"
     @confirm="handleConfirmSend"
     @cancel="showMessagePreview = false"
   />

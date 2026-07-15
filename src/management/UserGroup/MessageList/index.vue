@@ -53,11 +53,12 @@
       @success="handleAdvancedSettingsSuccess"
     />
 
-    <!-- 重发消息预览弹窗 -->
+    <!-- 重发消息预览弹窗（内联按钮布局与运营端统一） -->
     <MessagePreviewDialog
       v-model="resendPreviewVisible"
       :preview-data="resendPreviewData"
       :submitting="resending"
+      confirm-button-text="确认发送"
       @confirm="handleConfirmResend"
       @cancel="resendPreviewVisible = false"
     />
@@ -282,8 +283,8 @@ const handleResend = async (row: any) => {
   }
 }
 
-// 确认重发
-const handleConfirmResend = async () => {
+// 确认重发（使用预览中调整后的内联按钮二维布局）
+const handleConfirmResend = async (buttonLayout?: number[][]) => {
   if (!currentResendRow.value) return
 
   try {
@@ -291,15 +292,23 @@ const handleConfirmResend = async () => {
 
     const row = currentResendRow.value
 
+    let innerButtons: number[][] = []
+    if (buttonLayout && Array.isArray(buttonLayout) && buttonLayout.length > 0) {
+      innerButtons = buttonLayout.filter((r) => Array.isArray(r) && r.length > 0)
+    } else {
+      innerButtons = (row.inner_buttons || []).map((rowBtns: any[]) =>
+        rowBtns.map((btn: any) => btn.id)
+      )
+    }
+
     // 调用发送消息接口，只修改 period 为 0 和 send_at 为当前时间
     const res = await v1SendGroupMessage({
       bot_ids: [row.bot_id],
       content: row.content || '',
       delete_sent: row.delete_sent || 2,
       files: row.files || [],
-      inner_buttons: (row.inner_buttons || []).map((rowBtns: any[]) =>
-        rowBtns.map((btn: any) => btn.id)
-      ),
+      // 与用户消息一致传二维布局；若后端仅支持一维，由网关/服务端兼容
+      inner_buttons: innerButtons as any,
       period: 0, // 重发时周期改为0（只发一次）
       send_at: Math.floor(Date.now() / 1000), // 发送时间改为当前时间
       chat_ids: row.chat_ids || [],

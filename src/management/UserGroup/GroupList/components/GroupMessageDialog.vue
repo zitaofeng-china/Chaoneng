@@ -172,11 +172,12 @@
   <!-- 内联按钮管理弹窗 -->
   <InlineButtonDialog v-model="inlineButtonDialogVisible" @success="fetchMenuList" />
 
-  <!-- 消息预览对话框 -->
+  <!-- 消息预览对话框（内联按钮布局与运营端统一） -->
   <MessagePreviewDialog
     v-model="showMessagePreview"
     :preview-data="messagePreviewData"
     :submitting="submitting"
+    confirm-button-text="确认发送"
     @confirm="handleConfirmSend"
     @cancel="showMessagePreview = false"
   />
@@ -561,13 +562,13 @@ const handleConfirmSend = async (buttonLayout?: number[][]) => {
       }
     }
 
-    // 处理内联按钮（使用预览中调整的二维布局）
-    let innerButtons: number[] = []
+    // 处理内联按钮：优先使用预览中调整的二维布局（与用户消息一致）
+    let innerButtons: number[][] = []
     if (buttonLayout && Array.isArray(buttonLayout) && buttonLayout.length > 0) {
-      innerButtons = buttonLayout.filter((row) => Array.isArray(row) && row.length > 0).flat()
+      innerButtons = buttonLayout.filter((row) => Array.isArray(row) && row.length > 0)
     } else if (checkList.value.length > 0) {
       const ids = checkList.value.map(toButtonId).filter((id: number) => !isNaN(id))
-      if (ids.length > 0) innerButtons = ids
+      if (ids.length > 0) innerButtons = [ids]
     }
 
     // 处理发送时间
@@ -583,7 +584,7 @@ const handleConfirmSend = async (buttonLayout?: number[][]) => {
       content: formData.value.content,
       delete_sent: formData.value.delete_sent ? 1 : 2,
       files: uploadedFiles.length > 0 ? uploadedFiles : [],
-      inner_buttons: innerButtons.length > 0 ? innerButtons : [],
+      inner_buttons: (innerButtons.length > 0 ? innerButtons : []) as any,
       period: formData.value.enable_period
         ? formData.value.period >= 1
           ? formData.value.period
