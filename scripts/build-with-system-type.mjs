@@ -42,8 +42,12 @@ if (!hasMode) {
   console.log(`未检测到 --mode 参数，已根据命令自动推断并添加: --mode ${mode}`);
 }
 
-// 准备环境变量
-const env = { ...process.env, VITE_SYSTEM_TYPE: systemType };
+// 准备环境变量（Vite 生产构建易 OOM，默认抬高 Node 堆上限）
+const env = {
+  ...process.env,
+  VITE_SYSTEM_TYPE: systemType,
+  NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=4096'].filter(Boolean).join(' ')
+}
 
 // 执行 vite build 命令
 const command = `pnpm vite build ${viteArgs.join(' ')}`;

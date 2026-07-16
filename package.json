@@ -17,7 +17,7 @@
     "build:gitee": "pnpm vite build --mode gitee",
     "build:dev": "node scripts/build-with-system-type.mjs",
     "build:test": "node scripts/build-with-system-type.mjs",
-    "build:management": "cross-env VITE_SYSTEM_TYPE=Management pnpm vite build --mode pro",
+    "build:management": "cross-env NODE_OPTIONS=--max-old-space-size=4096 VITE_SYSTEM_TYPE=Management pnpm vite build --mode pro",
     "build:operation": "cross-env NODE_OPTIONS=--max-old-space-size=4096 VITE_SYSTEM_TYPE=Operation pnpm vite build --mode pro",
     "serve:pro": "pnpm vite preview --mode pro",
     "serve:dev": "pnpm vite preview --mode dev",
