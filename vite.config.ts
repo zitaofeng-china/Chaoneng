@@ -38,6 +38,8 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
   }
   console.log('Current VITE_SYSTEM_TYPE:', env.VITE_SYSTEM_TYPE)
   console.log('Current VITE_TRONSCAN_URL:', env.VITE_TRONSCAN_URL)
+  // 生产构建强制全量 Element Plus 样式，避免按需 CSS 缺失导致表格/下拉错乱
+  const useAllElementPlusStyle = isBuild || env.VITE_USE_ALL_ELEMENT_PLUS_STYLE === 'true'
   return {
     base: env.VITE_SYSTEM_TYPE === 'Management' ? '/management' : '/operation',
     plugins: [
@@ -53,7 +55,7 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
       VueJsx(),
       AutoImport({
         imports: ['vue', 'vue-router', 'pinia'],
-        resolvers: [ElementPlusResolver()],
+        resolvers: [ElementPlusResolver({ importStyle: useAllElementPlusStyle ? false : 'css' })],
         dts: 'types/auto-imports.d.ts',
         eslintrc: {
           enabled: true,
@@ -63,7 +65,8 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
       Components({
         resolvers: [
           ElementPlusResolver({
-            importStyle: 'css'
+            // 全量样式时不再按组件重复注入 CSS
+            importStyle: useAllElementPlusStyle ? false : 'css'
           })
         ],
         dts: 'types/components.d.ts',
@@ -71,7 +74,7 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
       }),
       ServerUrlCopy(),
       progress(),
-      env.VITE_USE_ALL_ELEMENT_PLUS_STYLE === 'false'
+      !useAllElementPlusStyle
         ? createStyleImportPlugin({
             resolves: [ElementPlusResolve()],
             libs: [
