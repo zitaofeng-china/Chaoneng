@@ -1,28 +1,42 @@
 /**
- * Netlify 代理：后端域名从环境变量读取，禁止写死 IP
- * 本地/部署请配置 API_BASE_URL 或 VITE_API_BASE_PATH
+ * Netlify API 代理：将 /.netlify/functions/api/* 转发到真实后端
+ *
+ * 必须在 Netlify 站点环境变量中配置其一：
+ * - API_BASE_URL
+ * - VITE_API_BASE_PATH
+ *
+ * 例如：API_BASE_URL=http://47.84.135.181:8888
+ * 注意：不要回退到 process.env.URL（那是 Netlify 站点自身地址，会导致自代理/502）
  */
-const API_BASE_URL =
-  process.env.API_BASE_URL || process.env.VITE_API_BASE_PATH || process.env.URL || ''
+const API_BASE_URL = (process.env.API_BASE_URL || process.env.VITE_API_BASE_PATH || '').trim()
 
-exports.handler = async (event, context) => {
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS'
+}
+
+const jsonResponse = (statusCode, body) => ({
+  statusCode,
+  headers: {
+    'Content-Type': 'application/json',
+    ...corsHeaders
+  },
+  body: JSON.stringify(body)
+})
+
+exports.handler = async (event) => {
   if (!API_BASE_URL) {
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      body: JSON.stringify({
-        code: 500,
-        msg: '未配置 API_BASE_URL / VITE_API_BASE_PATH，无法代理请求'
-      })
-    }
+    console.error('API proxy misconfigured: API_BASE_URL / VITE_API_BASE_PATH is empty')
+    return jsonResponse(502, {
+      code: '502',
+      msg: '测试站未配置 API_BASE_URL，无法代理 /v1 /v2 请求。请在 Netlify → Site configuration → Environment variables 中设置 API_BASE_URL 为后端地址（如 http://47.84.135.181:8888）后重新部署。'
+    })
   }
 
-  const path = event.path.replace('/.netlify/functions/api', '')
+  // 路径示例: /.netlify/functions/api/v1/captcha → /v1/captcha
+  const path = (event.path || '').replace(/^\/\.netlify\/functions\/api/, '') || '/'
 
-  // 构建完整的 URL,包括查询参数
   let apiUrl = `${API_BASE_URL.replace(/\/$/, '')}${path}`
   if (event.queryStringParameters && Object.keys(event.queryStringParameters).length > 0) {
     const queryString = new URLSearchParams(event.queryStringParameters).toString()
@@ -32,11 +46,7 @@ exports.handler = async (event, context) => {
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
-      },
+      headers: corsHeaders,
       body: ''
     }
   }
@@ -44,31 +54,20 @@ exports.handler = async (event, context) => {
   try {
     const headers = {}
 
-    // 复制 Content-Type (对于 multipart/form-data 很重要,包含 boundary)
     if (event.headers['content-type']) {
       headers['Content-Type'] = event.headers['content-type']
     }
-
-    // 复制 Authorization
     if (event.headers.authorization) {
       headers['Authorization'] = event.headers.authorization
     }
 
     const fetchOptions = {
       method: event.httpMethod,
-      headers: headers
+      headers
     }
 
-    // 处理请求体
     if (event.body) {
-      // 如果是 base64 编码的二进制数据 (如文件上传)
-      if (event.isBase64Encoded) {
-        // 将 base64 字符串转换为 Buffer
-        fetchOptions.body = Buffer.from(event.body, 'base64')
-      } else {
-        // 普通文本数据
-        fetchOptions.body = event.body
-      }
+      fetchOptions.body = event.isBase64Encoded ? Buffer.from(event.body, 'base64') : event.body
     }
 
     const response = await fetch(apiUrl, fetchOptions)
@@ -78,26 +77,18 @@ exports.handler = async (event, context) => {
       statusCode: response.status,
       headers: {
         'Content-Type': response.headers.get('content-type') || 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
+        ...corsHeaders
       },
       body: data
     }
   } catch (error) {
-    console.error('API Proxy Error:', error)
+    console.error('API Proxy Error:', { apiUrl, message: error.message, stack: error.stack })
 
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      body: JSON.stringify({
-        code: 500,
-        msg: '代理服务器错误',
-        error: error.message
-      })
-    }
+    return jsonResponse(502, {
+      code: '502',
+      msg: 'Netlify 代理无法连接后端，请检查 API_BASE_URL 是否公网可达，以及后端是否放行 Netlify 出口 IP',
+      error: error.message,
+      target: apiUrl
+    })
   }
 }

@@ -9,6 +9,8 @@
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
   VITE_SYSTEM_TYPE = "Management"
+  # Function 代理后端地址（也可在 Netlify UI 环境变量覆盖）
+  API_BASE_URL = "http://47.84.135.181:8888"
 
 [functions]
   # 增加函数请求体大小限制到 10MB
@@ -34,7 +36,8 @@
   [context.branch-deploy.environment]
     VITE_SYSTEM_TYPE = "Management"
 
-# 代理静态文件访问（图片、视频等）- 必须放在 API 路由之前
+# 后端地址：与 API_BASE_URL 保持一致。优先直连代理（更稳、无 Function 冷启动/超时）
+# 文件类资源
 [[redirects]]
   from = "/v1/files/*"
   to = "http://47.84.135.181:8888/v1/files/:splat"
@@ -53,21 +56,22 @@
   status = 200
   force = true
 
+# 业务 API 直连代理到后端（解决 captcha 等接口 502）
 [[redirects]]
   from = "/v3/*"
-  to = "/.netlify/functions/api/v3/:splat"
+  to = "http://47.84.135.181:8888/v3/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/v2/*"
-  to = "/.netlify/functions/api/v2/:splat"
+  to = "http://47.84.135.181:8888/v2/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/v1/*"
-  to = "/.netlify/functions/api/v1/:splat"
+  to = "http://47.84.135.181:8888/v1/:splat"
   status = 200
   force = true
 
