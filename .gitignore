@@ -14,10 +14,11 @@ deploy.sh
 # docs/ is tracked engineering documentation (was previously ignored)
 # docs
 
-# Environment files — keep secrets out of git; use .env.example as template
+# Environment files
+# 已一次性入库：.env.base / .env.dev / .env.pro / .env.test / .env.gitee（供 CI/Jenkins）
+# 后续本地改动不要再提交；新增未跟踪的 .env* 仍被忽略
 .env
 .env.*
-!.env.example
 
 # Netlify 配置文件（仅测试仓库使用）
 netlify.toml
@@ -33,4 +34,3 @@ types/components.d.ts
 # Local debug artifacts
 .playwright-cli/
 output/
-

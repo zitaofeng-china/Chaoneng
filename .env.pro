@@ -1,0 +1,52 @@
+# 环境
+VITE_NODE_ENV=production
+
+# 接口前缀
+VITE_API_BASE_PATH=
+
+# 打包路径
+VITE_BASE_PATH=/
+
+# 是否删除debugger
+VITE_DROP_DEBUGGER=true
+
+# 是否删除console.log
+VITE_DROP_CONSOLE=true
+
+# 是否sourcemap
+VITE_SOURCEMAP=false
+
+# 输出路径
+VITE_OUT_DIR=dist-pro
+
+# 标题
+VITE_APP_TITLE='超能代理'
+VITE_APP_TITLE_OPERATION='超能运营'
+
+
+# 是否包分析
+VITE_USE_BUNDLE_ANALYZER=false
+
+# 是否全量引入element-plus样式
+# 生产必须为 true：false 时按需样式在 Form/JSX 动态组件场景会缺样式
+#（下拉框、表格固定列发白/错位等），本地 .env.base 为 true 故开发正常
+VITE_USE_ALL_ELEMENT_PLUS_STYLE=true
+
+# 是否开启mock
+VITE_USE_MOCK=false
+
+# 是否切割css
+VITE_USE_CSS_SPLIT=true
+
+# 是否使用在线图标
+VITE_USE_ONLINE_ICON=true
+
+# 是否隐藏全局设置按钮
+VITE_HIDE_GLOBAL_SETTING=false
+
+
+# 系统类型
+VITE_SYSTEM_TYPE=Management
+
+# tronscan地址
+VITE_TRONSCAN_URL=https://tronscan.org
