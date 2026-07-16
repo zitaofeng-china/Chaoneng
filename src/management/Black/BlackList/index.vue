@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="tsx">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import {
   ElButton,
   ElCheckbox,
@@ -103,33 +103,19 @@ import type {
   BlackListParamsV1,
   CreateBlackListParamsV1
 } from '@/api/management/Black/BlackList/types'
-import { v1GetMessageAgentList, type MessageAgentItem } from '@/api/management/common/message'
 import {
   BLACKLIST_DEFAULT_STATUS,
-  BLACKLIST_PLATFORM_AGENT_ID,
   BLACKLIST_SCOPE_LABEL_MAP,
   BLACKLIST_SCOPE_OPTIONS,
   BLACKLIST_STATUS_OPTIONS
 } from '@/constants/blacklist'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import {
-  createPageParams,
-  formatTableDateTime,
-  hasSearchValue,
-  type SelectOption
-} from '@/utils/tableHelpers'
+import { createPageParams, formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
 
-type AgentOption = SelectOption<number>
-type BlackListSearchParams = BlackListParamsV1 & {
-  agent_id?: number | string
-}
+type BlackListSearchParams = BlackListParamsV1
 
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
-const platformAgentOption: AgentOption = {
-  label: '平台',
-  value: BLACKLIST_PLATFORM_AGENT_ID
-}
 
 const dialogVisible = ref(false)
 const submitting = ref(false)
@@ -251,11 +237,6 @@ const renderScopeTags = (scopes: number[]) => {
 }
 
 const getDescribe = (row: BlackListItemV1) => row.describe || '-'
-const getAgentText = (row: BlackListItemV1) => {
-  if (row.agent_name)
-    return row.agent_id ? `${row.agent_name}（ID: ${row.agent_id}）` : row.agent_name
-  return row.agent_id ? `ID: ${row.agent_id}` : '-'
-}
 
 const columns: TableColumn[] = [
   {
@@ -283,12 +264,6 @@ const columns: TableColumn[] = [
         onChange={(enabled: boolean) => handleStatusChange(row, enabled)}
       />
     )
-  },
-  {
-    field: 'agent_name',
-    label: '代理',
-    minWidth: 140,
-    formatter: (row: BlackListItemV1) => getAgentText(row)
   },
   {
     field: 'created_by',
@@ -356,16 +331,6 @@ const searchSchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'agent_id',
-    label: '代理',
-    component: 'Select',
-    componentProps: {
-      placeholder: '全部',
-      clearable: true,
-      options: [platformAgentOption]
-    }
-  },
-  {
     field: 'scope',
     label: '限制订单类型',
     component: 'Select',
@@ -390,30 +355,6 @@ const searchSchema = reactive<FormSchema[]>([
   }
 ])
 
-const setAgentOptions = (options: AgentOption[]) => {
-  const agentField = searchSchema.find((item) => item.field === 'agent_id')
-  if (agentField?.componentProps) {
-    agentField.componentProps.options = options
-  }
-}
-
-const loadAgentOptions = async () => {
-  try {
-    const response = await v1GetMessageAgentList()
-    const agentOptions: AgentOption[] = (response.data || [])
-      .filter((agent: MessageAgentItem) => Number(agent.id) !== BLACKLIST_PLATFORM_AGENT_ID)
-      .map((agent: MessageAgentItem) => ({
-        label: agent.username || agent.email || `代理 ${agent.id}`,
-        value: Number(agent.id)
-      }))
-
-    setAgentOptions([platformAgentOption, ...agentOptions])
-  } catch (error) {
-    setAgentOptions([platformAgentOption])
-    handleErrorMessage(error, '获取代理列表失败')
-  }
-}
-
 const normalizeSearchScopeParam = (value?: BlackListParamsV1['scope']) => {
   if (Array.isArray(value)) {
     const scopes = value.map(Number).filter((item) => !Number.isNaN(item))
@@ -431,7 +372,6 @@ const buildListParams = (params: BlackListSearchParams = {}): BlackListParamsV1 
   }
 
   if (hasSearchValue(params.address)) queryParams.address = String(params.address).trim()
-  if (hasSearchValue(params.agent_id)) queryParams.agent_id = Number(params.agent_id)
   const scope = normalizeSearchScopeParam(params.scope)
   if (scope !== undefined) queryParams.scope = scope
   if (hasSearchValue(params.status)) queryParams.status = Number(params.status)
@@ -446,12 +386,7 @@ const fetchBlackListData = async (params: BlackListSearchParams = {}) => {
 
     if (res.code === '000000' && res.data) {
       const list = res.data.list || []
-      const hasSearchCondition = !!(
-        queryParams.address ||
-        queryParams.agent_id ||
-        queryParams.scope ||
-        queryParams.status
-      )
+      const hasSearchCondition = !!(queryParams.address || queryParams.scope || queryParams.status)
       handleListMessage(list, hasSearchCondition, '黑名单')
 
       return {
@@ -566,10 +501,6 @@ const handleDelete = async (row: BlackListItemV1) => {
     }
   }
 }
-
-onMounted(() => {
-  loadAgentOptions()
-})
 </script>
 
 <style scoped>
