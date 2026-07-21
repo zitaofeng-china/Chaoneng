@@ -90,7 +90,10 @@ import {
   type TableSlot
 } from '@/utils/tableHelpers'
 import { getTronscanTransactionUrl } from '@/utils/tronscan'
-import { SETTLEMENT_RECORD_STATUS_MAP } from '@/operation/FinancialManage/constants'
+import {
+  SETTLEMENT_RECORD_STATUS_MAP,
+  SETTLEMENT_RECORD_STATUS_OPTIONS
+} from '@/operation/FinancialManage/constants'
 
 interface SummaryStats {
   settlementCount: number
@@ -413,6 +416,17 @@ const searchSchema = ref<FormSchema[]>([
       placeholder: '请输入交易哈希',
       clearable: true,
       style: { width: '320px' }
+    }
+  },
+  {
+    field: 'status',
+    component: 'Select' as const,
+    label: '状态',
+    componentProps: {
+      placeholder: '全部',
+      clearable: true,
+      options: SETTLEMENT_RECORD_STATUS_OPTIONS,
+      style: { width: '140px' }
     }
   },
   {
