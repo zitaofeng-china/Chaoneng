@@ -13,6 +13,7 @@ export interface EnergyOutboundOrderListParams {
   end_time?: string
   order?: string
   order_id?: number
+  /** 结算状态：1=成功，2=失败 */
   status?: number
 }
 

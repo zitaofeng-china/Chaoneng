@@ -88,7 +88,7 @@ export interface V2SettlementRecordListParams {
   txid?: string
   order?: string // 排序
   order_id?: number // 订单ID
-  status?: number // 状态
+  status?: number // 状态：1=成功，2=失败
   start_time?: string
   end_time?: string
 }
@@ -104,7 +104,7 @@ export interface V2SettlementRecordItem {
   price: number // 单价
   duration: number // 时长
   profit: string // 利润
-  status: number // 状态：1=成功
+  status: number // 状态：1=成功，2=失败
   txid: string // 交易哈希
   describe: string // 描述
 }
