@@ -169,6 +169,14 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           }
         },
         {
+          path: 'resource_detail',
+          component: () => import('@/operation/Marketing/ResourceDetail/index.vue'),
+          name: 'MarketingResourceDetail',
+          meta: {
+            title: '资源详情'
+          }
+        },
+        {
           path: 'welfare_config',
           component: () => import('@/operation/Marketing/WelfareConfig/index.vue'),
           name: 'WelfareConfig',
