@@ -293,8 +293,7 @@ const priceSchema = reactive<FormSchema[]>([
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.stroke
-          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
+          const costText = getCombinedCostText('stroke')
           return (
             <>
               [1笔]能量TRX <small style="color: #909399; font-size: 10px;">（{costText}）</small>
@@ -404,7 +403,8 @@ const priceSchema = reactive<FormSchema[]>([
       ],
       slots: {
         label: () => {
-          const costText = getCombinedCostText('batch_flash')
+          const costPrice = computedCostPrices.value.batch_flash
+          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
           return (
             <>
               能量单价 <small style="color: #909399; font-size: 10px;">（{costText}）</small>
