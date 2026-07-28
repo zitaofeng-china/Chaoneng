@@ -27,7 +27,11 @@ import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
-import { createRechargeFormDefaults, createRechargeFormSchema } from '../rechargeDialogShared'
+import {
+  createRechargeFormDefaults,
+  createRechargeFormSchema,
+  DIRECT_RECHARGE_COIN
+} from '../rechargeDialogShared'
 import {
   handleErrorMessage,
   handleSuccessMessage,
@@ -46,7 +50,6 @@ interface RechargeUserInfo {
 }
 
 interface RechargeFormData {
-  coin?: string
   amount?: number
   describe?: string
 }
@@ -113,7 +116,7 @@ const handleRecharge = async () => {
     const params: RechargeUserParamsV1 = {
       user_id: userAccount.value.id,
       amount: Number(formData.amount),
-      coin: formData.coin || 'TRX',
+      coin: DIRECT_RECHARGE_COIN,
       describe: formData.describe || ''
     }
 

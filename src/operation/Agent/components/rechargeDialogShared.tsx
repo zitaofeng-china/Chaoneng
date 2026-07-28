@@ -6,6 +6,8 @@ interface CreateRechargeFormSchemaOptions {
   required: (message?: string) => FormItemRule
 }
 
+export const DIRECT_RECHARGE_COIN = 'TRX'
+
 const rechargeAmountRemark = () => (
   <div>
     <span>如果需要扣减余额，请输入负数</span>
@@ -18,25 +20,11 @@ export const createRechargeFormSchema = ({
   includeSecret = false,
   required
 }: CreateRechargeFormSchemaOptions): FormSchema[] => {
-  const coinOptions = [
-    { label: '充值TRX', value: 'TRX' },
-    { label: '充值USDT', value: 'USDT' }
-  ]
-
   const schema: FormSchema[] = [
-    {
-      field: 'coin',
-      component: 'RadioGroup',
-      label: '充值类型',
-      value: 'TRX',
-      componentProps: {
-        options: coinOptions
-      }
-    },
     {
       field: 'amount',
       component: 'InputNumber',
-      label: '金额',
+      label: 'TRX金额',
       componentProps: {
         placeholder: '请输入金额',
         style: { width: '100%' },
@@ -78,7 +66,6 @@ export const createRechargeFormSchema = ({
 }
 
 export const createRechargeFormDefaults = (includeSecret = false) => ({
-  coin: 'TRX',
   amount: includeSecret ? '' : undefined,
   describe: '',
   ...(includeSecret ? { secret: '' } : {})

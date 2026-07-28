@@ -36,7 +36,8 @@ import {
 } from '@/utils/messageHelper'
 import {
   createRechargeFormDefaults,
-  createRechargeFormSchema
+  createRechargeFormSchema,
+  DIRECT_RECHARGE_COIN
 } from '@/operation/Agent/components/rechargeDialogShared'
 
 const props = defineProps({
@@ -138,7 +139,7 @@ const handleRecharge = async () => {
       const params: RechargeUserParamsV1 = {
         user_id: userAccount.value.id,
         amount: formData.amount,
-        coin: formData.coin,
+        coin: DIRECT_RECHARGE_COIN,
         describe: formData.describe
       }
 

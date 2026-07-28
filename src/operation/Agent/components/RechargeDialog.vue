@@ -28,7 +28,11 @@ import type { DescriptionsSchema } from '@/components/Descriptions'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
 import { rechargeTrxApi } from '@/api/opertion/Agent/AgentList'
-import { createRechargeFormDefaults, createRechargeFormSchema } from './rechargeDialogShared'
+import {
+  createRechargeFormDefaults,
+  createRechargeFormSchema,
+  DIRECT_RECHARGE_COIN
+} from './rechargeDialogShared'
 import { handleErrorMessage, handleWarningMessage } from '@/utils/messageHelper'
 
 const props = defineProps({
@@ -44,7 +48,6 @@ const props = defineProps({
 
 interface RechargeFormData {
   amount?: number
-  coin?: string
   secret?: string
   describe?: string
 }
@@ -145,7 +148,7 @@ const handleRecharge = async () => {
     try {
       // 获取表单数据
       const formData = await formMethods.getFormData<RechargeFormData>()
-      const coin = formData.coin || 'TRX'
+      const coin = DIRECT_RECHARGE_COIN
       const amount = Number(formData.amount)
 
       // 构建参数（符合API要求的类型）
