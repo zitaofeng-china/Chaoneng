@@ -12,7 +12,9 @@
 </template>
 
 <script setup lang="tsx">
-import { reactive, ref } from 'vue'
+import { h, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { BaseButton } from '@/components/Button'
 import { ContentWrap } from '@/components/ContentWrap'
 import type { FormSchema } from '@/components/Form'
 import { SearchTable } from '@/components/SearchTable'
@@ -37,16 +39,8 @@ type ResourceDetailSearchParams = Omit<V2ResourceDetailListParams, 'status'> & {
 }
 
 const RESOURCE_TYPE_MAP: Record<number, string> = {
-  4: '时间能量',
-  5: '笔数能量',
-  6: '福利能量',
-  7: '闪租能量',
-  8: '即用能量',
-  9: '批量能量',
-  10: '批量激活',
-  15: '速充能量',
-  20: '能量托管',
-  21: '速充托管'
+  0: '带宽',
+  1: '能量'
 }
 
 const RESOURCE_STATUS_OPTIONS = [
@@ -56,12 +50,36 @@ const RESOURCE_STATUS_OPTIONS = [
 
 const formatResourceType = (code: number) => RESOURCE_TYPE_MAP[code] || `类型 ${code}`
 
+const router = useRouter()
+
+const handleGoEnergyOrder = (orderId: string) => {
+  if (!orderId) return
+
+  router.push({
+    name: 'EnergyTransactionList',
+    query: { keyword: orderId }
+  })
+}
+
 const columns = ref<TableColumn[]>([
   {
     field: 'order_id',
     label: '订单号',
     minWidth: '180px',
-    formatter: (row: V2ResourceDetailItem) => row.order_id || '-'
+    slots: {
+      default: ({ row }: { row: V2ResourceDetailItem }) =>
+        row.order_id
+          ? h(
+              BaseButton,
+              {
+                type: 'primary',
+                link: true,
+                onClick: () => handleGoEnergyOrder(row.order_id)
+              },
+              () => row.order_id
+            )
+          : '-'
+    }
   },
   {
     field: 'agent_name',
@@ -106,6 +124,13 @@ const columns = ref<TableColumn[]>([
     formatter: (row: V2ResourceDetailItem) => (row.recycled_at ? '已回收' : '待回收')
   },
   {
+    field: 'created_at',
+    label: '创建时间',
+    width: '180px',
+    sortable: 'custom',
+    formatter: (row: V2ResourceDetailItem) => formatTableDateTime(row.created_at)
+  },
+  {
     field: 'delegated_at',
     label: '发放时间',
     width: '180px',
@@ -123,26 +148,10 @@ const columns = ref<TableColumn[]>([
     label: '回收时间',
     width: '180px',
     formatter: (row: V2ResourceDetailItem) => formatTableDateTime(row.recycled_at)
-  },
-  {
-    field: 'created_at',
-    label: '创建时间',
-    width: '180px',
-    sortable: 'custom',
-    formatter: (row: V2ResourceDetailItem) => formatTableDateTime(row.created_at)
   }
 ])
 
 const searchSchema = reactive<FormSchema[]>([
-  {
-    field: 'keyword',
-    component: 'Input',
-    label: '关键词：',
-    componentProps: {
-      placeholder: '请输入订单号/代理/机器人/地址',
-      clearable: true
-    }
-  },
   {
     field: 'order_id',
     component: 'Input',
@@ -189,7 +198,6 @@ const getResourceDetailData = async (params: ResourceDetailSearchParams = {}) =>
       order: buildBackendOrder(params.order) || DEFAULT_CREATED_AT_ORDER
     }
 
-    if (params.keyword) apiParams.keyword = params.keyword
     if (params.order_id) apiParams.order_id = params.order_id
     if (params.source) apiParams.source = params.source
     if (params.target) apiParams.target = params.target
@@ -199,7 +207,6 @@ const getResourceDetailData = async (params: ResourceDetailSearchParams = {}) =>
     const list = response?.data?.list || []
     const total = response?.data?.pager?.total || 0
     const hasSearchCondition =
-      hasSearchValue(params.keyword) ||
       hasSearchValue(params.order_id) ||
       hasSearchValue(params.source) ||
       hasSearchValue(params.target) ||
