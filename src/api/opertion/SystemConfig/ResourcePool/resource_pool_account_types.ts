@@ -71,6 +71,7 @@ export interface UpdatePoolParams {
  */
 export interface ResourcePoolNotifyData {
   agent_address_threshold: number
+  broadcast_chat_id: number | string
   chat_id: number | string
   first_name: string
   id: number
@@ -86,6 +87,7 @@ export interface ResourcePoolNotifyData {
  */
 export interface UpdateResourcePoolNotifyParams {
   agent_address_threshold?: number
+  broadcast_chat_id: number
   chat_id: number
   first_name?: string
   id?: number
