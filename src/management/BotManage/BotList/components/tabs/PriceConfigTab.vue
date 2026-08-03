@@ -465,7 +465,7 @@ const priceSchema = reactive<FormSchema[]>([
       slots: {
         label: () => {
           const costPrice = computedCostPrices.value.charge
-          const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX/SUN` : '成本价: N/A'
+          const costText = costPrice !== undefined ? `成本价: ${costPrice} SUN` : '成本价: N/A'
           return (
             <>
               速充

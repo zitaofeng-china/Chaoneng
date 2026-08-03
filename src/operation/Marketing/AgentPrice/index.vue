@@ -227,7 +227,7 @@
                     controls-position="right"
                   />
                   <span v-else class="value-text">{{ formDataMap[agent.id].charge }}</span>
-                  <span class="unit">TRX/SUN</span>
+                  <span class="unit">SUN</span>
                 </div>
               </div>
             </div>
