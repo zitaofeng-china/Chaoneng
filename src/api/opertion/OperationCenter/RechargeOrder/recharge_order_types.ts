@@ -19,6 +19,7 @@ export interface V2DepositListParams {
   origin?: number // 来源（1=机器人，2=H5）
   page_size?: number // 每页大小
   pay_address?: string // 支付地址
+  pay_type?: number // 支付类型（1=余额支付，2=转账支付）
   receive_address?: string // 收款地址
   start_time?: string // 开始时间
   status?: number // 状态
@@ -49,6 +50,7 @@ export interface V2DepositItem {
   tg_user_name: string // TG用户名
   tg_first_name: string // TG名字
   pay_address: string // 支付地址
+  pay_type?: number // 支付类型（1=余额支付，2=转账支付）
   username?: string // 用户账号
   email?: string // 用户邮箱
   origin?: number // 来源（1=机器人，2=H5）
@@ -99,6 +101,7 @@ export interface V2DepositDetail {
   tg_user_name: string // TG用户名
   tg_first_name: string // TG名字
   pay_transaction: V2PayTransaction | null // 支付交易信息
+  pay_type?: number // 支付类型（1=余额支付，2=转账支付）
   username?: string // 用户账号
   email?: string // 用户邮箱
   origin?: number // 来源（1=机器人，2=H5）

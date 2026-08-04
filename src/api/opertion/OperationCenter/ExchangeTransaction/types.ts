@@ -13,6 +13,7 @@ export interface V2ExchangeListParams {
   order_id?: string // 订单ID（字符串格式）
   order?: string // 排序参数
   page_size?: number // 每页大小
+  pay_type?: number // 支付类型（1=余额支付，2=转账支付）
   start_time?: string // 开始时间
   status?: number // 状态: 1-新订单, 2-已支付, 3-已发送, 4-已回收, 5-已完成, 6-失败订单, 7-已退款, 8-已取消, 9-中止订单
   source?: string // 来源

@@ -19,6 +19,7 @@ export interface HostingListParamsV2 {
   current_page?: number // 当前页码
   keyword?: string // 关键字
   page_size?: number // 每页大小
+  pay_type?: number // 支付类型（1=余额支付，2=转账支付）
   user_id?: number // 用户ID
   source?: string // 来源 (H5/机器人)
   origin?: number // 来源（1=机器人，2=H5）
