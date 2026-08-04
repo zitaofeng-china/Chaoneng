@@ -60,6 +60,7 @@ import {
   type SelectOption
 } from '@/utils/tableHelpers'
 import { ENERGY_ORDER_KIND_OPTIONS } from '@/utils/energyOrder'
+import { PAYMENT_TYPE_OPTIONS } from '@/constants/payment'
 import { getFilteredColumns } from './columns'
 import {
   buildEnergyListParams,
@@ -154,6 +155,16 @@ const searchSchema = computed(() => [
       placeholder: '请选择来源',
       clearable: true,
       options: SOURCE_TYPE_OPTIONS
+    }
+  },
+  {
+    field: 'pay_type',
+    component: 'Select' as const,
+    label: '支付类型',
+    componentProps: {
+      placeholder: '请选择支付类型',
+      clearable: true,
+      options: PAYMENT_TYPE_OPTIONS
     }
   },
   {

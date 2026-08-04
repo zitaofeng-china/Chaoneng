@@ -30,6 +30,10 @@ export function buildEnergyListParams(params: SearchFormParams): EnergyListParam
     apiParams.origin = Number(params.origin)
   }
 
+  if (hasSearchValue(params.pay_type)) {
+    apiParams.pay_type = Number(params.pay_type)
+  }
+
   if (hasSearchValue(params.kind)) {
     apiParams.kind = params.kind
   }
@@ -122,6 +126,7 @@ export function hasSearchCondition(params: SearchFormParams): boolean {
     params.keyword,
     params.bot_id,
     params.origin,
+    params.pay_type,
     params.receive_address,
     params.energy_address,
     params.status,
