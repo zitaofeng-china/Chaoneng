@@ -42,6 +42,7 @@ import {
   type SelectOption
 } from '@/utils/tableHelpers'
 import { renderDisplayableTransactionHash } from '@/operation/OperationCenter/utils/transactionLink'
+import { PAYMENT_TYPE_OPTIONS } from '@/constants/payment'
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const currentRowForDelete = ref<HostingItemV2 | null>(null)
@@ -51,10 +52,14 @@ type BotOption = SelectOption<number | string>
 
 const botOptions = ref<BotOption[]>([])
 const isBotOptionsLoaded = ref(false)
-type HostingSearchParams = Omit<HostingListParamsV2, 'bot_id' | 'origin' | 'kind' | 'status'> & {
+type HostingSearchParams = Omit<
+  HostingListParamsV2,
+  'bot_id' | 'origin' | 'kind' | 'pay_type' | 'status'
+> & {
   bot_id?: number | string
   origin?: number | string
   kind?: number | string
+  pay_type?: number | string
   status?: number | string
 }
 
@@ -89,6 +94,8 @@ const buildHostingListParams = (params: HostingSearchParams = {}): HostingListPa
   if (params.origin !== undefined && params.origin !== '')
     queryParams.origin = Number(params.origin)
   if (params.kind !== undefined && params.kind !== '') queryParams.kind = Number(params.kind)
+  if (params.pay_type !== undefined && params.pay_type !== '')
+    queryParams.pay_type = Number(params.pay_type)
   if (params.status !== undefined && params.status !== '')
     queryParams.status = Number(params.status)
   queryParams.order = params.order || DEFAULT_CREATED_AT_ORDER
@@ -300,6 +307,16 @@ const searchSchema = computed<FormSchema[]>(() => [
     }
   },
   {
+    field: 'pay_type',
+    label: '支付类型',
+    component: 'Select',
+    componentProps: {
+      placeholder: '请选择支付类型',
+      clearable: true,
+      options: PAYMENT_TYPE_OPTIONS
+    }
+  },
+  {
     field: 'status',
     label: '状态',
     component: 'Select',
@@ -327,6 +344,7 @@ const fetchAutoManageList = async (
         params.keyword,
         params.origin,
         params.kind,
+        params.pay_type,
         params.status
       ].some(hasSearchValue)
       handleListMessage(list, hasSearchCondition, '托管地址')
