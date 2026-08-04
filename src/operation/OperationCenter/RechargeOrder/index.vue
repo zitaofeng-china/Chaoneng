@@ -60,6 +60,7 @@ import {
 } from '@/utils/tableHelpers'
 import { getTelegramUserUrl } from '@/utils/telegram'
 import { RECHARGE_COIN_OPTIONS } from './constants'
+import { PAYMENT_TYPE_OPTIONS } from '@/constants/payment'
 import { formatRechargeFeeText } from '@/utils/rechargeOrder'
 import { RechargeOrderDetailDialog } from '@/components/business/recharge-order'
 import { renderDisplayableTransactionHash } from '@/operation/OperationCenter/utils/transactionLink'
@@ -93,10 +94,13 @@ const RECHARGE_ORDER_STATUS_OPTIONS = [
   { label: '已完成', value: 5 },
   { label: '已取消', value: 8 }
 ]
-
-type DepositSearchParams = Omit<V2DepositListParams, 'bot_id' | 'origin' | 'status'> & {
+type DepositSearchParams = Omit<
+  V2DepositListParams,
+  'bot_id' | 'origin' | 'pay_type' | 'status'
+> & {
   bot_id?: number | string
   origin?: number | string
+  pay_type?: number | string
   status?: number | string
 }
 
@@ -135,6 +139,8 @@ const buildDepositListParams = (
     adaptedParams.status = Number(params.status)
   if (params.origin !== undefined && params.origin !== '')
     adaptedParams.origin = Number(params.origin)
+  if (params.pay_type !== undefined && params.pay_type !== '')
+    adaptedParams.pay_type = Number(params.pay_type)
   if (params.coin) adaptedParams.coin = params.coin
   if (params.receive_address) adaptedParams.receive_address = params.receive_address
   if (params.pay_address) adaptedParams.pay_address = params.pay_address
@@ -385,6 +391,15 @@ const searchSchema = computed(() => [
     }
   },
   {
+    field: 'pay_type',
+    component: 'Select' as const,
+    label: '支付类型',
+    componentProps: {
+      options: PAYMENT_TYPE_OPTIONS,
+      placeholder: '请选择支付类型'
+    }
+  },
+  {
     field: 'receive_address',
     component: 'Input' as const,
     label: '收款地址',
@@ -448,6 +463,7 @@ const fetchRechargeOrderList = async (
       params.keyword,
       params.bot_id,
       params.origin,
+      params.pay_type,
       params.coin,
       params.receive_address,
       params.pay_address
