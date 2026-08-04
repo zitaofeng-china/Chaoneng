@@ -68,6 +68,7 @@ import {
 } from '@/utils/tableHelpers'
 import { ExchangeOrderType, getExchangeOrderType } from '@/utils/exchangeOrder'
 import { EXCHANGE_COIN_OPTIONS, EXCHANGE_STATUS_MAP, EXCHANGE_STATUS_OPTIONS } from './constants'
+import { PAYMENT_TYPE_OPTIONS } from '@/constants/payment'
 import { renderDisplayableTransactionHash } from '@/operation/OperationCenter/utils/transactionLink'
 import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
 
@@ -108,6 +109,7 @@ const buildExchangeListParams = (
   if (params.keyword) apiParams.keyword = params.keyword
   if (hasSearchValue(params.bot_id)) apiParams.bot_id = Number(params.bot_id)
   if (params.coin) apiParams.coin = params.coin
+  if (hasSearchValue(params.pay_type)) apiParams.pay_type = Number(params.pay_type)
   if (hasSearchValue(params.status)) apiParams.status = params.status
   apiParams.order = params.order || DEFAULT_CREATED_AT_ORDER
 
@@ -314,6 +316,16 @@ const searchSchema = computed<FormSchema[]>(() => [
     }
   },
   {
+    field: 'pay_type',
+    component: 'Select',
+    label: '支付类型',
+    componentProps: {
+      placeholder: '全部',
+      options: PAYMENT_TYPE_OPTIONS,
+      clearable: true
+    }
+  },
+  {
     field: 'status',
     component: 'Select',
     label: '订单状态:',
@@ -431,6 +443,7 @@ const fetchExchangeTransactionList = async (params: ExchangeSearchParams) => {
         params.keyword,
         params.bot_id,
         params.coin,
+        params.pay_type,
         params.status,
         params.dateRange
       ].some(hasSearchValue)
