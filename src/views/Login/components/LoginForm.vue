@@ -47,6 +47,7 @@ type AccountCaptchaMode = 'none' | 'dynamic' | 'image'
 const operationCaptchaMode = ref<AccountCaptchaMode>('none')
 const operationCaptchaCheckKey = ref('')
 const operationCaptchaLoading = ref(false)
+const managementCaptchaVisible = ref(false)
 
 // 根据登录类型使用不同的验证规则
 const rules = computed(() => {
@@ -75,7 +76,7 @@ const rules = computed(() => {
     ? {
         username: isManagement ? [required(), noAtSymbol()] : [required()],
         password: passwordRules,
-        ...(isManagement
+        ...(isManagement && managementCaptchaVisible.value
           ? {
               verify_code: [required(), noChinese()]
             }
@@ -180,18 +181,25 @@ const fetchCaptcha = async () => {
     const formData = await getFormData()
     const username = formData.username?.trim()
     if (!username) {
+      if (isManagement) {
+        managementCaptchaVisible.value = false
+      }
       captchaImg.value = ''
       captchaId.value = ''
       ElMessage.warning('请先输入用户名')
       return
     }
     if (isManagement && username.includes('@')) {
+      managementCaptchaVisible.value = false
       captchaImg.value = ''
       captchaId.value = ''
       ElMessage.warning('用户名不能包含@符号')
       return
     }
 
+    if (isManagement) {
+      managementCaptchaVisible.value = true
+    }
     const res = await getCaptchaApi({ username })
     if (res.code === '000000') {
       const { image, id } = extractCaptchaImage(res.data)
@@ -279,8 +287,17 @@ const checkOperationCaptchaMode = async () => {
   }
 }
 
-const handleAccountInput = () => {
+const handleAccountInput = (value: string) => {
   startPreloadOnInput()
+
+  if (isManagement) {
+    managementCaptchaVisible.value = false
+    captchaImg.value = ''
+    captchaId.value = ''
+    formMethods.setValues({ verify_code: '' })
+    return
+  }
+
   resetOperationCaptchaMode()
 }
 
@@ -294,12 +311,6 @@ const handleAccountBlur = () => {
     return
   }
   checkOperationCaptchaMode()
-}
-
-const handlePasswordBlur = () => {
-  if (isManagement) {
-    fetchCaptcha()
-  }
 }
 
 // 监听表单输入，开始预加载（需要在 schema 之前声明）
@@ -351,8 +362,7 @@ const accountSchema = reactive<FormSchema[]>([
     componentProps: {
       style: { width: '100%' },
       placeholder: '请输入密码',
-      onInput: handlePasswordInput, // 监听输入，触发预加载
-      onBlur: handlePasswordBlur
+      onInput: handlePasswordInput // 监听输入，触发预加载
     }
   },
   {
@@ -363,7 +373,8 @@ const accountSchema = reactive<FormSchema[]>([
     formItemProps: {
       class: 'captcha-animated-form-item'
     },
-    hidden: () => !isManagement && operationCaptchaMode.value !== 'image',
+    hidden: () =>
+      isManagement ? !managementCaptchaVisible.value : operationCaptchaMode.value !== 'image',
     componentProps: {
       style: { width: '100%' },
       placeholder: isManagement ? '请输入验证码' : '请输入图片验证码',
@@ -584,7 +595,7 @@ onMounted(async () => {
   await initLoginInfo()
   if (isManagement) {
     const formData = await getFormData()
-    if (formData.username) {
+    if (formData.username?.trim()) {
       fetchCaptcha()
     }
   } else {
