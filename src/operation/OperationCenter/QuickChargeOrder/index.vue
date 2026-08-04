@@ -70,6 +70,7 @@ import {
   QUICK_CHARGE_RESOURCE_TYPE_OPTIONS
 } from './constants'
 import { renderDisplayableTransactionHash } from '@/operation/OperationCenter/utils/transactionLink'
+import { PAYMENT_TYPE_OPTIONS } from '@/constants/payment'
 
 const QUICK_CHARGE_ORDER_KINDS = [15, 21]
 const DEFAULT_START_TIME_ORDER = 'delegated_at DESC'
@@ -203,6 +204,16 @@ const searchSchema = ref<FormSchema[]>([
     }
   },
   {
+    field: 'pay_type',
+    component: 'Select' as const,
+    label: '支付类型',
+    componentProps: {
+      placeholder: '全部',
+      clearable: true,
+      options: PAYMENT_TYPE_OPTIONS
+    }
+  },
+  {
     field: 'bot_id',
     component: 'Select' as const,
     label: '机器人',
@@ -231,6 +242,10 @@ const buildQuickChargeListParams = (params: QuickChargeSearchParams): EnergyList
 
   if (hasSearchValue(params.status)) {
     apiParams.status = Number(params.status)
+  }
+
+  if (hasSearchValue(params.pay_type)) {
+    apiParams.pay_type = Number(params.pay_type)
   }
 
   apiParams.order = buildBackendOrder(params.order) || DEFAULT_START_TIME_ORDER
@@ -294,7 +309,7 @@ const mapEnergyOrderToQuickChargeOrder = (item: EnergyOrder): QuickChargeOrder =
 }
 
 const hasQuickChargeSearchCondition = (params: QuickChargeSearchParams) =>
-  [params.keyword, params.type, params.status, params.bot_id].some(hasSearchValue)
+  [params.keyword, params.type, params.status, params.pay_type, params.bot_id].some(hasSearchValue)
 
 const loadBotOptions = async () => {
   try {
