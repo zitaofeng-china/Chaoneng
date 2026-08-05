@@ -19,6 +19,7 @@ export interface UserListParamsV1 {
   bot_id?: number // 机器人ID
   current_page?: number // 当前页码
   end_time?: string // 结束时间
+  flow?: number // 收支方向：1=收入，2=支出
   keyword?: string // 关键字
   page_size?: number // 每页大小
   start_time?: string // 开始时间
@@ -202,7 +203,7 @@ export interface UserBillListParamsV1 {
   end_time?: string // 结束时间
   keyword?: string // 关键字
   kinds?: number[] // 账单类型数组（1-11，参考 UserBillKind 枚举）
-  order_id?: string // 订单ID
+  order?: string // 排序字段
   page_size?: number // 每页大小
   start_time?: string // 开始时间
   user_id?: number // 用户ID
@@ -222,6 +223,10 @@ export interface UserBillItemV1 {
   kind: number // 账单类型（参考 UserBillKind 枚举）
   order_id: string // 订单ID
   user_id: number // 用户ID
+  agent_name?: string // 代理名称
+  bot_name?: string // 机器人名称
+  tg_user_id?: number | string // TG用户ID
+  tg_user_name?: string // TG用户名
 }
 
 /**

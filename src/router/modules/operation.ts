@@ -333,6 +333,14 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           }
         },
         {
+          path: 'user_bill',
+          component: () => import('@/operation/Agent/UserBill/index.vue'),
+          name: 'UserBill',
+          meta: {
+            title: '用户账单'
+          }
+        },
+        {
           path: 'recharge_order',
           component: () => import('@/operation/Agent/RechargeOrder/index.vue'),
           name: 'AgentRechargeOrder',

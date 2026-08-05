@@ -40,6 +40,7 @@ export const MESSAGE_SEND_KIND_OPTIONS = withAllOption(
 
 export const AGENT_BILL_ORDER_TYPE_MAP: Record<number, string> = {
   1: '代理充值',
+  2: '用户充值',
   3: '兑换',
   4: '按时间',
   5: '按笔数',
@@ -56,6 +57,28 @@ export const AGENT_BILL_ORDER_TYPE_MAP: Record<number, string> = {
 }
 
 export const AGENT_BILL_ORDER_TYPE_OPTIONS = Object.entries(AGENT_BILL_ORDER_TYPE_MAP).map(
+  ([value, label]) => ({
+    label,
+    value: Number(value)
+  })
+)
+
+export const USER_BILL_ORDER_TYPE_MAP: Record<number, string> = {
+  1: '代理充值',
+  2: '用户充值',
+  3: '兑换',
+  4: '按时间',
+  5: '按笔数',
+  6: '福利能量',
+  7: '闪租',
+  8: '即用能量',
+  9: '批量能量',
+  10: '激活',
+  11: '机器人付费',
+  20: '托管'
+}
+
+export const USER_BILL_ORDER_TYPE_OPTIONS = Object.entries(USER_BILL_ORDER_TYPE_MAP).map(
   ([value, label]) => ({
     label,
     value: Number(value)

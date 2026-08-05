@@ -30,7 +30,7 @@ import { Dialog } from '@/components/Dialog'
 import { Table, TableColumn } from '@/components/Table'
 import { Search } from '@/components/Search'
 import type { FormSchema } from '@/components/Form'
-import { v1GetUserBillList } from '@/api/management/common/tgUser/index'
+import { v1GetUserBillList, type UserBillListParamsV1 } from '@/api/management/common/tgUser/index'
 import { formatToDateTime } from '@/utils/dateUtil'
 
 // ----------- Props and Emits -----------
@@ -159,7 +159,7 @@ const fetchData = async () => {
   loading.value = true
 
   // --- 准备 API 参数 (包含分页和筛选) - 使用新接口 v1GetUserBillList ---
-  const apiParams: any = {
+  const apiParams: UserBillListParamsV1 = {
     current_page: pagination.currentPage,
     page_size: pagination.pageSize,
     user_id: Number(props.accountId)

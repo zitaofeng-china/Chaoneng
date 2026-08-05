@@ -94,6 +94,14 @@ const managementRoutes: AppRouteRecordRaw[] = [
         }
       },
       {
+        path: 'user_bill',
+        component: () => import('@/management/UserGroup/UserBill/index.vue'),
+        name: 'ManagementUserBill',
+        meta: {
+          title: '用户账单'
+        }
+      },
+      {
         path: 'message_list',
         component: () => import('@/management/UserGroup/MessageList/index.vue'),
         name: 'MessageList',
