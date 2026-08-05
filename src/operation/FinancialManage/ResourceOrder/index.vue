@@ -21,15 +21,13 @@
           </BaseButton>
         </template>
       </SearchTable>
-
-      <!-- 结算记录弹窗 -->
-      <SettlementRecordDialog ref="settlementRecordDialogRef" />
     </ContentWrap>
   </div>
 </template>
 
 <script setup lang="tsx">
 import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
@@ -58,7 +56,6 @@ import {
   type SelectOption,
   type TableSlot
 } from '@/utils/tableHelpers'
-import SettlementRecordDialog from './components/SettlementRecordDialog.vue'
 import {
   RESOURCE_ORDER_KIND_MAP,
   RESOURCE_ORDER_KIND_SEARCH_OPTIONS,
@@ -67,12 +64,15 @@ import {
 } from '../constants'
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
-const settlementRecordDialogRef = ref<InstanceType<typeof SettlementRecordDialog> | null>(null)
+const route = useRoute()
+const router = useRouter()
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 const exporting = ref(false)
 const updatingOrderId = ref<number | null>(null)
+const selectedOrderKind = ref<number | null>(null)
 const defaultParams = {
-  order: DEFAULT_CREATED_AT_ORDER
+  order: DEFAULT_CREATED_AT_ORDER,
+  keyword: String(route.query.keyword || '')
 }
 const tableProps = {
   defaultSort: {
@@ -223,7 +223,7 @@ const searchSchema = ref<FormSchema[]>([
     field: 'keyword',
     component: 'Input' as const,
     label: {
-      tips: '订单ID/代理名称/机器人名称/用户发送地址',
+      tips: '订单ID/代理名称/用户发送地址/交易哈希',
       text: '关键词'
     },
     componentProps: {
@@ -238,7 +238,29 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: RESOURCE_ORDER_KIND_SEARCH_OPTIONS
+      options: RESOURCE_ORDER_KIND_SEARCH_OPTIONS,
+      on: {
+        change: (value) => {
+          selectedOrderKind.value = Number(value) || null
+        },
+        clear: () => {
+          selectedOrderKind.value = null
+        }
+      }
+    }
+  },
+  {
+    field: 'pay_method',
+    component: 'Select' as const,
+    hidden: () => selectedOrderKind.value !== 6,
+    label: '支付方式',
+    componentProps: {
+      placeholder: '全部',
+      clearable: true,
+      options: [
+        { label: '余额支付', value: 1 },
+        { label: '钱包支付', value: 2 }
+      ]
     }
   },
   {
@@ -275,6 +297,9 @@ const buildResourceOrderListParams = (
   if (hasSearchValue(params.kind)) apiParams.kind = Number(params.kind)
   if (hasSearchValue(params.status)) apiParams.status = Number(params.status)
   if (hasSearchValue(params.bot_id)) apiParams.bot_id = Number(params.bot_id)
+  if (Number(params.kind) === 6 && hasSearchValue(params.pay_method)) {
+    apiParams.pay_method = Number(params.pay_method)
+  }
   apiParams.order = hasSearchValue(params.order) ? String(params.order) : DEFAULT_CREATED_AT_ORDER
 
   return apiParams
@@ -291,7 +316,9 @@ const fetchResourceOrderList = async (params: ResourceOrderSearchParams = {}) =>
 
       handleListMessage(
         list,
-        [params.keyword, params.kind, params.status, params.bot_id].some(hasSearchValue),
+        [params.keyword, params.kind, params.status, params.bot_id, params.pay_method].some(
+          hasSearchValue
+        ),
         '资源订单'
       )
 
@@ -330,7 +357,10 @@ onMounted(() => {
 })
 
 const handleViewSettlement = (row: V2ResourceOrderItem) => {
-  settlementRecordDialogRef.value?.open(row)
+  router.push({
+    path: '/financial_manage/financial_settlement_record',
+    query: { order_id: String(row.id) }
+  })
 }
 
 const validateOffsetPrice = (value: string) => {

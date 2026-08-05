@@ -61,7 +61,7 @@
 
 <script setup lang="tsx">
 import { computed, h, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElLink, ElTooltip } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
@@ -121,6 +121,7 @@ type EnergyOutboundSearchParams = EnergyOutboundOrderListParams &
   }
 
 const router = useRouter()
+const route = useRoute()
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const detailVisible = ref(false)
 const detailLoading = ref(false)
@@ -128,7 +129,10 @@ const currentSettlement = ref<EnergyOutboundOrderItem | null>(null)
 const currentDetail = ref<EnergyOutboundOrderDetail | null>(null)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
-const defaultParams = { order: DEFAULT_CREATED_AT_ORDER }
+const defaultParams = {
+  order: DEFAULT_CREATED_AT_ORDER,
+  ...(route.query.order_id ? { order_id: Number(route.query.order_id) } : {})
+}
 const tableProps = { defaultSort: { prop: 'created_at', order: 'descending' } }
 const searchProps = { layout: 'inline', buttonPosition: 'center' }
 
@@ -296,7 +300,7 @@ const columns: TableColumn[] = [
   {
     field: 'order_id',
     label: '订单ID',
-    width: 100,
+    width: 90,
     slots: {
       default: ({ row }: EnergyOutboundTableSlot) =>
         h(
@@ -309,43 +313,51 @@ const columns: TableColumn[] = [
   {
     field: 'agent_name',
     label: '代理名称',
-    width: 120,
+    width: 110,
     formatter: (row: EnergyOutboundOrderItem) => row.agent_name || '-'
   },
   {
     field: 'bot_name',
     label: '机器人名称',
-    width: 140,
+    width: 120,
     formatter: (row: EnergyOutboundOrderItem) => row.bot_name || '-'
   },
   {
     field: 'period',
     label: '结算周期',
-    width: 130,
+    width: 110,
     formatter: (row: EnergyOutboundOrderItem) => getPeriod(row)
   },
   {
     field: 'amount',
     label: '数量',
-    width: 110,
+    width: 90,
     formatter: (row: EnergyOutboundOrderItem) => formatNumber(row.amount)
   },
   {
     field: 'price',
     label: 'SUN/天',
-    width: 100,
+    width: 85,
     formatter: (row: EnergyOutboundOrderItem) => row.price ?? '-'
   },
   {
     field: 'duration',
     label: '时长',
-    width: 130,
+    width: 105,
     formatter: (row: EnergyOutboundOrderItem) => formatDuration(row.duration)
+  },
+  {
+    field: 'txid',
+    label: '结算交易',
+    width: 150,
+    slots: {
+      default: ({ row }: EnergyOutboundTableSlot) => renderTxidLink(row.txid)
+    }
   },
   {
     field: 'expense',
     label: '支出金额',
-    width: 120,
+    width: 100,
     slots: {
       default: ({ row }: EnergyOutboundTableSlot) =>
         h('span', { class: 'expense-text' }, formatMoney(getExpenseAmount(row)))
@@ -354,37 +366,29 @@ const columns: TableColumn[] = [
   {
     field: 'status',
     label: '结算状态',
-    width: 110,
+    width: 90,
     slots: {
       default: ({ row }: EnergyOutboundTableSlot) =>
         renderStatusTag(SETTLEMENT_RECORD_STATUS_MAP, row.status, '未知')
     }
   },
   {
-    field: 'txid',
-    label: '交易哈希',
-    minWidth: 210,
-    slots: {
-      default: ({ row }: EnergyOutboundTableSlot) => renderTxidLink(row.txid)
-    }
-  },
-  {
     field: 'created_at',
     label: '创建时间',
     sortable: 'custom',
-    width: 180,
+    width: 160,
     formatter: (row: EnergyOutboundOrderItem) => formatTableDateTime(row.created_at)
   },
   {
     field: 'describe',
     label: '备注',
-    minWidth: 140,
+    minWidth: 120,
     formatter: (row: EnergyOutboundOrderItem) => getRemark(row)
   },
   {
     field: 'action',
     label: '操作',
-    width: 120,
+    width: 100,
     fixed: 'right',
     slots: {
       default: ({ row }: EnergyOutboundTableSlot) =>
@@ -399,10 +403,10 @@ const searchSchema = ref<FormSchema[]>([
     component: 'Input' as const,
     label: {
       text: '关键词',
-      tips: '订单ID/代理名称/机器人名称'
+      tips: '订单ID/代理名称/交易哈希'
     },
     componentProps: {
-      placeholder: '订单ID/代理名称/机器人名称',
+      placeholder: '订单ID/代理名称/交易哈希',
       clearable: true,
       style: { width: '260px' }
     }
@@ -524,7 +528,7 @@ const fetchEnergyOutboundOrderList = async (params: EnergyOutboundSearchParams =
       applySummaryStats(res.data, list, total)
       handleListMessage(
         list,
-        [params.keyword, params.txid, params.outbound_date].some(hasSearchValue),
+        [params.keyword, params.txid, params.order_id, params.outbound_date].some(hasSearchValue),
         '理财结算记录'
       )
       return { list, total }

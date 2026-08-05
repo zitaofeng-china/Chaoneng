@@ -22,6 +22,7 @@ export interface V2ResourceOrderListParams {
   keyword?: string // 关键字
   kind?: number // 订单类型
   order?: string // 排序，单字段：column [ASC|DESC]
+  pay_method?: number // payment method (1=balance, 2=wallet; energy orders only)
   page_size?: number // 每页大小
   status?: number // 状态
   user_id?: number // 用户ID
