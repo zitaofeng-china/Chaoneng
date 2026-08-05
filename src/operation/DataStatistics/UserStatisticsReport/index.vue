@@ -30,10 +30,30 @@
                   <td colspan="3" class="summary-label"
                     >合计：{{ formatCount(summaryGrandTotal) }}</td
                   >
-                  <td>{{ formatCount(summaryTotals.todayNew) }}</td>
-                  <td>{{ formatCount(summaryTotals.yesterdayNew) }}</td>
-                  <td>{{ formatCount(summaryTotals.currentMonthNew) }}</td>
-                  <td>{{ formatCount(summaryTotals.lastMonthNew) }}</td>
+                  <td>
+                    {{ formatCount(summaryTotals.todayNew) }}
+                    <span class="order-growth"
+                      >/ {{ formatCount(summaryTotals.todayOrderNew) }}</span
+                    >
+                  </td>
+                  <td>
+                    {{ formatCount(summaryTotals.yesterdayNew) }}
+                    <span class="order-growth"
+                      >/ {{ formatCount(summaryTotals.yesterdayOrderNew) }}</span
+                    >
+                  </td>
+                  <td>
+                    {{ formatCount(summaryTotals.currentMonthNew) }}
+                    <span class="order-growth"
+                      >/ {{ formatCount(summaryTotals.currentMonthOrderNew) }}</span
+                    >
+                  </td>
+                  <td>
+                    {{ formatCount(summaryTotals.lastMonthNew) }}
+                    <span class="order-growth"
+                      >/ {{ formatCount(summaryTotals.lastMonthOrderNew) }}</span
+                    >
+                  </td>
                 </tr>
                 <tr class="header-row">
                   <th>机器人ID</th>
@@ -41,7 +61,7 @@
                   <th>归属代理</th>
                   <th>
                     <button type="button" class="sort-header" @click="handleSort('todayNew')">
-                      今日新增
+                      今日新增 <span class="order-header">/ 订单</span>
                       <span class="sort-icon" aria-hidden="true">
                         <i
                           class="sort-caret sort-caret-up"
@@ -61,7 +81,7 @@
                   </th>
                   <th>
                     <button type="button" class="sort-header" @click="handleSort('yesterdayNew')">
-                      昨日新增
+                      昨日新增 <span class="order-header">/ 订单</span>
                       <span class="sort-icon" aria-hidden="true">
                         <i
                           class="sort-caret sort-caret-up"
@@ -86,7 +106,7 @@
                       class="sort-header"
                       @click="handleSort('currentMonthNew')"
                     >
-                      本月新增
+                      本月新增 <span class="order-header">/ 订单</span>
                       <span class="sort-icon" aria-hidden="true">
                         <i
                           class="sort-caret sort-caret-up"
@@ -109,7 +129,7 @@
                   </th>
                   <th>
                     <button type="button" class="sort-header" @click="handleSort('lastMonthNew')">
-                      上月新增
+                      上月新增 <span class="order-header">/ 订单</span>
                       <span class="sort-icon" aria-hidden="true">
                         <i
                           class="sort-caret sort-caret-up"
@@ -138,10 +158,22 @@
                   <td>{{ row.botId }}</td>
                   <td>{{ row.botUsername }}</td>
                   <td>{{ row.agentName }}</td>
-                  <td>{{ formatCount(row.todayNew) }}</td>
-                  <td>{{ formatCount(row.yesterdayNew) }}</td>
-                  <td>{{ formatCount(row.currentMonthNew) }}</td>
-                  <td>{{ formatCount(row.lastMonthNew) }}</td>
+                  <td>
+                    {{ formatCount(row.todayNew) }}
+                    <span class="order-growth">/ {{ formatCount(row.todayOrderNew) }}</span>
+                  </td>
+                  <td>
+                    {{ formatCount(row.yesterdayNew) }}
+                    <span class="order-growth">/ {{ formatCount(row.yesterdayOrderNew) }}</span>
+                  </td>
+                  <td>
+                    {{ formatCount(row.currentMonthNew) }}
+                    <span class="order-growth">/ {{ formatCount(row.currentMonthOrderNew) }}</span>
+                  </td>
+                  <td>
+                    {{ formatCount(row.lastMonthNew) }}
+                    <span class="order-growth">/ {{ formatCount(row.lastMonthOrderNew) }}</span>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -198,6 +230,10 @@ interface ReportRow {
   lastMonthNew: number
   todayNew: number
   yesterdayNew: number
+  currentMonthOrderNew: number
+  lastMonthOrderNew: number
+  todayOrderNew: number
+  yesterdayOrderNew: number
 }
 
 interface SummaryTotals {
@@ -206,6 +242,10 @@ interface SummaryTotals {
   todayNew: number
   total: number
   yesterdayNew: number
+  currentMonthOrderNew: number
+  lastMonthOrderNew: number
+  todayOrderNew: number
+  yesterdayOrderNew: number
 }
 
 const SORT_FIELD_MAP: Record<SortableField, string> = {
@@ -225,7 +265,11 @@ const createEmptySummary = (): SummaryTotals => ({
   lastMonthNew: 0,
   todayNew: 0,
   total: 0,
-  yesterdayNew: 0
+  yesterdayNew: 0,
+  currentMonthOrderNew: 0,
+  lastMonthOrderNew: 0,
+  todayOrderNew: 0,
+  yesterdayOrderNew: 0
 })
 
 const normalizePager = (pager?: UserStatisticsReportData['pager']) => {
@@ -245,7 +289,10 @@ const normalizeSummary = (summary?: UserStatisticsSummary): SummaryTotals => {
   const currentMonthNew = toNumber(summary?.growth_user_this_month)
   const lastMonthNew = toNumber(summary?.growth_user_last_month)
   const fallbackTotal = todayNew + yesterdayNew + currentMonthNew + lastMonthNew
-
+  const todayOrderNew = toNumber(summary?.growth_order_today)
+  const yesterdayOrderNew = toNumber(summary?.growth_order_yesterday)
+  const currentMonthOrderNew = toNumber(summary?.growth_order_this_month)
+  const lastMonthOrderNew = toNumber(summary?.growth_order_last_month)
   return {
     currentMonthNew,
     lastMonthNew,
@@ -254,7 +301,11 @@ const normalizeSummary = (summary?: UserStatisticsSummary): SummaryTotals => {
       summary?.growth_user_total === undefined
         ? fallbackTotal
         : toNumber(summary.growth_user_total),
-    yesterdayNew
+    yesterdayNew,
+    currentMonthOrderNew,
+    lastMonthOrderNew,
+    todayOrderNew,
+    yesterdayOrderNew
   }
 }
 
@@ -266,7 +317,11 @@ const normalizeRow = (row: UserStatisticsDetailItem): ReportRow => {
     currentMonthNew: toNumber(row.growth_user_this_month),
     lastMonthNew: toNumber(row.growth_user_last_month),
     todayNew: toNumber(row.growth_user_today),
-    yesterdayNew: toNumber(row.growth_user_yesterday)
+    yesterdayNew: toNumber(row.growth_user_yesterday),
+    currentMonthOrderNew: toNumber(row.growth_order_this_month),
+    lastMonthOrderNew: toNumber(row.growth_order_last_month),
+    todayOrderNew: toNumber(row.growth_order_today),
+    yesterdayOrderNew: toNumber(row.growth_order_yesterday)
   }
 }
 
@@ -338,7 +393,7 @@ const loadData = async () => {
     const res = await getUserStatisticsReport(buildParams())
     if (res.code !== '000000' || !res.data) {
       resetReportState()
-      handleErrorMessage(new Error(res.msg || '接口返回异常'), '获取人数统计报表失败')
+      handleErrorMessage(new Error(res.msg || '接口返回异常'), '获取增长统计报表失败')
       return
     }
 
@@ -351,7 +406,7 @@ const loadData = async () => {
     totalCount.value = pager.total || toNumber(res.data.total ?? detail.length)
   } catch (error) {
     resetReportState()
-    handleErrorMessage(error, '获取人数统计报表失败')
+    handleErrorMessage(error, '获取增长统计报表失败')
   } finally {
     loading.value = false
   }
@@ -393,15 +448,23 @@ const handleExport = async () => {
 
     const exportSummary = normalizeSummary(res.data.summary)
     const exportRows = [
-      ['机器人ID', '机器人用户名', '归属代理', '今日新增', '昨日新增', '本月新增', '上月新增'],
+      [
+        '机器人ID',
+        '机器人用户名',
+        '归属代理',
+        '今日新增/订单',
+        '昨日新增/订单',
+        '本月新增/订单',
+        '上月新增/订单'
+      ],
       [
         '合计',
         '-',
         '-',
-        exportSummary.todayNew,
-        exportSummary.yesterdayNew,
-        exportSummary.currentMonthNew,
-        exportSummary.lastMonthNew
+        `${exportSummary.todayNew} / ${exportSummary.todayOrderNew}`,
+        `${exportSummary.yesterdayNew} / ${exportSummary.yesterdayOrderNew}`,
+        `${exportSummary.currentMonthNew} / ${exportSummary.currentMonthOrderNew}`,
+        `${exportSummary.lastMonthNew} / ${exportSummary.lastMonthOrderNew}`
       ],
       ...getDetailList(res.data).map((item) => {
         const row = normalizeRow(item)
@@ -409,26 +472,26 @@ const handleExport = async () => {
           row.botId,
           row.botUsername || '-',
           row.agentName || '-',
-          row.todayNew,
-          row.yesterdayNew,
-          row.currentMonthNew,
-          row.lastMonthNew
+          `${row.todayNew} / ${row.todayOrderNew}`,
+          `${row.yesterdayNew} / ${row.yesterdayOrderNew}`,
+          `${row.currentMonthNew} / ${row.currentMonthOrderNew}`,
+          `${row.lastMonthNew} / ${row.lastMonthOrderNew}`
         ]
       })
     ]
 
     exportStyledAoaToExcel({
       data: exportRows,
-      filename: '人数统计报表',
-      sheetName: '人数统计报表',
+      filename: '增长统计报表',
+      sheetName: '增长统计报表',
       columnWidths: [
         { wpx: 120 },
         { wpx: 160 },
         { wpx: 140 },
-        { wpx: 100 },
-        { wpx: 100 },
-        { wpx: 100 },
-        { wpx: 100 }
+        { wpx: 120 },
+        { wpx: 120 },
+        { wpx: 120 },
+        { wpx: 120 }
       ],
       rowHeights: [{ hpx: 36 }, ...exportRows.slice(1).map(() => ({ hpx: 32 }))],
       highlightRows: [1]
@@ -582,6 +645,15 @@ onMounted(async () => {
   cursor: pointer;
   background: transparent;
   border: none;
+}
+
+.order-header,
+.order-growth {
+  color: #f56c6c;
+}
+
+.order-header {
+  white-space: nowrap;
 }
 
 .sort-icon {

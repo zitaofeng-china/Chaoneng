@@ -7,7 +7,7 @@ export const getUserStatisticsReport = (
   params?: UserStatisticsReportParams
 ): Promise<IResponse<UserStatisticsReportData>> => {
   return request.get<UserStatisticsReportData>({
-    url: '/v2/system/stats/user',
+    url: '/v2/system/stats/growth',
     params
   })
 }

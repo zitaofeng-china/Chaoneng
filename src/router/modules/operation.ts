@@ -47,7 +47,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           component: () => import('@/operation/DataStatistics/UserStatisticsReport/index.vue'),
           name: 'UserStatisticsReport',
           meta: {
-            title: '人数统计报表'
+            title: '增长统计报表'
           }
         },
         {

@@ -11,6 +11,11 @@ export interface UserStatisticsSummary {
   growth_user_today?: number | string
   growth_user_total?: number | string
   growth_user_yesterday?: number | string
+  growth_order_last_month?: number | string
+  growth_order_this_month?: number | string
+  growth_order_today?: number | string
+  growth_order_total?: number | string
+  growth_order_yesterday?: number | string
 }
 
 export interface UserStatisticsDetailItem extends UserStatisticsSummary {
