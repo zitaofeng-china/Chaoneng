@@ -5,6 +5,7 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="getResourceDetailData"
+        :show-add-button="false"
         :table-props="{ rowKey: 'id' }"
       />
     </ContentWrap>
