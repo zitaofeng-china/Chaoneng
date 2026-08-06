@@ -63,11 +63,19 @@ import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import { OrderStatus } from '@/utils/orderStatus'
 
 type ChainRecordDirection = 'out' | 'in'
+type ChainRecordResourceType = 'currency' | 'energy' | 'bandwidth'
+type ChainRecordDisplayType =
+  | ChainRecordDirection
+  | 'send_energy'
+  | 'send_bandwidth'
+  | 'recycle_energy'
+  | 'recycle_bandwidth'
 type ChainRecordItem = SystemBillItem & Record<string, unknown>
 type ChainRecordTableSlot = TableSlot<ChainRecordItem>
 type ChainRecordSearchParams = SystemBillListParams &
   Recordable & {
-    direction?: ChainRecordDirection | ''
+    direction?: ChainRecordDisplayType | ''
+    type?: ChainRecordDisplayType | ''
     coin?: string
     price_id?: number | string
     status?: ChainRecordStatus | string
@@ -154,14 +162,20 @@ const AGENT_LEVEL_OPTIONS = withAllOption(
   }))
 )
 
-const DIRECTION_OPTIONS = withAllOption([
+const CHAIN_RECORD_TYPE_OPTIONS = withAllOption([
   { label: '出款', value: 'out' },
-  { label: '收款', value: 'in' }
+  { label: '入款', value: 'in' },
+  { label: '发送能量', value: 'send_energy' },
+  { label: '发送带宽', value: 'send_bandwidth' },
+  { label: '回收能量', value: 'recycle_energy' },
+  { label: '回收带宽', value: 'recycle_bandwidth' }
 ])
 
-const CURRENCY_OPTIONS = withAllOption([
+const UNIT_OPTIONS = withAllOption([
   { label: 'USDT', value: 'USDT' },
-  { label: 'TRX', value: 'TRX' }
+  { label: 'TRX', value: 'TRX' },
+  { label: '能量', value: 'energy' },
+  { label: '带宽', value: 'bandwidth' }
 ])
 
 const FLOW_DIRECTION_MAP: Record<number, ChainRecordDirection> = {
@@ -172,6 +186,20 @@ const FLOW_DIRECTION_MAP: Record<number, ChainRecordDirection> = {
 const DIRECTION_FLOW_MAP: Record<ChainRecordDirection, number> = {
   in: 1,
   out: 2
+}
+
+const RESOURCE_TYPE_CODE_MAP: Record<number, Exclude<ChainRecordResourceType, 'currency'>> = {
+  0: 'bandwidth',
+  1: 'energy',
+  2: 'bandwidth' // 兼容历史接口编码
+}
+
+const RESOURCE_TYPE_FILTER_VALUE_MAP: Record<
+  Exclude<ChainRecordResourceType, 'currency'>,
+  number
+> = {
+  energy: 1,
+  bandwidth: 0
 }
 
 const CHAIN_RECORD_STATUS = {
@@ -234,6 +262,9 @@ const pickValue = (record: Record<string, unknown>, keys: string[]) => {
   }
   return undefined
 }
+
+const getValues = (record: Record<string, unknown>, keys: string[]) =>
+  keys.map((key) => record[key]).filter(hasSearchValue)
 
 const hasFilterValue = (value: unknown) =>
   Array.isArray(value) ? value.length > 0 : hasSearchValue(value)
@@ -300,13 +331,115 @@ const getCurrency = (row: ChainRecordItem) =>
   normalizeCurrency(row.coin)
 
 const getCurrencyLabel = (row: ChainRecordItem) => {
-  const rawCoin = normalizeText(row.coin, '')
-  if (rawCoin) return rawCoin
-
   const currency = getCurrency(row)
   if (currency === 'U') return 'USDT'
   if (currency === 'T') return 'TRX'
-  return normalizeText(currency)
+  return normalizeText(row.coin || currency)
+}
+
+const getResourceTypeFromValue = (
+  value: unknown
+): Exclude<ChainRecordResourceType, 'currency'> | undefined => {
+  if (!hasSearchValue(value)) return undefined
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const resourceType = getResourceTypeFromValue(item)
+      if (resourceType) return resourceType
+    }
+    return undefined
+  }
+
+  if (isRecord(value)) {
+    return getResourceTypeFromValue(
+      pickValue(value, [
+        'resource_type',
+        'resourceType',
+        'resource_kind',
+        'resourceKind',
+        'code',
+        'type',
+        'kind',
+        'name',
+        'unit'
+      ])
+    )
+  }
+
+  const text = normalizeComparableText(value)
+  const numericValue = Number(text)
+  if (text && Number.isFinite(numericValue) && RESOURCE_TYPE_CODE_MAP[numericValue]) {
+    return RESOURCE_TYPE_CODE_MAP[numericValue]
+  }
+  if (text.includes('energy') || text.includes('能量')) return 'energy'
+  if (text.includes('bandwidth') || text.includes('带宽')) return 'bandwidth'
+
+  return undefined
+}
+
+const getResourceType = (row: ChainRecordItem): ChainRecordResourceType => {
+  if (getValues(row, ['energy', 'energy_amount', 'energy_count', 'energy_num']).length > 0) {
+    return 'energy'
+  }
+  if (
+    getValues(row, ['bandwidth', 'bandwidth_amount', 'bandwidth_count', 'bandwidth_num']).length > 0
+  ) {
+    return 'bandwidth'
+  }
+
+  const resourceValues = [
+    ...getValues(row, [
+      'resource_type',
+      'resourceType',
+      'resource_kind',
+      'resourceKind',
+      'resource',
+      'resource_info',
+      'resourceInfo'
+    ]),
+    ...getValues(row, [
+      'unit',
+      'resource_unit',
+      'resourceUnit',
+      'currency',
+      'coin',
+      'token',
+      'symbol',
+      'asset'
+    ])
+  ]
+
+  const relatedOrder = pickValue(row, ['order', 'related_order', 'business_order'])
+  if (isRecord(relatedOrder)) {
+    resourceValues.push(
+      ...getValues(relatedOrder, [
+        'resource_type',
+        'resourceType',
+        'resource_kind',
+        'resourceKind',
+        'resource',
+        'unit'
+      ])
+    )
+  }
+
+  resourceValues.push(...getValues(row, ['resources', 'resource_list', 'resourceList']))
+
+  for (const value of resourceValues) {
+    const resourceType = getResourceTypeFromValue(value)
+    if (resourceType) return resourceType
+  }
+
+  return 'currency'
+}
+
+const isResourceUnit = (row: ChainRecordItem) => getResourceType(row) !== 'currency'
+
+const getUnitLabel = (row: ChainRecordItem) => {
+  const resourceType = getResourceType(row)
+  if (resourceType === 'energy') return '能量'
+  if (resourceType === 'bandwidth') return '带宽'
+  return getCurrencyLabel(row)
 }
 
 const getDirection = (row: ChainRecordItem): ChainRecordDirection => {
@@ -413,12 +546,24 @@ const getRemark = (row: ChainRecordItem) =>
 const getAmountValue = (row: ChainRecordItem) =>
   pickValue(row, ['amount', 'quantity', 'value', 'transfer_amount'])
 
-const getAmountClass = (row: ChainRecordItem) =>
-  getDirection(row) === 'out' ? 'amount-negative' : 'amount-positive'
+const getAmountClass = (row: ChainRecordItem) => {
+  if (isResourceUnit(row)) return ''
+  return getDirection(row) === 'out' ? 'amount-negative' : 'amount-positive'
+}
 
 const formatAmountDisplay = (row: ChainRecordItem) => {
-  const sign = getDirection(row) === 'out' ? '-' : '+'
-  return `${sign}${formatNumber(Math.abs(parseAmount(getAmountValue(row))), 2, 8)}`
+  const rawAmount = normalizeText(getAmountValue(row), '')
+  if (!rawAmount) return '-'
+
+  if (isResourceUnit(row)) {
+    const unsignedAmount = rawAmount.replace(/^[+-]\s*/, '')
+    return /[a-zA-Z\u4e00-\u9fff]/.test(unsignedAmount)
+      ? unsignedAmount
+      : formatNumber(Math.abs(parseAmount(rawAmount)), 2, 8)
+  }
+
+  const amount = formatNumber(Math.abs(parseAmount(getAmountValue(row))), 2, 8)
+  return `${getDirection(row) === 'out' ? '-' : '+'}${amount}`
 }
 
 const renderTooltipText = (value?: unknown, width = 150) => {
@@ -443,16 +588,40 @@ const renderTooltipText = (value?: unknown, width = 150) => {
   )
 }
 
-const renderDirectionTag = (row: ChainRecordItem) => {
-  const direction = getDirection(row)
+const CHAIN_RECORD_TYPE_MAP: Record<ChainRecordDisplayType, StatusMeta> = {
+  out: { label: '出款', type: 'danger' },
+  in: { label: '入款', type: 'success' },
+  send_energy: { label: '发送能量', type: 'warning' },
+  send_bandwidth: { label: '发送带宽', type: 'warning' },
+  recycle_energy: { label: '回收能量', type: 'primary' },
+  recycle_bandwidth: { label: '回收带宽', type: 'primary' }
+}
+
+const getChainRecordType = (row: ChainRecordItem): ChainRecordDisplayType => {
+  const resourceType = getResourceType(row)
+  if (resourceType === 'energy') {
+    return getDirection(row) === 'out' ? 'send_energy' : 'recycle_energy'
+  }
+  if (resourceType === 'bandwidth') {
+    return getDirection(row) === 'out' ? 'send_bandwidth' : 'recycle_bandwidth'
+  }
+
+  return getDirection(row)
+}
+
+const getChainRecordTypeLabel = (row: ChainRecordItem) =>
+  CHAIN_RECORD_TYPE_MAP[getChainRecordType(row)].label
+
+const renderChainRecordTypeTag = (row: ChainRecordItem) => {
+  const meta = CHAIN_RECORD_TYPE_MAP[getChainRecordType(row)]
   return h(
     ElTag,
     {
-      type: direction === 'out' ? 'danger' : 'success',
+      type: meta.type,
       effect: 'plain',
       class: 'status-tag'
     },
-    () => (direction === 'out' ? '出款' : '收款')
+    () => meta.label
   )
 }
 
@@ -690,10 +859,30 @@ const buildChainRecordParams = (params: ChainRecordSearchParams = {}) => {
   if (hasSearchValue(params.keyword)) apiParams.keyword = String(params.keyword).trim()
   const selectedKinds = toNumberList(params.kinds)
   if (selectedKinds.length > 0) apiParams.kinds = selectedKinds
-  if (hasSearchValue(params.direction)) {
-    apiParams.flow = DIRECTION_FLOW_MAP[params.direction as ChainRecordDirection]
+  const selectedType = params.type || params.direction
+  if (hasSearchValue(selectedType)) {
+    const selectedDirection: ChainRecordDirection =
+      selectedType === 'out' || selectedType === 'send_energy' || selectedType === 'send_bandwidth'
+        ? 'out'
+        : 'in'
+
+    apiParams.flow = DIRECTION_FLOW_MAP[selectedDirection]
+
+    if (selectedType === 'send_energy' || selectedType === 'recycle_energy') {
+      apiParams.resource_type = RESOURCE_TYPE_FILTER_VALUE_MAP.energy
+    }
+    if (selectedType === 'send_bandwidth' || selectedType === 'recycle_bandwidth') {
+      apiParams.resource_type = RESOURCE_TYPE_FILTER_VALUE_MAP.bandwidth
+    }
   }
-  if (hasSearchValue(params.coin)) apiParams.coin = String(params.coin)
+  if (hasSearchValue(params.coin)) {
+    const selectedUnit = String(params.coin)
+    if (selectedUnit === 'energy' || selectedUnit === 'bandwidth') {
+      apiParams.resource_type = RESOURCE_TYPE_FILTER_VALUE_MAP[selectedUnit]
+    } else {
+      apiParams.coin = selectedUnit
+    }
+  }
   if (hasSearchValue(params.price_id)) apiParams.price_id = Number(params.price_id)
   const selectedStatus = parseChainRecordStatus(params.status)
   if (selectedStatus) apiParams.status = selectedStatus
@@ -813,6 +1002,7 @@ const fetchChainRecordList = async (params: ChainRecordSearchParams = {}) => {
         [
           params.keyword,
           params.kinds,
+          params.type,
           params.direction,
           params.coin,
           params.price_id,
@@ -873,9 +1063,9 @@ const handleExport = async () => {
         关联订单号: getRelatedOrderNo(item),
         交易类型: getTransactionType(item),
         分类: getAgentLevelLabel(item),
-        出入款: getDirection(item) === 'out' ? '出款' : '收款',
+        类型: getChainRecordTypeLabel(item),
         数量: formatAmountDisplay(item),
-        币种: getCurrencyLabel(item),
+        单位: getUnitLabel(item),
         出款地址: getFromAddress(item),
         收款地址: getToAddress(item),
         状态: getChainRecordStatusLabel(item),
@@ -912,7 +1102,7 @@ const summaryCards = computed(() => [
   },
   {
     key: 'in-total',
-    label: '总收款金额',
+    label: '总入款金额',
     value: `${formatSummaryAmount(summaryStats.value.totalInT)} TRX / ${formatSummaryAmount(
       summaryStats.value.totalInU
     )} USDT`,
@@ -951,10 +1141,10 @@ const columns: TableColumn[] = [
   },
   {
     field: 'direction',
-    label: '出入款',
-    width: 90,
+    label: '类型',
+    width: 100,
     slots: {
-      default: ({ row }: ChainRecordTableSlot) => renderDirectionTag(row)
+      default: ({ row }: ChainRecordTableSlot) => renderChainRecordTypeTag(row)
     }
   },
   {
@@ -968,9 +1158,9 @@ const columns: TableColumn[] = [
   },
   {
     field: 'coin',
-    label: '币种',
+    label: '单位',
     width: 90,
-    formatter: (row: ChainRecordItem) => normalizeText(row.coin || getCurrency(row))
+    formatter: (row: ChainRecordItem) => getUnitLabel(row)
   },
   {
     field: 'from_address',
@@ -1052,24 +1242,24 @@ const searchSchema = ref<FormSchema[]>([
     }
   },
   {
-    field: 'direction',
+    field: 'type',
     component: 'Select' as const,
-    label: '出入款',
+    label: '类型',
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: DIRECTION_OPTIONS,
-      style: { width: '150px' }
+      options: CHAIN_RECORD_TYPE_OPTIONS,
+      style: { width: '170px' }
     }
   },
   {
     field: 'coin',
     component: 'Select' as const,
-    label: '币种',
+    label: '单位',
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: CURRENCY_OPTIONS,
+      options: UNIT_OPTIONS,
       style: { width: '140px' }
     }
   },
