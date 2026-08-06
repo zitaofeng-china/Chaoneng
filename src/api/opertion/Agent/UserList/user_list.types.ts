@@ -46,10 +46,19 @@ export interface UserListItem {
   address_list: string[] // 地址列表
   lang: string // 语言
   status: number // 状态
+  forbid_invite?: boolean // 是否禁止邀请好友
   username?: string // 用户账号
   email?: string // 用户邮箱
   h5_balance?: string // H5余额
   source?: string // 来源
+}
+
+/**
+ * 更新用户邀请权限参数
+ */
+export interface UpdateUserInviteParams {
+  id: number // 用户ID
+  forbid_invite: boolean // 是否禁止邀请好友
 }
 
 /**

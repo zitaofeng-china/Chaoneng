@@ -1,5 +1,5 @@
 import request from '@/axios'
-import type { UserListParams, UserListResponse } from './user_list.types'
+import type { UserListParams, UserListResponse, UpdateUserInviteParams } from './user_list.types'
 
 // 导出类型定义
 export * from './user_list.types'
@@ -14,5 +14,16 @@ export const v1GetUserList = (params: UserListParams): Promise<IResponse<UserLis
   return request.get({
     url: '/v1/user',
     params
+  })
+}
+
+/**
+ * 更新用户邀请好友权限
+ * PUT /v1/user
+ */
+export const v1UpdateUserInvite = (data: UpdateUserInviteParams): Promise<IResponse> => {
+  return request.put({
+    url: '/v1/user',
+    data
   })
 }

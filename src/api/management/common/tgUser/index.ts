@@ -2,6 +2,7 @@ import request from '@/axios'
 import type {
   UserListParamsV1,
   UserListResponseV1,
+  UpdateUserInviteParamsV1,
   RechargeUserParamsV1,
   AdminChangePasswordParamsV1,
   MassSendListParamsV1,
@@ -25,6 +26,17 @@ export const v1GetUserList = (params: UserListParamsV1): Promise<IResponse<UserL
   return request.get({
     url: '/v1/user',
     params
+  })
+}
+
+/**
+ * 更新用户邀请好友权限
+ * PUT /v1/user
+ */
+export const v1UpdateUserInvite = (data: UpdateUserInviteParamsV1): Promise<IResponse> => {
+  return request.put({
+    url: '/v1/user',
+    data
   })
 }
 
