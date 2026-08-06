@@ -220,6 +220,12 @@ const columns = computed(() => {
       }
     },
     {
+      field: 'trx_balance',
+      label: 'TRX余额',
+      minWidth: 110,
+      formatter: (row) => `${row.trx_balance || 0} TRX`
+    },
+    {
       field: 'forbid_invite',
       label: '邀请好友',
       minWidth: 120,
@@ -234,12 +240,6 @@ const columns = computed(() => {
           />
         )
       }
-    },
-    {
-      field: 'trx_balance',
-      label: 'TRX余额',
-      minWidth: 110,
-      formatter: (row) => `${row.trx_balance || 0} TRX`
     },
     {
       field: 'usdt_balance',
