@@ -69,7 +69,7 @@
 <script setup lang="tsx">
 import { ref, onMounted, computed } from 'vue'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { ElMessage, ElLink } from 'element-plus'
+import { ElMessage, ElLink, ElSwitch } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import type { SearchTableExpose } from '@/components/SearchTable'
@@ -77,7 +77,7 @@ import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import type { FormSchema } from '@/components/Form'
 import type { TableColumn } from '@/components/Table'
-import { v1GetUserList } from '@/api/management/common/tgUser'
+import { v1GetUserList, v1UpdateUserInvite } from '@/api/management/common/tgUser'
 import type { UserListParamsV1 } from '@/api/management/common/tgUser/types'
 import { v1GetMessageBotList } from '@/api/management/common/message'
 import MessageDialog from './components/MessageDialog/index.vue'
@@ -217,6 +217,22 @@ const columns = computed(() => {
           return 'H5'
         }
         return '机器人'
+      }
+    },
+    {
+      field: 'forbid_invite',
+      label: '邀请好友',
+      minWidth: 120,
+      slots: {
+        default: ({ row }) => (
+          <ElSwitch
+            modelValue={Boolean(row.forbid_invite)}
+            activeText="禁止"
+            inactiveText="允许"
+            inline-prompt
+            onChange={(value: boolean) => updateInvitePermission(row, value)}
+          />
+        )
       }
     },
     {
@@ -393,6 +409,19 @@ const fetchAccountList = async (params: any) => {
   }
 }
 
+const updateInvitePermission = async (row: any, forbidInvite: boolean) => {
+  const previousValue = Boolean(row.forbid_invite)
+  row.forbid_invite = forbidInvite
+
+  try {
+    await v1UpdateUserInvite({ id: Number(row.id), forbid_invite: forbidInvite })
+    ElMessage.success(forbidInvite ? '已禁止邀请好友' : '已允许邀请好友')
+  } catch (error) {
+    row.forbid_invite = previousValue
+    handleErrorMessage(error, '更新邀请好友权限失败')
+  }
+}
+
 const openBotList = (botId: number) => {
   router.push({
     path: '/bot_manage/bot_list',
@@ -484,6 +513,7 @@ const handleExport = async () => {
           机器人ID: item.bot_id,
           机器人用户名: botInfo ? botInfo.user_name : '-',
           来源: origin,
+          邀请好友: item.forbid_invite ? '禁止' : '允许',
           TRX余额: `${item.trx_balance || 0} TRX`,
           创建时间: formatTableDateTime(item.created_at),
           更新时间: formatTableDateTime(item.updated_at)

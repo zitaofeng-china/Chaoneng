@@ -61,7 +61,7 @@
 
 <script setup lang="tsx">
 import { ref, onMounted, computed, onActivated } from 'vue'
-import { ElLink, ElMessage } from 'element-plus'
+import { ElLink, ElMessage, ElSwitch } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import type { SearchTableExpose } from '@/components/SearchTable'
@@ -71,6 +71,7 @@ import type { FormSchema } from '@/components/Form'
 import type { TableColumn } from '@/components/Table'
 import {
   v1GetUserList,
+  v1UpdateUserInvite,
   type UserListItem,
   type UserListParams
 } from '@/api/opertion/Agent/UserList'
@@ -324,6 +325,22 @@ const columns = computed(() => {
       }
     },
     {
+      field: 'forbid_invite',
+      label: '邀请好友',
+      minWidth: 120,
+      slots: {
+        default: ({ row }: UserTableSlot) => (
+          <ElSwitch
+            modelValue={Boolean(row.forbid_invite)}
+            activeText="禁止"
+            inactiveText="允许"
+            inline-prompt
+            onChange={(value: boolean) => updateInvitePermission(row, value)}
+          />
+        )
+      }
+    },
+    {
       field: 'trx_balance',
       label: 'TRX余额',
       minWidth: 110,
@@ -483,6 +500,19 @@ const fetchUserList = async (
   }
 }
 
+const updateInvitePermission = async (row: UserListRow, forbidInvite: boolean) => {
+  const previousValue = Boolean(row.forbid_invite)
+  row.forbid_invite = forbidInvite
+
+  try {
+    await v1UpdateUserInvite({ id: row.id, forbid_invite: forbidInvite })
+    ElMessage.success(forbidInvite ? '已禁止邀请好友' : '已允许邀请好友')
+  } catch (error) {
+    row.forbid_invite = previousValue
+    handleErrorMessage(error, '更新邀请好友权限失败')
+  }
+}
+
 const openBotList = (botId: number) => {
   router.push({
     path: '/agent/bot_list',
@@ -552,6 +582,7 @@ const handleExport = async () => {
           机器人用户名: botInfo?.user_name || '-',
           代理名称: item.agent_name || '-',
           来源: isBotOriginUser(item) ? '机器人' : 'H5',
+          邀请好友: item.forbid_invite ? '禁止' : '允许',
           TRX余额: item.trx_balance || 0,
           余额单位: 'TRX',
           创建时间: formatTableDateTime(item.created_at),
