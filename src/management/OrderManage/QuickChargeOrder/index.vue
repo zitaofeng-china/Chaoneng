@@ -6,7 +6,7 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchDataWrapper"
-        :default-params="initialSearchParams"
+        :initial-params="initialSearchParams"
         :table-props="{
           rowKey: 'id',
           highlightCurrentRow: false,

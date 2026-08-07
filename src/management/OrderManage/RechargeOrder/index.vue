@@ -5,9 +5,10 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchRechargeOrderList"
-        :default-params="initialSearchParams"
+        :initial-params="initialSearchParams"
         :showAddButton="false"
         ref="searchTableRef"
+        :table-props="tableProps"
         @search="onSearch"
       >
         <!-- 添加导出按钮 -->
@@ -52,6 +53,9 @@ const router = useRouter()
 const route = useRoute()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
+const tableProps = {
+  headerCellStyle: { whiteSpace: 'nowrap' }
+}
 const initialSearchParams = route.query.order_num
   ? {
       order_id: String(route.query.order_num)
@@ -90,20 +94,22 @@ const columns = computed<TableColumn[]>(() => {
     {
       field: 'tg_user_name',
       label: 'TG用户名',
+      minWidth: 100,
       hideWhen: 2, // 来源为 H5 时隐藏
       slots: {
         default: ({ row }) => {
+          if (!row.tg_user_name) return <span>-</span>
           return (
             <span
               style={{ color: '#409EFF', cursor: 'pointer' }}
               onClick={() => {
                 router.push({
                   path: `/user_group/user_list`,
-                  query: { tg_id: row.user_id }
+                  query: { keyword: row.tg_user_name }
                 })
               }}
             >
-              {row.tg_user_name || '-'}
+              {row.tg_user_name}
             </span>
           )
         }
@@ -112,12 +118,14 @@ const columns = computed<TableColumn[]>(() => {
     {
       field: 'tg_first_name',
       label: 'TG用户昵称',
+      minWidth: 110,
       hideWhen: 2, // 来源为 H5 时隐藏
       formatter: (row) => row.tg_first_name || '-'
     },
     {
       field: 'username',
       label: '用户账号',
+      minWidth: 100,
       hideWhen: 1, // 来源为机器人时隐藏
       formatter: (row) => row.username || '-'
     },
@@ -140,6 +148,7 @@ const columns = computed<TableColumn[]>(() => {
     {
       field: 'bot_name',
       label: '机器人名称',
+      minWidth: 110,
       slots: {
         default: ({ row }) => {
           return (

@@ -6,7 +6,7 @@
         :search-schema="searchSchema"
         :action-column="actionColumn"
         :fetch-data-api="fetchExchangeOrderList"
-        :default-params="initialSearchParams"
+        :initial-params="initialSearchParams"
         :showAddButton="false"
         ref="searchTableRef"
         @search="onSearch"

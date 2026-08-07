@@ -17,6 +17,7 @@ export interface SearchTableProps {
   showAddButton?: boolean
   addButtonText?: string
   defaultParams?: Recordable
+  initialParams?: Recordable
   pagination?: {
     total?: number
     [key: string]: any

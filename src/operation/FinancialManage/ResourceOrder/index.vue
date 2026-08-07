@@ -8,6 +8,7 @@
         :showAddButton="false"
         ref="searchTableRef"
         :default-params="defaultParams"
+        :initial-params="initialSearchParams"
         :search-props="{
           layout: 'inline',
           buttonPosition: 'center'
@@ -71,9 +72,9 @@ const exporting = ref(false)
 const updatingOrderId = ref<number | null>(null)
 const selectedOrderKind = ref<number | null>(null)
 const defaultParams = {
-  order: DEFAULT_CREATED_AT_ORDER,
-  keyword: String(route.query.keyword || '')
+  order: DEFAULT_CREATED_AT_ORDER
 }
+const initialSearchParams = route.query.keyword ? { keyword: String(route.query.keyword) } : {}
 const tableProps = {
   defaultSort: {
     prop: 'created_at',

@@ -8,7 +8,8 @@
         :searchSchema="searchSchema"
         :fetchDataApi="getAgentBotList"
         :show-add-button="false"
-        :default-params="initialSearchParams"
+        :default-params="defaultParams"
+        :initial-params="initialSearchParams"
       >
         <template #searchButtons>
           <BaseButton type="primary" @click="handleExport">
@@ -54,6 +55,7 @@ import {
 } from '@/utils/tableHelpers'
 import { BOT_STATUS_MAP, BOT_STATUS_OPTIONS } from '../constants'
 import { buildBotUpdatePayload, validateBotUpdatePayload } from '@/utils/botUpdatePayload'
+import { getTelegramUserUrl } from '@/utils/telegram'
 
 const route = useRoute()
 const router = useRouter()
@@ -66,7 +68,8 @@ type AgentBotSearchParams = Omit<AgentBotQueryParams, 'status'> & {
 }
 type AgentBotTableSlot = TableSlot<AgentBotItem>
 
-const initialSearchParams: AgentBotSearchParams = (() => {
+const defaultParams: AgentBotSearchParams = { status: 1 }
+const initialSearchParams: Partial<AgentBotSearchParams> = (() => {
   if (route.query.keyword) {
     return { keyword: String(route.query.keyword), status: '' }
   }
@@ -76,7 +79,7 @@ const initialSearchParams: AgentBotSearchParams = (() => {
   if (route.query.bot_id) {
     return { keyword: String(route.query.bot_id), status: '' }
   }
-  return { status: 1 }
+  return {}
 })()
 
 const buildAgentBotParams = (
@@ -176,7 +179,17 @@ const columns = ref<TableColumn[]>([
   {
     field: 'user_name',
     label: '机器人用户名',
-    minWidth: 110
+    minWidth: 110,
+    slots: {
+      default: ({ row }: AgentBotTableSlot) => {
+        if (!row.user_name) return <span>-</span>
+        return (
+          <ElLink type="primary" href={getTelegramUserUrl(row.user_name)} target="_blank">
+            {row.user_name}
+          </ElLink>
+        )
+      }
+    }
   },
   {
     field: 'agent_name',
@@ -312,7 +325,7 @@ const handleExport = async () => {
   try {
     await exportTableData<AgentBotItem, AgentBotSearchParams, AgentBotQueryParams>({
       searchTableRef,
-      fallbackParams: initialSearchParams,
+      fallbackParams: { ...defaultParams, ...initialSearchParams },
       filename: '机器人列表',
       fetchData: getAgentBotListApi,
       buildParams: buildAgentBotParams,

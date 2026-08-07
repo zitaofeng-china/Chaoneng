@@ -24,12 +24,15 @@ interface UseSearchTableConfig {
   fetchDelApi?: () => Promise<boolean>
   immediate?: boolean
   defaultParams?: Recordable // 默认参数
+  initialParams?: Recordable // 仅首次查询使用的参数
   handleSearchInfoFn?: (info: Recordable) => Recordable // 处理搜索参数
   actionColumn?: TableColumn // 操作列配置
 }
 
 export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance: any) => void) => {
-  const searchParams = ref<Recordable>(config.defaultParams || {})
+  const defaultParams = config.defaultParams || {}
+  const initialParams = config.initialParams || {}
+  const searchParams = ref<Recordable>({ ...defaultParams, ...initialParams })
   const currentRow = ref<Recordable | null>(null)
   const searchTableRef = vueRef<any>(null)
   const searchTableInstance = vueRef<any>(null)
@@ -176,7 +179,7 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
   const search = async () => {
     try {
       const form = await searchMethods.getFormData()
-      searchParams.value = { ...(config.defaultParams || {}), ...form }
+      searchParams.value = { ...defaultParams, ...form }
       if (tableState.currentPage.value !== 1) {
         tableState.currentPage.value = 1
       } else {
@@ -191,7 +194,7 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
 
   const reset = async () => {
     try {
-      searchParams.value = { ...(config.defaultParams || {}) }
+      searchParams.value = { ...defaultParams }
       await searchMethods.setValues(searchParams.value)
       if (tableState.currentPage.value !== 1) {
         tableState.currentPage.value = 1

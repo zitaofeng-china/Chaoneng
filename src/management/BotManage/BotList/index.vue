@@ -5,7 +5,7 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchBotList"
-        :default-params="initialSearchParams"
+        :initial-params="initialSearchParams"
         :action-column="actionColumn"
         :table-props="{
           rowKey: 'id',

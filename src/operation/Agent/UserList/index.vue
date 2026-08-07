@@ -6,7 +6,7 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchUserList"
-        :default-params="initialSearchParams"
+        :initial-params="initialSearchParams"
         :showAddButton="false"
         ref="searchTableRef"
         :table-props="{

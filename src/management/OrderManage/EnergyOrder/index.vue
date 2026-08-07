@@ -6,7 +6,7 @@
         :search-schema="searchSchema"
         :action-column="actionColumn"
         :fetch-data-api="fetchEnergyOrderList"
-        :default-params="initialSearchParams"
+        :initial-params="initialSearchParams"
         :showAddButton="false"
         :pagination="{
           total: totalCount

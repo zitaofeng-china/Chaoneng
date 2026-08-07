@@ -113,6 +113,11 @@ const props = defineProps({
     type: Object,
     default: () => ({})
   },
+  // 仅首屏查询使用的参数，不参与后续搜索与重置
+  initialParams: {
+    type: Object,
+    default: () => ({})
+  },
   // 分页配置
   pagination: {
     type: Object,
@@ -190,6 +195,7 @@ const {
   fetchDelApi: props.fetchDelApi,
   immediate: props.immediate,
   defaultParams: props.defaultParams,
+  initialParams: props.initialParams,
   actionColumn: props.actionColumn
 })
 

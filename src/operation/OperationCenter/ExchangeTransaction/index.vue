@@ -7,7 +7,7 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchExchangeTransactionList"
-        :default-params="initialSearchParams"
+        :initial-params="initialSearchParams"
         :action-column="actionColumn"
         :table-props="{
           rowKey: 'id',
