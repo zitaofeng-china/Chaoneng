@@ -8,6 +8,7 @@
         :fetch-data-api="fetchEnergyOutboundOrderList"
         :showAddButton="false"
         :default-params="defaultParams"
+        :initial-params="initialSearchParams"
         :search-props="searchProps"
         :table-props="tableProps"
       >
@@ -130,9 +131,9 @@ const currentDetail = ref<EnergyOutboundOrderDetail | null>(null)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 const defaultParams = {
-  order: DEFAULT_CREATED_AT_ORDER,
-  ...(route.query.order_id ? { order_id: Number(route.query.order_id) } : {})
+  order: DEFAULT_CREATED_AT_ORDER
 }
+const initialSearchParams = route.query.order_id ? { order_id: Number(route.query.order_id) } : {}
 const tableProps = { defaultSort: { prop: 'created_at', order: 'descending' } }
 const searchProps = { layout: 'inline', buttonPosition: 'center' }
 
@@ -193,8 +194,8 @@ const formatDuration = (duration: number | string | undefined) => {
 
 const formatTxid = (txid?: string) => {
   if (!txid) return '-'
-  if (txid.length <= 20) return txid
-  return `${txid.slice(0, 8)}******${txid.slice(-10)}`
+  if (txid.length <= 8) return txid
+  return `${txid.slice(0, 4)}******${txid.slice(-4)}`
 }
 
 const getTxidHref = (txid?: string) => {

@@ -6,7 +6,7 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchRechargeOrderList"
-        :default-params="initialSearchParams"
+        :initial-params="initialSearchParams"
         :showAddButton="false"
         ref="searchTableRef"
       >
@@ -58,7 +58,6 @@ import {
   type SelectOption,
   type TableSlot
 } from '@/utils/tableHelpers'
-import { getTelegramUserUrl } from '@/utils/telegram'
 import { RECHARGE_COIN_OPTIONS } from './constants'
 import { PAYMENT_TYPE_OPTIONS } from '@/constants/payment'
 import { formatRechargeFeeText } from '@/utils/rechargeOrder'
@@ -177,7 +176,15 @@ const columns = computed(() => {
         default: ({ row }: DepositTableSlot) => {
           if (!row.tg_user_name) return <span>-</span>
           return (
-            <ElLink href={getTelegramUserUrl(row.tg_user_name)} type="primary" target="_blank">
+            <ElLink
+              type="primary"
+              onClick={() =>
+                router.push({
+                  path: '/agent/user_list',
+                  query: { keyword: row.tg_user_name }
+                })
+              }
+            >
               {row.tg_user_name}
             </ElLink>
           )
