@@ -22,6 +22,7 @@ export interface EnergyOrderListParamsV1 {
   kind?: number // 订单类型（4=按时间, 5=按笔数, 6=福利, 7=闪租, 8=即用能量, 9=批量下单, 10=激活, 15=速充能量, 20=托管, 21=托管速充）
   status?: number // 状态（1=新订单, 2=已支付, 3=已发送, 4=已回收, 5=已完成, 6=失败, 7=已退款, 8=已取消, 9=中止）
   origin?: number // 来源（1=机器人，2=H5）
+  pay_method?: number // 支付方式（1=余额支付，2=钱包支付）
   receive_address?: string // 收款钱包地址
   energy_address?: string // 能量接收地址
   start_time?: string // 开始时间（Unix时间戳-秒，字符串格式）

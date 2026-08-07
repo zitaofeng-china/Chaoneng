@@ -13,7 +13,7 @@ export interface SearchFormParams {
   keyword?: string
   bot_id?: number | string
   origin?: number | string
-  pay_type?: number | string
+  pay_method?: number | string
   kind?: number | number[]
   receive_address?: string
   energy_address?: string

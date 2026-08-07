@@ -6,7 +6,7 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchDataWrapper"
-        :default-params="initialSearchParams"
+        :initial-params="initialSearchParams"
         :table-props="{
           rowKey: 'id',
           highlightCurrentRow: false,
@@ -60,7 +60,7 @@ import {
   type SelectOption
 } from '@/utils/tableHelpers'
 import { ENERGY_ORDER_KIND_OPTIONS } from '@/utils/energyOrder'
-import { PAYMENT_TYPE_OPTIONS } from '@/constants/payment'
+import { ENERGY_PAYMENT_METHOD_OPTIONS } from '@/constants/payment'
 import { getFilteredColumns } from './columns'
 import {
   buildEnergyListParams,
@@ -158,13 +158,13 @@ const searchSchema = computed(() => [
     }
   },
   {
-    field: 'pay_type',
+    field: 'pay_method',
     component: 'Select' as const,
     label: '支付类型',
     componentProps: {
       placeholder: '请选择支付类型',
       clearable: true,
-      options: PAYMENT_TYPE_OPTIONS
+      options: ENERGY_PAYMENT_METHOD_OPTIONS
     }
   },
   {
