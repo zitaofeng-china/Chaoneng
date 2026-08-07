@@ -422,10 +422,21 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
       redirect: '/customer-service/index',
       name: 'CustomerService',
       meta: {
-        title: '客服管理',
-        icon: 'ant-design:customer-service-outlined' // Material Design Icons: account-headset
+        title: '客服配置',
+        icon: 'ant-design:customer-service-outlined', // Material Design Icons: account-headset
+        alwaysShow: true
       },
       children: [
+        {
+          path: 'message',
+          name: 'CustomerServiceMessage',
+          component: () => import('@/operation/CustomerService/CustomerServiceMessage/index.vue'),
+          meta: {
+            hidden: true,
+            title: '消息回复',
+            icon: 'ant-design:message-outlined'
+          }
+        },
         {
           path: 'index',
           name: 'CustomerServicePage',
