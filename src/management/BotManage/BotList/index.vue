@@ -142,6 +142,12 @@ const columns = [
     }
   },
   {
+    field: 'deposit_threshold',
+    label: '邀请门槛',
+    minWidth: 110,
+    formatter: (row: any) => row.reward?.deposit_threshold ?? 0
+  },
+  {
     field: 'auto_renew',
     minWidth: 110,
     slots: {

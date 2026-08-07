@@ -117,6 +117,7 @@ export function useBotConfigV1() {
         visit_reward: botDetailRes.data.reward?.first_deposit
           ? Number(botDetailRes.data.reward.first_deposit)
           : 0,
+        deposit_threshold: Number(botDetailRes.data.reward?.deposit_threshold ?? 0),
         describe: botDetailRes.data.describe || '',
         status: botDetailRes.data.status || 2
       })
@@ -397,6 +398,7 @@ export function useBotConfigV1() {
           refreshedData.visit_reward = botRes.data.reward?.first_deposit
             ? Number(botRes.data.reward.first_deposit)
             : 0
+          refreshedData.deposit_threshold = Number(botRes.data.reward?.deposit_threshold ?? 0)
         }
 
         // 刷新Site详情：客服账号(site_tg_admin)、H5地址、H5开关

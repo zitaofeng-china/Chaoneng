@@ -470,13 +470,17 @@ const botInfoSchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'describe',
-    component: 'Input' as const,
-    label: '备注：',
+    field: 'deposit_threshold',
+    component: 'InputNumber' as const,
+    label: {
+      text: '邀请门槛',
+      tips: '以充值金额为准'
+    },
     componentProps: {
-      placeholder: '请输入备注(选填)',
-      type: 'textarea',
-      rows: 1
+      placeholder: '请输入邀请门槛',
+      min: 0,
+      step: 0.1,
+      precision: 2
     }
   },
   {
@@ -487,6 +491,16 @@ const botInfoSchema = reactive<FormSchema[]>([
     componentProps: {
       activeValue: 1,
       inactiveValue: 2
+    }
+  },
+  {
+    field: 'describe',
+    component: 'Input' as const,
+    label: '备注：',
+    componentProps: {
+      placeholder: '请输入备注(选填)',
+      type: 'textarea',
+      rows: 1
     }
   }
 ])

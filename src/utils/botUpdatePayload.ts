@@ -12,6 +12,7 @@ export type BotUpdatePayload = {
     first_deposit: number
     premium_invite: number
     standard_invite: number
+    deposit_threshold: number
   }
   status: number
   tg_admin: string
@@ -77,7 +78,13 @@ export const buildBotUpdatePayload = (
         sourceReward.premium_invite,
         source.invite_reward_vip
       ),
-      standard_invite: standardInvite
+      standard_invite: standardInvite,
+      deposit_threshold: toNumberValue(
+        0,
+        overrideReward.deposit_threshold,
+        overrides.deposit_threshold,
+        sourceReward.deposit_threshold
+      )
     },
     status: toNumberValue(2, overrides.status, source.status),
     tg_admin: toStringValue(overrides.tg_admin, source.tg_admin),

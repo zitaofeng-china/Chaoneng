@@ -42,6 +42,7 @@ export interface AgentBotItem {
     first_visit?: number // 访问奖励
     premium_invite?: number // 邀请奖励-会员
     standard_invite?: number // 邀请奖励-非会员
+    deposit_threshold?: number // 邀请奖励充值门槛
   }
   short_description?: string // 简介
   status: number // 状态 (1: 启用, 2: 禁用)
@@ -76,6 +77,7 @@ export interface UpdateAgentBotPayload {
     first_deposit: number // 首充奖励
     premium_invite: number // 邀请奖励-会员
     standard_invite: number // 邀请奖励-非会员
+    deposit_threshold: number // 邀请奖励充值门槛
   }
   status: number // 状态 (1: 启用, 2: 禁用)
   tg_admin: string // 管理员TG号

@@ -259,6 +259,12 @@ const columns = ref<TableColumn[]>([
     formatter: (row: AgentBotItem) => renderStatusTag(BOT_STATUS_MAP, row.status, '未知', 'default')
   },
   {
+    field: 'deposit_threshold',
+    label: '邀请门槛',
+    minWidth: 110,
+    formatter: (row: AgentBotItem) => row.reward?.deposit_threshold ?? 0
+  },
+  {
     field: 'created_at',
     label: '创建时间',
     minWidth: 160,
@@ -338,6 +344,7 @@ const handleExport = async () => {
         用户数量: item.user_count || 0,
         交易订单数: item.order_count || 0,
         机器人状态: getStatusLabel(BOT_STATUS_MAP, item.status, '未知'),
+        邀请门槛: item.reward?.deposit_threshold ?? 0,
         创建时间: formatTableDateTime(item.created_at),
         最后活动时间: formatTableDateTime(item.updated_at)
       })
