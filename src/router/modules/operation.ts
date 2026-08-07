@@ -195,6 +195,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           }
         },
         {
+          path: 'ad_banner',
+          component: () => import('@/operation/Marketing/AdBanner/index.vue'),
+          name: 'AdBannerConfig',
+          meta: {
+            title: '广告横幅配置',
+            buttonList: ['add', 'edit', 'delete']
+          }
+        },
+        {
           path: 'trx_address_book',
           component: () => import('@/operation/Marketing/TrxAddressBook/index.vue'),
           name: 'TrxAddressBook',
