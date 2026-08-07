@@ -332,13 +332,13 @@ const columns = computed(() => {
       formatter: (row) => `${row.trx_balance || 0} TRX`
     },
     {
-      field: 'forbid_invite',
+      field: 'disable_invite',
       label: '邀请好友',
       minWidth: 120,
       slots: {
         default: ({ row }: UserTableSlot) => (
           <ElSwitch
-            modelValue={Boolean(row.forbid_invite)}
+            modelValue={getDisableInviteState(row)}
             activeText="禁止"
             inactiveText="允许"
             inline-prompt
@@ -500,15 +500,20 @@ const fetchUserList = async (
   }
 }
 
-const updateInvitePermission = async (row: UserListRow, forbidInvite: boolean) => {
-  const previousValue = Boolean(row.forbid_invite)
-  row.forbid_invite = forbidInvite
+const getDisableInviteState = (row: Pick<UserListRow, 'disable_invite'>) => {
+  return Number(row.disable_invite) === 1
+}
+
+const updateInvitePermission = async (row: UserListRow, disableInvite: boolean) => {
+  const previousValue = getDisableInviteState(row)
+  const disableInviteValue = disableInvite ? 1 : 2
+  row.disable_invite = disableInviteValue
 
   try {
-    await v1UpdateUserInvite({ id: row.id, forbid_invite: forbidInvite })
-    ElMessage.success(forbidInvite ? '已禁止邀请好友' : '已允许邀请好友')
+    await v1UpdateUserInvite({ id: row.id, disable_invite: disableInviteValue })
+    ElMessage.success(disableInvite ? '已禁止邀请好友' : '已允许邀请好友')
   } catch (error) {
-    row.forbid_invite = previousValue
+    row.disable_invite = previousValue ? 1 : 2
     handleErrorMessage(error, '更新邀请好友权限失败')
   }
 }
@@ -582,7 +587,7 @@ const handleExport = async () => {
           机器人用户名: botInfo?.user_name || '-',
           代理名称: item.agent_name || '-',
           来源: isBotOriginUser(item) ? '机器人' : 'H5',
-          邀请好友: item.forbid_invite ? '禁止' : '允许',
+          邀请好友: getDisableInviteState(item) ? '禁止' : '允许',
           TRX余额: item.trx_balance || 0,
           余额单位: 'TRX',
           创建时间: formatTableDateTime(item.created_at),

@@ -48,7 +48,7 @@ export interface UserItemV1 {
   address_list: string[] | null // 地址列表
   lang: string // 语言
   status: number // 状态
-  forbid_invite?: boolean // 是否禁止邀请好友
+  disable_invite?: number // 邀请好友权限：1-禁止，2-允许
   site_id: number // 站点ID
   origin?: number | string // 来源：1-机器人，2-H5
 }
@@ -58,7 +58,7 @@ export interface UserItemV1 {
  */
 export interface UpdateUserInviteParamsV1 {
   id: number // 用户ID
-  forbid_invite: boolean // 是否禁止邀请好友
+  disable_invite: number // 邀请好友权限：1-禁止，2-允许
 }
 
 /**
