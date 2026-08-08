@@ -39,6 +39,28 @@ export const useValidator = () => {
     }
   }
 
+  const passwordPolicy = (): FormItemRule => {
+    return {
+      validator: (_, value, callback) => {
+        if (!value) return callback()
+
+        const password = String(value)
+        if (password.length < 6 || password.length > 20) {
+          callback(new Error('密码长度需为6-20位'))
+          return
+        }
+
+        if (/^\d+$/.test(password)) {
+          callback(new Error('密码不能为纯数字'))
+          return
+        }
+
+        callback()
+      },
+      trigger: 'blur'
+    }
+  }
+
   const notSpace = (message?: string): FormItemRule => {
     return {
       validator: (_, val, callback) => {
@@ -142,6 +164,7 @@ export const useValidator = () => {
   return {
     required,
     lengthRange,
+    passwordPolicy,
     notSpace,
     notSpecialCharacters,
     noChinese,

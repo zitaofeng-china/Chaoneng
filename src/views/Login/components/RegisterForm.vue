@@ -22,7 +22,9 @@ const { getElFormExpose } = formMethods
 
 const { t } = useI18n()
 
-const { required, email, phone, noAtSymbol } = useValidator()
+const { required, email, phone, noAtSymbol, passwordPolicy } = useValidator()
+
+const registerPasswordRules = [required(), passwordPolicy()]
 
 // 添加注册类型切换
 const registerType = ref('email') // 'phone' 或 'email'
@@ -115,15 +117,15 @@ const rules = computed<FormRules>(() => {
   return registerType.value === 'phone'
     ? {
         username: [required(), noAtSymbol()],
-        password: [required()],
-        check_password: [required()],
+        password: registerPasswordRules,
+        check_password: registerPasswordRules,
         phone: [required(), phone()]
         // code: [required()] // 暂时注释掉验证码验证
       }
     : {
         username: [required(), noAtSymbol()],
-        password: [required()],
-        check_password: [required()],
+        password: registerPasswordRules,
+        check_password: registerPasswordRules,
         email: [required(), email()]
         // code: [required()] // 暂时注释掉验证码验证
       }
@@ -194,7 +196,10 @@ const phoneSchema = reactive<FormSchema[]>([
   // },
   {
     field: 'password',
-    label: t('login.password'),
+    label: {
+      text: t('login.password'),
+      tips: '请输入6-20位且不能为纯数字的密码'
+    },
     value: '',
     component: 'InputPassword',
     colProps: { span: 24 },
@@ -314,7 +319,7 @@ const emailSchema = reactive<FormSchema[]>([
     field: 'password',
     label: {
       text: t('login.password'),
-      tips: '请输入最低不少于8位字符的密码'
+      tips: '请输入6-20位且不能为纯数字的密码'
     },
     value: '',
     component: 'InputPassword',
