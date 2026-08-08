@@ -54,6 +54,9 @@ const dialogVisible = ref(false)
 /** 弹窗内部使用的模式（以 open 入参为准，不依赖 props 时序） */
 const activeMode = ref<UserActionType>('add')
 
+const PASSWORD_MIN_LENGTH = 6
+const PASSWORD_MAX_LENGTH = 20
+
 const roleOptions = ref<SelectOption<number | string>[]>([])
 const roleOptionsLoading = ref(false)
 
@@ -92,9 +95,9 @@ const shouldShowPasswordFields = computed(() => {
 
 const passwordPlaceholder = computed(() => {
   if (activeMode.value === 'edit') {
-    return '留空则不修改密码（至少8位，不能纯数字）'
+    return '留空则不修改密码（6-20位，不能纯数字）'
   }
-  return t('userDemo.passwordPlaceholder', '请输入密码 (至少8位，不能纯数字)')
+  return t('userDemo.passwordPlaceholder', '请输入密码 (6-20位，不能纯数字)')
 })
 
 const validateConfirmPassword = (
@@ -133,8 +136,15 @@ const validatePassword = (_rule: unknown, value: unknown, callback: FormValidate
   }
   if (value) {
     const password = String(value)
-    if (password.length < 8) {
-      callback(new Error(t('userDemo.passwordLengthError', '密码长度不能少于8位')))
+    if (password.length < PASSWORD_MIN_LENGTH || password.length > PASSWORD_MAX_LENGTH) {
+      callback(
+        new Error(
+          t(
+            'userDemo.passwordLengthError',
+            `密码长度需为${PASSWORD_MIN_LENGTH}-${PASSWORD_MAX_LENGTH}位`
+          )
+        )
+      )
       return
     }
     if (/^\d+$/.test(password)) {

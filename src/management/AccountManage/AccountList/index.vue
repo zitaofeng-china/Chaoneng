@@ -62,7 +62,7 @@
             <ElInput
               v-model="resetForm.password"
               type="password"
-              placeholder="请输入新密码"
+              placeholder="请输入6-20位且不能为纯数字的密码"
               show-password
             />
           </ElFormItem>
@@ -72,7 +72,7 @@
             <ElInput
               v-model="resetForm.confirmPassword"
               type="password"
-              placeholder="请再次输入新密码"
+              placeholder="请再次输入6-20位且不能为纯数字的密码"
               show-password
             />
           </ElFormItem>
@@ -169,7 +169,7 @@ import { formatRechargeMetricNumber } from '@/utils/rechargeOrder'
 import { getTrxUsdtTickerPrice } from '@/api/common/ticker'
 
 // 表单校验
-const { required } = useValidator()
+const { required, passwordPolicy } = useValidator()
 
 // 获取 user store 实例 (移除 router，因为 logout action 通常会处理跳转)
 const userStore = useUserStore()
@@ -320,12 +320,10 @@ const resetForm = reactive({
 const resetRules = computed(() => {
   return {
     code: [{ required: true, message: '请输入验证码', trigger: 'blur' }],
-    password: [
-      { required: true, message: '请输入新密码', trigger: 'blur' },
-      { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
-    ],
+    password: [{ required: true, message: '请输入新密码', trigger: 'blur' }, passwordPolicy()],
     confirmPassword: [
       { required: true, message: '请再次输入新密码', trigger: 'blur' },
+      passwordPolicy(),
       {
         validator: (rule, value, callback) => {
           if (value !== resetForm.password) {

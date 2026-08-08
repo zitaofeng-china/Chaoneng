@@ -21,7 +21,7 @@
         <ElInput
           v-model="formData.newPassword"
           type="password"
-          placeholder="请输入新密码"
+          placeholder="请输入6-20位且不能为纯数字的密码"
           show-password
         />
       </ElFormItem>
@@ -47,6 +47,7 @@ import { Dialog } from '@/components/Dialog'
 import { ElButton, ElForm, ElFormItem, ElInput } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { useValidator } from '@/hooks/web/useValidator'
 import { v1AdminChangePassword } from '@/api/opertion/common/tgUser'
 import type { AdminChangePasswordParamsV1 } from '@/api/opertion/common/tgUser'
 
@@ -69,6 +70,7 @@ const emit = defineEmits<{
 const dialogVisible = ref(false)
 const formRef = ref<FormInstance>()
 const loading = ref(false)
+const { passwordPolicy } = useValidator()
 
 const formData = reactive({
   account: '',
@@ -76,10 +78,7 @@ const formData = reactive({
 })
 
 const rules: FormRules = {
-  newPassword: [
-    { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
-  ]
+  newPassword: [{ required: true, message: '请输入新密码', trigger: 'blur' }, passwordPolicy()]
 }
 
 watch(

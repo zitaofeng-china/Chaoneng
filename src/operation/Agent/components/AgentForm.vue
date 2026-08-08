@@ -101,7 +101,7 @@ const agentFormSchema = computed<FormSchema[]>(() => {
     field: 'password',
     label: {
       text: isEdit.value ? '登录密码(留空不修改)' : '登录密码',
-      tips: '请输入最低不少于8位字符的密码'
+      tips: '请输入6-20位且不能为纯数字的密码'
     },
     component: 'InputPassword' as const,
     componentProps: {
