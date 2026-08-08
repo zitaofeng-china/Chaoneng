@@ -9,6 +9,7 @@
   - `src/api/opertion/DataStatistics/UserStatisticsReport`
   - `src/api/opertion/DataStatistics/ExchangeRateIndex`
   - `src/api/opertion/DataStatistics/Announcement`
+  - `src/api/opertion/DataStatistics/AgentMarketingAmount`
 - `OperationCenter`:
   - `src/api/opertion/OperationCenter/*`
 - `Marketing`:
@@ -32,6 +33,7 @@
   - `UserStatisticsReport` -> `src/api/opertion/DataStatistics/UserStatisticsReport`
   - `ExchangeRateIndex` -> `src/api/opertion/DataStatistics/ExchangeRateIndex`
   - `Announcement` -> `src/api/opertion/DataStatistics/Announcement`
+  - `AgentMarketingAmount` -> `src/api/opertion/DataStatistics/AgentMarketingAmount`
 - 当前系统配置主路由只保留：
   - `ResourcePool` -> `src/api/opertion/SystemConfig/ResourcePool`
 

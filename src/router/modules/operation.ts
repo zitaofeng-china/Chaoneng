@@ -85,6 +85,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           meta: {
             title: '支付统计报表'
           }
+        },
+        {
+          path: 'agent_marketing_amount',
+          alias: '/data_statistics/agent_marketing_amount',
+          component: () => import('@/operation/DataStatistics/AgentMarketingAmount/index.vue'),
+          name: 'AgentMarketingAmount',
+          meta: {
+            title: '代理营销额'
+          }
         }
       ]
     },

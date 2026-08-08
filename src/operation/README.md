@@ -12,6 +12,7 @@
   - `src/operation/DataStatistics/SaleByTimeReport`
   - `src/operation/DataStatistics/ExchangeRateIndex`
   - `src/operation/DataStatistics/Announcement`
+  - `src/operation/DataStatistics/AgentMarketingAmount`
 - `OperationCenter`:
   - `src/operation/OperationCenter/*`
 - `Marketing`:
@@ -39,6 +40,7 @@
   - `SaleByTimeReport`
   - `ExchangeRateIndex`
   - `Announcement`
+  - `AgentMarketingAmount`
 - `SystemConfig` 主路由当前只对应一个子路由权限：
   - `ResourcePool`
 - 按钮权限由 `name.buttonCode` 组成，例如：
