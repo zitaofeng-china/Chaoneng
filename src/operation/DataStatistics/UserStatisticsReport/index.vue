@@ -30,119 +30,30 @@
                   <td colspan="3" class="summary-label"
                     >合计：{{ formatCount(summaryGrandTotal) }}</td
                   >
-                  <td>
-                    {{ formatCount(summaryTotals.todayNew) }}
-                    <span class="order-growth"
-                      >/ {{ formatCount(summaryTotals.todayOrderNew) }}</span
-                    >
-                  </td>
-                  <td>
-                    {{ formatCount(summaryTotals.yesterdayNew) }}
-                    <span class="order-growth"
-                      >/ {{ formatCount(summaryTotals.yesterdayOrderNew) }}</span
-                    >
-                  </td>
-                  <td>
-                    {{ formatCount(summaryTotals.currentMonthNew) }}
-                    <span class="order-growth"
-                      >/ {{ formatCount(summaryTotals.currentMonthOrderNew) }}</span
-                    >
-                  </td>
-                  <td>
-                    {{ formatCount(summaryTotals.lastMonthNew) }}
-                    <span class="order-growth"
-                      >/ {{ formatCount(summaryTotals.lastMonthOrderNew) }}</span
-                    >
+                  <td v-for="column in METRIC_COLUMNS" :key="column.field">
+                    {{ formatCount(getMetricValue(summaryTotals, column.field)) }}
                   </td>
                 </tr>
                 <tr class="header-row">
                   <th>机器人ID</th>
                   <th>机器人用户名</th>
                   <th>归属代理</th>
-                  <th>
-                    <button type="button" class="sort-header" @click="handleSort('todayNew')">
-                      今日新增 <span class="order-header">/ 订单</span>
+                  <th v-for="column in METRIC_COLUMNS" :key="column.field">
+                    <button type="button" class="sort-header" @click="handleSort(column.field)">
+                      {{ column.label }}
                       <span class="sort-icon" aria-hidden="true">
                         <i
                           class="sort-caret sort-caret-up"
                           :class="{
-                            active: sortState.prop === 'todayNew' && sortState.order === 'ascending'
+                            active:
+                              sortState.prop === column.field && sortState.order === 'ascending'
                           }"
                         ></i>
                         <i
                           class="sort-caret sort-caret-down"
                           :class="{
                             active:
-                              sortState.prop === 'todayNew' && sortState.order === 'descending'
-                          }"
-                        ></i>
-                      </span>
-                    </button>
-                  </th>
-                  <th>
-                    <button type="button" class="sort-header" @click="handleSort('yesterdayNew')">
-                      昨日新增 <span class="order-header">/ 订单</span>
-                      <span class="sort-icon" aria-hidden="true">
-                        <i
-                          class="sort-caret sort-caret-up"
-                          :class="{
-                            active:
-                              sortState.prop === 'yesterdayNew' && sortState.order === 'ascending'
-                          }"
-                        ></i>
-                        <i
-                          class="sort-caret sort-caret-down"
-                          :class="{
-                            active:
-                              sortState.prop === 'yesterdayNew' && sortState.order === 'descending'
-                          }"
-                        ></i>
-                      </span>
-                    </button>
-                  </th>
-                  <th>
-                    <button
-                      type="button"
-                      class="sort-header"
-                      @click="handleSort('currentMonthNew')"
-                    >
-                      本月新增 <span class="order-header">/ 订单</span>
-                      <span class="sort-icon" aria-hidden="true">
-                        <i
-                          class="sort-caret sort-caret-up"
-                          :class="{
-                            active:
-                              sortState.prop === 'currentMonthNew' &&
-                              sortState.order === 'ascending'
-                          }"
-                        ></i>
-                        <i
-                          class="sort-caret sort-caret-down"
-                          :class="{
-                            active:
-                              sortState.prop === 'currentMonthNew' &&
-                              sortState.order === 'descending'
-                          }"
-                        ></i>
-                      </span>
-                    </button>
-                  </th>
-                  <th>
-                    <button type="button" class="sort-header" @click="handleSort('lastMonthNew')">
-                      上月新增 <span class="order-header">/ 订单</span>
-                      <span class="sort-icon" aria-hidden="true">
-                        <i
-                          class="sort-caret sort-caret-up"
-                          :class="{
-                            active:
-                              sortState.prop === 'lastMonthNew' && sortState.order === 'ascending'
-                          }"
-                        ></i>
-                        <i
-                          class="sort-caret sort-caret-down"
-                          :class="{
-                            active:
-                              sortState.prop === 'lastMonthNew' && sortState.order === 'descending'
+                              sortState.prop === column.field && sortState.order === 'descending'
                           }"
                         ></i>
                       </span>
@@ -152,27 +63,14 @@
               </thead>
               <tbody>
                 <tr v-if="reportRows.length === 0">
-                  <td colspan="7" class="empty-cell">暂无数据</td>
+                  <td colspan="11" class="empty-cell">暂无数据</td>
                 </tr>
                 <tr v-for="row in reportRows" :key="row.botId">
                   <td>{{ row.botId }}</td>
                   <td>{{ row.botUsername }}</td>
                   <td>{{ row.agentName }}</td>
-                  <td>
-                    {{ formatCount(row.todayNew) }}
-                    <span class="order-growth">/ {{ formatCount(row.todayOrderNew) }}</span>
-                  </td>
-                  <td>
-                    {{ formatCount(row.yesterdayNew) }}
-                    <span class="order-growth">/ {{ formatCount(row.yesterdayOrderNew) }}</span>
-                  </td>
-                  <td>
-                    {{ formatCount(row.currentMonthNew) }}
-                    <span class="order-growth">/ {{ formatCount(row.currentMonthOrderNew) }}</span>
-                  </td>
-                  <td>
-                    {{ formatCount(row.lastMonthNew) }}
-                    <span class="order-growth">/ {{ formatCount(row.lastMonthOrderNew) }}</span>
+                  <td v-for="column in METRIC_COLUMNS" :key="column.field">
+                    {{ formatCount(getMetricValue(row, column.field)) }}
                   </td>
                 </tr>
               </tbody>
@@ -215,7 +113,15 @@ import {
   type UserStatisticsSummary
 } from '@/api/opertion/DataStatistics/UserStatisticsReport'
 
-type SortableField = 'todayNew' | 'yesterdayNew' | 'currentMonthNew' | 'lastMonthNew'
+type SortableField =
+  | 'todayNew'
+  | 'todayOrderNew'
+  | 'yesterdayNew'
+  | 'yesterdayOrderNew'
+  | 'currentMonthNew'
+  | 'currentMonthOrderNew'
+  | 'lastMonthNew'
+  | 'lastMonthOrderNew'
 type SortOrder = 'ascending' | 'descending' | null
 
 interface SearchFormState {
@@ -248,11 +154,26 @@ interface SummaryTotals {
   yesterdayOrderNew: number
 }
 
+const METRIC_COLUMNS: Array<{ field: SortableField; label: string }> = [
+  { field: 'todayNew', label: '今日增长人数' },
+  { field: 'todayOrderNew', label: '今日增长订单' },
+  { field: 'yesterdayNew', label: '昨日增长人数' },
+  { field: 'yesterdayOrderNew', label: '昨日增长订单' },
+  { field: 'currentMonthNew', label: '本月增长人数' },
+  { field: 'currentMonthOrderNew', label: '本月增长订单' },
+  { field: 'lastMonthNew', label: '上月增长人数' },
+  { field: 'lastMonthOrderNew', label: '上月增长订单' }
+]
+
 const SORT_FIELD_MAP: Record<SortableField, string> = {
   currentMonthNew: 'growth_user_this_month',
+  currentMonthOrderNew: 'growth_order_this_month',
   lastMonthNew: 'growth_user_last_month',
+  lastMonthOrderNew: 'growth_order_last_month',
   todayNew: 'growth_user_today',
-  yesterdayNew: 'growth_user_yesterday'
+  todayOrderNew: 'growth_order_today',
+  yesterdayNew: 'growth_user_yesterday',
+  yesterdayOrderNew: 'growth_order_yesterday'
 }
 
 const toNumber = (value: number | string | undefined) => {
@@ -363,6 +284,8 @@ const formatCount = (value: number) => {
   return toNumber(value).toLocaleString('zh-CN')
 }
 
+const getMetricValue = (row: Pick<ReportRow, SortableField>, field: SortableField) => row[field]
+
 const buildParams = (): UserStatisticsReportParams => {
   const params: UserStatisticsReportParams = {
     current_page: pagination.currentPage,
@@ -448,34 +371,15 @@ const handleExport = async () => {
 
     const exportSummary = normalizeSummary(res.data.summary)
     const exportRows = [
-      [
-        '机器人ID',
-        '机器人用户名',
-        '归属代理',
-        '今日新增/订单',
-        '昨日新增/订单',
-        '本月新增/订单',
-        '上月新增/订单'
-      ],
-      [
-        '合计',
-        '-',
-        '-',
-        `${exportSummary.todayNew} / ${exportSummary.todayOrderNew}`,
-        `${exportSummary.yesterdayNew} / ${exportSummary.yesterdayOrderNew}`,
-        `${exportSummary.currentMonthNew} / ${exportSummary.currentMonthOrderNew}`,
-        `${exportSummary.lastMonthNew} / ${exportSummary.lastMonthOrderNew}`
-      ],
+      ['机器人ID', '机器人用户名', '归属代理', ...METRIC_COLUMNS.map((column) => column.label)],
+      ['合计', '-', '-', ...METRIC_COLUMNS.map((column) => exportSummary[column.field])],
       ...getDetailList(res.data).map((item) => {
         const row = normalizeRow(item)
         return [
           row.botId,
           row.botUsername || '-',
           row.agentName || '-',
-          `${row.todayNew} / ${row.todayOrderNew}`,
-          `${row.yesterdayNew} / ${row.yesterdayOrderNew}`,
-          `${row.currentMonthNew} / ${row.currentMonthOrderNew}`,
-          `${row.lastMonthNew} / ${row.lastMonthOrderNew}`
+          ...METRIC_COLUMNS.map((column) => row[column.field])
         ]
       })
     ]
@@ -488,10 +392,7 @@ const handleExport = async () => {
         { wpx: 120 },
         { wpx: 160 },
         { wpx: 140 },
-        { wpx: 120 },
-        { wpx: 120 },
-        { wpx: 120 },
-        { wpx: 120 }
+        ...METRIC_COLUMNS.map(() => ({ wpx: 130 }))
       ],
       rowHeights: [{ hpx: 36 }, ...exportRows.slice(1).map(() => ({ hpx: 32 }))],
       highlightRows: [1]
@@ -645,15 +546,6 @@ onMounted(async () => {
   cursor: pointer;
   background: transparent;
   border: none;
-}
-
-.order-header,
-.order-growth {
-  color: #f56c6c;
-}
-
-.order-header {
-  white-space: nowrap;
 }
 
 .sort-icon {

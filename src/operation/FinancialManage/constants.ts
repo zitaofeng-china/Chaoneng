@@ -45,7 +45,8 @@ export const RESOURCE_ORDER_STATUS_MAP: Record<number, StatusMeta> = {
   1: { label: '新订单', type: 'info' },
   2: { label: '已支付', type: 'warning' },
   5: { label: '已完成', type: 'success' },
-  8: { label: '已取消', type: 'danger' }
+  8: { label: '已取消', type: 'danger' },
+  9: { label: '已中止', type: 'danger' }
 }
 
 export const SETTLEMENT_RECORD_STATUS_MAP: Record<number, StatusMeta> = {

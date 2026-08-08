@@ -326,7 +326,7 @@ const columns: TableColumn[] = [
   {
     field: 'period',
     label: '结算周期',
-    width: 110,
+    width: 140,
     formatter: (row: EnergyOutboundOrderItem) => getPeriod(row)
   },
   {
