@@ -15,10 +15,11 @@ defineOptions({
   name: 'ResetPasswordForm'
 })
 
-const { required, email, phone } = useValidator()
+const { required, email, phone, passwordPolicy } = useValidator()
 const { push } = useRouter()
 const { t } = useI18n()
 const isManagement = isManagementSystem()
+const newPasswordRules = [required(), passwordPolicy()]
 const resetAccountTitle = computed(() =>
   isManagement ? t('resetPassword.resetPassword') : '账号重置'
 )
@@ -53,8 +54,8 @@ const rules = computed(() => {
     return {
       phone: [required(), phone()],
       code: [required()],
-      password: [required()],
-      confirmPassword: [required()]
+      password: newPasswordRules,
+      confirmPassword: newPasswordRules
     }
   }
 
@@ -68,8 +69,8 @@ const rules = computed(() => {
   return {
     email: [required(), email()],
     code: [required()],
-    password: [required()],
-    confirmPassword: [required()]
+    password: newPasswordRules,
+    confirmPassword: newPasswordRules
   }
 })
 
@@ -221,7 +222,10 @@ const phoneSchema = reactive<FormSchema[]>([
   },
   {
     field: 'password',
-    label: t('resetPassword.newPassword'),
+    label: {
+      text: t('resetPassword.newPassword'),
+      tips: '请输入6-20位且不能为纯数字的密码'
+    },
     component: 'InputPassword',
     colProps: { span: 24 },
     componentProps: {
@@ -328,7 +332,10 @@ const emailSchema = reactive<FormSchema[]>([
   },
   {
     field: 'password',
-    label: t('resetPassword.newPassword'),
+    label: {
+      text: t('resetPassword.newPassword'),
+      tips: '请输入6-20位且不能为纯数字的密码'
+    },
     component: 'InputPassword',
     colProps: { span: 24 },
     componentProps: {

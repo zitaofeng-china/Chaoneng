@@ -5,6 +5,7 @@ import Form from '@/components/Form/src/Form.vue'
 import { FormSchema } from '@/components/Form'
 import { changeManagePasswordApiV2 } from '@/api/common/login'
 import { useForm } from '@/hooks/web/useForm'
+import { useValidator } from '@/hooks/web/useValidator'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/modules/user'
 
@@ -25,6 +26,7 @@ const dialogVisible = computed({
 
 const { formRegister, formMethods } = useForm()
 const { getElFormExpose, getFormData } = formMethods
+const { passwordPolicy } = useValidator()
 
 const formSchema = reactive<FormSchema[]>([
   {
@@ -51,14 +53,11 @@ const formSchema = reactive<FormSchema[]>([
     componentProps: {
       type: 'password',
       showPassword: true,
-      placeholder: '请输入八位以上密码'
+      placeholder: '请输入6-20位且不能为纯数字的密码'
     },
     formItemProps: {
       required: true,
-      rules: [
-        { required: true, message: '请输入新密码', trigger: 'blur' },
-        { min: 8, message: '密码长度不能少于8位', trigger: 'blur' }
-      ]
+      rules: [{ required: true, message: '请输入新密码', trigger: 'blur' }, passwordPolicy()]
     },
     colProps: {
       span: 24
@@ -75,7 +74,7 @@ const formSchema = reactive<FormSchema[]>([
     },
     formItemProps: {
       required: true,
-      rules: [{ required: true, message: '请输入确认密码', trigger: 'blur' }]
+      rules: [{ required: true, message: '请输入确认密码', trigger: 'blur' }, passwordPolicy()]
     },
     colProps: {
       span: 24

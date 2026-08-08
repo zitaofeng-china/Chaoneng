@@ -5,7 +5,7 @@ import { reactive, ref } from 'vue'
 import { useValidator } from '@/hooks/web/useValidator'
 import { ElMessage, ElMessageBox, ElDivider } from 'element-plus'
 
-const { required } = useValidator()
+const { required, passwordPolicy } = useValidator()
 
 const formSchema = reactive<FormSchema[]>([
   {
@@ -44,6 +44,7 @@ const rules = reactive({
   password: [required()],
   newPassword: [
     required(),
+    passwordPolicy(),
     {
       asyncValidator: async (_, val, callback) => {
         const formData = await getFormData()
@@ -58,6 +59,7 @@ const rules = reactive({
   ],
   newPassword2: [
     required(),
+    passwordPolicy(),
     {
       asyncValidator: async (_, val, callback) => {
         const formData = await getFormData()
