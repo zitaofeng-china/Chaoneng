@@ -25,7 +25,7 @@ import {
 import { ElMessage } from 'element-plus'
 import { routePreloader } from '@/utils/preloadRoutes'
 
-const { required, phone, noChinese, noAtSymbol, lengthRange } = useValidator()
+const { required, phone, noChinese, noAtSymbol } = useValidator()
 
 const emit = defineEmits(['to-register'])
 
@@ -51,19 +51,13 @@ const managementCaptchaVisible = ref(false)
 
 // 根据登录类型使用不同的验证规则
 const rules = computed(() => {
-  // 密码验证规则（与代理表单一致）
+  // 登录只校验密码长度下限，允许历史用户使用纯数字或超过20位的密码
   const passwordRules = [
     required(),
-    noChinese(),
-    lengthRange({
-      min: 6,
-      max: 20,
-      message: '密码长度需为6-20位'
-    }),
     {
       validator: (_rule: any, value: any, callback: any) => {
-        if (value && /^\d+$/.test(value)) {
-          callback(new Error('密码不能为纯数字'))
+        if (value && String(value).length < 6) {
+          callback(new Error('密码长度不能少于6位'))
         } else {
           callback()
         }
