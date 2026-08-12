@@ -55,6 +55,9 @@
         <ElDescriptionsItem v-if="isResourcePoolMode" label="整点广播对象ID">
           {{ resourcePoolForm.broadcast_chat_id || '-' }}
         </ElDescriptionsItem>
+        <ElDescriptionsItem v-if="isResourcePoolMode" label="未匹配订单对象ID">
+          {{ resourcePoolForm.no_match_chat_id || '-' }}
+        </ElDescriptionsItem>
         <ElDescriptionsItem v-if="isResourcePoolMode" label="代理充值地址阈值">
           {{ formatThreshold(resourcePoolForm.agent_address_threshold) }}
         </ElDescriptionsItem>
@@ -125,6 +128,22 @@
                 placeholder="请输入整点广播对象ID"
                 style="width: 100%"
                 @input="handleBroadcastChatIdInput"
+              />
+            </ElFormItem>
+            <ElFormItem
+              v-if="isResourcePoolMode"
+              label="未匹配订单对象ID"
+              prop="no_match_chat_id"
+              required
+            >
+              <ElInput
+                v-model="resourcePoolForm.no_match_chat_id"
+                clearable
+                inputmode="numeric"
+                pattern="-?[0-9]*"
+                placeholder="请输入接收未匹配订单信息的对象ID"
+                style="width: 100%"
+                @input="handleNoMatchChatIdInput"
               />
             </ElFormItem>
             <ElFormItem v-if="isResourcePoolMode" label="通知状态" prop="status">
@@ -230,6 +249,7 @@ type ResourcePoolFormState = {
   token: string
   broadcast_chat_id: string
   chat_id: string
+  no_match_chat_id: string
   agent_address_threshold: number
   interval: number
   status: number
@@ -239,6 +259,7 @@ const DEFAULT_RESOURCE_POOL_FORM: ResourcePoolFormState = {
   token: '',
   broadcast_chat_id: '',
   chat_id: '',
+  no_match_chat_id: '',
   agent_address_threshold: 0,
   interval: 30,
   status: 1
@@ -299,50 +320,33 @@ const getNotifyStatusClass = (status?: number) =>
 
 const formatThreshold = (value?: number) => (value === undefined || value === null ? '-' : value)
 
+const createChatIdRule = (label: string) => [
+  {
+    validator: (_rule: unknown, value: unknown, callback: (error?: Error) => void) => {
+      const chatId = String(value || '').trim()
+      if (!chatId) {
+        callback(new Error(`请输入${label}，只可以输入数字`))
+        return
+      }
+      if (!CHAT_ID_PATTERN.test(chatId)) {
+        callback(new Error(`${label}只可以输入数字，可在开头输入负号`))
+        return
+      }
+      if (!Number.isSafeInteger(Number(chatId))) {
+        callback(new Error(`${label}超出有效数字范围`))
+        return
+      }
+      callback()
+    },
+    trigger: ['blur', 'change'] as const
+  }
+]
+
 const resourcePoolRules: FormRules = {
   token: [{ required: true, message: '请输入机器人 Token', trigger: 'blur' }],
-  broadcast_chat_id: [
-    {
-      validator: (_rule, value, callback) => {
-        const chatId = String(value || '').trim()
-        if (!chatId) {
-          callback(new Error('请输入整点广播对象ID，只可以输入数字'))
-          return
-        }
-        if (!CHAT_ID_PATTERN.test(chatId)) {
-          callback(new Error('整点广播对象ID只可以输入数字，可在开头输入负号'))
-          return
-        }
-        if (!Number.isSafeInteger(Number(chatId))) {
-          callback(new Error('整点广播对象ID超出有效数字范围'))
-          return
-        }
-        callback()
-      },
-      trigger: ['blur', 'change']
-    }
-  ],
-  chat_id: [
-    {
-      validator: (_rule, value, callback) => {
-        const chatId = String(value || '').trim()
-        if (!chatId) {
-          callback(new Error('请输入接收消息对象ID，只可以输入数字'))
-          return
-        }
-        if (!CHAT_ID_PATTERN.test(chatId)) {
-          callback(new Error('接收消息对象ID只可以输入数字，可在开头输入负号'))
-          return
-        }
-        if (!Number.isSafeInteger(Number(chatId))) {
-          callback(new Error('接收消息对象ID超出有效数字范围'))
-          return
-        }
-        callback()
-      },
-      trigger: ['blur', 'change']
-    }
-  ]
+  broadcast_chat_id: createChatIdRule('整点广播对象ID'),
+  chat_id: createChatIdRule('接收消息对象ID'),
+  no_match_chat_id: createChatIdRule('未匹配订单对象ID')
 }
 const currentBotInfo = computed(() => {
   if (isResourcePoolMode.value) return resourcePoolBotInfo.value
@@ -375,6 +379,7 @@ const fetchNotifyBot = async () => {
           token: res.data.token || '',
           broadcast_chat_id: res.data.broadcast_chat_id ? String(res.data.broadcast_chat_id) : '',
           chat_id: res.data.chat_id ? String(res.data.chat_id) : '',
+          no_match_chat_id: res.data.no_match_chat_id ? String(res.data.no_match_chat_id) : '',
           agent_address_threshold: Number(res.data.agent_address_threshold) || 0,
           interval: 30,
           status: Number(res.data.status) === 2 ? 2 : 1
@@ -390,6 +395,7 @@ const fetchNotifyBot = async () => {
           token: res.data.token || '',
           broadcast_chat_id: '',
           chat_id: res.data.chat_id ? String(res.data.chat_id) : '',
+          no_match_chat_id: '',
           agent_address_threshold: 0,
           interval: Number(res.data.interval) || 30,
           status: 1
@@ -439,9 +445,15 @@ const handleBroadcastChatIdInput = (value: string) => {
   resourcePoolForm.value.broadcast_chat_id = normalizeChatIdInput(value)
 }
 
+const handleNoMatchChatIdInput = (value: string) => {
+  resourcePoolForm.value.no_match_chat_id = normalizeChatIdInput(value)
+}
+
 const getChatIdNumber = () => Number(resourcePoolForm.value.chat_id.trim())
 
 const getBroadcastChatIdNumber = () => Number(resourcePoolForm.value.broadcast_chat_id.trim())
+
+const getNoMatchChatIdNumber = () => Number(resourcePoolForm.value.no_match_chat_id.trim())
 
 const handleSave = async () => {
   if (submitting.value) return
@@ -455,6 +467,7 @@ const handleSave = async () => {
         token: resourcePoolForm.value.token.trim(),
         broadcast_chat_id: getBroadcastChatIdNumber(),
         chat_id: getChatIdNumber(),
+        no_match_chat_id: getNoMatchChatIdNumber(),
         agent_address_threshold: Number(resourcePoolForm.value.agent_address_threshold) || 0,
         status: Number(resourcePoolForm.value.status) === 2 ? 2 : 1
       })

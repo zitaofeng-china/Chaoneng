@@ -541,7 +541,7 @@ export function useCustomerServiceChat() {
       let page = 1
       let totalPages = 1
 
-      // start_time is second-granular, so the first page can consist entirely of already loaded messages.
+      // start_time 为 ISO 时间戳；同秒内可能含已加载消息，需按时间与 id 过滤增量。
       while (page <= totalPages && collectedItems.length < pageSize) {
         const response = await getConversationMessages(conversationId, {
           current_page: page,

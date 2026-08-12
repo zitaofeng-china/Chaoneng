@@ -73,6 +73,8 @@ export interface ResourcePoolNotifyData {
   agent_address_threshold: number
   broadcast_chat_id: number | string
   chat_id: number | string
+  /** 接收未匹配订单信息的对象 ID */
+  no_match_chat_id?: number | string
   first_name: string
   id: number
   status: number
@@ -89,6 +91,8 @@ export interface UpdateResourcePoolNotifyParams {
   agent_address_threshold?: number
   broadcast_chat_id: number
   chat_id: number
+  /** 接收未匹配订单信息的对象 ID */
+  no_match_chat_id: number
   first_name?: string
   id?: number
   status?: number
