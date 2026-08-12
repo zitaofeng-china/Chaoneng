@@ -25,6 +25,7 @@ import { useQuickReplies } from './useQuickReplies'
 import { usePendingMedia } from './usePendingMedia'
 import { useMessageMedia } from './useMessageMedia'
 import { useConversationList } from './useConversationList'
+import { parseApiDateTime, type ApiDateTime } from './time'
 
 /**
  * 客服会话页的状态与交互控制器。
@@ -157,9 +158,9 @@ export function useCustomerServiceChat() {
     if (selectedId.value) void syncReadStateWithReplyFocus(selectedId.value)
   }
 
-  function formatMessageTime(value?: string | null) {
+  function formatMessageTime(value?: ApiDateTime) {
     if (!value) return ''
-    const time = dayjs(value)
+    const time = parseApiDateTime(value)
     if (!time.isValid()) return value
     const now = dayjs()
     if (time.isSame(now, 'day')) return time.format('HH:mm')
@@ -184,7 +185,9 @@ export function useCustomerServiceChat() {
     messageCacheTruncated.value[conversationId] = messages.length > maxCachedMessages
     if (refreshIdleExpiry) {
       const latestMessage = cachedMessages[cachedMessages.length - 1]
-      const latestMessageAt = latestMessage ? dayjs(latestMessage.createdAt).valueOf() : Date.now()
+      const latestMessageAt = latestMessage
+        ? parseApiDateTime(latestMessage.createdAt).valueOf()
+        : Date.now()
       messageCacheExpiresAt.value[conversationId] = latestMessageAt + messageCacheIdleMs
     } else if (!messageCacheExpiresAt.value[conversationId]) {
       messageCacheExpiresAt.value[conversationId] = Date.now() + messageCacheIdleMs
@@ -284,45 +287,49 @@ export function useCustomerServiceChat() {
         currentConversation.lastReadAt
       ) {
         const historyFirstPage = await getConversationMessages(conversationId, {
-          page: 1,
+          current_page: 1,
           page_size: 10,
           end_time: currentConversation.lastReadAt
         })
         if (requestSeq !== messageRequestSeq || selectedId.value !== conversationId) return
 
-        const historyTotal = historyFirstPage.data?.total ?? 0
+        const historyTotal = historyFirstPage.data?.pager?.total ?? 0
         const historyLastPage = Math.max(1, Math.ceil(historyTotal / 10))
         const historyResponse =
           historyLastPage === 1
             ? historyFirstPage
             : await getConversationMessages(conversationId, {
-                page: historyLastPage,
+                current_page: historyLastPage,
                 page_size: 10,
                 end_time: currentConversation.lastReadAt
               })
         if (requestSeq !== messageRequestSeq || selectedId.value !== conversationId) return
 
         const unreadResponse = await getConversationMessages(conversationId, {
-          page: 1,
+          current_page: 1,
           page_size: 10,
           start_time: currentConversation.lastReadAt
         })
         if (requestSeq !== messageRequestSeq || selectedId.value !== conversationId) return
 
         const unreadItems = (unreadResponse.data?.list ?? [])
-          .filter((item) => dayjs(item.created_at).isAfter(currentConversation.lastReadAt))
+          .filter((item) =>
+            parseApiDateTime(item.created_at).isAfter(
+              parseApiDateTime(currentConversation.lastReadAt)
+            )
+          )
           .slice(0, 10)
         const loadedItems = [...(historyResponse.data?.list ?? []), ...unreadItems]
           .filter(
             (item, index, list) => list.findIndex((candidate) => candidate.id === item.id) === index
           )
           .sort((a, b) => {
-            const timeA = dayjs(a.created_at).valueOf()
-            const timeB = dayjs(b.created_at).valueOf()
+            const timeA = parseApiDateTime(a.created_at).valueOf()
+            const timeB = parseApiDateTime(b.created_at).valueOf()
             if (timeA !== timeB) return timeA - timeB
             return a.id - b.id
           })
-        const messages = loadedItems.map(mapMessageItem)
+        const messages = loadedItems.map((item) => mapMessageItem(item, conversationId))
         clearMessageObjectUrls(currentConversation.messages)
         currentConversation.messages = messages
         cacheConversationMessages(conversationId, messages, true)
@@ -349,18 +356,18 @@ export function useCustomerServiceChat() {
       }
 
       const firstPage = await getConversationMessages(conversationId, {
-        page: 1,
+        current_page: 1,
         page_size: 20
       })
       if (requestSeq !== messageRequestSeq || selectedId.value !== conversationId) return
 
-      const total = firstPage.data?.total ?? 0
+      const total = firstPage.data?.pager?.total ?? 0
       const latestPage = Math.max(1, Math.ceil(total / 20))
       let latestResponse = firstPage
       let previousResponse: typeof firstPage | undefined
       if (latestPage > 1) {
         latestResponse = await getConversationMessages(conversationId, {
-          page: latestPage,
+          current_page: latestPage,
           page_size: 20
         })
         if (requestSeq !== messageRequestSeq || selectedId.value !== conversationId) return
@@ -369,7 +376,7 @@ export function useCustomerServiceChat() {
           latestPage === 2
             ? firstPage
             : await getConversationMessages(conversationId, {
-                page: latestPage - 1,
+                current_page: latestPage - 1,
                 page_size: 20
               })
         if (requestSeq !== messageRequestSeq || selectedId.value !== conversationId) return
@@ -379,13 +386,13 @@ export function useCustomerServiceChat() {
         ...(previousResponse?.data?.list ?? []),
         ...(latestResponse.data?.list ?? [])
       ].sort((a, b) => {
-        const ta = dayjs(a.created_at).valueOf()
-        const tb = dayjs(b.created_at).valueOf()
+        const ta = parseApiDateTime(a.created_at).valueOf()
+        const tb = parseApiDateTime(b.created_at).valueOf()
         if (ta !== tb) return ta - tb
         return a.id - b.id
       })
 
-      const allMessages = list.map(mapMessageItem)
+      const allMessages = list.map((item) => mapMessageItem(item, conversationId))
       const messages = allMessages.slice(-20)
       const bufferedMessages = allMessages.slice(0, -20)
 
@@ -398,8 +405,9 @@ export function useCustomerServiceChat() {
       loadMessageMedia(messages)
       if (conversation?.unread && conversation.lastReadAt) {
         unreadDividerMessageId.value =
-          messages.find((item) => dayjs(item.createdAt).isAfter(conversation.lastReadAt))?.id ??
-          null
+          messages.find((item) =>
+            parseApiDateTime(item.createdAt).isAfter(parseApiDateTime(conversation.lastReadAt))
+          )?.id ?? null
       }
       messagePageState.value[conversationId] = {
         previousPage: latestPage - 2,
@@ -444,18 +452,18 @@ export function useCustomerServiceChat() {
       let loadedPreviousPage = false
       if (!olderMessages.length && state.previousPage > 0) {
         const res = await getConversationMessages(conversationId, {
-          page: state.previousPage,
+          current_page: state.previousPage,
           page_size: state.pageSize ?? 20,
           end_time: state.endTime
         })
         if (requestSeq !== messageRequestSeq || selectedId.value !== conversationId) return
         const list = [...(res.data?.list ?? [])].sort((a, b) => {
-          const ta = dayjs(a.created_at).valueOf()
-          const tb = dayjs(b.created_at).valueOf()
+          const ta = parseApiDateTime(a.created_at).valueOf()
+          const tb = parseApiDateTime(b.created_at).valueOf()
           if (ta !== tb) return ta - tb
           return a.id - b.id
         })
-        olderMessages = list.map(mapMessageItem)
+        olderMessages = list.map((item) => mapMessageItem(item, conversationId))
         loadedPreviousPage = true
       }
       if (!olderMessages.length) {
@@ -525,7 +533,7 @@ export function useCustomerServiceChat() {
     appendingLatestMessages = true
     const requestSeq = messageRequestSeq
     try {
-      const latestTime = dayjs(latestLoadedMessage.createdAt).valueOf()
+      const latestTime = parseApiDateTime(latestLoadedMessage.createdAt).valueOf()
       const existingIds = new Set(conversation.messages.map((item) => item.id))
       const collectedItems: ConversationMessageItem[] = []
       const collectedIds = new Set<number>()
@@ -536,7 +544,7 @@ export function useCustomerServiceChat() {
       // start_time is second-granular, so the first page can consist entirely of already loaded messages.
       while (page <= totalPages && collectedItems.length < pageSize) {
         const response = await getConversationMessages(conversationId, {
-          page,
+          current_page: page,
           page_size: pageSize,
           start_time: latestLoadedMessage.createdAt
         })
@@ -544,10 +552,10 @@ export function useCustomerServiceChat() {
 
         const list = response.data?.list ?? []
         if (page === 1) {
-          totalPages = Math.max(1, Math.ceil(Number(response.data?.total ?? 0) / pageSize))
+          totalPages = Math.max(1, Math.ceil(Number(response.data?.pager?.total ?? 0) / pageSize))
         }
         list.forEach((item) => {
-          const itemTime = dayjs(item.created_at).valueOf()
+          const itemTime = parseApiDateTime(item.created_at).valueOf()
           const isNewer =
             itemTime > latestTime || (itemTime === latestTime && item.id > latestLoadedMessage.id)
           if (isNewer && !existingIds.has(item.id) && !collectedIds.has(item.id)) {
@@ -561,12 +569,12 @@ export function useCustomerServiceChat() {
 
       const messages = collectedItems
         .sort((a, b) => {
-          const timeA = dayjs(a.created_at).valueOf()
-          const timeB = dayjs(b.created_at).valueOf()
+          const timeA = parseApiDateTime(a.created_at).valueOf()
+          const timeB = parseApiDateTime(b.created_at).valueOf()
           if (timeA !== timeB) return timeA - timeB
           return a.id - b.id
         })
-        .map(mapMessageItem)
+        .map((item) => mapMessageItem(item, conversationId))
       if (!messages.length) return 0
 
       const messageArea = getMessageArea()
@@ -831,12 +839,10 @@ export function useCustomerServiceChat() {
       // 多个附件仍按当前单媒体接口依次发送，文本只作为首个附件的 caption，避免重复。
       const replyPayloads: ConversationReplyParams[] = uploadedMedia.length
         ? uploadedMedia.map(({ mediaKind, url }, index) => ({
-            message_type:
-              mediaKind === 'image' ? 'photo' : mediaKind === 'video' ? 'video' : 'document',
-            media_url: toRelativeMediaUrl(url),
-            ...(index === 0 && content ? { text: content } : {})
+            file: toRelativeMediaUrl(url),
+            ...(index === 0 && content ? { content } : {})
           }))
-        : [{ text: content }]
+        : [{ content }]
 
       const replyResults: IResponse<ConversationReplyResult | string | number>[] = []
       for (const payload of replyPayloads) {
@@ -852,8 +858,9 @@ export function useCustomerServiceChat() {
         const mediaKind = media?.mediaKind ?? null
         return {
           id: messageId ?? Date.now() + index,
+          conversationId: conversation.id,
           direction: 'outgoing',
-          content: payload.text || '',
+          content: payload.content || '',
           imageUrls: mediaKind === 'image' && media?.previewUrl ? [media.previewUrl] : undefined,
           videoUrl: mediaKind === 'video' ? media?.previewUrl : undefined,
           fileUrl: mediaKind === 'file' ? media?.url : undefined,

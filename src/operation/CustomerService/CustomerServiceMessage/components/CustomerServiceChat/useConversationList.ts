@@ -4,6 +4,7 @@ import { getConversationList } from '@/api/opertion/CustomerService/CustomerServ
 import type { ConversationListItem } from '@/api/opertion/CustomerService/CustomerServiceMessage'
 import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
 import type { ChatMessage, Conversation } from './types'
+import { parseApiDateTime, type ApiDateTime } from './time'
 
 interface UseConversationListOptions {
   selectedId: Ref<number | null>
@@ -33,9 +34,9 @@ export function useConversationList(options: UseConversationListOptions) {
     }))
   ])
 
-  function formatConversationTime(value?: string | null) {
+  function formatConversationTime(value?: ApiDateTime) {
     if (!value) return ''
-    const time = dayjs(value)
+    const time = parseApiDateTime(value)
     if (!time.isValid()) return value
     const now = dayjs()
     if (time.isSame(now, 'day')) return time.format('HH:mm')
@@ -46,10 +47,19 @@ export function useConversationList(options: UseConversationListOptions) {
 
   function resolveConversationName(item: ConversationListItem) {
     return (
-      item.nickname?.trim() ||
-      (item.tg_username ? `@${item.tg_username.replace(/^@/, '')}` : '') ||
+      item.tg_first_name?.trim() ||
+      (item.tg_user_name ? `@${item.tg_user_name.replace(/^@/, '')}` : '') ||
       String(item.chat_id)
     )
+  }
+
+  function resolveConversationPreview(item: ConversationListItem) {
+    const type = (item.last_message_type || '').toLowerCase()
+    if (type.includes('video')) return '[视频]'
+    if (type.includes('photo') || type.includes('image') || type.includes('picture'))
+      return '[图片]'
+    if (type.includes('document') || type.includes('file')) return '[文件]'
+    return item.last_message_preview || ''
   }
 
   function mapConversationItem(item: ConversationListItem): Conversation {
@@ -61,9 +71,9 @@ export function useConversationList(options: UseConversationListOptions) {
       userId: String(item.chat_id),
       chatId: item.chat_id,
       botId: item.bot_id,
-      tgUsername: item.tg_username || '',
+      tgUsername: item.tg_user_name || '',
       updatedAt: formatConversationTime(item.last_message_at),
-      preview: item.last_message_preview || '',
+      preview: resolveConversationPreview(item),
       unread: item.unread_count || 0,
       lastReadAt: item.last_read_at,
       messages: [...options.getCachedMessages(item.id)]
@@ -96,17 +106,17 @@ export function useConversationList(options: UseConversationListOptions) {
       const res = await getConversationList({
         bot_id: botId.value,
         keyword: keyword.value.trim() || undefined,
-        page: 1,
+        current_page: 1,
         page_size: 50
       })
       const list = [...(res.data?.list ?? [])].sort((a, b) => {
         const unreadDiff = Number(Boolean(b.unread_count)) - Number(Boolean(a.unread_count))
         if (unreadDiff) return unreadDiff
-        const timeA = dayjs(a.last_message_at).valueOf() || 0
-        const timeB = dayjs(b.last_message_at).valueOf() || 0
+        const timeA = parseApiDateTime(a.last_message_at).valueOf() || 0
+        const timeB = parseApiDateTime(b.last_message_at).valueOf() || 0
         return timeB - timeA
       })
-      conversationTotal.value = res.data?.total ?? list.length
+      conversationTotal.value = res.data?.pager?.total ?? list.length
       conversations.value = list.map(mapConversationItem)
       if (
         options.selectedId.value !== null &&

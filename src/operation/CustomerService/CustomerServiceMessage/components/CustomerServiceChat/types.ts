@@ -3,6 +3,7 @@ export type MediaKind = 'image' | 'video' | 'file' | null
 
 export interface ChatMessage {
   id: number
+  conversationId: number
   direction: Direction
   content: string
   imageUrls?: string[]
@@ -13,7 +14,7 @@ export interface ChatMessage {
   mediaKind?: MediaKind
   mediaLoading?: boolean
   mediaTooLarge?: boolean
-  createdAt: string
+  createdAt: string | number
   time: string
 }
 
@@ -28,7 +29,7 @@ export interface Conversation {
   updatedAt: string
   preview: string
   unread: number
-  lastReadAt: string | null
+  lastReadAt: string | number | null
   messages: ChatMessage[]
 }
 

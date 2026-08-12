@@ -3,27 +3,36 @@ export interface ConversationListItem {
   bot_id: number
   user_id: number
   chat_id: number
-  last_read_at: string | null
-  last_message_at: string | null
+  created_at: string | number
+  updated_at: string | number
+  last_read_at: string | number | null
+  last_message_at: string | number | null
   last_message_type: string | null
   last_message_preview: string | null
-  tg_username: string | null
-  nickname: string | null
+  tg_first_name: string | null
+  tg_user_name: string | null
   unread_count: number
 }
 
 export interface ConversationListParams {
+  agent_id?: number
   bot_id?: number
+  current_page?: number
   keyword?: string
-  page?: number
+  order?: string
   page_size?: number
+  unread_only?: boolean
+}
+
+export interface ConversationPager {
+  current_page: number
+  page_size: number
+  total: number
 }
 
 export interface ConversationListResponse {
   list: ConversationListItem[]
-  page: number
-  page_size: number
-  total: number
+  pager: ConversationPager
 }
 
 export interface MessageMediaMeta {
@@ -40,31 +49,31 @@ export interface ConversationMessageItem {
   chat_id: number
   message_id: number
   direction: number
-  message_type: string
+  media_type: string
   content: string | null
   media_file_id: string | null
   media_meta: string | MessageMediaMeta | null
-  created_at: string
+  created_at: string | number
+  updated_at: string | number
 }
 
 export interface ConversationMessageParams {
-  page?: number
+  current_page?: number
   page_size?: number
-  start_time?: string
-  end_time?: string
+  start_time?: string | number
+  end_time?: string | number
+  keyword?: string
+  order?: string
 }
 
 export interface ConversationMessageResponse {
   list: ConversationMessageItem[]
-  page: number
-  page_size: number
-  total: number
+  pager: ConversationPager
 }
 
 export interface ConversationReplyParams {
-  text?: string
-  message_type?: string
-  media_url?: string
+  content?: string
+  file?: string
 }
 
 export interface ConversationReplyResult {

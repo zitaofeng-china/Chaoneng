@@ -5,10 +5,11 @@ import type {
   MessageMediaMeta
 } from '@/api/opertion/CustomerService/CustomerServiceMessage'
 import type { ChatMessage, MediaKind } from './types'
+import { type ApiDateTime } from './time'
 
 interface UseMessageMediaOptions {
   getMessageArea: () => HTMLElement | undefined
-  formatMessageTime: (value?: string | null) => string
+  formatMessageTime: (value?: ApiDateTime) => string
 }
 
 const maxInlineMediaSize = 2 * 1024 * 1024
@@ -38,7 +39,7 @@ export function useMessageMedia(options: UseMessageMediaOptions) {
     meta: MessageMediaMeta | null
   ): MediaKind {
     if (!hasMediaFile(item)) return null
-    const type = (item.message_type || '').toLowerCase()
+    const type = (item.media_type || '').toLowerCase()
     const mime = (meta?.mime_type || '').toLowerCase()
     const name = (meta?.file_name || '').toLowerCase()
 
@@ -82,13 +83,14 @@ export function useMessageMedia(options: UseMessageMediaOptions) {
     })
   }
 
-  function mapMessageItem(item: ConversationMessageItem): ChatMessage {
+  function mapMessageItem(item: ConversationMessageItem, conversationId: number): ChatMessage {
     const meta = parseMediaMeta(item.media_meta)
     const mediaKind = resolveMediaKind(item, meta)
     const fileSize = Number(meta?.file_size) || undefined
     const mediaTooLarge = Boolean(mediaKind && fileSize && fileSize > maxInlineMediaSize)
     return {
       id: item.id,
+      conversationId,
       direction: item.direction === 1 ? 'incoming' : 'outgoing',
       content: item.content?.trim() || '',
       fileName: meta?.file_name,
@@ -108,7 +110,7 @@ export function useMessageMedia(options: UseMessageMediaOptions) {
     }
 
     try {
-      const blob = await getMessageFileBlob(message.id)
+      const blob = await getMessageFileBlob(message.conversationId, message.id)
       if (blob.size > maxInlineMediaSize && !forceLoad) {
         message.mediaTooLarge = true
         return false
