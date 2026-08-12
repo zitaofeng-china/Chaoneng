@@ -450,8 +450,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           name: 'CustomerServiceMessage',
           component: () => import('@/operation/CustomerService/CustomerServiceMessage/index.vue'),
           meta: {
-            hidden: true,
-            title: '消息回复',
+            title: '客服消息',
             icon: 'ant-design:message-outlined'
           }
         },
