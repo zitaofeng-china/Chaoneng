@@ -116,19 +116,22 @@ defineExpose({ openImage, openVideo })
 }
 
 .image-viewer-stage {
-  display: block;
+  display: flex;
   width: 100%;
   height: min(72vh, 760px);
   overflow: auto;
   background: var(--el-fill-color);
   border: 1px solid var(--el-border-color);
   border-radius: 4px;
+  align-items: safe center;
+  justify-content: safe center;
 }
 
 .image-viewer {
   display: block;
+  flex: 0 0 auto;
   max-width: none;
-  margin: 0 auto;
+  margin: 0;
   cursor: zoom-in;
   object-fit: contain;
 }
