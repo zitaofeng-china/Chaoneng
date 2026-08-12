@@ -14,17 +14,31 @@
       <div class="conversation-panel__header-actions">
         <el-tooltip :content="chatFullscreen ? '退出全屏' : '全屏显示'">
           <el-button
+            class="conversation-panel__icon-button"
             link
             size="small"
             :aria-label="chatFullscreen ? '退出全屏' : '全屏显示'"
             @click.stop="emit('toggle-fullscreen')"
           >
-            {{ chatFullscreen ? '退出全屏' : '全屏' }}
+            <Icon
+              :icon="
+                chatFullscreen
+                  ? 'vi-radix-icons:exit-full-screen'
+                  : 'vi-radix-icons:enter-full-screen'
+              "
+              :size="18"
+            />
           </el-button>
         </el-tooltip>
         <el-tooltip content="关闭会话">
-          <el-button link size="small" aria-label="关闭会话" @click.stop="emit('close')">
-            关闭
+          <el-button
+            class="conversation-panel__icon-button"
+            link
+            size="small"
+            aria-label="关闭会话"
+            @click.stop="emit('close')"
+          >
+            <Icon icon="vi-ep:close" :size="18" />
           </el-button>
         </el-tooltip>
       </div>
@@ -107,8 +121,8 @@
                 >
               </el-tooltip>
               <div v-if="message.mediaLoading" class="chat-message__media-loading"
-                ><span class="customer-service-loading" :size="18"
-              /></div>
+                ><span class="customer-service-loading" :size="18" /><span>加载中...</span></div
+              >
               <p v-if="message.content">{{ message.content }}</p>
             </div>
           </div>
@@ -187,7 +201,7 @@
         ref="replyInput"
         :model-value="replyText"
         placeholder="输入回复内容..."
-        :autosize="{ minRows: pendingMedia.length ? 2 : 1, maxRows: pendingMedia.length ? 3 : 4 }"
+        :autosize="{ minRows: pendingMedia.length ? 3 : 3, maxRows: pendingMedia.length ? 4 : 5 }"
         :max-length="1000"
         show-word-limit
         @update:model-value="emit('update:reply-text', $event)"
@@ -233,7 +247,11 @@
                 </button>
                 <el-empty v-if="!quickReplies.length" description="暂无快捷回复" :image-size="48" />
               </div>
-              <el-button class="quick-reply-picker__manage" link @click="openQuickReplyManager"
+              <el-button
+                class="quick-reply-picker__manage"
+                link
+                @mousedown.stop
+                @click.stop="openQuickReplyManager"
                 >管理快捷回复</el-button
               >
             </div>
@@ -340,7 +358,7 @@ defineExpose({
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-rows: 64px minmax(260px, 1fr) 116px;
+  grid-template-rows: 64px minmax(260px, 1fr) 150px;
 
   &--has-pending-media {
     grid-template-rows: 64px minmax(260px, 1fr) clamp(180px, 24vh, 240px);
@@ -395,9 +413,22 @@ defineExpose({
   &__header-actions {
     display: flex;
     align-items: center;
+    gap: 4px;
 
     :deep(.el-button) {
       color: var(--el-text-color-secondary);
+    }
+
+    :deep(.conversation-panel__icon-button) {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border-radius: 6px;
+
+      &:hover {
+        color: var(--el-color-primary);
+        background: var(--el-fill-color-light);
+      }
     }
   }
 
@@ -426,9 +457,11 @@ defineExpose({
     }
 
     :deep(.el-textarea__inner) {
-      min-height: 62px;
+      min-height: 88px;
       padding: 0;
       background: transparent;
+      border: 0;
+      box-shadow: none;
       resize: none;
     }
   }
@@ -835,12 +868,18 @@ defineExpose({
 
 .chat-message__media-loading {
   display: inline-flex;
+  gap: 8px;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color);
   border-radius: 7px;
   box-sizing: border-box;
   align-items: center;
   justify-content: center;
+
+  > span:last-child {
+    font-size: 12px;
+    color: var(--el-text-color-regular);
+  }
 }
 
 .chat-message__media-placeholder {
