@@ -1,8 +1,9 @@
 <template>
   <div
+    ref="chatRoot"
     class="customer-service-chat"
     :class="{ 'customer-service-chat--fullscreen': chatFullscreen }"
-    @click="focusReplyInput"
+    @click="handleChatClick"
     @wheel="handleConversationWheel"
   >
     <div v-if="isDraggingImages" class="page-drop-overlay">拖入文件即可发送</div>
@@ -74,12 +75,36 @@
 </template>
 
 <script setup lang="ts">
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import ConversationList from './ConversationList.vue'
 import ConversationPanel from './ConversationPanel.vue'
 import CustomerServiceFilters from './CustomerServiceFilters.vue'
 import MediaViewer from './MediaViewer.vue'
 import QuickReplyManager from './QuickReplyManager.vue'
+import { useAppStore } from '@/store/modules/app'
 import { useCustomerServiceChat } from './useCustomerServiceChat'
+
+const appStore = useAppStore()
+const chatRoot = ref<HTMLElement>()
+let pageScrollWrapper: HTMLElement | undefined
+let previousOverflowY = ''
+let previousFooterVisible = true
+
+onMounted(() => {
+  previousFooterVisible = appStore.getFooter
+  appStore.setFooter(false)
+  void nextTick(() => {
+    pageScrollWrapper = chatRoot.value?.closest<HTMLElement>('.el-scrollbar__wrap')
+    if (!pageScrollWrapper) return
+    previousOverflowY = pageScrollWrapper.style.overflowY
+    pageScrollWrapper.style.overflowY = 'hidden'
+  })
+})
+
+onBeforeUnmount(() => {
+  appStore.setFooter(previousFooterVisible)
+  if (pageScrollWrapper) pageScrollWrapper.style.overflowY = previousOverflowY
+})
 const {
   keyword,
   botId,
@@ -130,12 +155,39 @@ const {
   handleConversationWheel,
   formatFileSize
 } = useCustomerServiceChat()
+
+function handleChatClick() {
+  if (quickReplyModalVisible.value) return
+  focusReplyInput()
+}
 </script>
 
 <style scoped lang="less">
 .customer-service-chat {
+  display: flex;
+  width: calc(100% + (var(--app-content-padding) * 2));
+  height: calc(100dvh - var(--top-tool-height) - var(--tags-view-height));
+  min-height: 0;
+  margin: calc(var(--app-content-padding) * -1);
+  overflow: hidden;
+  flex-direction: column;
+
+  :deep(.el-card) {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
   :deep(.el-card__body) {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
     padding: 18px;
+    flex: 1;
+    flex-direction: column;
   }
 
   &--fullscreen {
@@ -179,8 +231,9 @@ const {
 
 .service-workbench {
   display: grid;
-  height: max(540px, calc(100dvh - 215px));
+  height: auto;
   min-height: 0;
+  flex: 1;
   overflow: hidden;
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color);
