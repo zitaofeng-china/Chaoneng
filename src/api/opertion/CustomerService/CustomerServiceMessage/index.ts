@@ -14,8 +14,8 @@ const CONVERSATION_BASE_URL = '/v1/conversation'
 
 type ConversationMessageTime = string | number
 
-/** 将时间参数规范为 ISO 8601 字符串（如 2026-08-12T11:22:49.000Z） */
-function toIsoTimestamp(value: ConversationMessageTime): string {
+/** 将时间参数规范为 Unix 秒级时间戳 */
+function toUnixTimestamp(value: ConversationMessageTime): number {
   const numericValue =
     typeof value === 'number'
       ? value
@@ -31,7 +31,7 @@ function toIsoTimestamp(value: ConversationMessageTime): string {
     throw new Error(`客服消息接口收到无效时间参数: ${String(value)}`)
   }
 
-  return date.toISOString()
+  return Math.floor(date.getTime() / 1000)
 }
 
 function normalizeConversationMessageParams(
@@ -41,8 +41,8 @@ function normalizeConversationMessageParams(
 
   return {
     ...params,
-    start_time: params.start_time === undefined ? undefined : toIsoTimestamp(params.start_time),
-    end_time: params.end_time === undefined ? undefined : toIsoTimestamp(params.end_time)
+    start_time: params.start_time === undefined ? undefined : toUnixTimestamp(params.start_time),
+    end_time: params.end_time === undefined ? undefined : toUnixTimestamp(params.end_time)
   }
 }
 
