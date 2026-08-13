@@ -11,7 +11,9 @@
       <CustomerServiceFilters
         v-model:keyword="keyword"
         v-model:bot-id="botId"
+        v-model:agent-id="agentId"
         :bot-options="botOptions"
+        :agent-options="agentOptions"
         :loading="listLoading"
         @search="handleSearch"
         @reset="resetFilters"
@@ -108,7 +110,9 @@ onBeforeUnmount(() => {
 const {
   keyword,
   botId,
+  agentId,
   botOptions,
+  agentOptions,
   listLoading,
   handleSearch,
   resetFilters,
@@ -238,7 +242,7 @@ function handleChatClick() {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color);
   border-radius: 6px;
-  grid-template-columns: clamp(220px, 17vw, 270px) minmax(0, 1fr);
+  grid-template-columns: clamp(232px, 16vw, 268px) minmax(0, 1fr);
 }
 
 .conversation-panel--empty {

@@ -25,9 +25,13 @@ export interface Conversation {
   userId: string
   chatId: number
   botId: number
+  agentId?: number
+  agentName: string
   tgUsername: string
   updatedAt: string
+  lastMessageAt?: string | number | null
   preview: string
+  previewDirection?: Direction | null
   unread: number
   lastReadAt: string | number | null
   messages: ChatMessage[]

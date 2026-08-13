@@ -1,9 +1,14 @@
 import dayjs from 'dayjs'
-import { computed, onBeforeUnmount, onMounted, ref, type Ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue'
 import { getConversationList } from '@/api/opertion/CustomerService/CustomerServiceMessage'
 import type { ConversationListItem } from '@/api/opertion/CustomerService/CustomerServiceMessage'
-import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
-import type { ChatMessage, Conversation } from './types'
+import {
+  v1GetMessageAgentList,
+  v1GetMessageBotList,
+  type MessageAgentItem,
+  type MessageBotItem
+} from '@/api/opertion/common/message'
+import type { ChatMessage, Conversation, Direction } from './types'
 import { parseApiDateTime, type ApiDateTime } from './time'
 
 interface UseConversationListOptions {
@@ -19,9 +24,11 @@ const conversationRefreshInterval = 5000
 export function useConversationList(options: UseConversationListOptions) {
   const keyword = ref('')
   const botId = ref<number | undefined>()
+  const agentId = ref<number | undefined>()
   const listLoading = ref(false)
   const conversationTotal = ref(0)
   const botList = ref<MessageBotItem[]>([])
+  const agentList = ref<MessageAgentItem[]>([])
   const conversations = ref<Conversation[]>([])
   let conversationListLoading = false
   let conversationRefreshTimer: number | undefined
@@ -31,6 +38,14 @@ export function useConversationList(options: UseConversationListOptions) {
     ...botList.value.map((bot) => ({
       label: bot.user_name || bot.first_name || `Bot#${bot.id}`,
       value: bot.id
+    }))
+  ])
+
+  const agentOptions = computed(() => [
+    { label: '全部', value: undefined as number | undefined },
+    ...agentList.value.map((agent) => ({
+      label: agent.username || agent.email || `代理#${agent.id}`,
+      value: agent.id
     }))
   ])
 
@@ -46,11 +61,16 @@ export function useConversationList(options: UseConversationListOptions) {
   }
 
   function resolveConversationName(item: ConversationListItem) {
-    return (
-      item.tg_first_name?.trim() ||
-      (item.tg_user_name ? `@${item.tg_user_name.replace(/^@/, '')}` : '') ||
-      String(item.chat_id)
-    )
+    const nickname = item.tg_first_name?.trim() || ''
+    const username = item.tg_user_name?.trim().replace(/^@/, '') || ''
+    if (nickname && username) return `${nickname} (${username})`
+    if (nickname) return nickname
+    if (username) return `@${username}`
+    return String(item.chat_id)
+  }
+
+  function resolveAgentName(item: ConversationListItem) {
+    return item.agent_name?.trim() || (item.agent_id ? `代理#${item.agent_id}` : '')
   }
 
   function resolveConversationPreview(item: ConversationListItem) {
@@ -62,29 +82,88 @@ export function useConversationList(options: UseConversationListOptions) {
     return item.last_message_preview || ''
   }
 
-  function mapConversationItem(item: ConversationListItem): Conversation {
+  function mapMessageDirection(direction?: number | null): Direction | undefined {
+    if (direction === undefined || direction === null || Number.isNaN(Number(direction))) {
+      return undefined
+    }
+    return Number(direction) === 1 ? 'incoming' : 'outgoing'
+  }
+
+  function isSameMessageTime(left?: ApiDateTime | null, right?: ApiDateTime | null) {
+    if (left == null || right == null) return false
+    const leftTime = parseApiDateTime(left).valueOf()
+    const rightTime = parseApiDateTime(right).valueOf()
+    return Boolean(leftTime && rightTime && Math.abs(leftTime - rightTime) < 2000)
+  }
+
+  function resolvePreviewDirection(
+    item: ConversationListItem,
+    previous?: Conversation,
+    cachedMessages: ChatMessage[] = []
+  ): Direction | undefined {
+    const fromApi = mapMessageDirection(item.last_message_direction)
+    if (fromApi) return fromApi
+    if ((item.unread_count || 0) > 0) return 'incoming'
+
+    const lastCached = cachedMessages.at(-1)
+    if (lastCached && isSameMessageTime(lastCached.createdAt, item.last_message_at)) {
+      return lastCached.direction
+    }
+
+    if (
+      previous?.previewDirection &&
+      isSameMessageTime(previous.lastMessageAt, item.last_message_at)
+    ) {
+      return previous.previewDirection
+    }
+
+    return undefined
+  }
+
+  function mapConversationItem(item: ConversationListItem, previous?: Conversation): Conversation {
     const name = resolveConversationName(item)
+    const avatarSource =
+      item.tg_first_name?.trim() ||
+      item.tg_user_name?.trim().replace(/^@/, '') ||
+      String(item.chat_id)
+    const messages = [...options.getCachedMessages(item.id)]
     return {
       id: item.id,
       name,
-      avatar: name.replace(/^@/, '').slice(0, 1) || '客',
+      avatar: avatarSource.slice(0, 1) || '客',
       userId: String(item.chat_id),
       chatId: item.chat_id,
       botId: item.bot_id,
+      agentId: item.agent_id,
+      agentName: resolveAgentName(item),
       tgUsername: item.tg_user_name || '',
       updatedAt: formatConversationTime(item.last_message_at),
+      lastMessageAt: item.last_message_at,
       preview: resolveConversationPreview(item),
+      previewDirection: resolvePreviewDirection(item, previous, messages),
       unread: item.unread_count || 0,
       lastReadAt: item.last_read_at,
-      messages: [...options.getCachedMessages(item.id)]
+      messages
+    }
+  }
+
+  async function fetchAgentList() {
+    try {
+      const res = await v1GetMessageAgentList()
+      agentList.value = res.data ?? []
+    } catch {
+      agentList.value = []
     }
   }
 
   async function fetchBotList() {
     try {
       // 客服消息筛选仅需要机器人简要信息，使用无分页的下拉专用接口。
-      const res = await v1GetMessageBotList()
+      const res = await v1GetMessageBotList(agentId.value ? { agent_id: agentId.value } : undefined)
       botList.value = res.data ?? []
+      if (botId.value !== undefined && !botList.value.some((bot) => bot.id === botId.value)) {
+        botId.value = undefined
+      }
     } catch {
       // 错误已由 http 拦截器处理
     }
@@ -104,6 +183,7 @@ export function useConversationList(options: UseConversationListOptions) {
         ? (conversations.value.find((item) => item.id === activeConversationId)?.unread ?? 0)
         : 0
       const res = await getConversationList({
+        agent_id: agentId.value,
         bot_id: botId.value,
         keyword: keyword.value.trim() || undefined,
         current_page: 1,
@@ -117,7 +197,8 @@ export function useConversationList(options: UseConversationListOptions) {
         return timeB - timeA
       })
       conversationTotal.value = res.data?.pager?.total ?? list.length
-      conversations.value = list.map(mapConversationItem)
+      const previousById = new Map(conversations.value.map((item) => [item.id, item]))
+      conversations.value = list.map((item) => mapConversationItem(item, previousById.get(item.id)))
       if (
         options.selectedId.value !== null &&
         !conversations.value.some((item) => item.id === options.selectedId.value)
@@ -171,10 +252,17 @@ export function useConversationList(options: UseConversationListOptions) {
   function resetFilters() {
     keyword.value = ''
     botId.value = undefined
+    agentId.value = undefined
+    void fetchBotList()
     void fetchConversationList()
   }
 
+  watch(agentId, () => {
+    void fetchBotList()
+  })
+
   onMounted(() => {
+    void fetchAgentList()
     void fetchBotList()
     void fetchConversationList()
     startConversationRefresh()
@@ -187,7 +275,9 @@ export function useConversationList(options: UseConversationListOptions) {
   return {
     keyword,
     botId,
+    agentId,
     botOptions,
+    agentOptions,
     listLoading,
     conversationTotal,
     conversations,

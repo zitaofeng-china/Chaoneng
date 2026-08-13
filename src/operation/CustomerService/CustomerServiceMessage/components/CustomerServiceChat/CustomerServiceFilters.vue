@@ -26,6 +26,23 @@
         />
       </el-select>
     </div>
+    <div class="customer-service-filters__field">
+      <span>代理：</span>
+      <el-select
+        :model-value="agentId ?? ''"
+        placeholder="全部"
+        clearable
+        filterable
+        @update:model-value="emit('update:agent-id', $event === '' ? undefined : Number($event))"
+      >
+        <el-option
+          v-for="option in agentOptions"
+          :key="String(option.value)"
+          :label="option.label"
+          :value="option.value ?? ''"
+        />
+      </el-select>
+    </div>
     <div class="customer-service-filters__actions">
       <el-button type="primary" :loading="loading" @click="emit('search')">查询</el-button>
       <el-button :disabled="loading" @click="emit('reset')">重置</el-button>
@@ -37,12 +54,15 @@
 defineProps<{
   keyword: string
   botId?: number
+  agentId?: number
   botOptions: Array<{ label: string; value: number | undefined }>
+  agentOptions: Array<{ label: string; value: number | undefined }>
   loading: boolean
 }>()
 const emit = defineEmits<{
   (event: 'update:keyword', value: string): void
   (event: 'update:bot-id', value: number | undefined): void
+  (event: 'update:agent-id', value: number | undefined): void
   (event: 'search'): void
   (event: 'reset'): void
 }>()

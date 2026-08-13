@@ -11,14 +11,30 @@
       type="button"
       @click.stop="emit('select', item)"
     >
-      <span class="conversation-avatar">{{ item.avatar }}</span>
-      <span class="conversation-list__content">
-        <strong>{{ item.name }}</strong>
-        <small>{{ item.preview }}</small>
-      </span>
-      <span class="conversation-list__meta">
-        <small>{{ item.updatedAt }}</small>
-        <b v-if="item.unread">{{ item.unread }}</b>
+      <span class="conversation-list__agent" :title="item.agentName || '未绑定代理'"
+        >代理：{{ item.agentName || '-' }}</span
+      >
+      <span class="conversation-list__row">
+        <span class="conversation-avatar">{{ item.avatar }}</span>
+        <span class="conversation-list__content">
+          <strong>{{ item.name }}</strong>
+          <small>
+            <template v-if="item.preview">
+              <span
+                v-if="item.previewDirection === 'outgoing'"
+                class="conversation-list__from conversation-list__from--me"
+                >我：</span
+              >
+              <span v-else-if="item.previewDirection === 'incoming'" class="conversation-list__from"
+                >对方：</span
+              >{{ item.preview }}
+            </template>
+          </small>
+        </span>
+        <span class="conversation-list__meta">
+          <small>{{ item.updatedAt }}</small>
+          <b v-if="item.unread">{{ item.unread }}</b>
+        </span>
       </span>
     </button>
     <div v-if="loading" class="conversation-list__loading"
@@ -45,10 +61,12 @@ const emit = defineEmits<{
 
 <style scoped lang="less">
 .conversation-list {
+  display: flex;
   min-height: 0;
   overflow-y: auto;
   background: var(--el-bg-color);
   border-right: 1px solid var(--el-border-color);
+  flex-direction: column;
 
   &__title {
     position: sticky;
@@ -86,34 +104,74 @@ const emit = defineEmits<{
 
   &__item {
     display: flex;
-    width: 100%;
-    min-height: 80px;
-    padding: 14px 16px;
+    width: auto;
+    padding: 0;
+    margin: 8px 8px 0;
+    overflow: hidden;
     color: inherit;
     text-align: left;
     cursor: pointer;
-    background: transparent;
-    border: 0;
-    border-bottom: 1px solid var(--el-border-color);
-    transition: background 0.18s ease;
+    background: var(--el-bg-color);
+    border: 1px solid var(--el-border-color);
+    border-radius: 6px;
+    transition:
+      background 0.18s ease,
+      border-color 0.18s ease;
+    flex-direction: column;
+    align-items: stretch;
 
-    &:hover,
-    &--active {
+    &:last-of-type {
+      margin-bottom: 8px;
+    }
+
+    &:hover .conversation-list__row,
+    &--active .conversation-list__row {
       background: var(--el-color-primary-light-9);
     }
 
     &--active {
+      border-color: var(--el-color-primary-light-5);
+    }
+
+    &--active .conversation-list__row {
       box-shadow: inset 3px 0 0 var(--el-color-primary);
     }
+  }
+
+  &__agent {
+    display: block;
+    width: 100%;
+    padding: 6px 10px;
+    overflow: hidden;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 18px;
+    color: var(--el-text-color-primary);
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: var(--el-fill-color-light);
+    border: 0;
+    border-bottom: 1px solid var(--el-border-color);
+  }
+
+  &__row {
+    display: flex;
+    min-width: 0;
+    padding: 8px 10px;
+    background: transparent;
+    transition: background 0.18s ease;
+    align-items: center;
   }
 
   &__content {
     display: flex;
     flex: 1;
     min-width: 0;
-    padding-left: 10px;
+    padding-left: 8px;
     flex-direction: column;
-    gap: 6px;
+    justify-content: center;
+    gap: 2px;
 
     strong,
     small {
@@ -124,12 +182,25 @@ const emit = defineEmits<{
 
     strong {
       font-size: 13px;
+      line-height: 18px;
       color: var(--el-text-color-primary);
     }
 
     small {
+      max-width: 100%;
       font-size: 12px;
+      line-height: 16px;
       color: var(--el-text-color-regular);
+    }
+  }
+
+  &__from {
+    font-style: normal;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+
+    &--me {
+      color: var(--el-color-primary);
     }
   }
 
@@ -138,7 +209,7 @@ const emit = defineEmits<{
     align-items: flex-end;
     padding-left: 6px;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
 
     small {
       font-size: 12px;

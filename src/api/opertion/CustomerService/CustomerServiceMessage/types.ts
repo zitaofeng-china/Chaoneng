@@ -9,8 +9,12 @@ export interface ConversationListItem {
   last_message_at: string | number | null
   last_message_type: string | null
   last_message_preview: string | null
+  /** 1=用户/对方(入)，其他数字=客服(出) */
+  last_message_direction?: number | null
   tg_first_name: string | null
   tg_user_name: string | null
+  agent_id?: number
+  agent_name?: string | null
   unread_count: number
 }
 

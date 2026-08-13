@@ -74,7 +74,9 @@ export function useCustomerServiceChat() {
   const {
     keyword,
     botId,
+    agentId,
     botOptions,
+    agentOptions,
     listLoading,
     conversationTotal,
     conversations,
@@ -173,6 +175,13 @@ export function useCustomerServiceChat() {
     if (size < 1024) return `${size} B`
     if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
     return `${(size / 1024 / 1024).toFixed(1)} MB`
+  }
+
+  function applyLastMessagePreviewMeta(conversation: Conversation) {
+    const lastMessage = conversation.messages.at(-1)
+    if (!lastMessage) return
+    conversation.previewDirection = lastMessage.direction
+    conversation.lastMessageAt = lastMessage.createdAt
   }
 
   function cacheConversationMessages(
@@ -332,6 +341,7 @@ export function useCustomerServiceChat() {
         const messages = loadedItems.map((item) => mapMessageItem(item, conversationId))
         clearMessageObjectUrls(currentConversation.messages)
         currentConversation.messages = messages
+        applyLastMessagePreviewMeta(currentConversation)
         cacheConversationMessages(conversationId, messages, true)
         loadMessageMedia(messages)
         if (currentConversation.unread) {
@@ -400,6 +410,7 @@ export function useCustomerServiceChat() {
       if (conversation) {
         clearMessageObjectUrls(conversation.messages)
         conversation.messages = messages
+        applyLastMessagePreviewMeta(conversation)
       }
       cacheConversationMessages(conversationId, messages, true)
       loadMessageMedia(messages)
@@ -541,7 +552,7 @@ export function useCustomerServiceChat() {
       let page = 1
       let totalPages = 1
 
-      // start_time 为 ISO 时间戳；同秒内可能含已加载消息，需按时间与 id 过滤增量。
+      // start_time 为 Unix 秒级时间戳；同秒内可能含已加载消息，需按时间与 id 过滤增量。
       while (page <= totalPages && collectedItems.length < pageSize) {
         const response = await getConversationMessages(conversationId, {
           current_page: page,
@@ -582,6 +593,7 @@ export function useCustomerServiceChat() {
         !messageArea ||
         messageArea.scrollHeight - messageArea.scrollTop - messageArea.clientHeight < 48
       conversation.messages.push(...messages)
+      applyLastMessagePreviewMeta(conversation)
       cacheConversationMessages(conversationId, conversation.messages, true)
       if (!unreadDividerMessageId.value && conversation.unread) {
         unreadDividerMessageId.value =
@@ -875,6 +887,8 @@ export function useCustomerServiceChat() {
       conversation.messages.push(...messages)
       cacheConversationMessages(conversation.id, conversation.messages, true)
       conversation.preview = content || getMediaPreviewText(uploadedMedia[0]?.mediaKind)
+      conversation.previewDirection = 'outgoing'
+      conversation.lastMessageAt = now.toISOString()
       conversation.updatedAt = time
       conversation.unread = 0
       moveConversationToTop(conversation.id)
@@ -938,7 +952,9 @@ export function useCustomerServiceChat() {
   return {
     keyword,
     botId,
+    agentId,
     botOptions,
+    agentOptions,
     listLoading,
     handleSearch,
     resetFilters,
