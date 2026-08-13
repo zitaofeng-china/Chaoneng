@@ -49,22 +49,14 @@
             <table class="marketing-table">
               <thead>
                 <tr>
-                  <th class="rank-column">排名</th>
-                  <th class="name-column">名称</th>
-                  <th>总支出</th>
-                  <th>机器人数</th>
-                  <th>订单数</th>
-                  <th>今日支出</th>
-                  <th>昨日支出</th>
-                  <th>本月支出</th>
-                  <th>上月支出</th>
-                  <th>用户数</th>
-                  <th class="action-column">操作</th>
+                  <th v-for="column in tableColumns" :key="column.key" :class="column.className">
+                    {{ column.label }}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="visibleRows.length === 0">
-                  <td colspan="11" class="empty-cell">暂无数据</td>
+                  <td :colspan="tableColumns.length" class="empty-cell">暂无数据</td>
                 </tr>
                 <tr
                   v-for="row in visibleRows"
@@ -72,58 +64,41 @@
                   class="marketing-row"
                   :class="`marketing-row-${row.kind}`"
                 >
-                  <td class="rank-column">{{ row.rank || '' }}</td>
-                  <td class="name-column">
-                    <div class="name-cell" :class="`name-cell-${row.kind}`">
-                      <button
-                        v-if="row.hasChildren"
-                        type="button"
-                        class="expand-icon-button"
-                        :disabled="row.childrenLoading"
-                        :aria-label="row.expanded ? '收起' : '展开'"
-                        @click="toggleRow(row)"
-                      >
-                        <Icon
-                          :icon="
-                            row.childrenLoading
-                              ? 'ep:loading'
-                              : row.expanded
-                                ? 'ep:arrow-down'
-                                : 'ep:arrow-right'
-                          "
-                          :size="14"
-                        />
-                      </button>
-                      <span v-else class="expand-placeholder"></span>
-                      <span class="row-name">{{ row.name }}</span>
-                      <span
-                        v-if="row.kind !== 'order'"
-                        class="row-tag"
-                        :class="`row-tag-${row.kind}`"
-                      >
-                        {{ row.kind === 'agent' ? '代理' : '机器人' }}
-                      </span>
-                    </div>
-                  </td>
-                  <td>{{ formatAmount(row.totalExpense) }}</td>
-                  <td>
-                    {{
-                      row.kind === 'agent'
-                        ? formatCount(row.botCount)
-                        : row.kind === 'bot'
-                          ? '—'
-                          : ''
-                    }}
-                  </td>
-                  <td>{{ formatCount(row.orderCount) }}</td>
-                  <td>{{ row.kind === 'order' ? '' : formatAmount(row.todayExpense) }}</td>
-                  <td>{{ row.kind === 'order' ? '' : formatAmount(row.yesterdayExpense) }}</td>
-                  <td>{{ row.kind === 'order' ? '' : formatAmount(row.monthExpense) }}</td>
-                  <td>{{ row.kind === 'order' ? '' : formatAmount(row.lastMonthExpense) }}</td>
-                  <td>{{ row.kind === 'order' ? '' : formatCount(row.userCount) }}</td>
-                  <td class="action-column">
+                  <td v-for="column in tableColumns" :key="column.key" :class="column.className">
+                    <template v-if="column.key === 'name'">
+                      <div class="name-cell" :class="`name-cell-${row.kind}`">
+                        <button
+                          v-if="row.hasChildren"
+                          type="button"
+                          class="expand-icon-button"
+                          :disabled="row.childrenLoading"
+                          :aria-label="row.expanded ? '收起' : '展开'"
+                          @click="toggleRow(row)"
+                        >
+                          <Icon
+                            :icon="
+                              row.childrenLoading
+                                ? 'ep:loading'
+                                : row.expanded
+                                  ? 'ep:arrow-down'
+                                  : 'ep:arrow-right'
+                            "
+                            :size="14"
+                          />
+                        </button>
+                        <span v-else class="expand-placeholder"></span>
+                        <span class="row-name">{{ row.name }}</span>
+                        <span
+                          v-if="row.kind !== 'order'"
+                          class="row-tag"
+                          :class="`row-tag-${row.kind}`"
+                        >
+                          {{ row.kind === 'agent' ? '代理' : '机器人' }}
+                        </span>
+                      </div>
+                    </template>
                     <ElButton
-                      v-if="row.hasChildren"
+                      v-else-if="column.key === 'action' && row.hasChildren"
                       size="small"
                       :type="row.kind === 'agent' ? 'success' : 'primary'"
                       :loading="row.childrenLoading"
@@ -131,6 +106,9 @@
                     >
                       {{ row.expanded ? '收起' : row.kind === 'agent' ? '查看机器人' : '展开' }}
                     </ElButton>
+                    <template v-else-if="column.key !== 'action'">{{
+                      column.render(row)
+                    }}</template>
                   </td>
                 </tr>
               </tbody>
@@ -186,11 +164,13 @@ interface MarketingMetrics {
   totalExpense: number
   botCount: number
   orderCount: number
+  averageOrderAmount: number
   todayExpense: number
   yesterdayExpense: number
   monthExpense: number
   lastMonthExpense: number
   userCount: number
+  performanceRatio: number
 }
 
 interface MarketingOrder extends MarketingMetrics {
@@ -473,6 +453,99 @@ const formatCount = (value: NumericValue) => {
   })
 }
 
+/** 客单价 = 总支出 / 订单数，接口无此字段。 */
+const computeUnitPrice = (totalExpense: number, orderCount: number) => {
+  return orderCount > 0 ? totalExpense / orderCount : 0
+}
+
+/** 业绩占比 = 该行总支出 / 汇总总支出，接口无此字段。 */
+const computePerformanceRatio = (totalExpense: number) => {
+  return summary.value.totalExpense > 0 ? (totalExpense / summary.value.totalExpense) * 100 : 0
+}
+
+const formatUnitPrice = (row: MarketingMetrics) => {
+  return formatAmount(computeUnitPrice(row.totalExpense, row.orderCount))
+}
+
+const formatPerformanceRatio = (row: MarketingMetrics) => {
+  return `${computePerformanceRatio(row.totalExpense).toLocaleString('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}%`
+}
+
+const formatBotCount = (row: MarketingRow) => {
+  if (row.kind === 'agent') return formatCount(row.botCount)
+  if (row.kind === 'bot') return '—'
+  return ''
+}
+
+const tableColumns = computed(() => [
+  {
+    key: 'rank',
+    label: '排名',
+    className: 'rank-column',
+    render: (row: MarketingRow) => row.rank || ''
+  },
+  { key: 'name', label: '名称', className: 'name-column', render: (row: MarketingRow) => row.name },
+  {
+    key: 'totalExpense',
+    label: '总支出',
+    className: '',
+    render: (row: MarketingRow) => formatAmount(row.totalExpense)
+  },
+  { key: 'botCount', label: '机器人数', className: '', render: formatBotCount },
+  {
+    key: 'orderCount',
+    label: '订单数',
+    className: '',
+    render: (row: MarketingRow) => formatCount(row.orderCount)
+  },
+  {
+    key: 'unitPrice',
+    label: '客单价',
+    className: '',
+    render: (row: MarketingRow) => formatUnitPrice(row)
+  },
+  {
+    key: 'todayExpense',
+    label: '今日支出',
+    className: '',
+    render: (row: MarketingRow) => formatAmount(row.todayExpense)
+  },
+  {
+    key: 'yesterdayExpense',
+    label: '昨日支出',
+    className: '',
+    render: (row: MarketingRow) => formatAmount(row.yesterdayExpense)
+  },
+  {
+    key: 'monthExpense',
+    label: '本月支出',
+    className: '',
+    render: (row: MarketingRow) => formatAmount(row.monthExpense)
+  },
+  {
+    key: 'lastMonthExpense',
+    label: '上月支出',
+    className: '',
+    render: (row: MarketingRow) => formatAmount(row.lastMonthExpense)
+  },
+  {
+    key: 'userCount',
+    label: '用户数',
+    className: '',
+    render: (row: MarketingRow) => formatCount(row.userCount)
+  },
+  {
+    key: 'performanceRatio',
+    label: '业绩占比',
+    className: '',
+    render: formatPerformanceRatio
+  },
+  { key: 'action', label: '操作', className: 'action-column', render: () => '' }
+])
+
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -525,48 +598,47 @@ const readMetrics = (source: Record<string, unknown>): MarketingMetrics => {
       'total'
     ])
   )
-  const orderCount = toNumber(readValue(source, ['order_count', 'orders', 'count']))
+  const orderCount = toNumber(
+    readValue(source, ['order_count', 'orderCount', 'orders_count', 'order_num'])
+  )
 
   return {
     totalExpense,
-    botCount: toNumber(readValue(source, ['bot_count', 'bots_count', 'robot_count'])),
+    botCount: toNumber(readValue(source, ['bot_count', 'bots_count', 'robot_count', 'botCount'])),
     orderCount,
+    averageOrderAmount: computeUnitPrice(totalExpense, orderCount),
     todayExpense: toNumber(
-      readValue(source, [
-        'today_expense',
-        'today_sales_amount',
-        'sales_today',
-        'today_amount',
-        'today'
-      ])
+      readValue(source, ['today_expense', 'today_sales_amount', 'todayExpense', 'sales_today'])
     ),
     yesterdayExpense: toNumber(
       readValue(source, [
         'yesterday_expense',
         'yesterday_sales_amount',
-        'sales_yesterday',
-        'yesterday_amount',
-        'yesterday'
+        'yesterdayExpense',
+        'sales_yesterday'
       ])
     ),
     monthExpense: toNumber(
       readValue(source, [
         'this_month_expense',
+        'month_expense',
         'month_sales_amount',
         'current_month_sales_amount',
-        'sales_this_month',
-        'this_month'
+        'thisMonthExpense'
       ])
     ),
     lastMonthExpense: toNumber(
       readValue(source, [
         'last_month_expense',
         'last_month_sales_amount',
-        'sales_last_month',
-        'last_month'
+        'lastMonthExpense',
+        'prev_month_expense'
       ])
     ),
-    userCount: toNumber(readValue(source, ['user_count', 'users_count', 'people_count']))
+    userCount: toNumber(
+      readValue(source, ['user_count', 'users_count', 'people_count', 'userCount', 'user_num'])
+    ),
+    performanceRatio: 0
   }
 }
 
@@ -760,12 +832,6 @@ const visibleRows = computed<MarketingRow[]>(() => {
           ...order,
           kind: 'order',
           rank: 0,
-          botCount: 0,
-          userCount: 0,
-          todayExpense: 0,
-          yesterdayExpense: 0,
-          monthExpense: 0,
-          lastMonthExpense: 0,
           hasChildren: false,
           expanded: false,
           childrenLoading: false
@@ -982,8 +1048,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-
-
 @media (width <= 1100px) {
   .summary-grid {
     grid-template-columns: repeat(3, minmax(150px, 1fr));
