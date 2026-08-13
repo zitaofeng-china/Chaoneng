@@ -9,7 +9,6 @@ import { Breadcrumb } from '@/components/Breadcrumb'
 import { useAppStore } from '@/store/modules/app'
 import { useDesign } from '@/hooks/web/useDesign'
 import { Icon } from '@/components/Icon'
-import WebhookFormModal from './WebhookFormModal.vue'
 import NotifyBotDialog from '@/operation/Agent/components/NotifyBotDialog.vue'
 import { getUserCustomerServiceListApi } from '@/api/common/customer_service'
 import { getAccountListApi } from '@/api/management/AccountManage/AccountList'
@@ -45,30 +44,16 @@ const layout = computed(() => appStore.getLayout)
 // 多语言图标
 const locale = computed(() => appStore.getLocale)
 
-const VITE_NODE_ENV = import.meta.env.VITE_NODE_ENV === 'development' ? 'dev' : 'prod'
-
 const notifyEntryLabel = computed(() => (isManagementSystem() ? '消息通知' : '通知配置'))
 
 export default defineComponent({
   name: 'ToolHeader',
-  components: { WebhookFormModal, NotifyBotDialog, Dialog, NotificationConfig },
+  components: { NotifyBotDialog, Dialog, NotificationConfig },
   setup() {
-    // 使用 ref 创建本地响应式状态来控制模态框的可见性
-    const isWebhookFormVisible = ref(false)
     const notifyBotDialogVisible = ref(false)
     const agentNotifyDialogVisible = ref(false)
     const agentNotifyLoading = ref(false)
     const agentAccountInfo = ref<Record<string, any>>({})
-
-    // 处理打开 Webhook 表单的点击事件
-    const handleOpenWebhookForm = () => {
-      isWebhookFormVisible.value = true
-    }
-
-    // 处理关闭模态框的事件
-    const handleCloseWebhookForm = () => {
-      isWebhookFormVisible.value = false
-    }
 
     const loadAgentNotifyConfig = async () => {
       agentNotifyLoading.value = true
@@ -135,16 +120,6 @@ export default defineComponent({
               联系客服
             </BaseButton>
           ) : undefined}
-          {VITE_NODE_ENV === 'dev' ? (
-            <div class="custom-hover top-tool-action" onClick={handleOpenWebhookForm}>
-              <Icon
-                icon="ant-design:form-outlined"
-                size={18}
-                color="var(--top-header-text-color)"
-              ></Icon>
-              <span class="top-tool-action__label">接口配置</span>
-            </div>
-          ) : undefined}
           <ElTooltip content={notifyEntryLabel.value} placement="bottom">
             <div class="custom-hover top-tool-action" onClick={handleOpenNotifyBotDialog}>
               <Icon
@@ -179,7 +154,6 @@ export default defineComponent({
           <UserInfo></UserInfo>
         </div>
 
-        <WebhookFormModal visible={isWebhookFormVisible.value} onClose={handleCloseWebhookForm} />
         {isManagementSystem() ? (
           <AgentNotifyDialog
             modelValue={agentNotifyDialogVisible.value}
