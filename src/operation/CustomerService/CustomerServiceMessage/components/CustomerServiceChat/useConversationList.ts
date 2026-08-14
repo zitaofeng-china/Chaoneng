@@ -11,6 +11,8 @@ import {
 import type { ChatMessage, Conversation, Direction } from './types'
 import { parseApiDateTime, type ApiDateTime } from './time'
 
+const CONVERSATION_PAGE_SIZE = 50
+
 interface UseConversationListOptions {
   selectedId: Ref<number | null>
   getCachedMessages: (conversationId: number) => ChatMessage[]
@@ -30,7 +32,11 @@ export function useConversationList(options: UseConversationListOptions) {
   const botList = ref<MessageBotItem[]>([])
   const agentList = ref<MessageAgentItem[]>([])
   const conversations = ref<Conversation[]>([])
+  const hasMoreConversations = ref(false)
+  const moreLoading = ref(false)
+  const currentPage = ref(1)
   let conversationListLoading = false
+  let loadingMoreConversations = false
   let conversationRefreshTimer: number | undefined
 
   const botOptions = computed(() => [
@@ -169,37 +175,91 @@ export function useConversationList(options: UseConversationListOptions) {
     }
   }
 
+  function sortConversationItems(list: ConversationListItem[]) {
+    return [...list].sort((a, b) => {
+      const unreadDiff = Number(Boolean(b.unread_count)) - Number(Boolean(a.unread_count))
+      if (unreadDiff) return unreadDiff
+      const timeA = parseApiDateTime(a.last_message_at).valueOf() || 0
+      const timeB = parseApiDateTime(b.last_message_at).valueOf() || 0
+      return timeB - timeA
+    })
+  }
+
+  function updateHasMore(loadedCount: number, pageCount: number, total: number) {
+    hasMoreConversations.value = loadedCount < total && pageCount >= CONVERSATION_PAGE_SIZE
+  }
+
+  async function requestConversationPage(page: number) {
+    const res = await getConversationList({
+      agent_id: agentId.value,
+      bot_id: botId.value,
+      keyword: keyword.value.trim() || undefined,
+      current_page: page,
+      page_size: CONVERSATION_PAGE_SIZE
+    })
+    return {
+      list: res.data?.list ?? [],
+      pager: res.data?.pager
+    }
+  }
+
+  function applyConversationPage(
+    incoming: ConversationListItem[],
+    mode: 'replace' | 'append' | 'refresh'
+  ) {
+    const previousById = new Map(conversations.value.map((item) => [item.id, item]))
+    const mapped = incoming.map((item) => {
+      const previous = previousById.get(item.id)
+      const next = mapConversationItem(item, previous)
+      if (previous?.messages.length) next.messages = previous.messages
+      return next
+    })
+
+    if (mode === 'replace') {
+      conversations.value = mapped
+      return
+    }
+
+    if (mode === 'append') {
+      const existingIds = new Set(conversations.value.map((item) => item.id))
+      conversations.value = [
+        ...conversations.value,
+        ...mapped.filter((item) => !existingIds.has(item.id))
+      ]
+      return
+    }
+
+    const incomingIds = new Set(mapped.map((item) => item.id))
+    const updated = conversations.value.map((item) => {
+      if (!incomingIds.has(item.id)) return item
+      return mapped.find((next) => next.id === item.id) ?? item
+    })
+    const newcomers = mapped.filter((item) => !previousById.has(item.id))
+    conversations.value = [...newcomers, ...updated]
+  }
+
   async function fetchConversationList(silent = false) {
-    if (conversationListLoading) return
+    if (conversationListLoading || loadingMoreConversations) return
     conversationListLoading = true
     if (!silent) listLoading.value = true
     try {
       options.clearExpiredMessageCaches()
       const activeConversationId = options.selectedId.value
-      const activeMessages = activeConversationId
-        ? (conversations.value.find((item) => item.id === activeConversationId)?.messages ?? [])
-        : []
       const previousUnreadCount = activeConversationId
         ? (conversations.value.find((item) => item.id === activeConversationId)?.unread ?? 0)
         : 0
-      const res = await getConversationList({
-        agent_id: agentId.value,
-        bot_id: botId.value,
-        keyword: keyword.value.trim() || undefined,
-        current_page: 1,
-        page_size: 50
-      })
-      const list = [...(res.data?.list ?? [])].sort((a, b) => {
-        const unreadDiff = Number(Boolean(b.unread_count)) - Number(Boolean(a.unread_count))
-        if (unreadDiff) return unreadDiff
-        const timeA = parseApiDateTime(a.last_message_at).valueOf() || 0
-        const timeB = parseApiDateTime(b.last_message_at).valueOf() || 0
-        return timeB - timeA
-      })
-      conversationTotal.value = res.data?.pager?.total ?? list.length
-      const previousById = new Map(conversations.value.map((item) => [item.id, item]))
-      conversations.value = list.map((item) => mapConversationItem(item, previousById.get(item.id)))
+      const { list, pager } = await requestConversationPage(1)
+      const pageList = sortConversationItems(list)
+      conversationTotal.value = pager?.total ?? pageList.length
+      if (!silent) currentPage.value = 1
+      applyConversationPage(pageList, silent ? 'refresh' : 'replace')
+      if (silent) {
+        hasMoreConversations.value = conversations.value.length < conversationTotal.value
+      } else {
+        updateHasMore(conversations.value.length, pageList.length, conversationTotal.value)
+      }
       if (
+        !silent &&
         options.selectedId.value !== null &&
         !conversations.value.some((item) => item.id === options.selectedId.value)
       ) {
@@ -208,10 +268,6 @@ export function useConversationList(options: UseConversationListOptions) {
       const refreshedActiveConversation = activeConversationId
         ? conversations.value.find((item) => item.id === activeConversationId)
         : undefined
-      // 当前会话已展开的历史消息是完整分页状态的唯一来源，不能被 20 条缓存截断。
-      if (refreshedActiveConversation && activeMessages.length) {
-        refreshedActiveConversation.messages = activeMessages
-      }
       if (
         silent &&
         refreshedActiveConversation &&
@@ -224,11 +280,41 @@ export function useConversationList(options: UseConversationListOptions) {
       if (!silent) {
         conversations.value = []
         conversationTotal.value = 0
+        currentPage.value = 1
+        hasMoreConversations.value = false
         options.selectedId.value = null
       }
     } finally {
       conversationListLoading = false
       if (!silent) listLoading.value = false
+    }
+  }
+
+  async function loadMoreConversations() {
+    if (
+      conversationListLoading ||
+      loadingMoreConversations ||
+      moreLoading.value ||
+      !hasMoreConversations.value
+    ) {
+      return
+    }
+
+    loadingMoreConversations = true
+    moreLoading.value = true
+    try {
+      const nextPage = currentPage.value + 1
+      const { list, pager } = await requestConversationPage(nextPage)
+      const pageList = sortConversationItems(list)
+      conversationTotal.value = pager?.total ?? conversationTotal.value
+      applyConversationPage(pageList, 'append')
+      currentPage.value = nextPage
+      updateHasMore(conversations.value.length, pageList.length, conversationTotal.value)
+    } catch {
+      hasMoreConversations.value = conversations.value.length < conversationTotal.value
+    } finally {
+      loadingMoreConversations = false
+      moreLoading.value = false
     }
   }
 
@@ -281,7 +367,10 @@ export function useConversationList(options: UseConversationListOptions) {
     listLoading,
     conversationTotal,
     conversations,
+    hasMoreConversations,
+    moreLoading,
     handleSearch,
-    resetFilters
+    resetFilters,
+    loadMoreConversations
   }
 }

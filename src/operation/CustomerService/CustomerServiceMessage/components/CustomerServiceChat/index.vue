@@ -24,7 +24,10 @@
           :selected-id="selectedId"
           :total="conversationTotal"
           :loading="listLoading"
+          :more-loading="moreLoading"
+          :has-more="hasMoreConversations"
           @select="handleConversationClick"
+          @load-more="loadMoreConversations"
         />
         <ConversationPanel
           v-if="activeConversation"
@@ -119,6 +122,9 @@ const {
   conversations,
   selectedId,
   conversationTotal,
+  hasMoreConversations,
+  moreLoading,
+  loadMoreConversations,
   handleConversationClick,
   activeConversation,
   conversationPanel,

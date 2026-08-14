@@ -80,8 +80,11 @@ export function useCustomerServiceChat() {
     listLoading,
     conversationTotal,
     conversations,
+    hasMoreConversations,
+    moreLoading,
     handleSearch,
-    resetFilters
+    resetFilters,
+    loadMoreConversations
   } = useConversationList({
     selectedId,
     getCachedMessages,
@@ -961,6 +964,9 @@ export function useCustomerServiceChat() {
     conversations,
     selectedId,
     conversationTotal,
+    hasMoreConversations,
+    moreLoading,
+    loadMoreConversations,
     handleConversationClick,
     activeConversation,
     conversationPanel,
