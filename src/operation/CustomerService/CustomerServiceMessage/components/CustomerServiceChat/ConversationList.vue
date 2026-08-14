@@ -1,5 +1,5 @@
 <template>
-  <aside class="conversation-list">
+  <aside ref="listRef" class="conversation-list" @scroll.passive="handleScroll">
     <div class="conversation-list__title"
       ><span>全部会话</span><small>{{ total }} 条</small></div
     >
@@ -37,26 +37,59 @@
         </span>
       </span>
     </button>
-    <div v-if="loading" class="conversation-list__loading"
+    <div v-if="loading && !conversations.length" class="conversation-list__loading"
       ><span class="customer-service-loading"
     /></div>
     <el-empty v-else-if="!conversations.length" description="暂无会话" :image-size="72" />
+    <div v-else-if="moreLoading" class="conversation-list__status">加载更多...</div>
+    <div v-else-if="!hasMore" class="conversation-list__status">已加载全部</div>
   </aside>
 </template>
 
 <script setup lang="ts">
+import { nextTick, ref, watch } from 'vue'
 import type { Conversation } from './types'
 
-defineProps<{
+const props = defineProps<{
   conversations: Conversation[]
   selectedId: number | null
   total: number
   loading: boolean
+  moreLoading: boolean
+  hasMore: boolean
 }>()
 
 const emit = defineEmits<{
   (event: 'select', conversation: Conversation): void
+  (event: 'load-more'): void
 }>()
+
+const listRef = ref<HTMLElement>()
+
+function handleScroll() {
+  const el = listRef.value
+  if (!el || props.loading || props.moreLoading || !props.hasMore) return
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 80) {
+    emit('load-more')
+  }
+}
+
+watch(
+  () => props.loading,
+  (loading) => {
+    if (loading && listRef.value) listRef.value.scrollTop = 0
+  }
+)
+
+watch(
+  () => props.conversations.length,
+  async () => {
+    await nextTick()
+    const el = listRef.value
+    if (!el || props.loading || props.moreLoading || !props.hasMore) return
+    if (el.scrollHeight <= el.clientHeight + 80) emit('load-more')
+  }
+)
 </script>
 
 <style scoped lang="less">
@@ -73,6 +106,7 @@ const emit = defineEmits<{
     top: 0;
     z-index: 1;
     display: flex;
+    flex-shrink: 0;
     height: 52px;
     padding: 0 18px;
     font-size: 14px;
@@ -102,9 +136,20 @@ const emit = defineEmits<{
     min-height: 160px;
   }
 
+  &__status {
+    flex-shrink: 0;
+    padding: 12px 8px 16px;
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--el-text-color-secondary);
+    text-align: center;
+  }
+
   &__item {
     display: flex;
+    flex: 0 0 auto;
     width: auto;
+    min-height: 86px;
     padding: 0;
     margin: 8px 8px 0;
     overflow: hidden;
@@ -140,6 +185,7 @@ const emit = defineEmits<{
 
   &__agent {
     display: block;
+    flex-shrink: 0;
     width: 100%;
     padding: 6px 10px;
     overflow: hidden;
@@ -157,6 +203,7 @@ const emit = defineEmits<{
 
   &__row {
     display: flex;
+    flex-shrink: 0;
     min-width: 0;
     padding: 8px 10px;
     background: transparent;
