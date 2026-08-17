@@ -4,6 +4,9 @@ import { AxiosInstance, InternalAxiosRequestConfig, RequestConfig, AxiosResponse
 import { ElMessage } from 'element-plus'
 import { REQUEST_TIMEOUT } from '@/constants'
 import qs from 'qs'
+import { isAdminAuthPath } from '@/auth/admin/api'
+import { useAdminAuthStoreWithOut } from '@/store/modules/adminAuth'
+import { useUserStoreWithOut } from '@/store/modules/user'
 
 export const PATH_URL =
   (window as any).APP_CONFIG?.API_BASE_URL || import.meta.env.VITE_API_BASE_PATH
@@ -38,11 +41,12 @@ const clearPending = (config?: { [key: string]: any } | null) => {
 }
 
 const isCanceledError = (error: AxiosError) => {
+  const canceledError = error as any
   return (
     axios.isCancel(error) ||
-    error.code === 'ERR_CANCELED' ||
-    error.name === 'CanceledError' ||
-    error.name === 'AbortError'
+    canceledError.code === 'ERR_CANCELED' ||
+    canceledError.name === 'CanceledError' ||
+    canceledError.name === 'AbortError'
   )
 }
 
@@ -93,6 +97,59 @@ axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config
 })
 
+const rejectHttpError = (error: AxiosError) => {
+  if (error.response) {
+    const config = error.config as any
+    const status = error.response.status
+    const skipErrorHandler = config?.skipErrorHandler
+    if (!skipErrorHandler) {
+      const data: any = error.response.data
+      const msg =
+        (typeof data === 'object' && data && (data.msg || data.message)) ||
+        (status >= 500 ? '服务异常，请稍后重试' : `请求失败（${status}）`)
+      ElMessage.error(String(msg))
+    }
+    return Promise.reject(error)
+  }
+
+  if (error.code === 'ECONNABORTED' || String(error.message || '').includes('timeout')) {
+    ElMessage.error('请求超时，请稍后重试')
+  } else {
+    ElMessage.error('网络错误，稍后重试')
+  }
+  return Promise.reject(error)
+}
+
+const canRefreshAdminSession = (error: AxiosError) => {
+  const config = error.config as any
+  return (
+    error.response?.status === 401 &&
+    !config?._adminAuthRetried &&
+    !config?.skipAuthRefresh &&
+    !isAdminAuthPath(config?.url)
+  )
+}
+
+/** 运营端 Access Token 过期时，用 Refresh Cookie 恢复会话并只重试一次原请求。 */
+async function retryAfterAdminRefresh(error: AxiosError) {
+  const config = error.config as any
+  const adminAuthStore = useAdminAuthStoreWithOut()
+  if (!adminAuthStore.getAccessToken) {
+    return null
+  }
+  try {
+    const session = await adminAuthStore.refreshSession()
+    config._adminAuthRetried = true
+    config.headers = config.headers || {}
+    config.headers.Authorization = `Bearer ${session.access_token}`
+    return axiosInstance.request(config)
+  } catch {
+    adminAuthStore.clearSession()
+    useUserStoreWithOut().reset()
+    return null
+  }
+}
+
 axiosInstance.interceptors.response.use(
   (res: AxiosResponse) => {
     clearPending(res.config as any)
@@ -106,27 +163,11 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    // HTTP 4xx/5xx：协议层提示（业务码错误走 success 分支的 defaultResponseInterceptors）
-    if (error.response) {
-      const skipErrorHandler = (error.config as any)?.skipErrorHandler
-      if (!skipErrorHandler) {
-        const status = error.response.status
-        const data: any = error.response.data
-        const msg =
-          (typeof data === 'object' && data && (data.msg || data.message)) ||
-          (status >= 500 ? '服务异常，请稍后重试' : `请求失败（${status}）`)
-        ElMessage.error(String(msg))
-      }
-      return Promise.reject(error)
+    if (canRefreshAdminSession(error)) {
+      return retryAfterAdminRefresh(error).then((result) => result ?? rejectHttpError(error))
     }
 
-    // 纯网络层：超时 / 断网
-    if (error.code === 'ECONNABORTED' || String(error.message || '').includes('timeout')) {
-      ElMessage.error('请求超时，请稍后重试')
-    } else {
-      ElMessage.error('网络错误，稍后重试')
-    }
-    return Promise.reject(error)
+    return rejectHttpError(error)
   }
 )
 
