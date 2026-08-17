@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
-import { ElButton, ElForm, ElFormItem, ElInput, ElMessage } from 'element-plus'
+import { ElButton, ElForm, ElFormItem, ElInput, ElMessage, ElTabPane, ElTabs } from 'element-plus'
 import { useRouter } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import { loginWithPassword } from '@/auth/admin/api'
+import { createPasskeyChallenge, loginWithPasskey, loginWithPassword } from '@/auth/admin/api'
+import { getPasskeyAssertion, getPasskeyDeviceId, isPasskeySupported } from '@/auth/admin/passkey'
 import { useAdminAuthStore } from '@/store/modules/adminAuth'
 import { useUserStore } from '@/store/modules/user'
 import { useAppStore } from '@/store/modules/app'
@@ -19,7 +20,9 @@ const appStore = useAppStore()
 const permissionStore = usePermissionStore()
 const isOperation = isOperationSystem()
 
+const mode = ref<'passkey' | 'password'>(isOperation ? 'passkey' : 'password')
 const loading = ref(false)
+const passkeyAvailable = isPasskeySupported()
 const passwordForm = reactive({ account: '', password: '' })
 const passwordFormRef = ref<InstanceType<typeof ElForm>>()
 
@@ -59,6 +62,36 @@ const completeLogin = async (fallbackName: string) => {
   })
 }
 
+const signInWithPasskey = async () => {
+  if (!passkeyAvailable) {
+    mode.value = 'password'
+    ElMessage.warning('当前浏览器不支持通行密钥，请使用密码登录')
+    return
+  }
+  loading.value = true
+  try {
+    const device_id = getPasskeyDeviceId()
+    const challenge = await createPasskeyChallenge({ device_id, purpose: 'login' })
+    const credential = await getPasskeyAssertion(challenge.options)
+    const session = await loginWithPasskey({
+      ceremony_id: challenge.ceremony_id,
+      credential,
+      device_id
+    })
+    adminAuthStore.applySession(session)
+    await completeLogin('管理员')
+    ElMessage.success('登录成功')
+  } catch (error: any) {
+    ElMessage[error?.name === 'NotAllowedError' ? 'info' : 'error'](
+      error?.name === 'NotAllowedError'
+        ? '通行密钥认证已取消'
+        : error?.msg || '通行密钥验证失败，请重试或使用密码登录'
+    )
+  } finally {
+    loading.value = false
+  }
+}
+
 const signInWithPassword = async () => {
   const valid = await passwordFormRef.value?.validate().catch(() => false)
   if (!valid) return
@@ -79,36 +112,47 @@ const signInWithPassword = async () => {
 
 <template>
   <section class="w-[100%] max-w-420px">
-    <h2 class="text-2xl font-bold text-center mb-24px">
-      {{ isOperation ? '运营端登录' : '代理端登录' }}
-    </h2>
-    <ElForm
-      ref="passwordFormRef"
-      :model="passwordForm"
-      :rules="passwordRules"
-      label-position="top"
-      @submit.prevent
-    >
-      <ElFormItem label="账号" prop="account">
-        <ElInput
-          v-model="passwordForm.account"
-          placeholder="请输入用户名或邮箱"
-          autocomplete="username"
-        />
-      </ElFormItem>
-      <ElFormItem label="密码" prop="password">
-        <ElInput
-          v-model="passwordForm.password"
-          type="password"
-          show-password
-          placeholder="请输入密码"
-          autocomplete="current-password"
-          @keyup.enter="signInWithPassword"
-        />
-      </ElFormItem>
-      <ElButton type="primary" class="w-[100%]" :loading="loading" @click="signInWithPassword">
-        密码登录
-      </ElButton>
-    </ElForm>
+    <h2 class="text-2xl font-bold text-center mb-24px">{{
+      isOperation ? '运营端登录' : '代理端登录'
+    }}</h2>
+    <ElTabs v-model="mode" stretch>
+      <ElTabPane v-if="isOperation" label="通行密钥登录" name="passkey">
+        <div class="py-16px">
+          <ElButton type="primary" class="w-[100%]" :loading="loading" @click="signInWithPasskey"
+            >使用通行密钥登录</ElButton
+          >
+        </div>
+      </ElTabPane>
+      <ElTabPane label="密码登录" name="password">
+        <ElForm
+          ref="passwordFormRef"
+          :model="passwordForm"
+          :rules="passwordRules"
+          label-position="top"
+          @submit.prevent
+        >
+          <ElFormItem label="账号" prop="account">
+            <ElInput
+              v-model="passwordForm.account"
+              placeholder="请输入用户名或邮箱"
+              autocomplete="username"
+            />
+          </ElFormItem>
+          <ElFormItem label="密码" prop="password">
+            <ElInput
+              v-model="passwordForm.password"
+              type="password"
+              show-password
+              placeholder="请输入密码"
+              autocomplete="current-password"
+              @keyup.enter="signInWithPassword"
+            />
+          </ElFormItem>
+          <ElButton type="primary" class="w-[100%]" :loading="loading" @click="signInWithPassword">
+            密码登录
+          </ElButton>
+        </ElForm>
+      </ElTabPane>
+    </ElTabs>
   </section>
 </template>
