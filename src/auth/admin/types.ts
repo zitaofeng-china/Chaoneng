@@ -10,11 +10,6 @@ export interface AdminEmailCodeResult {
   resend_after: number
 }
 
-export interface AdminEmailCodeResult {
-  expires_in: number
-  resend_after: number
-}
-
 export interface PasskeyChallengeResult {
   ceremony_id: string
   options: PublicKeyCredentialRequestOptionsJSON
