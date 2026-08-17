@@ -13,7 +13,12 @@ import {
 import { useRouter } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { createPasskeyChallenge, loginWithPasskey, loginWithPassword } from '@/auth/admin/api'
-import { getPasskeyAssertion, getPasskeyDeviceId, isPasskeySupported } from '@/auth/admin/passkey'
+import {
+  getPasskeyAssertion,
+  getPasskeyDeviceId,
+  getPasskeyErrorMessage,
+  isPasskeySupported
+} from '@/auth/admin/passkey'
 import { useAdminAuthStore } from '@/store/modules/adminAuth'
 import { useUserStore } from '@/store/modules/user'
 import { useAppStore } from '@/store/modules/app'
@@ -92,11 +97,8 @@ const signInWithPasskey = async () => {
     await completeLogin('管理员')
     ElMessage.success('登录成功')
   } catch (error: any) {
-    ElMessage[error?.name === 'NotAllowedError' ? 'info' : 'error'](
-      error?.name === 'NotAllowedError'
-        ? '通行密钥认证已取消'
-        : error?.msg || '通行密钥验证失败，请重试或使用密码登录'
-    )
+    const message = getPasskeyErrorMessage(error, '通行密钥验证失败，请重试或使用密码登录')
+    ElMessage[error?.name === 'NotAllowedError' ? 'info' : 'error'](message)
   } finally {
     loading.value = false
   }

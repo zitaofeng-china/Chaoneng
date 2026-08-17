@@ -6,6 +6,7 @@ import { createPasskeyChallenge, deleteAdminPasskey, saveAdminPasskey } from '@/
 import {
   createPasskeyCredential,
   getPasskeyDeviceId,
+  getPasskeyErrorMessage,
   isPasskeySupported
 } from '@/auth/admin/passkey'
 import { useAdminAuthStore } from '@/store/modules/adminAuth'
@@ -37,14 +38,15 @@ const save = async (purpose: 'bind' | 'replace') => {
       { current_password: password.value, device_id: getPasskeyDeviceId(), purpose },
       authStore.getAccessToken
     )
-    const credential = await createPasskeyCredential(challenge.options as any)
+    const credential = await createPasskeyCredential(challenge.options)
     await saveAdminPasskey(authStore.getAccessToken, {
       ceremony_id: challenge.ceremony_id,
       credential
     })
     finish('通行密钥已更新，请重新登录')
   } catch (error: any) {
-    ElMessage.error(error?.msg || '通行密钥操作失败')
+    const message = getPasskeyErrorMessage(error, '通行密钥操作失败')
+    ElMessage[error?.name === 'NotAllowedError' ? 'info' : 'error'](message)
   } finally {
     loading.value = false
   }
