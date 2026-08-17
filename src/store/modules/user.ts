@@ -7,6 +7,8 @@ import { logoutApi } from '@/api/common/login'
 import { useTagsViewStore } from './tagsView'
 import { usePermissionStoreWithOut } from './permission'
 import router from '@/router'
+import { isOperationSystem } from '@/utils/system'
+import { useAdminAuthStoreWithOut } from './adminAuth'
 
 interface UserState {
   userInfo?: UserType
@@ -91,7 +93,13 @@ export const useUserStore = defineStore('user', {
       })
         .then(async () => {
           // 调用退出登录API，无论成功失败都执行reset
-          await logoutApi().catch(() => {})
+          if (isOperationSystem()) {
+            await useAdminAuthStoreWithOut()
+              .logout('current')
+              .catch(() => {})
+          } else {
+            await logoutApi().catch(() => {})
+          }
           // 无论API是否成功，都清除本地状态并跳转到登录页
           this.reset()
         })
@@ -105,6 +113,9 @@ export const useUserStore = defineStore('user', {
       tagsViewStore.delAllViews()
 
       // 清除用户信息
+      if (isOperationSystem()) {
+        useAdminAuthStoreWithOut().clearSession(false)
+      }
       this.setToken('')
       this.setTokenExpiredAt(undefined)
       this.setUserInfo(undefined)

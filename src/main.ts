@@ -33,6 +33,8 @@ import { setupDirectives } from './directives'
 import { createApp } from 'vue'
 
 import App from './App.vue'
+import { isOperationSystem } from '@/utils/system'
+import { useAdminAuthStoreWithOut } from '@/store/modules/adminAuth'
 
 import './permission'
 
@@ -43,6 +45,11 @@ const setupAll = async () => {
   await setupI18n(app)
 
   setupStore(app)
+
+  // 运营端 Access Token 仅保存在内存，应用启动时用 HttpOnly Refresh Cookie 恢复会话。
+  if (isOperationSystem()) {
+    await useAdminAuthStoreWithOut().restoreSession()
+  }
 
   setupGlobCom(app)
 

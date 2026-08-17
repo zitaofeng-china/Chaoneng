@@ -8,6 +8,9 @@ import { usePageLoading } from '@/hooks/web/usePageLoading'
 import { NO_REDIRECT_WHITE_LIST } from '@/constants'
 import { useUserStoreWithOut } from '@/store/modules/user'
 import { ElMessage } from 'element-plus'
+import { isOperationSystem } from '@/utils/system'
+import { useAdminAuthStoreWithOut } from '@/store/modules/adminAuth'
+import { getUserInfoApi } from '@/api/common/login'
 
 const { start, done } = useNProgress()
 
@@ -20,13 +23,32 @@ router.beforeEach(async (to, from, next) => {
   const appStore = useAppStoreWithOut()
   const userStore = useUserStoreWithOut()
 
+  if (isOperationSystem()) {
+    const adminAuthStore = useAdminAuthStoreWithOut()
+    await adminAuthStore.restoreSession()
+
+    if (adminAuthStore.isAuthenticated && !userStore.getUserInfo) {
+      try {
+        const userInfo = await getUserInfoApi()
+        if (userInfo?.data) {
+          const { permissions, name, role_ID, role_name } = userInfo.data
+          userStore.setUserInfo({ permissions, username: name, role_ID, role_name })
+        }
+      } catch {
+        // Access Token 可用但用户资料获取失败时不伪造登录态，避免进入无权限的后台。
+        adminAuthStore.clearSession()
+      }
+    }
+  }
+
   if (userStore.getUserInfo) {
     // 双重检查：同时验证 Pinia store 和 localStorage
     const storeExpiredAt = userStore.getTokenExpiredAt
 
-    // 从 localStorage 读取原始数据进行二次验证
+    // 代理端保留旧 Token 过期校验；运营端 Access Token 不持久化，依赖 Refresh Cookie 恢复。
     let localExpiredAt: number | null = null
     try {
+      if (isOperationSystem()) throw new Error('operation auth is memory-only')
       const localStorageData = localStorage.getItem('user')
       if (localStorageData) {
         const userData = JSON.parse(localStorageData)
@@ -43,7 +65,7 @@ router.beforeEach(async (to, from, next) => {
         ? Math.min(storeExpiredAt, localExpiredAt)
         : storeExpiredAt || localExpiredAt
 
-    if (expiredAt) {
+    if (!isOperationSystem() && expiredAt) {
       const now = Math.floor(Date.now() / 1000) // 当前时间（秒）
       if (now >= expiredAt) {
         ElMessage.warning('登录已过期，请重新登录')

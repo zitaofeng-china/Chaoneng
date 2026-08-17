@@ -3,6 +3,8 @@ import { ElMessage } from 'element-plus'
 import qs from 'qs'
 import { SUCCESS_CODE, TRANSFORM_REQUEST_DATA } from '@/constants'
 import { useUserStoreWithOut } from '@/store/modules/user'
+import { useAdminAuthStoreWithOut } from '@/store/modules/adminAuth'
+import { isOperationSystem } from '@/utils/system'
 import { objToFormData } from '@/utils'
 
 /** 登录失效业务码（后端可能返回 number 或 string） */
@@ -57,8 +59,10 @@ const defaultResponseInterceptors = (response: AxiosResponse) => {
       }
     }
     if (String(response?.data?.code ?? '') === AUTH_EXPIRED_CODE) {
-      const userStore = useUserStoreWithOut()
-      userStore.logout()
+      if (isOperationSystem()) {
+        useAdminAuthStoreWithOut().clearSession()
+      }
+      useUserStoreWithOut().logout()
     }
     return Promise.reject(response?.data)
   }
