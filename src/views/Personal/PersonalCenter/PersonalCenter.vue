@@ -7,7 +7,6 @@ import UploadAvatar from './components/UploadAvatar.vue'
 import { Dialog } from '@/components/Dialog'
 import EditInfo from './components/EditInfo.vue'
 import EditPassword from './components/EditPassword.vue'
-import GoogleAuthenticator from './components/GoogleAuthenticator.vue'
 import { isManagementSystem } from '@/utils/system'
 
 const isManagement = isManagementSystem()
@@ -107,9 +106,6 @@ const saveAvatar = async () => {
         </ElTabPane>
         <ElTabPane label="修改密码" name="second">
           <EditPassword />
-        </ElTabPane>
-        <ElTabPane v-if="!isManagement" label="谷歌验证码" name="google-authenticator">
-          <GoogleAuthenticator />
         </ElTabPane>
       </ElTabs>
     </ContentWrap>
