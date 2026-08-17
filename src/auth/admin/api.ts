@@ -100,4 +100,14 @@ export const logoutAdminSession = (accessToken: string, scope: 'current' | 'all'
     )
   )
 
+export const changeAdminPassword = (
+  accessToken: string,
+  data: { current_password: string; new_password: string }
+) =>
+  unwrap<string>(
+    client.put('/v1/admin/security/password', data, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    })
+  )
+
 export const isAdminAuthPath = (url?: string) => Boolean(url?.includes('/v1/admin/auth/'))
