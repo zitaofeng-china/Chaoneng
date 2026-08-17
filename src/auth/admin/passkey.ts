@@ -65,10 +65,12 @@ export const getPasskeyErrorMessage = (error: unknown, fallback: string) => {
 export const getPasskeyAssertion = async (
   options:
     | PublicKeyCredentialRequestOptionsJSON
-    | { publicKey?: PublicKeyCredentialRequestOptionsJSON }
+    | { publicKey?: PublicKeyCredentialRequestOptionsJSON },
+  mediation?: CredentialMediationRequirement
 ): Promise<PasskeyCredentialPayload> => {
   const publicKey = unwrapPublicKeyOptions(options)
   const credential = (await navigator.credentials.get({
+    mediation,
     publicKey: {
       ...publicKey,
       challenge: decodeBase64Url(publicKey.challenge),
