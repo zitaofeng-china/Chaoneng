@@ -23,11 +23,11 @@ router.beforeEach(async (to, from, next) => {
   const appStore = useAppStoreWithOut()
   const userStore = useUserStoreWithOut()
 
-  if (isOperationSystem()) {
-    const adminAuthStore = useAdminAuthStoreWithOut()
-    await adminAuthStore.restoreSession()
+  const adminAuthStore = useAdminAuthStoreWithOut()
+  await adminAuthStore.restoreSession()
 
-    if (adminAuthStore.isAuthenticated && !userStore.getUserInfo) {
+  if (adminAuthStore.isAuthenticated && !userStore.getUserInfo) {
+    if (isOperationSystem()) {
       try {
         const userInfo = await getUserInfoApi()
         if (userInfo?.data) {
@@ -38,17 +38,25 @@ router.beforeEach(async (to, from, next) => {
         // Access Token 可用但用户资料获取失败时不伪造登录态，避免进入无权限的后台。
         adminAuthStore.clearSession()
       }
+    } else {
+      userStore.setUserInfo({ username: '代理' })
     }
+  } else if (!adminAuthStore.isAuthenticated) {
+    // 两端都已切换到新会话体系，不能再让持久化的旧 JWT 恢复访问。
+    userStore.setToken('')
+    userStore.setTokenExpiredAt(undefined)
+    userStore.setUserInfo(undefined)
+    userStore.setRoleRouters([])
   }
 
   if (userStore.getUserInfo) {
     // 双重检查：同时验证 Pinia store 和 localStorage
     const storeExpiredAt = userStore.getTokenExpiredAt
 
-    // 代理端保留旧 Token 过期校验；运营端 Access Token 不持久化，依赖 Refresh Cookie 恢复。
+    // Access Token 不持久化，依赖 Refresh Cookie 恢复；保留本段仅兼容未清理的旧状态。
     let localExpiredAt: number | null = null
     try {
-      if (isOperationSystem()) throw new Error('operation auth is memory-only')
+      throw new Error('admin auth is memory-only')
       const localStorageData = localStorage.getItem('user')
       if (localStorageData) {
         const userData = JSON.parse(localStorageData)
@@ -65,7 +73,7 @@ router.beforeEach(async (to, from, next) => {
         ? Math.min(storeExpiredAt, localExpiredAt)
         : storeExpiredAt || localExpiredAt
 
-    if (!isOperationSystem() && expiredAt) {
+    if (expiredAt && !adminAuthStore.isAuthenticated) {
       const now = Math.floor(Date.now() / 1000) // 当前时间（秒）
       if (now >= expiredAt) {
         ElMessage.warning('登录已过期，请重新登录')
