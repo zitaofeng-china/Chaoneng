@@ -83,16 +83,7 @@ export const getPasskeyAssertion = async (
     throw new Error('未获取到通行密钥凭据')
   }
 
-  const response = credential.response
-  return {
-    id: credential.id,
-    raw_id: encodeBase64Url(credential.rawId) || '',
-    type: credential.type,
-    authenticator_data: encodeBase64Url(response.authenticatorData) || '',
-    client_data_json: encodeBase64Url(response.clientDataJSON) || '',
-    signature: encodeBase64Url(response.signature) || '',
-    user_handle: encodeBase64Url(response.userHandle)
-  }
+  return toWebAuthnCredentialJSON(credential)
 }
 
 export const createPasskeyCredential = async (
@@ -124,12 +115,37 @@ export const createPasskeyCredential = async (
   if (!credential || !(credential.response instanceof AuthenticatorAttestationResponse)) {
     throw new Error('未创建通行密钥凭据')
   }
-  const response = credential.response
-  return {
-    id: credential.id,
-    raw_id: encodeBase64Url(credential.rawId) || '',
-    type: credential.type,
-    client_data_json: encodeBase64Url(response.clientDataJSON) || '',
-    attestation_object: encodeBase64Url(response.attestationObject) || ''
+  return toWebAuthnCredentialJSON(credential)
+}
+
+/** go-webauthn 解析的是浏览器 PublicKeyCredential JSON，不是服务端 Credential 存库结构。 */
+const toWebAuthnCredentialJSON = (credential: PublicKeyCredential): PasskeyCredentialPayload => {
+  const toJSON = (credential as PublicKeyCredential & { toJSON?: () => PasskeyCredentialPayload })
+    .toJSON
+  if (typeof toJSON === 'function') {
+    return toJSON.call(credential)
   }
+
+  const response = credential.response
+  const payload: PasskeyCredentialPayload = {
+    id: credential.id,
+    rawId: encodeBase64Url(credential.rawId) || '',
+    type: credential.type,
+    authenticatorAttachment: credential.authenticatorAttachment || undefined,
+    clientExtensionResults: credential.getClientExtensionResults?.() || {},
+    response: {
+      clientDataJSON: encodeBase64Url(response.clientDataJSON) || ''
+    }
+  }
+
+  if (response instanceof AuthenticatorAttestationResponse) {
+    payload.response.attestationObject = encodeBase64Url(response.attestationObject) || ''
+    payload.response.transports = response.getTransports?.()
+  } else if (response instanceof AuthenticatorAssertionResponse) {
+    payload.response.authenticatorData = encodeBase64Url(response.authenticatorData) || ''
+    payload.response.signature = encodeBase64Url(response.signature) || ''
+    payload.response.userHandle = encodeBase64Url(response.userHandle)
+  }
+
+  return payload
 }

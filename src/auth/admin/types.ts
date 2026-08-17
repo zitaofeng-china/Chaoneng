@@ -47,13 +47,19 @@ export interface PasskeyChallengeResult {
       >
 }
 
+/** 提交给 go-webauthn 的浏览器凭据，对应 protocol.CredentialCreation/AssertionResponse。 */
 export interface PasskeyCredentialPayload {
-  attestation_object?: string
-  authenticator_data?: string
-  client_data_json: string
   id: string
-  raw_id: string
-  signature?: string
+  rawId: string
   type: string
-  user_handle?: string
+  authenticatorAttachment?: string
+  clientExtensionResults?: Record<string, unknown>
+  response: {
+    clientDataJSON: string
+    attestationObject?: string
+    authenticatorData?: string
+    signature?: string
+    userHandle?: string
+    transports?: string[]
+  }
 }
