@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { RegisterForm } from './components'
+import { LoginForm, RegisterForm } from './components'
 import OperationLoginForm from './components/OperationLoginForm.vue'
+import OperationRegisterForm from './components/OperationRegisterForm.vue'
 import { ThemeSwitch } from '@/components/ThemeSwitch'
 import { LocaleDropdown } from '@/components/LocaleDropdown'
 import { useI18n } from '@/hooks/web/useI18n'
@@ -80,6 +81,12 @@ const toLogin = () => {
               <OperationLoginForm
                 v-if="isLogin"
                 class="p-20px h-auto m-auto lt-xl:rounded-3xl lt-xl:light:bg-white"
+                @to-register="toRegister"
+              />
+              <OperationRegisterForm
+                v-else-if="isOperation"
+                class="p-20px h-auto m-auto lt-xl:rounded-3xl lt-xl:light:bg-white"
+                @to-login="toLogin"
               />
               <RegisterForm
                 v-else

@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
-import { ElButton, ElForm, ElFormItem, ElInput, ElMessage, ElTabPane, ElTabs } from 'element-plus'
+import {
+  ElButton,
+  ElForm,
+  ElFormItem,
+  ElInput,
+  ElLink,
+  ElMessage,
+  ElTabPane,
+  ElTabs
+} from 'element-plus'
 import { useRouter } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { createPasskeyChallenge, loginWithPasskey, loginWithPassword } from '@/auth/admin/api'
@@ -13,7 +22,8 @@ import { getUserInfoApi } from '@/api/common/login'
 import { getFirstAccessibleRoutePath } from '@/utils/routerHelper'
 import { isOperationSystem } from '@/utils/system'
 
-const { currentRoute, addRoute, replace } = useRouter()
+const emit = defineEmits(['to-register'])
+const { currentRoute, addRoute, push, replace } = useRouter()
 const adminAuthStore = useAdminAuthStore()
 const userStore = useUserStore()
 const appStore = useAppStore()
@@ -154,5 +164,11 @@ const signInWithPassword = async () => {
         </ElForm>
       </ElTabPane>
     </ElTabs>
+    <div class="flex justify-between mt-16px">
+      <ElLink type="primary" :underline="false" @click="push('/reset-password')">忘记密码</ElLink>
+      <ElLink v-if="isOperation" type="primary" :underline="false" @click="emit('to-register')"
+        >注册账号</ElLink
+      >
+    </div>
   </section>
 </template>
