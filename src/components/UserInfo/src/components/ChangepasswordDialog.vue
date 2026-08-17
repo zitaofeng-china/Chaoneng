@@ -3,13 +3,15 @@ import { ref, reactive, computed } from 'vue'
 import Dialog from '@/components/Dialog/src/Dialog.vue'
 import Form from '@/components/Form/src/Form.vue'
 import { FormSchema } from '@/components/Form'
-import { changeManagePasswordApiV2 } from '@/api/common/login'
+import { changeAdminPassword } from '@/auth/admin/api'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/modules/user'
+import { useAdminAuthStore } from '@/store/modules/adminAuth'
 
 const userStore = useUserStore()
+const adminAuthStore = useAdminAuthStore()
 const props = defineProps({
   modelValue: {
     type: Boolean,
@@ -98,20 +100,15 @@ const submit = async () => {
 
       submitLoading.value = true
       try {
-        // 使用新接口修改密码
-        const res = await changeManagePasswordApiV2({
-          password: formData.password,
+        await changeAdminPassword(adminAuthStore.getAccessToken, {
+          current_password: formData.password,
           new_password: formData.new_password
         })
-        if (res && res.code === '000000') {
-          ElMessage.success('密码修改成功，请重新登录')
-          emit('success')
-          dialogVisible.value = false
-          // 修改密码成功后退出登录
-          userStore.logout()
-        } else {
-          ElMessage.error('密码修改失败')
-        }
+        ElMessage.success('密码修改成功，请重新登录')
+        emit('success')
+        dialogVisible.value = false
+        adminAuthStore.clearSession()
+        userStore.logout()
       } catch (e: any) {
         // 显示后端返回的错误信息
         const errorMsg = e.response?.data?.msg || e.message || '请求失败，请稍后再试'
