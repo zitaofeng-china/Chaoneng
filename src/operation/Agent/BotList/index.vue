@@ -54,6 +54,7 @@ import {
   type TableSlot
 } from '@/utils/tableHelpers'
 import { BOT_STATUS_MAP, BOT_STATUS_OPTIONS } from '../constants'
+import { Tips } from '@/components/Tips'
 import { buildBotUpdatePayload, validateBotUpdatePayload } from '@/utils/botUpdatePayload'
 import { getTelegramUserUrl } from '@/utils/telegram'
 
@@ -273,6 +274,22 @@ const columns = ref<TableColumn[]>([
     formatter: (row: AgentBotItem) => formatTableDateTime(row.created_at)
   },
   {
+    field: 'expired_at',
+    label: '到期时间',
+    minWidth: 180,
+    sortable: 'custom',
+    showOverflowTooltip: false,
+    formatter: (row: AgentBotItem) => formatTableDateTime(row.expired_at),
+    slots: {
+      header: () => (
+        <div style="display: inline-flex; align-items: center; white-space: nowrap;">
+          到期时间
+          <Tips content="到期后，机器人将会被暂停使用" />
+        </div>
+      )
+    }
+  },
+  {
     field: 'updated_at',
     label: '最后活动时间',
     minWidth: 160,
@@ -346,6 +363,7 @@ const handleExport = async () => {
         机器人状态: getStatusLabel(BOT_STATUS_MAP, item.status, '未知'),
         邀请门槛: item.reward?.deposit_threshold ?? 0,
         创建时间: formatTableDateTime(item.created_at),
+        到期时间: formatTableDateTime(item.expired_at),
         最后活动时间: formatTableDateTime(item.updated_at)
       })
     })
