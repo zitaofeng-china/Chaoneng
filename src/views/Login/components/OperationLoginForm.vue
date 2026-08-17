@@ -10,12 +10,14 @@ import { useAppStore } from '@/store/modules/app'
 import { usePermissionStore } from '@/store/modules/permission'
 import { getUserInfoApi } from '@/api/common/login'
 import { getFirstAccessibleRoutePath } from '@/utils/routerHelper'
+import { isOperationSystem } from '@/utils/system'
 
 const { currentRoute, addRoute, replace } = useRouter()
 const adminAuthStore = useAdminAuthStore()
 const userStore = useUserStore()
 const appStore = useAppStore()
 const permissionStore = usePermissionStore()
+const isOperation = isOperationSystem()
 
 const loading = ref(false)
 const passwordForm = reactive({ account: '', password: '' })
@@ -32,17 +34,20 @@ const passwordRules = {
 const redirect = computed(() => currentRoute.value.query.redirect as string | undefined)
 
 const completeLogin = async (fallbackName: string) => {
-  try {
-    const userInfo = await getUserInfoApi()
-    if (userInfo?.data) {
-      const { permissions, name, role_ID, role_name } = userInfo.data
-      userStore.setUserInfo({ permissions, username: name, role_ID, role_name })
-    } else {
+  if (!isOperation) {
+    userStore.setUserInfo({ username: fallbackName })
+  } else {
+    try {
+      const userInfo = await getUserInfoApi()
+      if (userInfo?.data) {
+        const { permissions, name, role_ID, role_name } = userInfo.data
+        userStore.setUserInfo({ permissions, username: name, role_ID, role_name })
+      } else {
+        userStore.setUserInfo({ username: fallbackName })
+      }
+    } catch {
       userStore.setUserInfo({ username: fallbackName })
     }
-  } catch {
-    // 认证已成功，保留最小用户态，使路由守卫可继续完成静态路由初始化。
-    userStore.setUserInfo({ username: fallbackName })
   }
 
   appStore.$patch({ dynamicRouter: false, serverDynamicRouter: false })
@@ -74,7 +79,9 @@ const signInWithPassword = async () => {
 
 <template>
   <section class="w-[100%] max-w-420px">
-    <h2 class="text-2xl font-bold text-center mb-24px">运营端登录</h2>
+    <h2 class="text-2xl font-bold text-center mb-24px">
+      {{ isOperation ? '运营端登录' : '代理端登录' }}
+    </h2>
     <ElForm
       ref="passwordFormRef"
       :model="passwordForm"
