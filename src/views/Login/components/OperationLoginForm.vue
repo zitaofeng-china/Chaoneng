@@ -166,11 +166,11 @@ const signInWithPassword = async () => {
         </ElForm>
       </ElTabPane>
     </ElTabs>
-    <div class="flex justify-between mt-16px">
+    <div class="flex mt-16px" :class="isOperation ? 'justify-start' : 'justify-between'">
       <ElLink type="primary" :underline="false" @click="push('/reset-password')">忘记密码</ElLink>
-      <ElLink v-if="isOperation" type="primary" :underline="false" @click="emit('to-register')"
-        >注册账号</ElLink
-      >
+      <ElLink v-if="!isOperation" type="primary" :underline="false" @click="emit('to-register')">
+        注册账号
+      </ElLink>
     </div>
   </section>
 </template>

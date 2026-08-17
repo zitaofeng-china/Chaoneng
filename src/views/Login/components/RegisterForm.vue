@@ -1,462 +1,165 @@
-<script setup lang="tsx">
-import { Form, FormSchema } from '@/components/Form'
-import { reactive, ref, unref, computed } from 'vue'
-import { useI18n } from '@/hooks/web/useI18n'
-import { useForm } from '@/hooks/web/useForm'
-import { ElInput, FormRules, ElTabs, ElTabPane } from 'element-plus'
+<script setup lang="ts">
+import { computed, onBeforeUnmount, reactive, ref } from 'vue'
+import { ElButton, ElForm, ElFormItem, ElInput, ElLink, ElMessage } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
+import { registerAdmin, sendAdminEmailCode } from '@/auth/admin/api'
 import { useValidator } from '@/hooks/web/useValidator'
-import { BaseButton } from '@/components/Button'
-import { IAgree } from '@/components/IAgree'
-import {
-  phoneRegisterApi,
-  emailRegisterApi,
-  sendPhoneCodeApi,
-  sendEmailCodeApi
-} from '@/api/common/login'
-import { ElMessage } from 'element-plus'
 
 const emit = defineEmits(['to-login'])
-
-const { formRegister, formMethods } = useForm()
-const { getElFormExpose } = formMethods
-
-const { t } = useI18n()
-
-const { required, email, phone, noAtSymbol, passwordPolicy } = useValidator()
-
-const registerPasswordRules = [required(), passwordPolicy()]
-
-// 添加注册类型切换
-const registerType = ref('email') // 'phone' 或 'email'
-
-// 验证码倒计时相关 - 暂时注释掉
-// const countdown = ref(0)
-// const isCounting = computed(() => countdown.value > 0)
-// let timer: number | null = null
-
-// 开始倒计时 - 暂时注释掉
-// const startCountdown = () => {
-//   countdown.value = 60
-//   timer = window.setInterval(() => {
-//     countdown.value--
-//     if (countdown.value <= 0) {
-//       clearInterval(timer!)
-//       timer = null
-//     }
-//   }, 1000)
-// }
-
-// 发送验证码 - 暂时注释掉
-// const sendCode = async () => {
-//   const formRef = await getElFormExpose()
-
-//   try {
-//     if (registerType.value === 'phone') {
-//       // 验证手机号
-//       await formRef?.validateField('phone')
-//       const formData = await formMethods.getFormData()
-
-//       if (!formData.phone) {
-//         ElMessage.warning('请输入手机号')
-//         return
-//       }
-
-//       // 发送手机验证码
-//       await sendPhoneCodeApi({
-//         mobile: formData.phone,
-//         channel: 'register'
-//       })
-
-//       ElMessage.success('验证码已发送到手机')
-//     } else {
-//       // 验证邮箱
-//       await formRef?.validateField('email')
-//       const formData = await formMethods.getFormData()
-
-//       if (!formData.email) {
-//         ElMessage.warning('请输入邮箱')
-//         return
-//       }
-
-//       // 发送邮箱验证码
-//       await sendEmailCodeApi({
-//         email: formData.email,
-//         channel: 'register'
-//       })
-
-//       ElMessage.success('验证码已发送到邮箱')
-//     }
-
-//     // 启动倒计时
-//     startCountdown()
-//   } catch (error) {
-//     console.error('发送验证码失败:', error)
-//     ElMessage.error('发送验证码失败，请稍后重试')
-//   }
-// }
-
-// 切换注册方式时清空表单
-const handleTabChange = () => {
-  clearForm()
-}
-
-const clearForm = () => {
-  formMethods.setValues({
-    username: '',
-    password: '',
-    check_password: '',
-    phone: '',
-    email: '',
-    // code: '', // 暂时注释掉验证码字段
-    iAgree: false
-  })
-}
-
-// 根据注册类型选择不同的验证规则 - 移除验证码验证
-const rules = computed<FormRules>(() => {
-  return registerType.value === 'phone'
-    ? {
-        username: [required(), noAtSymbol()],
-        password: registerPasswordRules,
-        check_password: registerPasswordRules,
-        phone: [required(), phone()]
-        // code: [required()] // 暂时注释掉验证码验证
-      }
-    : {
-        username: [required(), noAtSymbol()],
-        password: registerPasswordRules,
-        check_password: registerPasswordRules,
-        email: [required(), email()]
-        // code: [required()] // 暂时注释掉验证码验证
-      }
-})
-
-// 手机注册表单
-const phoneSchema = reactive<FormSchema[]>([
-  {
-    field: 'title',
-    colProps: { span: 24 },
-    formItemProps: {
-      slots: {
-        default: () => {
-          return (
-            <>
-              <h2 class="text-2xl font-bold text-center w-[100%] mb-4">{t('login.register')}</h2>
-              <ElTabs v-model={registerType.value} class="w-[100%]" onTabChange={handleTabChange}>
-                {/* <ElTabPane label={t('login.phoneRegister')} name="phone"></ElTabPane> */}
-                <ElTabPane label={t('login.emailRegister')} name="email"></ElTabPane>
-              </ElTabs>
-            </>
-          )
-        }
-      }
-    }
-  },
-  {
-    field: 'username',
-    label: t('login.username'),
-    value: '',
-    component: 'Input',
-    colProps: { span: 24 },
-    componentProps: {
-      placeholder: t('login.usernamePlaceholder')
-    }
-  },
-  {
-    field: 'phone',
-    label: t('login.phoneNumber'),
-    component: 'Input',
-    colProps: { span: 24 },
-    componentProps: {
-      placeholder: t('login.inputPhoneNumber')
-    }
-  },
-  // 暂时注释掉验证码字段
-  // {
-  //   field: 'code',
-  //   label: t('login.code'),
-  //   component: 'Input',
-  //   colProps: { span: 24 },
-  //   componentProps: {
-  //     style: { width: '100%' },
-  //     placeholder: t('login.codePlaceholder'),
-  //     slots: {
-  //       append: () => (
-  //         <BaseButton
-  //           type="primary"
-  //           class="send-code-btn"
-  //           disabled={isCounting.value}
-  //           onClick={sendCode}
-  //         >
-  //           {isCounting.value ? `${countdown.value}秒` : t('login.getCode')}
-  //         </BaseButton>
-  //       )
-  //     }
-  //   }
-  // },
-  {
-    field: 'password',
-    label: {
-      text: t('login.password'),
-      tips: '请输入6-20位且不能为纯数字的密码'
-    },
-    value: '',
-    component: 'InputPassword',
-    colProps: { span: 24 },
-    componentProps: {
-      style: { width: '100%' },
-      strength: true,
-      placeholder: t('login.passwordPlaceholder')
-    }
-  },
-  {
-    field: 'check_password',
-    label: t('login.checkPassword'),
-    value: '',
-    component: 'InputPassword',
-    colProps: { span: 24 },
-    componentProps: {
-      style: { width: '100%' },
-      strength: true,
-      placeholder: t('login.passwordPlaceholder')
-    }
-  },
-  {
-    field: 'register',
-    colProps: { span: 24 },
-    formItemProps: {
-      slots: {
-        default: () => {
-          return (
-            <>
-              <div class="w-[100%]">
-                <BaseButton
-                  type="primary"
-                  class="w-[100%]"
-                  loading={loading.value}
-                  onClick={register}
-                >
-                  {t('login.register')}
-                </BaseButton>
-              </div>
-              <div class="w-[100%] mt-15px">
-                <BaseButton class="w-[100%]" onClick={toLogin}>
-                  {t('login.hasUser')}
-                </BaseButton>
-              </div>
-            </>
-          )
-        }
-      }
-    }
-  }
-])
-
-// 邮箱注册表单
-const emailSchema = reactive<FormSchema[]>([
-  {
-    field: 'title',
-    colProps: { span: 24 },
-    formItemProps: {
-      slots: {
-        default: () => {
-          return (
-            <>
-              <h2 class="text-2xl font-bold text-center w-[100%] mb-4">{t('login.register')}</h2>
-              <ElTabs v-model={registerType.value} class="w-[100%]" onTabChange={handleTabChange}>
-                {/* <ElTabPane label={t('login.phoneRegister')} name="phone"></ElTabPane> */}
-                <ElTabPane label={t('login.emailRegister')} name="email"></ElTabPane>
-              </ElTabs>
-            </>
-          )
-        }
-      }
-    }
-  },
-  {
-    field: 'username',
-    label: t('login.username'),
-    value: '',
-    component: 'Input',
-    colProps: { span: 24 },
-    componentProps: {
-      placeholder: t('login.usernamePlaceholder')
-    }
-  },
-  {
-    field: 'email',
-    label: t('login.email'),
-    component: 'Input',
-    colProps: { span: 24 },
-    componentProps: {
-      placeholder: t('login.inputEmail')
-    }
-  },
-  // 暂时注释掉验证码字段
-  // {
-  //   field: 'code',
-  //   label: t('login.code'),
-  //   component: 'Input',
-  //   colProps: { span: 24 },
-  //   componentProps: {
-  //     style: { width: '100%' },
-  //     placeholder: t('login.codePlaceholder'),
-  //     slots: {
-  //       append: () => (
-  //         <BaseButton
-  //           type="primary"
-  //           class="send-code-btn"
-  //           disabled={isCounting.value}
-  //           onClick={sendCode}
-  //         >
-  //           {isCounting.value ? `${countdown.value}秒` : t('login.getCode')}
-  //         </BaseButton>
-  //       )
-  //     }
-  //   }
-  // },
-  {
-    field: 'password',
-    label: {
-      text: t('login.password'),
-      tips: '请输入6-20位且不能为纯数字的密码'
-    },
-    value: '',
-    component: 'InputPassword',
-    colProps: { span: 24 },
-    componentProps: {
-      style: { width: '100%' },
-      strength: true,
-      placeholder: t('login.passwordPlaceholder')
-    }
-  },
-  {
-    field: 'check_password',
-    label: t('login.checkPassword'),
-    value: '',
-    component: 'InputPassword',
-    colProps: { span: 24 },
-    componentProps: {
-      style: { width: '100%' },
-      strength: true,
-      placeholder: t('login.passwordPlaceholder')
-    }
-  },
-  {
-    field: 'register',
-    colProps: { span: 24 },
-    formItemProps: {
-      slots: {
-        default: () => {
-          return (
-            <>
-              <div class="w-[100%]">
-                <BaseButton
-                  type="primary"
-                  class="w-[100%]"
-                  loading={loading.value}
-                  onClick={register}
-                >
-                  {t('login.register')}
-                </BaseButton>
-              </div>
-              <div class="w-[100%] mt-15px">
-                <BaseButton class="w-[100%]" onClick={toLogin}>
-                  {t('login.hasUser')}
-                </BaseButton>
-              </div>
-            </>
-          )
-        }
-      }
-    }
-  }
-])
-
-// 根据注册类型切换表单
-const schema = computed(() => {
-  return registerType.value === 'phone' ? phoneSchema : emailSchema
-})
-
-const toLogin = () => {
-  emit('to-login')
-}
-
+const { passwordPolicy } = useValidator()
+const formRef = ref<FormInstance>()
 const loading = ref(false)
+const sending = ref(false)
+const seconds = ref(0)
+let timer: number | undefined
 
-const register = async () => {
-  const formRef = await getElFormExpose()
-  formRef?.validate(async (valid) => {
-    if (valid) {
-      try {
-        loading.value = true
-        // 检查密码是否一致
-        const formData = await formMethods.getFormData()
-        if (formData.password !== formData.check_password) {
-          ElMessage.error('两次输入的密码不一致')
-          return
-        }
+const form = reactive({
+  username: '',
+  email: '',
+  email_code: '',
+  password: '',
+  confirmPassword: ''
+})
 
-        // 根据注册类型调用不同的注册API - 暂时去掉验证码参数
-        if (registerType.value === 'phone') {
-          // 手机号注册
-          const res = await phoneRegisterApi({
-            phone: formData.phone,
-            password: formData.password,
-            verify_code: '' // 暂时传递空字符串
-          })
+const canSend = computed(() => seconds.value === 0 && !sending.value)
 
-          if (res && res.code === '000000') {
-            ElMessage.success('注册成功，请登录')
-            // 注册成功后跳转到登录页
-            toLogin()
-          } else {
-            ElMessage.error(res?.msg || '注册失败')
-          }
+const rules: FormRules = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { max: 32, message: '用户名不能超过32个字符', trigger: 'blur' },
+    { pattern: /^[^@]+$/, message: '用户名不能包含@符号', trigger: 'blur' }
+  ],
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' },
+    { max: 32, message: '邮箱不能超过32个字符', trigger: 'blur' }
+  ],
+  email_code: [
+    { required: true, pattern: /^\d{6}$/, message: '请输入6位邮箱验证码', trigger: 'blur' }
+  ],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }, passwordPolicy()],
+  confirmPassword: [
+    { required: true, message: '请确认密码', trigger: 'blur' },
+    {
+      validator: (_, value, callback) => {
+        if (value && value !== form.password) {
+          callback(new Error('两次输入的密码不一致'))
         } else {
-          // 邮箱注册
-          const res = await emailRegisterApi({
-            username: formData.username,
-            email: formData.email,
-            password: formData.password,
-            verify_code: '' // 暂时传递空字符串
-          })
-
-          if (res && res.code === '000000') {
-            ElMessage.success('注册成功，请登录')
-            // 注册成功后跳转到登录页
-            toLogin()
-          } else {
-            ElMessage.error(res?.msg || '注册失败')
-          }
+          callback()
         }
-      } catch (error) {
-        console.error('注册失败:', error)
-        ElMessage.error('注册失败，请稍后重试')
-      } finally {
-        loading.value = false
-      }
+      },
+      trigger: 'blur'
     }
-  })
+  ]
 }
+
+const startCountdown = (duration: number) => {
+  seconds.value = duration
+  window.clearInterval(timer)
+  timer = window.setInterval(() => {
+    seconds.value = Math.max(0, seconds.value - 1)
+    if (!seconds.value) window.clearInterval(timer)
+  }, 1000)
+}
+
+const sendCode = async () => {
+  const valid = await formRef.value?.validateField('email').catch(() => false)
+  if (!valid) return
+
+  sending.value = true
+  try {
+    const result = await sendAdminEmailCode({ email: form.email, purpose: 'register' })
+    startCountdown(result.resend_after)
+    ElMessage.success('验证码已发送')
+  } catch (error: any) {
+    ElMessage.error(error?.msg || '验证码发送失败，请稍后重试')
+  } finally {
+    sending.value = false
+  }
+}
+
+const submit = async () => {
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
+
+  loading.value = true
+  try {
+    await registerAdmin({
+      username: form.username,
+      email: form.email,
+      email_code: form.email_code,
+      password: form.password
+    })
+    ElMessage.success('注册成功，请登录')
+    emit('to-login')
+  } catch (error: any) {
+    ElMessage.error(error?.msg || '注册失败，请稍后重试')
+  } finally {
+    loading.value = false
+  }
+}
+
+onBeforeUnmount(() => window.clearInterval(timer))
 </script>
 
 <template>
-  <Form
-    :schema="schema"
-    :rules="rules"
-    label-position="top"
-    hide-required-asterisk
-    size="large"
-    class="dark:(border-1 border-[var(--el-border-color)] border-solid)"
-    @register="formRegister"
-  />
+  <section class="w-[100%] max-w-420px">
+    <h2 class="text-2xl font-bold text-center mb-24px">注册代理账号</h2>
+    <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent>
+      <ElFormItem label="用户名" prop="username">
+        <ElInput v-model="form.username" maxlength="32" placeholder="请输入用户名，不能包含@" />
+      </ElFormItem>
+      <ElFormItem label="邮箱" prop="email">
+        <ElInput
+          v-model="form.email"
+          maxlength="32"
+          placeholder="请输入邮箱"
+          autocomplete="email"
+        />
+      </ElFormItem>
+      <ElFormItem label="邮箱验证码" prop="email_code">
+        <div class="flex w-[100%] gap-8px">
+          <ElInput
+            v-model="form.email_code"
+            maxlength="6"
+            inputmode="numeric"
+            placeholder="请输入6位验证码"
+          />
+          <ElButton :disabled="!canSend" :loading="sending" @click="sendCode">
+            {{ seconds ? `${seconds}秒后重发` : '发送验证码' }}
+          </ElButton>
+        </div>
+      </ElFormItem>
+      <ElFormItem label="密码" prop="password">
+        <ElInput
+          v-model="form.password"
+          type="password"
+          show-password
+          placeholder="6-20位，不能为纯数字"
+          autocomplete="new-password"
+        />
+      </ElFormItem>
+      <ElFormItem label="确认密码" prop="confirmPassword">
+        <ElInput
+          v-model="form.confirmPassword"
+          type="password"
+          show-password
+          placeholder="请再次输入密码"
+          autocomplete="new-password"
+        />
+      </ElFormItem>
+      <ElButton
+        type="primary"
+        class="w-[100%]"
+        :loading="loading"
+        native-type="submit"
+        @click="submit"
+      >
+        注册
+      </ElButton>
+    </ElForm>
+    <div class="mt-16px text-right">
+      <ElLink type="primary" :underline="false" @click="emit('to-login')">已有账号，去登录</ElLink>
+    </div>
+  </section>
 </template>
-
-<style scoped>
-/* 暂时注释掉发送验证码按钮的样式 */
-
-/* .send-code-btn {
-  width: 120px;
-} */
-</style>

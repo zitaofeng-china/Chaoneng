@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { LoginForm, RegisterForm } from './components'
+import { RegisterForm } from './components'
 import OperationLoginForm from './components/OperationLoginForm.vue'
-import OperationRegisterForm from './components/OperationRegisterForm.vue'
 import { ThemeSwitch } from '@/components/ThemeSwitch'
 import { LocaleDropdown } from '@/components/LocaleDropdown'
 import { useI18n } from '@/hooks/web/useI18n'
@@ -10,7 +9,6 @@ import { useAppStore } from '@/store/modules/app'
 import { useDesign } from '@/hooks/web/useDesign'
 import { ref } from 'vue'
 import { ElScrollbar } from 'element-plus'
-import { isOperationSystem } from '@/utils/system'
 
 const { getPrefixCls } = useDesign()
 
@@ -21,7 +19,6 @@ const appStore = useAppStore()
 const { t } = useI18n()
 
 const isLogin = ref(true)
-const isOperation = isOperationSystem()
 
 const toRegister = () => {
   isLogin.value = false
@@ -82,11 +79,6 @@ const toLogin = () => {
                 v-if="isLogin"
                 class="p-20px h-auto m-auto lt-xl:rounded-3xl lt-xl:light:bg-white"
                 @to-register="toRegister"
-              />
-              <OperationRegisterForm
-                v-else-if="isOperation"
-                class="p-20px h-auto m-auto lt-xl:rounded-3xl lt-xl:light:bg-white"
-                @to-login="toLogin"
               />
               <RegisterForm
                 v-else
