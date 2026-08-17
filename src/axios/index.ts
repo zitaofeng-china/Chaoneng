@@ -2,17 +2,14 @@ import service from './service'
 import { CONTENT_TYPE } from '@/constants'
 import { useUserStoreWithOut } from '@/store/modules/user'
 import { useAdminAuthStoreWithOut } from '@/store/modules/adminAuth'
-import { isOperationSystem } from '@/utils/system'
 
 const request = <T = any>(option: AxiosConfig) => {
   const { url, method, params, data, headers, responseType } = option
 
   const userStore = useUserStoreWithOut()
   const adminAuthStore = useAdminAuthStoreWithOut()
-  const authorizationValue = isOperationSystem()
-    ? adminAuthStore.getAccessToken
-      ? `Bearer ${adminAuthStore.getAccessToken}`
-      : ''
+  const authorizationValue = adminAuthStore.getAccessToken
+    ? `Bearer ${adminAuthStore.getAccessToken}`
     : (userStore.getToken ?? '')
   return service.request<T>({
     url: url,
