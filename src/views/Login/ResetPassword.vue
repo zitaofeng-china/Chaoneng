@@ -1,15 +1,19 @@
 <script setup lang="tsx">
 import { ResetPasswordForm } from './components'
 import { useI18n } from '@/hooks/web/useI18n'
+import { isOperationSystem } from '@/utils/system'
+import OperationResetPasswordForm from './components/OperationResetPasswordForm.vue'
 
 const { t } = useI18n()
+const isOperation = isOperationSystem()
 </script>
 
 <template>
   <div class="login-container">
     <div class="login-form-container">
       <div class="login-form">
-        <ResetPasswordForm />
+        <OperationResetPasswordForm v-if="isOperation" />
+        <ResetPasswordForm v-else />
       </div>
     </div>
   </div>
