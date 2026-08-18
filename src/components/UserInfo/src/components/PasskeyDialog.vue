@@ -1,18 +1,24 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { ElButton, ElForm, ElFormItem, ElInput, ElMessage, ElMessageBox } from 'element-plus'
 import Dialog from '@/components/Dialog/src/Dialog.vue'
-import { createPasskeyChallenge, deleteAdminPasskey, saveAdminPasskey } from '@/auth/admin/api'
+import {
+  createPasskeyChallenge,
+  deleteAdminPasskey,
+  saveAdminPasskey,
+  sendAdminEmailCode
+} from '@/auth/admin/api'
 import {
   createPasskeyCredential,
   getPasskeyDeviceId,
   getPasskeyErrorMessage,
-  isPasskeySupported
+  isPasskeySupported,
+  rememberPasskeyCredentialId
 } from '@/auth/admin/passkey'
 import { useAdminAuthStore } from '@/store/modules/adminAuth'
 import { useUserStore } from '@/store/modules/user'
 
-type PasskeyAction = 'bind' | 'replace' | 'remove'
+type PasskeyAction = 'set' | 'remove'
 
 const props = defineProps<{ modelValue: boolean }>()
 const emit = defineEmits(['update:modelValue'])
@@ -22,26 +28,52 @@ const visible = computed({
 })
 const authStore = useAdminAuthStore()
 const userStore = useUserStore()
+const email = ref('')
+const emailCode = ref('')
 const password = ref('')
 const loading = ref(false)
-const action = ref<PasskeyAction>('bind')
+const sending = ref(false)
+const seconds = ref(0)
+const needEmail = ref(false)
+const action = ref<PasskeyAction>('set')
 const supported = isPasskeySupported()
+let timer: number | undefined
+
+const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
+const isNoAccountEmailError = (error: unknown) => {
+  const text = String((error as { msg?: string; message?: string } | undefined)?.msg || '')
+  return /邮箱/.test(text) && /未绑定|未设置|没有|为空|不存在|未填写/.test(text)
+}
+
+const getEmailCodeErrorMessage = (error: unknown) => {
+  if (isNoAccountEmailError(error)) {
+    return '当前账号未绑定邮箱，请填写接收验证码的邮箱'
+  }
+  return (error as { msg?: string } | undefined)?.msg || '验证码发送失败，请稍后重试'
+}
 
 const actions: Array<{
   value: PasskeyAction
   title: string
   desc: string
 }> = [
-  { value: 'bind', title: '绑定', desc: '为当前设备登记通行密钥' },
-  { value: 'replace', title: '替换', desc: '覆盖已有通行密钥' },
+  { value: 'set', title: '设置', desc: '为当前账号登记通行密钥' },
   { value: 'remove', title: '删除', desc: '关闭通行密钥登录' }
 ]
 
-const confirmText = computed(() => {
-  if (action.value === 'bind') return '确认绑定'
-  if (action.value === 'replace') return '确认替换'
-  return '确认删除'
-})
+const isSetAction = computed(() => action.value === 'set')
+const canSend = computed(() => seconds.value === 0 && !sending.value && !loading.value)
+const confirmText = computed(() => (action.value === 'set' ? '确认设置' : '确认删除'))
+
+const startCountdown = (duration: number) => {
+  seconds.value = duration
+  window.clearInterval(timer)
+  timer = window.setInterval(() => {
+    seconds.value = Math.max(0, seconds.value - 1)
+    if (!seconds.value) window.clearInterval(timer)
+  }, 1000)
+}
 
 const finish = (message: string) => {
   authStore.clearSession()
@@ -51,27 +83,66 @@ const finish = (message: string) => {
 }
 
 const resetForm = () => {
+  email.value = ''
+  emailCode.value = ''
   password.value = ''
-  action.value = 'bind'
+  action.value = 'set'
   loading.value = false
+  sending.value = false
+  needEmail.value = false
 }
 
 watch(visible, (open) => {
   if (!open) resetForm()
 })
 
-const save = async (purpose: 'bind' | 'replace') => {
-  if (!supported) return ElMessage.warning('当前环境不支持通行密钥')
+const sendCode = async () => {
+  if (!canSend.value) return
+  const trimmedEmail = email.value.trim()
+  if (trimmedEmail) {
+    if (trimmedEmail.length > 32 || !isValidEmail(trimmedEmail)) {
+      return ElMessage.warning('请输入正确的邮箱地址')
+    }
+  } else if (needEmail.value) {
+    return ElMessage.warning('当前账号未绑定邮箱，请先填写邮箱')
+  }
+
+  sending.value = true
+  try {
+    const result = await sendAdminEmailCode(
+      {
+        purpose: 'set_passkey',
+        ...(trimmedEmail ? { email: trimmedEmail } : {})
+      },
+      authStore.getAccessToken
+    )
+    startCountdown(result.resend_after)
+    ElMessage.success(
+      trimmedEmail ? `验证码已发送到 ${trimmedEmail}` : '验证码已发送到当前账号邮箱'
+    )
+  } catch (error: unknown) {
+    if (isNoAccountEmailError(error)) needEmail.value = true
+    ElMessage.error(getEmailCodeErrorMessage(error))
+  } finally {
+    sending.value = false
+  }
+}
+
+const save = async () => {
   const challenge = await createPasskeyChallenge(
-    { current_password: password.value, device_id: getPasskeyDeviceId(), purpose },
+    { device_id: getPasskeyDeviceId(), purpose: 'set' },
     authStore.getAccessToken
   )
-  const credential = await createPasskeyCredential(challenge.options)
+  const credential = await createPasskeyCredential(
+    challenge.options as Parameters<typeof createPasskeyCredential>[0]
+  )
+  rememberPasskeyCredentialId(credential.id)
   await saveAdminPasskey(authStore.getAccessToken, {
     ceremony_id: challenge.ceremony_id,
-    credential
+    credential,
+    email_code: emailCode.value
   })
-  finish(purpose === 'bind' ? '通行密钥已绑定，请重新登录' : '通行密钥已替换，请重新登录')
+  finish('通行密钥已设置，请重新登录')
 }
 
 const remove = async () => {
@@ -90,13 +161,20 @@ const remove = async () => {
 }
 
 const submit = async () => {
-  if (!password.value) return ElMessage.warning('请输入当前密码')
+  if (action.value === 'remove') {
+    if (!password.value) return ElMessage.warning('请输入当前密码')
+  } else if (!supported) {
+    return ElMessage.warning('当前环境不支持通行密钥')
+  } else if (!/^\d{6}$/.test(emailCode.value)) {
+    return ElMessage.warning('请输入6位邮箱验证码')
+  }
+
   loading.value = true
   try {
     if (action.value === 'remove') {
       await remove()
     } else {
-      await save(action.value)
+      await save()
     }
   } catch (error: any) {
     if (error === 'cancel' || error === 'close') return
@@ -106,13 +184,15 @@ const submit = async () => {
     loading.value = false
   }
 }
+
+onBeforeUnmount(() => window.clearInterval(timer))
 </script>
 
 <template>
-  <Dialog v-model="visible" title="通行密钥" width="460px" :fullscreen="false" max-height="320px">
+  <Dialog v-model="visible" title="通行密钥" width="460px" :fullscreen="false" max-height="420px">
     <div class="passkey-dialog">
       <p class="passkey-lead">
-        用设备指纹、面容或安全密钥登录。操作成功后会退出当前会话，请重新登录。
+        设置通行密钥需要邮箱验证码。账号已有邮箱可直接发送；没有邮箱时请先填写接收验证码的邮箱。成功后全部会话会退出。
       </p>
 
       <p v-if="!supported" class="passkey-warn"
@@ -135,7 +215,23 @@ const submit = async () => {
       </div>
 
       <ElForm label-position="top" @submit.prevent="submit">
-        <ElFormItem label="当前密码" required>
+        <template v-if="isSetAction">
+          <ElFormItem label="邮箱验证码" required>
+            <div class="passkey-code">
+              <ElInput
+                v-model="emailCode"
+                maxlength="6"
+                inputmode="numeric"
+                placeholder="请输入6位验证码"
+                @keyup.enter="submit"
+              />
+              <ElButton :disabled="!canSend" :loading="sending" @click="sendCode">
+                {{ seconds ? `${seconds}秒后重发` : '发送验证码' }}
+              </ElButton>
+            </div>
+          </ElFormItem>
+        </template>
+        <ElFormItem v-else label="当前密码" required>
           <ElInput
             v-model="password"
             type="password"
@@ -189,7 +285,7 @@ const submit = async () => {
 
 .passkey-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -244,7 +340,17 @@ const submit = async () => {
   color: var(--el-text-color-secondary);
 }
 
+.passkey-code {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+}
+
 :deep(.el-form-item) {
+  margin-bottom: 12px;
+}
+
+:deep(.el-form-item:last-child) {
   margin-bottom: 0;
 }
 </style>
