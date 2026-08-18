@@ -41,7 +41,7 @@ const sendCode = async () => {
   if (!form.email) return ElMessage.warning('请先输入邮箱')
   sending.value = true
   try {
-    const result = await sendAdminEmailCode({ email: form.email, purpose: 'reset' })
+    const result = await sendAdminEmailCode({ email: form.email, purpose: 'reset_password' })
     startCountdown(result.resend_after)
     // 后端统一成功语义，前端不根据响应推断邮箱是否已注册。
     ElMessage.success('如该邮箱已注册，验证码已发送')
