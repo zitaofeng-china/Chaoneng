@@ -17,7 +17,8 @@ import {
   getPasskeyAssertion,
   getPasskeyDeviceId,
   getPasskeyErrorMessage,
-  isPasskeySupported
+  isPasskeySupported,
+  rememberPasskeyCredentialId
 } from '@/auth/admin/passkey'
 import { useAdminAuthStore } from '@/store/modules/adminAuth'
 import { useUserStore } from '@/store/modules/user'
@@ -88,6 +89,7 @@ const signInWithPasskey = async () => {
     const device_id = getPasskeyDeviceId()
     const challenge = await createPasskeyChallenge({ device_id, purpose: 'login' })
     const credential = await getPasskeyAssertion(challenge.options)
+    rememberPasskeyCredentialId(credential.id)
     const session = await loginWithPasskey({
       ceremony_id: challenge.ceremony_id,
       credential,
