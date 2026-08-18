@@ -28,7 +28,7 @@ import { SearchTable } from '@/components/SearchTable'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import {
-  getInviteListApi,
+  v1GetInviteList,
   type InviteListQueryParams,
   type InviteRecordItem,
   type BotOption
@@ -195,7 +195,7 @@ const fetchInviteList = async (
   params: InviteSearchParams = {}
 ): Promise<{ list: InviteRecordItem[]; total: number }> => {
   try {
-    const response = await getInviteListApi(buildInviteListParams(params))
+    const response = await v1GetInviteList(buildInviteListParams(params))
 
     const list = response.data?.list || []
     const total = response.data?.pager?.total || 0

@@ -21,7 +21,7 @@ const CUSTOMER_SERVICE_BASE = '/v1/customer'
  * 获取客服列表
  * GET /v1/customer
  */
-export const getCustomerServiceListApi = (
+export const v1GetCustomerServiceList = (
   params: CustomerServiceQueryParams
 ): Promise<IResponse<CustomerServiceListResponse>> => {
   return request.get({ url: CUSTOMER_SERVICE_BASE, params })
@@ -31,7 +31,7 @@ export const getCustomerServiceListApi = (
  * 创建客服
  * POST /v1/customer
  */
-export const createCustomerServiceApi = (data: CreateCustomerServiceParams): Promise<IResponse> => {
+export const v1CreateCustomerService = (data: CreateCustomerServiceParams): Promise<IResponse> => {
   return request.post({ url: CUSTOMER_SERVICE_BASE, data })
 }
 
@@ -39,6 +39,6 @@ export const createCustomerServiceApi = (data: CreateCustomerServiceParams): Pro
  * 更新客服信息
  * PUT /v1/customer
  */
-export const updateCustomerServiceApi = (data: UpdateCustomerServiceParams): Promise<IResponse> => {
+export const v1UpdateCustomerService = (data: UpdateCustomerServiceParams): Promise<IResponse> => {
   return request.put({ url: CUSTOMER_SERVICE_BASE, data })
 }

@@ -46,7 +46,7 @@ import type { EChartsOption } from 'echarts'
 import * as echarts from 'echarts/core'
 import { DataZoomComponent } from 'echarts/components'
 import { handleErrorMessage } from '@/utils/messageHelper'
-import { getTrxVolumeApi } from '@/api/opertion/DataStatistics/ExchangeRateIndex'
+import { getTrxVolume } from '@/api/opertion/DataStatistics/ExchangeRateIndex'
 import {
   formatPriceValue,
   getFirstTooltipParam,
@@ -293,7 +293,7 @@ const fetchAllData = async () => {
     const endTimestamp = today.getTime()
 
     // 发起API请求，获取所有历史数据
-    const data = await getTrxVolumeApi({
+    const data = await getTrxVolume({
       start_timestamp: startTimestamp,
       end_timestamp: endTimestamp,
       limit: 2700,

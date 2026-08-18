@@ -39,7 +39,7 @@ export const v1GetBillList = (params: BillListParamsV1) => {
  * 接口路径：GET /v1/user/get_detail
  * 参数：无
  */
-export const getAccountListApi = (params?: any) => {
+export const v1GetAccountDetail = (params?: any) => {
   return request.get<AccountDetail>({ url: '/user/get_detail', params })
 }
 

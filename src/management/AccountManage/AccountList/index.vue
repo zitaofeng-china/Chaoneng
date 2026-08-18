@@ -150,7 +150,7 @@ import { Dialog } from '@/components/Dialog'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { UnixTime } from '@/components/UnixTime'
-import { getAccountListApi } from '@/api/management/AccountManage/AccountList'
+import { v1GetAccountDetail } from '@/api/management/AccountManage/AccountList'
 import { v1GetSystemPrice } from '@/api/management/BotManage/BotList'
 import { useValidator } from '@/hooks/web/useValidator'
 import RechargeRecordDialog from './components/RechargeRecordDialog.vue'
@@ -285,7 +285,7 @@ const fetchAccountList = async (params: any) => {
   loading.value = true
 
   try {
-    const response = await getAccountListApi(params)
+    const response = await v1GetAccountDetail(params)
 
     if (response && response.data) {
       userData.value = response.data
@@ -458,7 +458,7 @@ const openRechargeDialog = async () => {
 
   try {
     const [accountResult, priceResult, tickerPriceResult] = await Promise.allSettled([
-      getAccountListApi({ address: true }),
+      v1GetAccountDetail({ address: true }),
       v1GetSystemPrice(),
       getTrxUsdtTickerPrice()
     ])

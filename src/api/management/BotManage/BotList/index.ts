@@ -107,7 +107,7 @@ export const v1GetBotRenewPrice = (): Promise<IResponse<BotRenewPrice>> => {
  * 同步TG状态
  * POST /v1/bot/sync-tg-status
  */
-export const syncTgStatusApi = (botId: string): Promise<IResponse> => {
+export const v1SyncBotTgStatus = (botId: string): Promise<IResponse> => {
   return request.post({ url: '/v1/bot/sync-tg-status', data: { botId } })
 }
 

@@ -30,7 +30,7 @@ import { SearchTable } from '@/components/SearchTable'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { getInviteListApi, type InviteRecordItem } from '@/api/management/UserGroup/InviteList'
+import { v1GetInviteList, type InviteRecordItem } from '@/api/management/UserGroup/InviteList'
 import { v1GetMessageBotList } from '@/api/management/common/message'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 
@@ -174,7 +174,7 @@ const fetchInviteList = async (params: any = {}) => {
     // 处理排序参数
     apiParams.order = params?.order || DEFAULT_CREATED_AT_ORDER
 
-    const response = await getInviteListApi(apiParams)
+    const response = await v1GetInviteList(apiParams)
 
     const list = response.data?.list || []
     const total = response.data?.pager?.total || response.data?.total || 0

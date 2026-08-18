@@ -95,9 +95,9 @@ import type { SearchTableExpose } from '@/components/SearchTable'
 import type { FormSchema } from '@/components/Form'
 import type { TableColumn } from '@/components/Table'
 import {
-  getAgentListApi,
-  updateAgentApi,
-  batchUpdateAgentApi,
+  v2GetAgentList,
+  v2UpdateAgent,
+  v2BatchUpdateAgent,
   type AgentQueryParams,
   type AgentItem,
   type AgentStats,
@@ -205,7 +205,7 @@ const handleExport = async () => {
     await exportTableData<AgentItem, AgentSearchParams, AgentQueryParams>({
       searchTableRef,
       filename: '代理列表',
-      fetchData: getAgentListApi,
+      fetchData: v2GetAgentList,
       buildParams: buildAgentListParams,
       mapItem: (item) => ({
         联系方式: item.email || '-',
@@ -302,7 +302,7 @@ const getAgentList = async (
   params: AgentSearchParams = {}
 ): Promise<{ list: AgentItem[]; total: number }> => {
   try {
-    const res = await getAgentListApi(buildAgentListParams(params))
+    const res = await v2GetAgentList(buildAgentListParams(params))
     const data = res?.data
     const list = data?.list || []
     const total = data?.pager?.total || 0
@@ -334,7 +334,7 @@ const updateAgentStatus = async (id: number | string, status: number, row: Agent
   if (guardBatchEditMutation('修改状态')) return
 
   try {
-    await updateAgentApi(buildUpdatePayload(id, row, { status }))
+    await v2UpdateAgent(buildUpdatePayload(id, row, { status }))
     await searchTableRef.value?.reload()
     handleSuccessMessage(status === 1 ? '启用成功' : '禁用成功')
   } catch (error) {
@@ -347,7 +347,7 @@ const updateAgentLevel = async (id: number | string, priceId: number, row: Agent
   if (guardBatchEditMutation('修改代理等级')) return
 
   try {
-    await updateAgentApi(buildUpdatePayload(id, row, { price_id: priceId }))
+    await v2UpdateAgent(buildUpdatePayload(id, row, { price_id: priceId }))
     await searchTableRef.value?.reload()
     handleSuccessMessage('代理等级更新成功')
   } catch (error) {
@@ -360,7 +360,7 @@ const updateGiftBandwidth = async (id: number | string, giftBandwidth: boolean, 
   if (guardBatchEditMutation('修改赠送带宽')) return
 
   try {
-    await updateAgentApi(buildUpdatePayload(id, row, { gift_bandwidth: giftBandwidth }))
+    await v2UpdateAgent(buildUpdatePayload(id, row, { gift_bandwidth: giftBandwidth }))
     await searchTableRef.value?.reload()
     handleSuccessMessage(giftBandwidth ? '已开启赠送带宽' : '已关闭赠送带宽')
   } catch (error) {
@@ -474,7 +474,7 @@ const handleEmailBlur = async (row: AgentItem) => {
 
     // 更新邮箱
     try {
-      await updateAgentApi(
+      await v2UpdateAgent(
         buildUpdatePayload(row.id, row, { email: emailFormData.email || undefined })
       )
       await searchTableRef.value?.reload()
@@ -828,7 +828,7 @@ const handleBatchSave = async () => {
   }
 
   try {
-    await batchUpdateAgentApi({
+    await v2BatchUpdateAgent({
       ids: selectedAgentIds.value,
       price_id: batchPriceId.value
     })

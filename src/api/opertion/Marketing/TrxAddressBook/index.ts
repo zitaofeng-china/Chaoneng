@@ -23,7 +23,7 @@ export interface TrxAddressBookListResponse {
   }
 }
 
-export const getTrxAddressBookListApi = (
+export const getTrxAddressBookList = (
   params: TrxAddressBookQueryParams
 ): Promise<IResponse<TrxAddressBookListResponse>> => {
   return request.get({
@@ -32,7 +32,7 @@ export const getTrxAddressBookListApi = (
   })
 }
 
-export const exportTrxAddressBookApi = (
+export const exportTrxAddressBook = (
   params: TrxAddressBookQueryParams
 ): Promise<IResponse<Blob>> => {
   return request.get({

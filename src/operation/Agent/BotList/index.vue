@@ -33,9 +33,9 @@ import type { SearchTableExpose } from '@/components/SearchTable'
 import type { FormSchema } from '@/components/Form'
 import type { TableColumn } from '@/components/Table'
 import {
-  getAgentBotListApi,
-  updateAgentBotApi,
-  getAgentBotDetailApi,
+  v1GetAgentBotList,
+  v1UpdateAgentBot,
+  v1GetAgentBotDetail,
   type AgentBotQueryParams,
   AgentBotItem
 } from '@/api/opertion/Agent/BotList'
@@ -102,7 +102,7 @@ const getAgentBotList = async (
   params: AgentBotSearchParams = {}
 ): Promise<{ list: AgentBotItem[]; total: number }> => {
   try {
-    const res = await getAgentBotListApi(buildAgentBotParams(params))
+    const res = await v1GetAgentBotList(buildAgentBotParams(params))
 
     const hasSearchCondition = [params.keyword, params.status].some(hasSearchValue)
     handleListMessage(res.data.list || [], hasSearchCondition, '机器人')
@@ -119,7 +119,7 @@ const getAgentBotList = async (
 
 const updateBotStatus = async (row: AgentBotItem, status: number) => {
   try {
-    const detailRes = await getAgentBotDetailApi(row.id)
+    const detailRes = await v1GetAgentBotDetail(row.id)
     if (detailRes.code !== '000000' || !detailRes.data) {
       handleErrorMessage(detailRes, '获取机器人详情失败')
       return
@@ -133,7 +133,7 @@ const updateBotStatus = async (row: AgentBotItem, status: number) => {
       return
     }
 
-    await updateAgentBotApi(payload)
+    await v1UpdateAgentBot(payload)
     await searchTableRef.value?.reload()
     handleSuccessMessage(status === 1 ? '启用成功' : '禁用成功')
   } catch (error) {
@@ -350,7 +350,7 @@ const handleExport = async () => {
       searchTableRef,
       fallbackParams: { ...defaultParams, ...initialSearchParams },
       filename: '机器人列表',
-      fetchData: getAgentBotListApi,
+      fetchData: v1GetAgentBotList,
       buildParams: buildAgentBotParams,
       mapItem: (item) => ({
         机器人ID: item.id,

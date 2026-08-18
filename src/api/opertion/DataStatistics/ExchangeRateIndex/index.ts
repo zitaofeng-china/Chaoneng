@@ -5,7 +5,7 @@ export * from './types'
 
 const TRONSCAN_API_BASE = 'https://apilist.tronscanapi.com/api'
 
-export const getTrxVolumeApi = async (params: TrxVolumeParams) => {
+export const getTrxVolume = async (params: TrxVolumeParams) => {
   const { data } = await axios.get<TrxVolumeResponse>(`${TRONSCAN_API_BASE}/trx/volume`, {
     params
   })

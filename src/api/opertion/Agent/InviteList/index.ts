@@ -13,7 +13,7 @@ const INVITE_BASE = '/v1/invite'
  * 接口路径：GET /v1/invite
  * @param params 查询参数
  */
-export const getInviteListApi = (
+export const v1GetInviteList = (
   params: InviteListQueryParams
 ): Promise<IResponse<InviteListResponse>> => {
   return request.get({ url: INVITE_BASE, params })

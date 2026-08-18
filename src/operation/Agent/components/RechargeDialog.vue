@@ -27,7 +27,7 @@ import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
-import { rechargeTrxApi } from '@/api/opertion/Agent/AgentList'
+import { v2ChangeAgentBalance } from '@/api/opertion/Agent/AgentList'
 import {
   createRechargeFormDefaults,
   createRechargeFormSchema,
@@ -161,7 +161,7 @@ const handleRecharge = async () => {
       }
 
       // 调用充值API
-      await rechargeTrxApi(params)
+      await v2ChangeAgentBalance(params)
 
       dialogVisible.value = false
       emit('success', {

@@ -28,8 +28,8 @@ import type { SearchTableExpose } from '@/components/SearchTable'
 import type { FormSchema } from '@/components/Form'
 import type { TableColumn } from '@/components/Table'
 import {
-  getTrxAddressBookListApi,
-  exportTrxAddressBookApi,
+  getTrxAddressBookList as fetchTrxAddressBookList,
+  exportTrxAddressBook as requestExportTrxAddressBook,
   type TrxAddressBookItem,
   type TrxAddressBookQueryParams
 } from '@/api/opertion/Marketing/TrxAddressBook'
@@ -58,7 +58,7 @@ const getTrxAddressBookList = async (
   params: TrxAddressBookSearchParams = {}
 ): Promise<{ list: TrxAddressBookItem[]; total?: number }> => {
   try {
-    const res = await getTrxAddressBookListApi(buildTrxAddressBookParams(params))
+    const res = await fetchTrxAddressBookList(buildTrxAddressBookParams(params))
     return {
       list: res.data.list || [],
       total: res.data.pager?.total || 0
@@ -74,7 +74,7 @@ const getTrxAddressBookList = async (
 
 const exportTrxAddressBook = async (params: TrxAddressBookQueryParams) => {
   try {
-    await exportTrxAddressBookApi(params)
+    await requestExportTrxAddressBook(params)
     handleSuccessMessage('导出成功')
   } catch (error) {
     handleErrorMessage(error, '导出失败')

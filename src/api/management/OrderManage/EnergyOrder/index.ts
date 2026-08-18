@@ -43,7 +43,7 @@ export const v1GetBatchActiveList = (id: string | number, params?: Record<string
 /** GET /v1/order/energy_count/list/{id} */
 export const v1GetEnergyCountList = (
   id: string | number,
-  params?: { currentPage: number; pageSize: number }
+  params?: { current_page?: number; page_size?: number }
 ) => {
   return request.get({ url: `/v1/order/energy_count/list/${id}`, params })
 }

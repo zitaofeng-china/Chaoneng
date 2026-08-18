@@ -13,10 +13,10 @@ import {
   v1AddAddressList,
   v1DeleteAddressList,
   v1UpdateAddress,
-  syncTgStatusApi
+  v1SyncBotTgStatus
 } from '@/api/management/BotManage/BotList'
 import { v1UpdateSite, v1GetSiteDetail } from '@/api/management/BotManage/common/site'
-import { getAccountListApi } from '@/api/management/AccountManage/AccountList'
+import { v1GetAccountDetail } from '@/api/management/AccountManage/AccountList'
 import { buildBotUpdatePayload, validateBotUpdatePayload } from '@/utils/botUpdatePayload'
 
 export function useBotConfigV1() {
@@ -68,7 +68,7 @@ export function useBotConfigV1() {
       syncing.value = true
       ElMessage.info('正在同步TG状态...')
 
-      const res = await syncTgStatusApi(currentBot.value.id)
+      const res = await v1SyncBotTgStatus(currentBot.value.id)
       const data = res.data || {}
 
       tgStatus.value = data.status || 'pending'
@@ -193,7 +193,7 @@ export function useBotConfigV1() {
       const [systemPriceRes, botPriceRes, accountRes] = await Promise.all([
         v1GetSystemPrice(),
         v1GetBotPriceConfig(id),
-        getAccountListApi()
+        v1GetAccountDetail()
       ])
 
       if (systemPriceRes.code !== '000000' || !systemPriceRes.data) {

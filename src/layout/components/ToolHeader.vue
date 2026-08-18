@@ -10,8 +10,8 @@ import { useAppStore } from '@/store/modules/app'
 import { useDesign } from '@/hooks/web/useDesign'
 import { Icon } from '@/components/Icon'
 import NotifyBotDialog from '@/operation/Agent/components/NotifyBotDialog.vue'
-import { getUserCustomerServiceListApi } from '@/api/common/customer_service'
-import { getAccountListApi } from '@/api/management/AccountManage/AccountList'
+import { v1GetCustomerServiceList } from '@/api/common/customer_service'
+import { v1GetAccountDetail } from '@/api/management/AccountManage/AccountList'
 import NotificationConfig from '@/management/AccountManage/AccountList/components/NotificationConfig.vue'
 import { BaseButton } from '@/components/Button'
 import { Dialog } from '@/components/Dialog'
@@ -58,7 +58,7 @@ export default defineComponent({
     const loadAgentNotifyConfig = async () => {
       agentNotifyLoading.value = true
       try {
-        const response = await getAccountListApi()
+        const response = await v1GetAccountDetail()
         agentAccountInfo.value = response.data || {}
       } catch (error) {
         ElMessage.error('获取账户通知配置失败')
@@ -79,7 +79,7 @@ export default defineComponent({
 
     const handleContactCustomerService = async () => {
       try {
-        const res = await getUserCustomerServiceListApi({
+        const res = await v1GetCustomerServiceList({
           current_page: 1,
           page_size: 1,
           status: 1

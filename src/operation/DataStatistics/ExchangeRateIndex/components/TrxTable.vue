@@ -20,7 +20,7 @@
 import { reactive } from 'vue'
 import { useTable } from '@/hooks/web/useTable'
 import { Table, TableColumn } from '@/components/Table'
-import { getTrxVolumeApi } from '@/api/opertion/DataStatistics/ExchangeRateIndex'
+import { getTrxVolume } from '@/api/opertion/DataStatistics/ExchangeRateIndex'
 import { handleErrorMessage } from '@/utils/messageHelper'
 import {
   formatPriceValue,
@@ -38,7 +38,7 @@ const getTrxPriceData = async (): Promise<{ list: TrxVolumeData[]; total: number
     oneMonthAgo.setMonth(now.getMonth() - 1)
     const startTimestamp = oneMonthAgo.getTime()
 
-    const data = await getTrxVolumeApi({
+    const data = await getTrxVolume({
       start_timestamp: startTimestamp,
       end_timestamp: endTimestamp,
       limit: 100,

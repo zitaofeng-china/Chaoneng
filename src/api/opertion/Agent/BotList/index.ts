@@ -15,7 +15,7 @@ export * from './bot.types'
  * 获取机器人列表
  * GET /v1/bot
  */
-export const getAgentBotListApi = (
+export const v1GetAgentBotList = (
   params: AgentBotQueryParams
 ): Promise<IResponse<AgentBotListResponse>> => {
   return request.get({ url: '/v1/bot', params })
@@ -25,7 +25,7 @@ export const getAgentBotListApi = (
  * 获取机器人详情
  * GET /v1/bot/{id}
  */
-export const getAgentBotDetailApi = (id: number | string): Promise<IResponse<AgentBotItem>> => {
+export const v1GetAgentBotDetail = (id: number | string): Promise<IResponse<AgentBotItem>> => {
   return request.get({ url: `/v1/bot/${id}` })
 }
 
@@ -33,6 +33,6 @@ export const getAgentBotDetailApi = (id: number | string): Promise<IResponse<Age
  * 更新机器人信息
  * PUT /v1/bot
  */
-export const updateAgentBotApi = (data: UpdateAgentBotPayload): Promise<IResponse> => {
+export const v1UpdateAgentBot = (data: UpdateAgentBotPayload): Promise<IResponse> => {
   return request.put({ url: '/v1/bot', data })
 }

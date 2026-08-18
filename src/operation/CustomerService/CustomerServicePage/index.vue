@@ -51,9 +51,9 @@ import { Icon } from '@/components/Icon'
 import { BaseButton } from '@/components/Button'
 import { useForm } from '@/hooks/web/useForm'
 import {
-  getCustomerServiceListApi,
-  createCustomerServiceApi,
-  updateCustomerServiceApi,
+  v1GetCustomerServiceList,
+  v1CreateCustomerService,
+  v1UpdateCustomerService,
   type CustomerServiceItem,
   type CustomerServiceQueryParams,
   type CreateCustomerServiceParams,
@@ -81,7 +81,7 @@ const { formRegister, formMethods } = useForm()
 // --- API调用 ---
 const fetchCustomerServiceListData = async (params: CustomerServiceQueryParams) => {
   try {
-    const res = await getCustomerServiceListApi(params)
+    const res = await v1GetCustomerServiceList(params)
     const list = res.data.list || []
     handleListMessage(list, [params.keyword, params.status].some(hasSearchValue), '客服')
 
@@ -233,7 +233,7 @@ const handleStatusChange = async (row: CustomerServiceItem, targetStatus: number
       status: targetStatus
     }
 
-    await updateCustomerServiceApi(updateData)
+    await v1UpdateCustomerService(updateData)
     await searchTableRef.value?.reload()
     handleSuccessMessage(`${targetStatus === 1 ? '启用' : '禁用'}成功`)
   } catch (error) {
@@ -269,7 +269,7 @@ const handleSubmit = async () => {
         tg_name: formData.tg_name,
         status: formData.status
       }
-      await updateCustomerServiceApi(updateData)
+      await v1UpdateCustomerService(updateData)
       await searchTableRef.value?.reload()
       handleSuccessMessage('编辑成功')
     } else {
@@ -277,7 +277,7 @@ const handleSubmit = async () => {
         tg_name: formData.tg_name,
         status: formData.status
       }
-      await createCustomerServiceApi(createData)
+      await v1CreateCustomerService(createData)
       await searchTableRef.value?.reload()
       handleSuccessMessage('新增成功')
     }

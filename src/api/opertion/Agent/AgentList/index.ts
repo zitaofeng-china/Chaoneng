@@ -124,7 +124,7 @@ export interface RechargeAgentPayload {
 /**
  * 获取代理列表
  */
-export const getAgentListApi = (
+export const v2GetAgentList = (
   params: AgentQueryParams
 ): Promise<IResponse<AgentListResponseData>> => {
   return request.get({ url: '/v2/manage/agent/list', params })
@@ -133,27 +133,27 @@ export const getAgentListApi = (
 /**
  * 新增代理
  */
-export const addAgentApi = (data: AddAgentPayload): Promise<IResponse> => {
+export const v2CreateAgent = (data: AddAgentPayload): Promise<IResponse> => {
   return request.post({ url: '/v2/manage/agent/add', data })
 }
 
 /**
  * 更新代理
  */
-export const updateAgentApi = (data: UpdateAgentPayload): Promise<IResponse> => {
+export const v2UpdateAgent = (data: UpdateAgentPayload): Promise<IResponse> => {
   return request.post({ url: '/v2/manage/agent/update', data })
 }
 
 /**
  * 批量更新代理
  */
-export const batchUpdateAgentApi = (data: BatchUpdateAgentPayload): Promise<IResponse> => {
+export const v2BatchUpdateAgent = (data: BatchUpdateAgentPayload): Promise<IResponse> => {
   return request.post({ url: '/v2/manage/agent/update/batch', data })
 }
 
 /**
  * 代理充值
  */
-export const rechargeTrxApi = (data: RechargeAgentPayload): Promise<IResponse> => {
+export const v2ChangeAgentBalance = (data: RechargeAgentPayload): Promise<IResponse> => {
   return request.post({ url: '/v2/manage/agent/change_balance', data })
 }

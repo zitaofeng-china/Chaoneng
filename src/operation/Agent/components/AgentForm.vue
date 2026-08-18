@@ -6,8 +6,8 @@ import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
 import type { FormInstance, FormRules } from 'element-plus'
 import {
-  addAgentApi,
-  updateAgentApi,
+  v2CreateAgent,
+  v2UpdateAgent,
   type AddAgentPayload,
   type UpdateAgentPayload
 } from '@/api/opertion/Agent/AgentList'
@@ -310,7 +310,7 @@ async function handleAdd(formData: AgentFormData) {
     price_id: formData.price_id ?? DEFAULT_PRICE_ID,
     gift_bandwidth: formData.gift_bandwidth === 1
   }
-  await addAgentApi(payload)
+  await v2CreateAgent(payload)
   handleSuccessMessage('新增代理成功')
 }
 
@@ -328,7 +328,7 @@ async function handleEdit(formData: AgentFormData) {
     payload.password = formData.password
   }
 
-  await updateAgentApi(payload)
+  await v2UpdateAgent(payload)
   handleSuccessMessage('密码修改成功')
 }
 
