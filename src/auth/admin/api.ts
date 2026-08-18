@@ -1,7 +1,9 @@
 import axios from 'axios'
 import type {
+  AdminEmailCodePurpose,
   AdminEmailCodeResult,
   AdminSession,
+  PasskeyChallengePurpose,
   PasskeyChallengeResult,
   PasskeyCredentialPayload
 } from './types'
@@ -32,8 +34,15 @@ const unwrap = async <T>(request: Promise<{ data: ApiResult<T> }>) => {
 export const loginWithPassword = (data: { account: string; password: string }) =>
   unwrap<AdminSession>(client.post('/v1/admin/auth/login', { method: 'password', ...data }))
 
-export const sendAdminEmailCode = (data: { email: string; purpose: 'register' | 'reset' }) =>
-  unwrap<AdminEmailCodeResult>(client.post('/v1/admin/auth/email-code', data))
+export const sendAdminEmailCode = (
+  data: { email?: string; purpose: AdminEmailCodePurpose },
+  accessToken?: string
+) =>
+  unwrap<AdminEmailCodeResult>(
+    client.post('/v1/admin/auth/email-code', data, {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined
+    })
+  )
 
 export const registerAdmin = (data: {
   email: string
@@ -56,9 +65,8 @@ export const loginWithPasskey = (data: {
 
 export const createPasskeyChallenge = (
   data: {
-    current_password?: string
-    device_id: string
-    purpose: 'login' | 'bind' | 'replace'
+    device_id?: string
+    purpose: PasskeyChallengePurpose
   },
   accessToken?: string
 ) =>
@@ -73,6 +81,7 @@ export const saveAdminPasskey = (
   data: {
     ceremony_id: string
     credential: PasskeyCredentialPayload
+    email_code: string
   }
 ) =>
   unwrap<string>(
