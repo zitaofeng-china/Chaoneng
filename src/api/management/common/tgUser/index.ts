@@ -119,11 +119,3 @@ export const v1GetUserBillList = (
     params
   })
 }
-
-/**
- * 导出用户列表
- * GET /v1/user/export
- */
-export const exportTgUserListApi = (params: any) => {
-  return request.get({ url: '/v1/user/export', params, responseType: 'blob' })
-}

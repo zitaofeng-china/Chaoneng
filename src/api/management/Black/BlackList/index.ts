@@ -4,9 +4,7 @@ import type {
   BlackListResponseV1,
   CreateBlackListParamsV1,
   UpdateBlackListParamsV1,
-  DeleteBlackListParamsV1,
-  BlackListParams,
-  BlackListItem
+  DeleteBlackListParamsV1
 } from './types'
 
 // ========== 新接口 v1 ==========
@@ -55,41 +53,6 @@ export const v1UpdateBlackList = (data: UpdateBlackListParamsV1): Promise<IRespo
 export const v1DeleteBlackList = (data: DeleteBlackListParamsV1): Promise<IResponse> => {
   return request.delete({
     url: BASE_URL,
-    data
-  })
-}
-
-// ========== 旧接口 ==========
-
-/**
- * 获取黑名单列表
- * GET /v1/order/count_black/list
- */
-export const getBlackListApi = (params: BlackListParams) => {
-  return request.get<{ list: BlackListItem[]; totalCount: number }>({
-    url: '/v1/order/count_black/list',
-    params
-  })
-}
-
-/**
- * 添加黑名单
- * POST /v1/order/count_black/add
- */
-export const addBlackListApi = (data: { address: string }) => {
-  return request.post<BlackListItem>({
-    url: '/v1/order/count_black/add',
-    data
-  })
-}
-
-/**
- * 删除黑名单
- * POST /v1/order/count_black/delete
- */
-export const deleteBlackListApi = (data: { id: number | string }) => {
-  return request.post({
-    url: '/v1/order/count_black/delete',
     data
   })
 }
