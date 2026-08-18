@@ -1,11 +1,5 @@
 import request from '@/axios'
-import type {
-  ExchangeOrderListParams,
-  ExchangeOrderListResult,
-  ExchangeOrderDetailData,
-  ResendTrxParams,
-  V2ExchangeListParams
-} from './types'
+import type { V2ExchangeListParams } from './types'
 
 // ========== 新接口 v2 ==========
 
@@ -41,13 +35,6 @@ export const v2GetExchangeDetail = (id: string) => {
 export const v2RetryExchangeOrder = (id: string) => {
   return request.post({
     url: `/v1/order/${id}/retry`
-  })
-}
-
-export const resendTrxApi = (data: ResendTrxParams) => {
-  return request.post({
-    url: `/v1/order/${data.id}/retry`,
-    data
   })
 }
 

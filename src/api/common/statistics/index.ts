@@ -1,5 +1,5 @@
 import request from '@/axios'
-import type { StatisticsResponse, V2StatsResponse, V2StatsParams } from './types'
+import type { V2StatsResponse, V2StatsParams } from './types'
 
 // ========== 新接口 v2 ==========
 
@@ -12,13 +12,6 @@ export const v2GetStats = (params?: V2StatsParams) => {
     url: '/v2/system/stats',
     params
   })
-}
-
-// ========== 旧接口 ==========
-
-// 获取每日统计数据API
-export const getDailyStatisticsApi = () => {
-  return request.get<StatisticsResponse>({ url: '/v2/manage/order/market' })
 }
 
 // 获取机器人摘要数据API

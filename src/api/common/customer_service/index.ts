@@ -4,8 +4,7 @@ import type {
   CustomerServiceQueryParams,
   CustomerServiceListResponse,
   CreateCustomerServiceParams,
-  UpdateCustomerServiceParams,
-  DeleteCustomerServiceParams
+  UpdateCustomerServiceParams
 } from './type'
 
 export type {
@@ -13,8 +12,7 @@ export type {
   CustomerServiceQueryParams,
   CustomerServiceListResponse,
   CreateCustomerServiceParams,
-  UpdateCustomerServiceParams,
-  DeleteCustomerServiceParams
+  UpdateCustomerServiceParams
 } from './type'
 
 const CUSTOMER_SERVICE_BASE = '/v1/customer'
@@ -53,12 +51,4 @@ export const createCustomerServiceApi = (data: CreateCustomerServiceParams): Pro
  */
 export const updateCustomerServiceApi = (data: UpdateCustomerServiceParams): Promise<IResponse> => {
   return request.put({ url: CUSTOMER_SERVICE_BASE, data })
-}
-
-/**
- * 删除客服
- * DELETE /v1/customer
- */
-export const deleteCustomerServiceApi = (data: DeleteCustomerServiceParams): Promise<IResponse> => {
-  return request.delete({ url: CUSTOMER_SERVICE_BASE, data })
 }
