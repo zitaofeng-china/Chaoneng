@@ -5,6 +5,10 @@ export interface AdminSession {
   token_type: 'Bearer'
 }
 
+export type AdminEmailCodePurpose = 'register' | 'reset_password' | 'set_passkey'
+
+export type PasskeyChallengePurpose = 'login' | 'set'
+
 export interface AdminEmailCodeResult {
   expires_in: number
   resend_after: number
