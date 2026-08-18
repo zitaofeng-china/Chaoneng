@@ -4,11 +4,8 @@
  */
 import request from '@/axios'
 import type {
-  V2ResourceOrderDetail,
   V2ResourceOrderListParams,
   V2ResourceOrderListResponse,
-  V2SettlementRecordListParams,
-  V2SettlementRecordListResponse,
   V2UpdateResourceOrderParams
 } from './types'
 
@@ -28,18 +25,6 @@ export const v2GetResourceOrderList = (
 }
 
 /**
- * 获取理财订单详情
- * GET /v1/fund/order/{id}
- */
-export const v2GetResourceOrderDetail = (
-  id: number | string
-): Promise<IResponse<V2ResourceOrderDetail>> => {
-  return request.get({
-    url: `${BASE_URL}/${id}`
-  })
-}
-
-/**
  * 更新理财订单
  * PUT /v1/fund/order
  */
@@ -49,19 +34,6 @@ export const v2UpdateResourceOrder = (
   return request.put({
     url: BASE_URL,
     data
-  })
-}
-
-/**
- * 分页获取理财结算列表
- * GET /v1/fund/settlement
- */
-export const v2GetSettlementRecordList = (
-  params: V2SettlementRecordListParams
-): Promise<IResponse<V2SettlementRecordListResponse>> => {
-  return request.get({
-    url: '/v1/fund/settlement',
-    params
   })
 }
 

@@ -28,7 +28,7 @@ const USER_BASE = '/v2/manage/user/'
  * 接口路径：GET /v2/manage/user/list
  * 参数：current_page, page_size
  */
-export const getManageUserListApiV2 = (
+export const v2GetManageUserList = (
   params: ManageUserQueryParams
 ): Promise<IResponse<ManageUserListResponse>> => {
   return request.get({ url: `${USER_BASE}list`, params })
@@ -39,7 +39,7 @@ export const getManageUserListApiV2 = (
  * 接口路径：POST /v2/manage/user/add
  * 参数：username, password, role_id, status
  */
-export const addManageUserApiV2 = (data: AddManageUserPayload): Promise<IResponse> => {
+export const v2CreateManageUser = (data: AddManageUserPayload): Promise<IResponse> => {
   return request.post({ url: `${USER_BASE}add`, data })
 }
 
@@ -48,7 +48,7 @@ export const addManageUserApiV2 = (data: AddManageUserPayload): Promise<IRespons
  * 接口路径：POST /v2/manage/user/update
  * 参数：id, username, password (留空不修改), role_id, status
  */
-export const updateManageUserApiV2 = (data: UpdateManageUserPayload): Promise<IResponse> => {
+export const v2UpdateManageUser = (data: UpdateManageUserPayload): Promise<IResponse> => {
   return request.post({ url: `${USER_BASE}update`, data })
 }
 
@@ -57,6 +57,6 @@ export const updateManageUserApiV2 = (data: UpdateManageUserPayload): Promise<IR
  * 接口路径：POST /v2/manage/user/del
  * 参数：id
  */
-export const deleteManageUserApiV2 = (data: DeleteManageUserPayload): Promise<IResponse> => {
+export const v2DeleteManageUser = (data: DeleteManageUserPayload): Promise<IResponse> => {
   return request.post({ url: `${USER_BASE}del`, data })
 }

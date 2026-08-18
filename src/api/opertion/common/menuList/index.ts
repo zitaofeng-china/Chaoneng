@@ -110,6 +110,6 @@ export const v1DeleteInnerButton = (id: number): Promise<IResponse> => {
  * 获取内联回调操作指令列表（内置命令列表）
  * GET /v1/bot/inner_callback
  */
-export const getCallBackListApi = (): Promise<IResponse<InnerCallbackItem[]>> => {
+export const v1GetCallBackList = (): Promise<IResponse<InnerCallbackItem[]>> => {
   return request.get({ url: '/v1/bot/inner_callback' })
 }
