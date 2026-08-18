@@ -10,7 +10,6 @@ import type {
 export * from './trx_address_types'
 
 const ADDRESS_V1_BASE_URL = '/v1/address'
-const ADDRESS_V2_BASE_URL = '/v2/address'
 
 /**
  * 获取TRX地址列表
@@ -52,28 +51,5 @@ export const v2DeleteAddress = (data: V2DeleteAddressParams): Promise<IResponse>
   return request.delete({
     url: ADDRESS_V1_BASE_URL,
     data
-  })
-}
-
-/**
- * 批量导入TRX地址
- */
-export const v2BatchImportAddress = (formData: FormData): Promise<IResponse> => {
-  return request.post({
-    url: `${ADDRESS_V2_BASE_URL}/import`,
-    data: formData,
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  })
-}
-
-/**
- * 导出模版
- */
-export const v2ExportAddressModule = () => {
-  return request.get({
-    url: `${ADDRESS_V2_BASE_URL}/module`,
-    responseType: 'blob'
   })
 }

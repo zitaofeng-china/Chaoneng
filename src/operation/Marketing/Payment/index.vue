@@ -159,14 +159,11 @@ import type { FormSchema } from '@/components/Form'
 import { BaseButton } from '@/components/Button'
 import { SearchTable } from '@/components/SearchTable'
 import type { TableColumn } from '@/components/Table'
-import { downloadByData } from '@/utils/download'
-
 import {
   v2GetAddressList,
   v2CreateAddress,
   v2UpdateAddress,
   v2DeleteAddress,
-  v2ExportAddressModule,
   type V2AddressItem,
   type V2AddressListParams
 } from '@/api/opertion/Marketing/Payment'
@@ -985,15 +982,14 @@ const handleExport = async () => {
   }
 }
 
-const handleExportTemplate = async () => {
+const handleExportTemplate = () => {
   try {
-    const res = await v2ExportAddressModule()
-    if (res.data instanceof Blob) {
-      downloadByData(res.data, '地址导入模板.xlsx')
-      handleSuccessMessage('模板下载成功')
-    } else {
-      ElMessage.error('文件数据格式错误')
-    }
+    const worksheet = XLSX.utils.aoa_to_sheet([['地址']])
+    worksheet['!cols'] = [{ wch: 48 }]
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, '地址导入模板')
+    XLSX.writeFile(workbook, '地址导入模板.xlsx')
+    handleSuccessMessage('模板下载成功')
   } catch (error) {
     handleErrorMessage(error, '模板下载失败')
   }
