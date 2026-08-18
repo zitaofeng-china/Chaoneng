@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import {
   ElButton,
   ElForm,
@@ -40,8 +40,6 @@ const loading = ref(false)
 const passkeyAvailable = isPasskeySupported()
 const passwordForm = reactive({ account: '', password: '' })
 const passwordFormRef = ref<InstanceType<typeof ElForm>>()
-const accountInputRef = ref<InstanceType<typeof ElInput>>()
-let conditionalAbortController: AbortController | null = null
 
 const passwordRules = {
   account: [{ required: true, message: '请输入账号或邮箱', trigger: 'blur' }],
@@ -79,7 +77,7 @@ const completeLogin = async (fallbackName: string) => {
   })
 }
 
-const signInWithPasskey = async (mediation?: CredentialMediationRequirement) => {
+const signInWithPasskey = async () => {
   if (!passkeyAvailable) {
     mode.value = 'password'
     ElMessage.warning('当前浏览器不支持通行密钥，请使用密码登录')
@@ -89,7 +87,7 @@ const signInWithPasskey = async (mediation?: CredentialMediationRequirement) => 
   try {
     const device_id = getPasskeyDeviceId()
     const challenge = await createPasskeyChallenge({ device_id, purpose: 'login' })
-    const credential = await getPasskeyAssertion(challenge.options, mediation)
+    const credential = await getPasskeyAssertion(challenge.options)
     const session = await loginWithPasskey({
       ceremony_id: challenge.ceremony_id,
       credential,
@@ -99,51 +97,12 @@ const signInWithPasskey = async (mediation?: CredentialMediationRequirement) => 
     await completeLogin('管理员')
     ElMessage.success('登录成功')
   } catch (error: any) {
-    // conditional UI 取消不提示错误
-    if (mediation === 'conditional' && error?.name === 'NotAllowedError') {
-      return
-    }
     const message = getPasskeyErrorMessage(error, '通行密钥验证失败，请重试或使用密码登录')
     ElMessage[error?.name === 'NotAllowedError' ? 'info' : 'error'](message)
   } finally {
     loading.value = false
   }
 }
-
-// 启动 conditional UI 自动填充
-const startConditionalUI = async () => {
-  if (!isOperation || !passkeyAvailable) return
-
-  // 检查浏览器是否支持 conditional mediation
-  const supportsConditional =
-    typeof PublicKeyCredential !== 'undefined' &&
-    PublicKeyCredential.isConditionalMediationAvailable &&
-    (await PublicKeyCredential.isConditionalMediationAvailable())
-
-  if (!supportsConditional) return
-
-  try {
-    // 取消之前的 conditional UI
-    conditionalAbortController?.abort()
-    conditionalAbortController = new AbortController()
-
-    // 启动 conditional UI
-    await signInWithPasskey('conditional')
-  } catch (error: any) {
-    // conditional UI 失败静默处理
-    if (error?.name !== 'AbortError') {
-      console.warn('Conditional UI failed:', error)
-    }
-  }
-}
-
-onMounted(() => {
-  startConditionalUI()
-})
-
-onUnmounted(() => {
-  conditionalAbortController?.abort()
-})
 
 const signInWithPassword = async () => {
   const valid = await passwordFormRef.value?.validate().catch(() => false)
@@ -171,20 +130,9 @@ const signInWithPassword = async () => {
     <ElTabs v-model="mode" stretch>
       <ElTabPane v-if="isOperation" label="通行密钥登录" name="passkey">
         <div class="py-16px">
-          <p class="text-sm text-[var(--el-text-color-secondary)] mb-16px">
-            点击下方输入框，使用 PIN 码、指纹或面容快速登录
-          </p>
-          <ElInput
-            ref="accountInputRef"
-            v-model="passwordForm.account"
-            placeholder="点击此处使用通行密钥登录"
-            autocomplete="username webauthn"
-            readonly
-            class="mb-16px"
-          />
-          <ElButton type="primary" class="w-[100%]" :loading="loading" @click="signInWithPasskey()"
-            >使用通行密钥登录</ElButton
-          >
+          <ElButton type="primary" class="w-[100%]" :loading="loading" @click="signInWithPasskey">
+            使用通行密钥登录
+          </ElButton>
         </div>
       </ElTabPane>
       <ElTabPane label="密码登录" name="password">
