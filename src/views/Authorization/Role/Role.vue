@@ -1,6 +1,6 @@
 <script setup lang="tsx">
 import { reactive, ref, unref } from 'vue'
-import { getRoleListApi } from '@/api/common/role'
+import { v2GetRoleList } from '@/api/common/role'
 import { useTable } from '@/hooks/web/useTable'
 import { useI18n } from '@/hooks/web/useI18n'
 import { Table, TableColumn } from '@/components/Table'
@@ -17,7 +17,7 @@ const { t } = useI18n()
 
 const { tableRegister, tableState, tableMethods } = useTable({
   fetchDataApi: async () => {
-    const res = await getRoleListApi()
+    const res = await v2GetRoleList()
     return {
       list: res.data.list || [],
       total: res.data.pager?.total || 0

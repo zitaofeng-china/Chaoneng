@@ -55,8 +55,7 @@ import {
   v1GetReplyList,
   v1CreateReply,
   v1UpdateReply,
-  v1DeleteReply,
-  updateReplyStatusApi
+  v1DeleteReply
 } from '@/api/opertion/Agent/ReplyList'
 import { v1GetMessageBotList } from '@/api/opertion/common/message'
 import type {
@@ -535,7 +534,7 @@ const getReplyInnerButtonLayout = (row: ReplyItem) => {
 const handleStatusChange = async (row: ReplyItem, newStatus: number) => {
   if (!isLoaded.value) return
   try {
-    await updateReplyStatusApi({
+    await v1UpdateReply({
       id: row.id,
       content: row.content || '',
       files: row.files || [],

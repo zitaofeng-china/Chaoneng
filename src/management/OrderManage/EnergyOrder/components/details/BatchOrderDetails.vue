@@ -7,7 +7,7 @@ import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { getBatchActiveDetailApi } from '@/api/management/OrderManage/EnergyOrder' // Keep API import
+import { v1GetBatchActiveList } from '@/api/management/OrderManage/EnergyOrder'
 import isEmpty from 'lodash-es/isEmpty'
 import formatEnergyNum from '../../../helpers/formatEnergyNum'
 const props = defineProps({
@@ -71,9 +71,7 @@ const fetchBatchOrderDetails = async () => {
       current_page: batchOrderCurrentPage.value,
       page_size: batchOrderPageSize.value
     }
-    // TODO: 确认 getBatchActiveDetailApi 是否适用于 Type 3 或是否有专用 API
-    // Assuming getBatchActiveDetailApi can be used for type 3 for now. Adjust if needed.
-    const response = await getBatchActiveDetailApi(props.orderId, params) // Pass params
+    const response = await v1GetBatchActiveList(props.orderId, params)
     batchOrderDetails.value = response?.data?.list || []
     if (!Array.isArray(batchOrderDetails.value)) {
       console.warn('批量下单详情API (Type 3) 未返回预期的数组格式', response)

@@ -1,18 +1,18 @@
 <script setup lang="tsx">
 import { ContentWrap } from '@/components/ContentWrap'
 import { useI18n } from '@/hooks/web/useI18n'
-import { ref, h, onMounted } from 'vue'
+import { computed, ref, h, onMounted } from 'vue'
 import {
-  getManageUserListApiV2,
-  addManageUserApiV2,
-  updateManageUserApiV2,
-  deleteManageUserApiV2,
+  v2GetManageUserList,
+  v2CreateManageUser,
+  v2UpdateManageUser,
+  v2DeleteManageUser,
   type ManageUserItem,
   type AddManageUserPayload,
   type UpdateManageUserPayload,
   type DeleteManageUserPayload
 } from '@/api/opertion/Authorization/User'
-import { getRoleListApi } from '@/api/opertion/Authorization/common/role'
+import { v2GetRoleList } from '@/api/opertion/Authorization/common/role'
 import type { RoleItem } from '@/api/opertion/Authorization/common/role'
 import { Table, type TableColumn } from '@/components/Table'
 import { useTable } from '@/hooks/web/useTable'
@@ -22,7 +22,7 @@ import type { ManageUserFormData, ManageUserOpenOptions } from './components/Wri
 import { BaseButton } from '@/components/Button'
 import { UnixTime } from '@/components/UnixTime'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import { renderStatusTag, type TableSlot } from '@/utils/tableHelpers'
+import { renderStatusTag, type SelectOption, type TableSlot } from '@/utils/tableHelpers'
 import { AUTH_ENABLE_STATUS_MAP } from '../constants'
 
 const { t } = useI18n()
@@ -37,9 +37,18 @@ interface ManageUserWriteExpose {
 
 const roleList = ref<RoleItem[]>([])
 
+const roleSelectOptions = computed<SelectOption<number>[]>(() =>
+  roleList.value
+    .filter((item) => item.status !== 2)
+    .map((item) => ({
+      label: item.name,
+      value: item.id
+    }))
+)
+
 const fetchRoleList = async () => {
   try {
-    const res = await getRoleListApi()
+    const res = await v2GetRoleList()
     roleList.value = res.data.list || []
   } catch (error) {
     handleErrorMessage(error, '获取角色列表失败')
@@ -111,7 +120,7 @@ const { tableRegister, tableMethods, tableState } = useTable({
     const page = tableState.currentPage.value
     const size = tableState.pageSize.value
     try {
-      const res = await getManageUserListApiV2({ current_page: page, page_size: size })
+      const res = await v2GetManageUserList({ current_page: page, page_size: size })
       return {
         list: res.data.list || [],
         total: res.data.pager?.total || 0
@@ -155,7 +164,7 @@ const delData = async (row?: ManageUserItem) => {
       const payload: DeleteManageUserPayload = {
         id: Number(row.id)
       }
-      await deleteManageUserApiV2(payload)
+      await v2DeleteManageUser(payload)
       await getList()
       handleSuccessMessage('删除成功')
     } catch (error) {
@@ -209,7 +218,7 @@ const save = async () => {
         role_id: formData.role_id,
         status: formData.status
       }
-      await updateManageUserApiV2(payload)
+      await v2UpdateManageUser(payload)
     } else {
       const payload: AddManageUserPayload = {
         username: formData.username,
@@ -218,7 +227,7 @@ const save = async () => {
         role_id: formData.role_id,
         status: formData.status
       }
-      await addManageUserApiV2(payload)
+      await v2CreateManageUser(payload)
     }
     writeRef.value?.close()
     await getList()
@@ -276,6 +285,7 @@ onMounted(async () => {
       :dialog-title="dialogTitle"
       :save-loading="saveLoading"
       :action-type="actionType"
+      :role-options="roleSelectOptions"
     >
       <template #footer>
         <BaseButton type="primary" :loading="saveLoading" @click="save">

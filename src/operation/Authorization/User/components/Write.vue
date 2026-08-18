@@ -6,10 +6,7 @@ import { useForm } from '@/hooks/web/useForm'
 import { useI18n } from '@/hooks/web/useI18n'
 import { Dialog } from '@/components/Dialog'
 import { useUserStore } from '@/store/modules/user'
-import { getRoleListApi } from '@/api/opertion/Authorization/common/role'
-import type { RoleItem } from '@/api/opertion/Authorization/common/role'
 import type { ManageUserItem } from '@/api/opertion/Authorization/User'
-import { handleErrorMessage } from '@/utils/messageHelper'
 import type { SelectOption } from '@/utils/tableHelpers'
 import EmailInput from '@/operation/Agent/components/EmailInput.vue'
 
@@ -45,6 +42,10 @@ const props = defineProps({
   actionType: {
     type: String as PropType<UserActionType>,
     default: 'add'
+  },
+  roleOptions: {
+    type: Array as PropType<SelectOption<number | string>[]>,
+    default: () => []
   }
 })
 
@@ -56,27 +57,6 @@ const activeMode = ref<UserActionType>('add')
 
 const PASSWORD_MIN_LENGTH = 6
 const PASSWORD_MAX_LENGTH = 20
-
-const roleOptions = ref<SelectOption<number | string>[]>([])
-const roleOptionsLoading = ref(false)
-
-const fetchRoleOptions = async () => {
-  roleOptionsLoading.value = true
-  try {
-    const res = await getRoleListApi()
-    roleOptions.value = (res.data?.list || [])
-      .filter((item: RoleItem) => item.status !== 2)
-      .map((item: RoleItem) => ({
-        label: item.name,
-        value: item.id
-      }))
-  } catch (error) {
-    handleErrorMessage(error, '获取角色列表失败')
-    roleOptions.value = []
-  } finally {
-    roleOptionsLoading.value = false
-  }
-}
 
 watch(dialogVisible, (newVal, oldVal) => {
   if (oldVal === true && newVal === false) {
@@ -250,7 +230,7 @@ const formSchema = computed<FormSchema[]>(() => {
       component: 'Select',
       componentProps: {
         placeholder: '请选择角色',
-        options: roleOptions.value,
+        options: props.roleOptions,
         disabled: isDisabledForNonSuperAdminEdit,
         clearable: false
       }
@@ -351,9 +331,6 @@ const open = async (options?: ManageUserOpenOptions) => {
   dialogVisible.value = true
   passwordRef.value = ''
 
-  // 角色列表不先清空，避免下拉闪空；后台刷新
-  void fetchRoleOptions()
-
   await fillForm(mode, row ?? null)
 }
 
@@ -396,13 +373,7 @@ defineExpose({ open, close, submit })
     width="640px"
     max-height="auto"
   >
-    <Form
-      :rules="rules"
-      @register="formRegister"
-      :schema="formSchema"
-      :loading="roleOptionsLoading"
-      :is-col="false"
-    />
+    <Form :rules="rules" @register="formRegister" :schema="formSchema" :is-col="false" />
     <template #footer>
       <slot name="footer"></slot>
     </template>

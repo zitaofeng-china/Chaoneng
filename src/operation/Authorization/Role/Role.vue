@@ -2,9 +2,9 @@
 import { ref, h, onMounted, computed } from 'vue'
 import type { VNode } from 'vue'
 import {
-  getRoleListApi,
-  getRoleDetailApi,
-  deleteRoleApiV2
+  v2GetRoleList,
+  v2GetRoleDetail,
+  v2DeleteRole
 } from '@/api/opertion/Authorization/common/role'
 import type { RoleItem } from '@/api/opertion/Authorization/common/role'
 import { useI18n } from '@/hooks/web/useI18n'
@@ -101,7 +101,7 @@ const columns: TableColumn[] = [
 const { tableRegister, tableMethods, tableState } = useTable({
   fetchDataApi: async () => {
     try {
-      const res = await getRoleListApi()
+      const res = await v2GetRoleList()
       return {
         list: res.data.list || [],
         total: res.data.pager.total || 0
@@ -135,7 +135,7 @@ const handleAction = async (row: RoleItem, type: 'edit' | 'detail') => {
   } else {
     try {
       formLoading.value = true
-      const res = await getRoleDetailApi(row.id)
+      const res = await v2GetRoleDetail(row.id)
       const roleDetail = res?.data || {}
       currentRow.value = { ...row, ...roleDetail }
       openWriteDialog()
@@ -166,7 +166,7 @@ const handleDelete = (row: RoleItem) => {
   })
     .then(async () => {
       try {
-        await deleteRoleApiV2(row.id)
+        await v2DeleteRole(row.id)
         await getList()
         handleSuccessMessage('删除成功')
       } catch (error) {

@@ -6,7 +6,7 @@ import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { getByCountDetailApi } from '@/api/management/OrderManage/EnergyOrder'
+import { v1GetEnergyCountList } from '@/api/management/OrderManage/EnergyOrder'
 import isEmpty from 'lodash-es/isEmpty'
 
 const props = defineProps({
@@ -121,9 +121,9 @@ const fetchBandwidthCountDetails = async () => {
 
   bandwidthCountLoading.value = true
   try {
-    const response = await getByCountDetailApi(props.orderId, {
-      currentPage: bandwidthCurrentPage.value,
-      pageSize: bandwidthPageSize.value
+    const response = await v1GetEnergyCountList(props.orderId, {
+      current_page: bandwidthCurrentPage.value,
+      page_size: bandwidthPageSize.value
     })
 
     if (response && response.code === '000000' && response.data) {

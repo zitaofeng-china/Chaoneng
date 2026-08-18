@@ -161,7 +161,7 @@ import {
   v1CreateInnerButton,
   v1UpdateInnerButton,
   v1DeleteInnerButton,
-  getCallBackListApi
+  v1GetCallBackList
 } from '@/api/management/common/menuList'
 import type {
   CreateInnerButtonParams,
@@ -334,7 +334,7 @@ const handleDelete = async (row: InnerButtonItem) => {
 // 获取回调函数列表
 const fetchCallbackList = async () => {
   try {
-    const response = await getCallBackListApi()
+    const response = await v1GetCallBackList()
     if (response.code === '000000' && response.data) {
       callbackList.value = response.data.map((item: { name: string; key: string }) => ({
         label: item.name,

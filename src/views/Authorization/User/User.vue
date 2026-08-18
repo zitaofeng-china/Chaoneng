@@ -16,7 +16,7 @@ import { Search } from '@/components/Search'
 import Write from './components/Write.vue'
 import Detail from './components/Detail.vue'
 import { Dialog } from '@/components/Dialog'
-import { getRoleListApi } from '@/api/common/role'
+import { v2GetRoleList } from '@/api/common/role'
 import { CrudSchema, useCrudSchemas } from '@/hooks/web/useCrudSchemas'
 import { BaseButton } from '@/components/Button'
 
@@ -130,7 +130,7 @@ const crudSchemas = reactive<CrudSchema[]>([
         maxCollapseTags: 1
       },
       optionApi: async () => {
-        const res = await getRoleListApi()
+        const res = await v2GetRoleList()
         return res.data?.list?.map((v) => ({
           label: v.name,
           value: v.id

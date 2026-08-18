@@ -7,7 +7,7 @@ import { useI18n } from '@/hooks/web/useI18n'
 import { ElTree, ElMessage, ElCheckbox } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import operationRoutes from '@/router/modules/operation'
-import { createRoleApi, updateRoleApiV2 } from '@/api/opertion/Authorization/common/role'
+import { v2CreateRole, v2UpdateRole } from '@/api/opertion/Authorization/common/role'
 import { getErrorMessage } from '@/utils/messageHelper'
 import type { CreateRolePayload, UpdateRolePayload } from '@/api/opertion/Authorization/common/role'
 
@@ -565,10 +565,10 @@ const submit = async () => {
         id: props.currentRow.id,
         ...dataToSave
       }
-      await updateRoleApiV2(updateData)
+      await v2UpdateRole(updateData)
       ElMessage.success('编辑成功')
     } else if (props.actionType === 'add') {
-      await createRoleApi(dataToSave)
+      await v2CreateRole(dataToSave)
       ElMessage.success('新增成功')
     }
     close()
