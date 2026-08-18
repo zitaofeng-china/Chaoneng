@@ -5,6 +5,7 @@ import type {
 } from './types'
 
 const deviceStorageKey = 'admin-passkey-device-id'
+const lastCredentialStorageKey = 'admin-passkey-last-credential-id'
 
 const encodeBase64Url = (buffer: ArrayBuffer | null) => {
   if (!buffer) return undefined
@@ -44,6 +45,12 @@ export const getPasskeyDeviceId = () => {
   return deviceId
 }
 
+export const rememberPasskeyCredentialId = (credentialId: string) => {
+  if (credentialId) localStorage.setItem(lastCredentialStorageKey, credentialId)
+}
+
+const getLastPasskeyCredentialId = () => localStorage.getItem(lastCredentialStorageKey) || undefined
+
 export const isPasskeySupported = () =>
   typeof window !== 'undefined' &&
   window.isSecureContext &&
@@ -69,15 +76,22 @@ export const getPasskeyAssertion = async (
   mediation?: CredentialMediationRequirement
 ): Promise<PasskeyCredentialPayload> => {
   const publicKey = unwrapPublicKeyOptions(options)
+  const allowCredentials =
+    publicKey.allowCredentials?.map((descriptor) => ({
+      ...descriptor,
+      id: decodeBase64Url(descriptor.id)
+    })) || []
+  const lastCredentialId = getLastPasskeyCredentialId()
+  // 无账号列表时带上本机上次成功的凭据，跳过「选择此设备上的账号」。
+  if (!allowCredentials.length && lastCredentialId) {
+    allowCredentials.push({ type: 'public-key', id: decodeBase64Url(lastCredentialId) })
+  }
   const credential = (await navigator.credentials.get({
     mediation,
     publicKey: {
       ...publicKey,
       challenge: decodeBase64Url(publicKey.challenge),
-      allowCredentials: publicKey.allowCredentials?.map((descriptor) => ({
-        ...descriptor,
-        id: decodeBase64Url(descriptor.id)
-      }))
+      allowCredentials: allowCredentials.length ? allowCredentials : undefined
     }
   })) as PublicKeyCredential | null
 
