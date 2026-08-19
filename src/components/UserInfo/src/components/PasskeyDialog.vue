@@ -1,8 +1,17 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { ElButton, ElForm, ElFormItem, ElInput, ElMessage, ElMessageBox } from 'element-plus'
+import {
+  ElButton,
+  ElForm,
+  ElFormItem,
+  ElInput,
+  ElMessage,
+  ElMessageBox,
+  ElSkeleton
+} from 'element-plus'
 import Dialog from '@/components/Dialog/src/Dialog.vue'
 import { v1GetAdminMe } from '@/api/common/login'
+import { getAdminSecurity } from '@/auth/admin/types'
 import {
   createPasskeyChallenge,
   deleteAdminPasskey,
@@ -35,6 +44,8 @@ const loading = ref(false)
 const sending = ref(false)
 const seconds = ref(0)
 const needEmail = ref(false)
+const passkeyEnabled = ref(false)
+const statusReady = ref(false)
 const action = ref<PasskeyAction>('set')
 const supported = isPasskeySupported()
 let timer: number | undefined
@@ -52,14 +63,20 @@ const getEmailCodeErrorMessage = (error: unknown) => {
   return (error as { msg?: string } | undefined)?.msg || '验证码发送失败，请稍后重试'
 }
 
-const actions: Array<{
-  value: PasskeyAction
-  title: string
-  desc: string
-}> = [
-  { value: 'set', title: '设置', desc: '为当前账号登记通行密钥' },
-  { value: 'remove', title: '删除', desc: '关闭通行密钥登录' }
-]
+const actions = computed(() => [
+  {
+    value: 'set' as const,
+    title: '设置',
+    desc: passkeyEnabled.value ? '已设置，需先删除' : '为当前账号登记通行密钥',
+    disabled: passkeyEnabled.value
+  },
+  {
+    value: 'remove' as const,
+    title: '删除',
+    desc: '关闭通行密钥登录',
+    disabled: !passkeyEnabled.value
+  }
+])
 
 const canSend = computed(() => seconds.value === 0 && !sending.value && !loading.value)
 const confirmText = computed(() => (action.value === 'set' ? '确认设置' : '确认删除'))
@@ -92,18 +109,26 @@ const resetForm = () => {
   action.value = 'set'
   loading.value = false
   needEmail.value = false
+  statusReady.value = false
   resetCodeState()
 }
 
-const loadAccountEmail = async () => {
+const loadAccountStatus = async () => {
+  statusReady.value = false
   try {
     const res = await v1GetAdminMe()
     const boundEmail = String(res.data?.email || '').trim()
     email.value = boundEmail
     needEmail.value = !boundEmail
+    passkeyEnabled.value = getAdminSecurity(res.data).passkey_enabled
+    action.value = passkeyEnabled.value ? 'remove' : 'set'
   } catch {
     email.value = ''
     needEmail.value = false
+    passkeyEnabled.value = false
+    action.value = 'set'
+  } finally {
+    statusReady.value = true
   }
 }
 
@@ -112,7 +137,7 @@ watch(visible, (open) => {
     resetForm()
     return
   }
-  loadAccountEmail()
+  loadAccountStatus()
 })
 
 watch(action, () => {
@@ -181,6 +206,12 @@ const submit = async () => {
   if (action.value === 'set' && !supported) {
     return ElMessage.warning('当前环境不支持通行密钥')
   }
+  if (action.value === 'set' && passkeyEnabled.value) {
+    return ElMessage.warning('已设置通行密钥，请先删除后再重新设置')
+  }
+  if (action.value === 'remove' && !passkeyEnabled.value) {
+    return ElMessage.warning('当前账号未设置通行密钥')
+  }
   if (needEmail.value) {
     return ElMessage.warning('当前账号未绑定邮箱，请先设置邮箱')
   }
@@ -208,10 +239,11 @@ onBeforeUnmount(() => window.clearInterval(timer))
 </script>
 
 <template>
-  <Dialog v-model="visible" title="通行密钥" width="460px" :fullscreen="false" max-height="420px">
-    <div class="passkey-dialog">
+  <Dialog v-model="visible" title="通行密钥" width="460px" :fullscreen="false" max-height="auto">
+    <ElSkeleton v-if="!statusReady" animated :rows="4" />
+    <div v-else class="passkey-dialog">
       <p class="passkey-lead">
-        设置和删除都需要邮箱验证码，两种验证码不能混用。验证码会发到当前账号已绑定的邮箱；没有邮箱时请先设置邮箱。成功后全部会话会退出，需要重新登录。
+        设置和删除都需要邮箱验证码，不能混用。成功后全部会话会退出，需要重新登录。
       </p>
 
       <p v-if="!supported" class="passkey-warn"
@@ -225,7 +257,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
           type="button"
           class="passkey-action"
           :class="{ 'is-active': action === item.value, 'is-danger': item.value === 'remove' }"
-          :disabled="loading"
+          :disabled="loading || item.disabled"
           @click="action = item.value"
         >
           <span class="passkey-action__title">{{ item.title }}</span>
@@ -252,12 +284,15 @@ onBeforeUnmount(() => window.clearInterval(timer))
       </ElForm>
     </div>
 
-    <template #footer>
+    <template v-if="statusReady" #footer>
       <ElButton @click="visible = false">取消</ElButton>
       <ElButton
         :type="action === 'remove' ? 'danger' : 'primary'"
         :loading="loading"
-        :disabled="!supported && action !== 'remove'"
+        :disabled="
+          (action === 'set' && (!supported || passkeyEnabled)) ||
+          (action === 'remove' && !passkeyEnabled)
+        "
         @click="submit"
       >
         {{ confirmText }}
@@ -270,7 +305,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
 .passkey-dialog {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .passkey-lead,
@@ -299,8 +334,8 @@ onBeforeUnmount(() => window.clearInterval(timer))
 
 .passkey-action {
   display: flex;
-  min-height: 72px;
-  padding: 10px 12px;
+  min-height: 52px;
+  padding: 8px 10px;
   color: var(--el-text-color-primary);
   text-align: left;
   cursor: pointer;
@@ -355,7 +390,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
 }
 
 :deep(.el-form-item) {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 :deep(.el-form-item:last-child) {
