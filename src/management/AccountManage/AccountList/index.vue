@@ -118,7 +118,7 @@
           >
         </div>
       </div>
-      <div v-else class="py-4 text-center text-red-500"> 该账户未设置收款地址，请联系管理员。 </div>
+      <div v-else class="py-4 text-center text-red-500"> 充值地址已分配完毕，请联系客服处理 </div>
     </Dialog>
     <!-- 充值记录弹窗 -->
     <RechargeRecordDialog
@@ -150,7 +150,7 @@ import { Dialog } from '@/components/Dialog'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { UnixTime } from '@/components/UnixTime'
-import { v1GetAccountDetail } from '@/api/management/AccountManage/AccountList'
+import { v1GetAccountDetail, v1GetAddressList } from '@/api/management/AccountManage/AccountList'
 import { v1GetSystemPrice } from '@/api/management/BotManage/BotList'
 import { useValidator } from '@/hooks/web/useValidator'
 import RechargeRecordDialog from './components/RechargeRecordDialog.vue'
@@ -457,33 +457,39 @@ const openRechargeDialog = async () => {
   }
 
   try {
-    const [accountResult, priceResult, tickerPriceResult] = await Promise.allSettled([
-      v1GetAccountDetail({ address: true }),
+    const [addressResult, priceResult, tickerPriceResult] = await Promise.allSettled([
+      v1GetAddressList({
+        agent_id: Number(userData.value.id),
+        kind: 1,
+        current_page: 1,
+        page_size: 1
+      }),
       v1GetSystemPrice(),
       getTrxUsdtTickerPrice()
     ])
 
-    if (accountResult.status === 'fulfilled' && accountResult.value?.data) {
-      const data = accountResult.value.data as any
-      // 更新 userData，包含充值地址（兼容 address / pay_address 字段）
-      const address = data.address || data.pay_address || userData.value.address
-      userData.value = {
-        ...userData.value,
-        address
-      }
+    if (addressResult.status !== 'fulfilled') {
+      handleErrorMessage(addressResult.reason, '获取充值地址失败')
+      return
+    }
 
-      if (priceResult.status === 'fulfilled' && tickerPriceResult.status === 'fulfilled') {
-        updateUsdtExchangeRate(priceResult.value?.data?.usdt_2_trx, tickerPriceResult.value)
-      } else {
-        updateUsdtExchangeRate(undefined, undefined)
-      }
+    const address = addressResult.value?.data?.list?.[0]?.address || ''
+    userData.value = {
+      ...userData.value,
+      address
+    }
 
-      // 根据收款地址生成二维码
-      await generateQrCode(address)
-
-      rechargeDialogVisible.value = true
+    if (priceResult.status === 'fulfilled' && tickerPriceResult.status === 'fulfilled') {
+      updateUsdtExchangeRate(priceResult.value?.data?.usdt_2_trx, tickerPriceResult.value)
     } else {
-      handleErrorMessage('获取充值地址失败')
+      updateUsdtExchangeRate(undefined, undefined)
+    }
+
+    await generateQrCode(address)
+    rechargeDialogVisible.value = true
+
+    if (!address) {
+      handleWarningMessage('充值地址已分配完毕，请联系客服处理')
     }
   } catch (error) {
     handleErrorMessage(error, '获取充值地址失败')

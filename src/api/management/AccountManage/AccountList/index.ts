@@ -1,4 +1,6 @@
 import request from '@/axios'
+import { v1GetAdminMe } from '@/api/common/login'
+import { toAccountDetailFromAdminMe } from '@/auth/admin/me'
 import type { BillListParamsV1, BillListResponseV1, AccountDetail } from './type'
 
 // ==================== 新接口 v1 ====================
@@ -35,12 +37,18 @@ export const v1GetBillList = (params: BillListParamsV1) => {
 // ==================== 代理端账户接口 ====================
 
 /**
- * 获取代理账户信息
- * 接口路径：GET /v1/user/get_detail
- * 参数：无
+ * 获取当前管理员/代理账户信息
+ * 接口路径：GET /v1/admin/me
  */
-export const v1GetAccountDetail = (params?: any) => {
-  return request.get<AccountDetail>({ url: '/user/get_detail', params })
+export const v1GetAccountDetail = async (params?: Record<string, unknown>) => {
+  const res = await v1GetAdminMe(params)
+  if (res?.data) {
+    return {
+      ...res,
+      data: toAccountDetailFromAdminMe(res.data) as AccountDetail
+    }
+  }
+  return res as IResponse<AccountDetail>
 }
 
 /**
@@ -57,4 +65,20 @@ export interface UpdateNotifyParams {
 
 export const v1UpdateUserNotify = (data: UpdateNotifyParams): Promise<IResponse> => {
   return request.put({ url: '/v1/user/notify', data })
+}
+
+/** GET /v1/address */
+export const v1GetAddressList = (params: {
+  agent_id?: number
+  bot_id?: number
+  current_page?: number
+  keyword?: string
+  kind?: number
+  order?: string
+  page_size?: number
+}) => {
+  return request.get<{ list: Array<{ address?: string }>; pager?: unknown }>({
+    url: '/v1/address',
+    params
+  })
 }
