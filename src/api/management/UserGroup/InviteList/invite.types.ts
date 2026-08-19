@@ -19,6 +19,8 @@ export interface InviteListQueryParams {
   keyword?: string // 关键字搜索
   order?: string // 排序参数，格式：column [ASC|DESC]，多字段用逗号分隔，ASC为升序，DESC为降序
   page_size?: number // 每页大小
+  source_id?: number // 邀请人ID
+  target_id?: number // 受邀人ID
 }
 
 /**
