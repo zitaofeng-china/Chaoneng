@@ -5,6 +5,7 @@ export interface RoleItem {
   id: number
   name: string
   status: number // 1:启用, 2:禁用
+  permissions?: Array<string | number> | null
   created_at: number // Unix 时间戳
   updated_at: number // Unix 时间戳
 }
