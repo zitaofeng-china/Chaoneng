@@ -10,7 +10,8 @@ import { useUserStoreWithOut } from '@/store/modules/user'
 import { ElMessage } from 'element-plus'
 import { isOperationSystem } from '@/utils/system'
 import { useAdminAuthStoreWithOut } from '@/store/modules/adminAuth'
-import { getUserInfoApi } from '@/api/common/login'
+import { v1GetAdminMe } from '@/api/common/login'
+import { buildUserTypeFromAdminMe } from '@/auth/admin/me'
 
 const { start, done } = useNProgress()
 
@@ -26,21 +27,25 @@ router.beforeEach(async (to, from, next) => {
   const adminAuthStore = useAdminAuthStoreWithOut()
   await adminAuthStore.restoreSession()
 
-  if (adminAuthStore.isAuthenticated && !userStore.getUserInfo) {
+  const shouldReloadOperationUser =
+    isOperationSystem() &&
+    (!userStore.getUserInfo ||
+      (!userStore.getUserInfo.permissions?.length && !userStore.isSuperAdmin))
+
+  if (adminAuthStore.isAuthenticated && shouldReloadOperationUser) {
     if (isOperationSystem()) {
       try {
-        const userInfo = await getUserInfoApi()
+        const userInfo = await v1GetAdminMe()
         if (userInfo?.data) {
-          const { permissions, name, role_ID, role_name } = userInfo.data
-          userStore.setUserInfo({ permissions, username: name, role_ID, role_name })
+          userStore.setUserInfo(await buildUserTypeFromAdminMe(userInfo.data))
         }
       } catch {
         // Access Token 可用但用户资料获取失败时不伪造登录态，避免进入无权限的后台。
         adminAuthStore.clearSession()
       }
-    } else {
-      userStore.setUserInfo({ username: '代理' })
     }
+  } else if (adminAuthStore.isAuthenticated && !userStore.getUserInfo) {
+    userStore.setUserInfo({ username: '代理' })
   } else if (!adminAuthStore.isAuthenticated) {
     // 两端都已切换到新会话体系，不能再让持久化的旧 JWT 恢复访问。
     userStore.setToken('')
@@ -53,18 +58,8 @@ router.beforeEach(async (to, from, next) => {
     // 双重检查：同时验证 Pinia store 和 localStorage
     const storeExpiredAt = userStore.getTokenExpiredAt
 
-    // Access Token 不持久化，依赖 Refresh Cookie 恢复；保留本段仅兼容未清理的旧状态。
-    let localExpiredAt: number | null = null
-    try {
-      throw new Error('admin auth is memory-only')
-      const localStorageData = localStorage.getItem('user')
-      if (localStorageData) {
-        const userData = JSON.parse(localStorageData)
-        localExpiredAt = userData.tokenExpiredAt
-      }
-    } catch {
-      // localStorage 损坏时忽略，仅依赖 store
-    }
+    // Access Token 不持久化，依赖 Refresh Cookie 恢复；已废弃 localStorage 验证。
+    const localExpiredAt: number | null = null
 
     // 使用两者中较早的过期时间（更严格的验证）
     // 如果 store 和 localStorage 不一致，说明可能被篡改，使用更严格的值
