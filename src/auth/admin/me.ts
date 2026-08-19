@@ -1,7 +1,7 @@
 import request from '@/axios'
 import type { UserType } from '@/api/common/login/types'
 import { normalizePermissionNames } from '@/operation/constants/permissionTable'
-import type { AdminMe } from './types'
+import { getAdminSecurity, type AdminMe } from './types'
 
 export const toUnixSeconds = (value: unknown): number | undefined => {
   if (value === undefined || value === null || value === '') return undefined
@@ -22,13 +22,9 @@ export const toUnixSeconds = (value: unknown): number | undefined => {
 }
 
 const readPermissions = (me: AdminMe): string[] => {
-  const raw = Array.isArray(me.role?.permissions)
-    ? me.role.permissions
-    : Array.isArray(me.permissions)
-      ? me.permissions
-      : []
-  const permissions = normalizePermissionNames(raw)
+  const permissions = normalizePermissionNames(getAdminSecurity(me).permissions)
   const roleId = me.role?.id ?? me.role_id
+  if (permissions.includes('*')) return ['*']
   if (!permissions.length && roleId === 1) return ['*']
   return permissions
 }
@@ -41,7 +37,7 @@ export const toUserTypeFromAdminMe = (
   permissions: permissions ?? readPermissions(me),
   username: me.username || fallbackName,
   role_ID: me.role?.id ?? me.role_id,
-  role_name: me.role?.name,
+  role_name: getAdminSecurity(me).role_name || me.role?.name,
   created_at: toUnixSeconds(me.created_at)
 })
 
@@ -53,7 +49,7 @@ export const resolveAdminPermissions = async (me: AdminMe): Promise<string[]> =>
   if (!roleId) return []
 
   try {
-    const res = await request.get<{ permissions?: Array<string | number> | null }>({
+    const res = await request.get<{ permissions?: unknown }>({
       url: `/v2/role/${roleId}`,
       skipErrorHandler: true
     })
