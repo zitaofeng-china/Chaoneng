@@ -5,7 +5,8 @@ import type {
   AdminSession,
   PasskeyChallengePurpose,
   PasskeyChallengeResult,
-  PasskeyCredentialPayload
+  PasskeyCredentialPayload,
+  PasskeyVerificationMethod
 } from './types'
 
 // 网关前缀由运行时配置或环境变量决定，例如留空、/api 或完整同源地址。
@@ -81,7 +82,9 @@ export const saveAdminPasskey = (
   data: {
     ceremony_id: string
     credential: PasskeyCredentialPayload
-    email_code: string
+    verification_method: PasskeyVerificationMethod
+    email_code?: string
+    current_password?: string
   }
 ) =>
   unwrap<string>(
@@ -90,10 +93,17 @@ export const saveAdminPasskey = (
     })
   )
 
-export const deleteAdminPasskey = (accessToken: string, current_password: string) =>
+export const deleteAdminPasskey = (
+  accessToken: string,
+  data: {
+    verification_method: PasskeyVerificationMethod
+    email_code?: string
+    current_password?: string
+  }
+) =>
   unwrap<string>(
     client.delete('/v1/admin/security/passkey', {
-      data: { current_password },
+      data,
       headers: { Authorization: `Bearer ${accessToken}` }
     })
   )

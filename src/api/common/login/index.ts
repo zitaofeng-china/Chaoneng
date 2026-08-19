@@ -1,4 +1,6 @@
 import request from '@/axios'
+import type { AdminMe } from '@/auth/admin/types'
+import { buildUserTypeFromAdminMe } from '@/auth/admin/me'
 import type {
   UserInfoResponse,
   PasswordLoginParams,
@@ -94,11 +96,25 @@ export const getCaptchaApi = (
   return request.get({ url: '/v1/captcha', params })
 }
 
-/**
- * 获取用户信息
- */
-export const getUserInfoApi = (): Promise<IResponse<UserInfoResponse>> => {
-  return request.get({ url: '/v2/manage/user/use_info' })
+/** GET /v1/admin/me */
+export const v1GetAdminMe = (params?: Record<string, unknown>): Promise<IResponse<AdminMe>> => {
+  return request.get({ url: '/v1/admin/me', params })
+}
+
+/** @deprecated 使用 v1GetAdminMe */
+export const getUserInfoApi = async (): Promise<IResponse<UserInfoResponse>> => {
+  const res = await v1GetAdminMe()
+  const user = await buildUserTypeFromAdminMe(res.data || {})
+  return {
+    ...res,
+    data: {
+      permissions: user.permissions || [],
+      name: user.username || '',
+      role_ID: user.role_ID || 0,
+      role_name: user.role_name || '',
+      created_at: user.created_at || 0
+    }
+  }
 }
 
 /**

@@ -5,7 +5,47 @@ export interface AdminSession {
   token_type: 'Bearer'
 }
 
-export type AdminEmailCodePurpose = 'register' | 'reset_password' | 'set_passkey'
+export interface AdminNotify {
+  balance_threshold?: number | string
+  chat_ids?: number[]
+  chat_id?: number | number[]
+  order_subscription?: number[] | null
+}
+
+export interface AdminRole {
+  created_at?: string | number
+  id?: number
+  name?: string
+  permissions?: Array<string | number> | null
+  status?: number
+}
+
+/** GET /v1/admin/me */
+export interface AdminMe {
+  address?: string
+  created_at?: string | number
+  current_auth_method?: string
+  email?: string
+  gift_bandwidth?: boolean
+  id?: number
+  notify?: AdminNotify
+  notify_chat_id?: AdminNotify['chat_id']
+  notify_chat_ids?: AdminNotify['chat_ids']
+  notify_threshold?: number | string
+  passkey_enabled?: boolean
+  permissions?: Array<string | number> | null
+  price_id?: number
+  role?: AdminRole
+  role_id?: number
+  status?: number
+  trx_balance?: number | string
+  updated_at?: string | number
+  username?: string
+}
+
+export type AdminEmailCodePurpose = 'register' | 'reset_password' | 'set_passkey' | 'delete_passkey'
+
+export type PasskeyVerificationMethod = 'password' | 'email_code'
 
 export type PasskeyChallengePurpose = 'login' | 'set'
 
