@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { ElButton, ElForm, ElFormItem, ElInput, ElMessage, ElMessageBox } from 'element-plus'
 import Dialog from '@/components/Dialog/src/Dialog.vue'
+import { v1GetAdminMe } from '@/api/common/login'
 import {
   createPasskeyChallenge,
   deleteAdminPasskey,
@@ -30,7 +31,6 @@ const authStore = useAdminAuthStore()
 const userStore = useUserStore()
 const email = ref('')
 const emailCode = ref('')
-const password = ref('')
 const loading = ref(false)
 const sending = ref(false)
 const seconds = ref(0)
@@ -38,8 +38,7 @@ const needEmail = ref(false)
 const action = ref<PasskeyAction>('set')
 const supported = isPasskeySupported()
 let timer: number | undefined
-
-const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+const emailCodePurpose = computed(() => (action.value === 'set' ? 'set_passkey' : 'delete_passkey'))
 
 const isNoAccountEmailError = (error: unknown) => {
   const text = String((error as { msg?: string; message?: string } | undefined)?.msg || '')
@@ -48,7 +47,7 @@ const isNoAccountEmailError = (error: unknown) => {
 
 const getEmailCodeErrorMessage = (error: unknown) => {
   if (isNoAccountEmailError(error)) {
-    return '当前账号未绑定邮箱，请填写接收验证码的邮箱'
+    return '当前账号未绑定邮箱，请先设置邮箱'
   }
   return (error as { msg?: string } | undefined)?.msg || '验证码发送失败，请稍后重试'
 }
@@ -62,7 +61,6 @@ const actions: Array<{
   { value: 'remove', title: '删除', desc: '关闭通行密钥登录' }
 ]
 
-const isSetAction = computed(() => action.value === 'set')
 const canSend = computed(() => seconds.value === 0 && !sending.value && !loading.value)
 const confirmText = computed(() => (action.value === 'set' ? '确认设置' : '确认删除'))
 
@@ -82,44 +80,59 @@ const finish = (message: string) => {
   visible.value = false
 }
 
+const resetCodeState = () => {
+  emailCode.value = ''
+  seconds.value = 0
+  sending.value = false
+  window.clearInterval(timer)
+}
+
 const resetForm = () => {
   email.value = ''
-  emailCode.value = ''
-  password.value = ''
   action.value = 'set'
   loading.value = false
-  sending.value = false
   needEmail.value = false
+  resetCodeState()
+}
+
+const loadAccountEmail = async () => {
+  try {
+    const res = await v1GetAdminMe()
+    const boundEmail = String(res.data?.email || '').trim()
+    email.value = boundEmail
+    needEmail.value = !boundEmail
+  } catch {
+    email.value = ''
+    needEmail.value = false
+  }
 }
 
 watch(visible, (open) => {
-  if (!open) resetForm()
+  if (!open) {
+    resetForm()
+    return
+  }
+  loadAccountEmail()
+})
+
+watch(action, () => {
+  resetCodeState()
 })
 
 const sendCode = async () => {
   if (!canSend.value) return
-  const trimmedEmail = email.value.trim()
-  if (trimmedEmail) {
-    if (trimmedEmail.length > 32 || !isValidEmail(trimmedEmail)) {
-      return ElMessage.warning('请输入正确的邮箱地址')
-    }
-  } else if (needEmail.value) {
-    return ElMessage.warning('当前账号未绑定邮箱，请先填写邮箱')
+  if (needEmail.value) {
+    return ElMessage.warning('当前账号未绑定邮箱，请先设置邮箱')
   }
 
   sending.value = true
   try {
     const result = await sendAdminEmailCode(
-      {
-        purpose: 'set_passkey',
-        ...(trimmedEmail ? { email: trimmedEmail } : {})
-      },
+      { purpose: emailCodePurpose.value },
       authStore.getAccessToken
     )
     startCountdown(result.resend_after)
-    ElMessage.success(
-      trimmedEmail ? `验证码已发送到 ${trimmedEmail}` : '验证码已发送到当前账号邮箱'
-    )
+    ElMessage.success('验证码已发送到当前账号邮箱')
   } catch (error: unknown) {
     if (isNoAccountEmailError(error)) needEmail.value = true
     ElMessage.error(getEmailCodeErrorMessage(error))
@@ -140,6 +153,7 @@ const save = async () => {
   await saveAdminPasskey(authStore.getAccessToken, {
     ceremony_id: challenge.ceremony_id,
     credential,
+    verification_method: 'email_code',
     email_code: emailCode.value
   })
   finish('通行密钥已设置，请重新登录')
@@ -156,16 +170,21 @@ const remove = async () => {
       confirmButtonClass: 'el-button--danger'
     }
   )
-  await deleteAdminPasskey(authStore.getAccessToken, password.value)
+  await deleteAdminPasskey(authStore.getAccessToken, {
+    verification_method: 'email_code',
+    email_code: emailCode.value
+  })
   finish('通行密钥已删除，请重新登录')
 }
 
 const submit = async () => {
-  if (action.value === 'remove') {
-    if (!password.value) return ElMessage.warning('请输入当前密码')
-  } else if (!supported) {
+  if (action.value === 'set' && !supported) {
     return ElMessage.warning('当前环境不支持通行密钥')
-  } else if (!/^\d{6}$/.test(emailCode.value)) {
+  }
+  if (needEmail.value) {
+    return ElMessage.warning('当前账号未绑定邮箱，请先设置邮箱')
+  }
+  if (!/^\d{6}$/.test(emailCode.value)) {
     return ElMessage.warning('请输入6位邮箱验证码')
   }
 
@@ -192,7 +211,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
   <Dialog v-model="visible" title="通行密钥" width="460px" :fullscreen="false" max-height="420px">
     <div class="passkey-dialog">
       <p class="passkey-lead">
-        设置通行密钥需要邮箱验证码。账号已有邮箱可直接发送；没有邮箱时请先填写接收验证码的邮箱。成功后全部会话会退出。
+        设置和删除都需要邮箱验证码，两种验证码不能混用。验证码会发到当前账号已绑定的邮箱；没有邮箱时请先设置邮箱。成功后全部会话会退出，需要重新登录。
       </p>
 
       <p v-if="!supported" class="passkey-warn"
@@ -215,31 +234,20 @@ onBeforeUnmount(() => window.clearInterval(timer))
       </div>
 
       <ElForm label-position="top" @submit.prevent="submit">
-        <template v-if="isSetAction">
-          <ElFormItem label="邮箱验证码" required>
-            <div class="passkey-code">
-              <ElInput
-                v-model="emailCode"
-                maxlength="6"
-                inputmode="numeric"
-                placeholder="请输入6位验证码"
-                @keyup.enter="submit"
-              />
-              <ElButton :disabled="!canSend" :loading="sending" @click="sendCode">
-                {{ seconds ? `${seconds}秒后重发` : '发送验证码' }}
-              </ElButton>
-            </div>
-          </ElFormItem>
-        </template>
-        <ElFormItem v-else label="当前密码" required>
-          <ElInput
-            v-model="password"
-            type="password"
-            show-password
-            placeholder="请输入当前登录密码"
-            autocomplete="current-password"
-            @keyup.enter="submit"
-          />
+        <p v-if="needEmail" class="passkey-warn">当前账号未绑定邮箱，请先设置邮箱后再操作。</p>
+        <ElFormItem label="邮箱验证码" required>
+          <div class="passkey-code">
+            <ElInput
+              v-model="emailCode"
+              maxlength="6"
+              inputmode="numeric"
+              placeholder="请输入6位验证码"
+              @keyup.enter="submit"
+            />
+            <ElButton :disabled="!canSend || needEmail" :loading="sending" @click="sendCode">
+              {{ seconds ? `${seconds}秒后重发` : '发送验证码' }}
+            </ElButton>
+          </div>
         </ElFormItem>
       </ElForm>
     </div>
