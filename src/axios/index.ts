@@ -1,13 +1,19 @@
 import service from './service'
 import { CONTENT_TYPE } from '@/constants'
 import { useUserStoreWithOut } from '@/store/modules/user'
-import { useAdminAuthStoreWithOut } from '@/store/modules/adminAuth'
+import { expireAdminSession, useAdminAuthStoreWithOut } from '@/store/modules/adminAuth'
 
-const request = <T = any>(option: AxiosConfig) => {
+const request = async <T = any>(option: AxiosConfig) => {
   const { url, method, params, data, headers, responseType } = option
 
   const userStore = useUserStoreWithOut()
   const adminAuthStore = useAdminAuthStoreWithOut()
+  if (adminAuthStore.isAuthenticated) {
+    const fresh = await adminAuthStore.ensureFreshAccessToken()
+    if (!fresh) {
+      return expireAdminSession()
+    }
+  }
   const authorizationValue = adminAuthStore.getAccessToken
     ? `Bearer ${adminAuthStore.getAccessToken}`
     : (userStore.getToken ?? '')

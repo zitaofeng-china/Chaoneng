@@ -2,13 +2,13 @@ import { AxiosResponse, InternalAxiosRequestConfig } from './types'
 import { ElMessage } from 'element-plus'
 import qs from 'qs'
 import { SUCCESS_CODE, TRANSFORM_REQUEST_DATA } from '@/constants'
-import { useUserStoreWithOut } from '@/store/modules/user'
-import { useAdminAuthStoreWithOut } from '@/store/modules/adminAuth'
-import { isOperationSystem } from '@/utils/system'
+import { expireAdminSession } from '@/store/modules/adminAuth'
 import { objToFormData } from '@/utils'
 
 /** 登录失效业务码（后端可能返回 number 或 string） */
-const AUTH_EXPIRED_CODE = '400002'
+export const AUTH_EXPIRED_CODE = '400002'
+
+export const isAuthExpiredCode = (code: unknown) => String(code ?? '') === AUTH_EXPIRED_CODE
 
 const defaultRequestInterceptors = (config: InternalAxiosRequestConfig) => {
   if (
@@ -37,12 +37,23 @@ const defaultRequestInterceptors = (config: InternalAxiosRequestConfig) => {
 }
 
 const defaultResponseInterceptors = (response: AxiosResponse) => {
+  const raw = response as AxiosResponse & { code?: string; config?: unknown }
+  // 401 刷新重试后，前一个拦截器可能已经解包成业务结果
+  if (raw && !raw.config && raw.code != null) {
+    return response
+  }
   if (response?.config?.responseType === 'blob') {
     // 如果是文件流，直接过
     return response
   } else if (response.data.code === SUCCESS_CODE) {
     return response.data
   } else {
+    if (isAuthExpiredCode(response?.data?.code)) {
+      if ((response.config as any)?.skipAuthRefresh) {
+        return Promise.reject(response?.data)
+      }
+      return expireAdminSession()
+    }
     // 检查是否跳过错误处理
     const skipErrorHandler = (response.config as any)?.skipErrorHandler
     if (!skipErrorHandler) {
@@ -57,12 +68,6 @@ const defaultResponseInterceptors = (response: AxiosResponse) => {
       } else {
         ElMessage.error(errorMsg)
       }
-    }
-    if (String(response?.data?.code ?? '') === AUTH_EXPIRED_CODE) {
-      if (isOperationSystem()) {
-        useAdminAuthStoreWithOut().clearSession()
-      }
-      useUserStoreWithOut().logout()
     }
     return Promise.reject(response?.data)
   }

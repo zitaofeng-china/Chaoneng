@@ -1,12 +1,19 @@
 import axios, { AxiosError } from 'axios'
-import { defaultRequestInterceptors, defaultResponseInterceptors } from './config'
+import {
+  defaultRequestInterceptors,
+  defaultResponseInterceptors,
+  isAuthExpiredCode
+} from './config'
 import { AxiosInstance, InternalAxiosRequestConfig, RequestConfig, AxiosResponse } from './types'
 import { ElMessage } from 'element-plus'
 import { REQUEST_TIMEOUT } from '@/constants'
 import qs from 'qs'
 import { isAdminAuthPath } from '@/auth/admin/api'
-import { useAdminAuthStoreWithOut } from '@/store/modules/adminAuth'
-import { useUserStoreWithOut } from '@/store/modules/user'
+import {
+  expireAdminSession,
+  pendingAuthRedirect,
+  useAdminAuthStoreWithOut
+} from '@/store/modules/adminAuth'
 
 export const PATH_URL =
   (window as any).APP_CONFIG?.API_BASE_URL || import.meta.env.VITE_API_BASE_PATH
@@ -120,39 +127,39 @@ const rejectHttpError = (error: AxiosError) => {
   return Promise.reject(error)
 }
 
-const canRefreshAdminSession = (error: AxiosError) => {
-  const config = error.config as any
+const canRefreshAdminSession = (config?: any, status?: number, businessCode?: unknown) => {
   return (
-    error.response?.status === 401 &&
+    (status === 401 || isAuthExpiredCode(businessCode)) &&
     !config?._adminAuthRetried &&
     !config?.skipAuthRefresh &&
     !isAdminAuthPath(config?.url)
   )
 }
 
-/** 运营端 Access Token 过期时，用 Refresh Cookie 恢复会话并只重试一次原请求。 */
-async function retryAfterAdminRefresh(error: AxiosError) {
-  const config = error.config as any
+/** 用 Refresh Cookie 换新 AT，并只重试一次原请求。失败时不弹接口错误。 */
+async function refreshAndRetry(config: any) {
   const adminAuthStore = useAdminAuthStoreWithOut()
-  if (!adminAuthStore.getAccessToken) {
-    return null
-  }
   try {
     const session = await adminAuthStore.refreshSession()
+    if (!session?.access_token) return null
     config._adminAuthRetried = true
     config.headers = config.headers || {}
     config.headers.Authorization = `Bearer ${session.access_token}`
     return axiosInstance.request(config)
   } catch {
-    adminAuthStore.clearSession()
-    useUserStoreWithOut().reset()
     return null
   }
 }
 
 axiosInstance.interceptors.response.use(
-  (res: AxiosResponse) => {
+  async (res: AxiosResponse) => {
     clearPending(res.config as any)
+    const config = res.config as any
+    if (canRefreshAdminSession(config, res.status, res.data?.code)) {
+      const retried = await refreshAndRetry(config)
+      if (retried) return retried
+      return expireAdminSession()
+    }
     return res
   },
   (error: AxiosError) => {
@@ -163,8 +170,17 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    if (canRefreshAdminSession(error)) {
-      return retryAfterAdminRefresh(error).then((result) => result ?? rejectHttpError(error))
+    const config = error.config as any
+    const businessCode = (error.response?.data as any)?.code
+    if (canRefreshAdminSession(config, error.response?.status, businessCode)) {
+      return refreshAndRetry(config).then((result) => result ?? expireAdminSession())
+    }
+    if (
+      (error.response?.status === 401 || isAuthExpiredCode(businessCode)) &&
+      !config?.skipAuthRefresh &&
+      !isAdminAuthPath(config?.url)
+    ) {
+      return expireAdminSession()
     }
 
     return rejectHttpError(error)
