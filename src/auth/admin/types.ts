@@ -1,8 +1,18 @@
+export type UnixTimestamp = number | string
+
 export interface AdminSession {
-  access_expires_at: string
+  access_expires_at: UnixTimestamp
   access_token: string
-  refresh_expires_at: string
+  refresh_expires_at: UnixTimestamp
   token_type: 'Bearer'
+}
+
+/** 登录/刷新返回的 unix 秒；兼容毫秒和数字字符串。 */
+export const parseUnixSeconds = (value?: UnixTimestamp | null): number | undefined => {
+  if (value == null || value === '') return undefined
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(n) || n <= 0) return undefined
+  return n > 1e12 ? Math.floor(n / 1000) : Math.floor(n)
 }
 
 export interface AdminNotify {
