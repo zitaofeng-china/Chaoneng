@@ -40,7 +40,7 @@ const isOperation = isOperationSystem()
 const mode = ref<'passkey' | 'password'>(isOperation ? 'passkey' : 'password')
 const loading = ref(false)
 const passkeyAvailable = isPasskeySupported()
-const passwordForm = reactive({ account: '', password: '' })
+const passwordForm = reactive({ account: '', password: '', totp_code: '' })
 const passwordFormRef = ref<InstanceType<typeof ElForm>>()
 
 const passwordRules = {
@@ -112,12 +112,17 @@ const signInWithPassword = async () => {
 
   loading.value = true
   try {
-    const session = await loginWithPassword(passwordForm)
+    const totpCode = passwordForm.totp_code.trim()
+    const session = await loginWithPassword({
+      account: passwordForm.account,
+      password: passwordForm.password,
+      ...(totpCode ? { totp_code: totpCode } : {})
+    })
     adminAuthStore.applySession(session)
     await completeLogin(passwordForm.account)
     ElMessage.success('登录成功')
   } catch (error: any) {
-    ElMessage.error(error?.msg || '登录失败，请检查账号和密码')
+    ElMessage.error(error?.msg || '登录失败，请检查账号、密码或动态验证码')
   } finally {
     loading.value = false
   }
@@ -159,6 +164,14 @@ const signInWithPassword = async () => {
               show-password
               placeholder="请输入密码"
               autocomplete="current-password"
+            />
+          </ElFormItem>
+          <ElFormItem label="动态验证码" prop="totp_code">
+            <ElInput
+              v-model="passwordForm.totp_code"
+              maxlength="6"
+              inputmode="numeric"
+              placeholder="未绑定可留空"
               @keyup.enter="signInWithPassword"
             />
           </ElFormItem>
@@ -168,8 +181,19 @@ const signInWithPassword = async () => {
         </ElForm>
       </ElTabPane>
     </ElTabs>
-    <div class="flex mt-16px" :class="isOperation ? 'justify-start' : 'justify-between'">
-      <ElLink type="primary" :underline="false" @click="push('/reset-password')">忘记密码</ElLink>
+    <div
+      v-if="mode === 'password' || !isOperation"
+      class="flex mt-16px"
+      :class="isOperation ? 'justify-start' : 'justify-between'"
+    >
+      <ElLink
+        v-if="mode === 'password'"
+        type="primary"
+        :underline="false"
+        @click="push('/reset-password')"
+      >
+        忘记密码
+      </ElLink>
       <ElLink v-if="!isOperation" type="primary" :underline="false" @click="emit('to-register')">
         注册账号
       </ElLink>
