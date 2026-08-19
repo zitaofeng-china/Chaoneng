@@ -2,11 +2,12 @@ import axios from 'axios'
 import type {
   AdminEmailCodePurpose,
   AdminEmailCodeResult,
+  AdminResetTarget,
   AdminSession,
   PasskeyChallengePurpose,
   PasskeyChallengeResult,
   PasskeyCredentialPayload,
-  PasskeyVerificationMethod
+  SecurityVerificationMethod
 } from './types'
 
 // 网关前缀由运行时配置或环境变量决定，例如留空、/api 或完整同源地址。
@@ -32,8 +33,11 @@ const unwrap = async <T>(request: Promise<{ data: ApiResult<T> }>) => {
   return data.data
 }
 
-export const loginWithPassword = (data: { account: string; password: string }) =>
-  unwrap<AdminSession>(client.post('/v1/admin/auth/login', { method: 'password', ...data }))
+export const loginWithPassword = (data: {
+  account: string
+  password: string
+  totp_code?: string
+}) => unwrap<AdminSession>(client.post('/v1/admin/auth/login', { method: 'password', ...data }))
 
 export const sendAdminEmailCode = (
   data: { email?: string; purpose: AdminEmailCodePurpose },
@@ -52,11 +56,19 @@ export const registerAdmin = (data: {
   username: string
 }) => unwrap<string>(client.post('/v1/admin/auth/register', data))
 
+export const resetAdminSecurity = (data: {
+  email: string
+  email_code: string
+  target: AdminResetTarget
+  new_password?: string
+}) => unwrap<string>(client.post('/v1/admin/auth/reset', data))
+
+/** @deprecated 使用 resetAdminSecurity */
 export const resetAdminPassword = (data: {
   email: string
   email_code: string
   new_password: string
-}) => unwrap<string>(client.post('/v1/admin/auth/reset-password', data))
+}) => resetAdminSecurity({ ...data, target: 'password' })
 
 export const loginWithPasskey = (data: {
   ceremony_id: string
@@ -82,7 +94,7 @@ export const saveAdminPasskey = (
   data: {
     ceremony_id: string
     credential: PasskeyCredentialPayload
-    verification_method: PasskeyVerificationMethod
+    verification_method: SecurityVerificationMethod
     email_code?: string
     current_password?: string
   }
@@ -93,10 +105,39 @@ export const saveAdminPasskey = (
     })
   )
 
+export const bindAdminTotp = (
+  accessToken: string,
+  data: {
+    verification_method: SecurityVerificationMethod
+    email_code?: string
+    current_password?: string
+  }
+) =>
+  unwrap<{ key_url: string }>(
+    client.put('/v1/admin/security/totp', data, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    })
+  )
+
+export const deleteAdminTotp = (
+  accessToken: string,
+  data: {
+    verification_method: SecurityVerificationMethod
+    email_code?: string
+    current_password?: string
+  }
+) =>
+  unwrap<string>(
+    client.delete('/v1/admin/security/totp', {
+      data,
+      headers: { Authorization: `Bearer ${accessToken}` }
+    })
+  )
+
 export const deleteAdminPasskey = (
   accessToken: string,
   data: {
-    verification_method: PasskeyVerificationMethod
+    verification_method: SecurityVerificationMethod
     email_code?: string
     current_password?: string
   }
