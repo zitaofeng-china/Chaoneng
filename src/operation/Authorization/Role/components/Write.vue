@@ -10,6 +10,7 @@ import operationRoutes from '@/router/modules/operation'
 import { v2CreateRole, v2UpdateRole } from '@/api/opertion/Authorization/common/role'
 import { getErrorMessage } from '@/utils/messageHelper'
 import type { CreateRolePayload, UpdateRolePayload } from '@/api/opertion/Authorization/common/role'
+import { normalizePermissionNames } from '@/operation/constants/permissionTable'
 
 const { t } = useI18n()
 
@@ -441,9 +442,7 @@ watch(
       })
     } else {
       const validRow = row as RoleFormData
-      const currentPermissions = Array.isArray(validRow.permissions)
-        ? validRow.permissions.map(String)
-        : []
+      const currentPermissions = normalizePermissionNames(validRow.permissions)
 
       const isSuperAdmin = currentPermissions.length > 0 && currentPermissions[0] === '*'
 
@@ -495,9 +494,7 @@ const open = () => {
       await setTreeCheckedKeys(DEFAULT_ADD_ROLE_PERMISSIONS)
     } else {
       const rowData = props.currentRow as RoleFormData
-      const currentPermissions = Array.isArray(rowData.permissions)
-        ? rowData.permissions.map(String)
-        : []
+      const currentPermissions = normalizePermissionNames(rowData.permissions)
       const menuPermissions = getMenuPermissions(currentPermissions)
       const buttonPermissions = getButtonPermissions(currentPermissions)
 

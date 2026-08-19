@@ -144,11 +144,12 @@ const validateUsername = (_rule: unknown, value: unknown, callback: FormValidate
 }
 
 const validateEmail = (_rule: unknown, value: unknown, callback: FormValidateCallback) => {
-  if (!value) {
-    callback()
+  const email = String(value || '').trim()
+  if (!email) {
+    callback(new Error('请输入邮箱'))
     return
   }
-  if (!/^(\w-*\.*)+@(\w-?)+(\.\w{2,})+$/.test(String(value))) {
+  if (!/^(\w-*\.*)+@(\w-?)+(\.\w{2,})+$/.test(email)) {
     callback(new Error('请输入正确的邮箱'))
     return
   }
@@ -264,7 +265,10 @@ const rules = computed(() => ({
     },
     { validator: validateUsername, trigger: 'blur' }
   ],
-  email: [{ validator: validateEmail, trigger: 'blur' }],
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { validator: validateEmail, trigger: 'blur' }
+  ],
   role_id: [
     {
       required: true,
@@ -354,7 +358,7 @@ const submit = async () => {
   return {
     id: formData.id ? Number(formData.id) : undefined,
     username: String(formData.username || '').trim(),
-    email: emailRaw || undefined,
+    email: emailRaw,
     // 编辑留空表示不改密码
     password: passwordRaw || undefined,
     role_id: Number(formData.role_id),
