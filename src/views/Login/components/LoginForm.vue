@@ -20,8 +20,9 @@ import {
   sendPhoneCodeApi,
   sendEmailCodeApi,
   getCaptchaApi,
-  getUserInfoApi
+  v1GetAdminMe
 } from '@/api/common/login'
+import { buildUserTypeFromAdminMe } from '@/auth/admin/me'
 import { ElMessage } from 'element-plus'
 import { routePreloader } from '@/utils/preloadRoutes'
 
@@ -719,18 +720,14 @@ const signIn = async () => {
           }
 
           // 获取用户信息（运营端需要先获取权限）
-          // 路由守卫以 userInfo 是否存在判定登录态：即使 use_info 失败也要写入最小 userInfo，避免登录成功后被踢回登录页
+          // 路由守卫以 userInfo 是否存在判定登录态：即使 /v1/admin/me 失败也要写入最小 userInfo，避免登录成功后被踢回登录页
           if (!isManagement) {
             try {
-              const userInfo = await getUserInfoApi()
+              const userInfo = await v1GetAdminMe()
               if (userInfo && userInfo.code === '000000' && userInfo.data) {
-                const { permissions, name, role_ID, role_name } = userInfo.data
-                userStore.setUserInfo({
-                  permissions,
-                  username: name,
-                  role_ID,
-                  role_name
-                })
+                userStore.setUserInfo(
+                  await buildUserTypeFromAdminMe(userInfo.data, formData.username || formData.phone)
+                )
               } else {
                 userStore.setUserInfo({
                   username: formData.username || formData.phone

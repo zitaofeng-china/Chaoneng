@@ -24,7 +24,8 @@ import { useAdminAuthStore } from '@/store/modules/adminAuth'
 import { useUserStore } from '@/store/modules/user'
 import { useAppStore } from '@/store/modules/app'
 import { usePermissionStore } from '@/store/modules/permission'
-import { getUserInfoApi } from '@/api/common/login'
+import { v1GetAdminMe } from '@/api/common/login'
+import { buildUserTypeFromAdminMe } from '@/auth/admin/me'
 import { getFirstAccessibleRoutePath } from '@/utils/routerHelper'
 import { isOperationSystem } from '@/utils/system'
 
@@ -57,10 +58,9 @@ const completeLogin = async (fallbackName: string) => {
     userStore.setUserInfo({ username: fallbackName })
   } else {
     try {
-      const userInfo = await getUserInfoApi()
+      const userInfo = await v1GetAdminMe()
       if (userInfo?.data) {
-        const { permissions, name, role_ID, role_name } = userInfo.data
-        userStore.setUserInfo({ permissions, username: name, role_ID, role_name })
+        userStore.setUserInfo(await buildUserTypeFromAdminMe(userInfo.data, fallbackName))
       } else {
         userStore.setUserInfo({ username: fallbackName })
       }
