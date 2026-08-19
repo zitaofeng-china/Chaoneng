@@ -12,12 +12,28 @@ export interface AdminNotify {
   order_subscription?: number[] | null
 }
 
+export interface AdminRolePermission {
+  code?: number | string
+  describe?: string
+  id?: number
+  name?: string
+  path?: string
+}
+
 export interface AdminRole {
   created_at?: string | number
   id?: number
   name?: string
-  permissions?: Array<string | number> | null
+  permissions?: Array<string | number | AdminRolePermission> | null
   status?: number
+}
+
+export interface AdminSecurity {
+  current_auth_method?: string
+  passkey_enabled?: boolean
+  totp_enabled?: boolean
+  role_name?: string
+  permissions?: Array<string | number | AdminRolePermission> | null
 }
 
 /** GET /v1/admin/me */
@@ -37,15 +53,34 @@ export interface AdminMe {
   price_id?: number
   role?: AdminRole
   role_id?: number
+  security?: AdminSecurity
   status?: number
   trx_balance?: number | string
   updated_at?: string | number
   username?: string
 }
 
-export type AdminEmailCodePurpose = 'register' | 'reset_password' | 'set_passkey' | 'delete_passkey'
+export const getAdminSecurity = (me?: AdminMe | null) => ({
+  current_auth_method: me?.security?.current_auth_method || me?.current_auth_method || '',
+  passkey_enabled: Boolean(me?.security?.passkey_enabled ?? me?.passkey_enabled),
+  totp_enabled: Boolean(me?.security?.totp_enabled),
+  role_name: me?.security?.role_name || me?.role?.name || '',
+  permissions: me?.security?.permissions ?? me?.role?.permissions ?? me?.permissions ?? []
+})
 
-export type PasskeyVerificationMethod = 'password' | 'email_code'
+export type AdminEmailCodePurpose =
+  | 'register'
+  | 'reset'
+  | 'set_passkey'
+  | 'delete_passkey'
+  | 'set_totp'
+  | 'delete_totp'
+
+export type AdminResetTarget = 'password' | 'totp' | 'passkey'
+
+export type SecurityVerificationMethod = 'password' | 'email_code'
+
+export type PasskeyVerificationMethod = SecurityVerificationMethod
 
 export type PasskeyChallengePurpose = 'login' | 'set'
 
