@@ -98,14 +98,34 @@ export const PERMISSION_TABLE: Array<{ name: string; code: number; describe: str
 const nameByCode = new Map(PERMISSION_TABLE.map((item) => [String(item.code), item.name]))
 const nameSet = new Set(PERMISSION_TABLE.map((item) => item.name))
 
-export const toPermissionName = (value: string | number): string => {
-  const raw = String(value).trim()
+export type PermissionSource =
+  | string
+  | number
+  | {
+      code?: number | string
+      name?: string
+    }
+
+export const toPermissionName = (value: PermissionSource): string => {
+  if (value && typeof value === 'object') {
+    const name = String(value.name || '').trim()
+    if (nameSet.has(name) || name === '*') return name
+    if (name) return name
+    if (value.code !== undefined && value.code !== null) {
+      return nameByCode.get(String(value.code)) || ''
+    }
+    return ''
+  }
+
+  const raw = String(value ?? '').trim()
   if (!raw) return ''
   if (nameSet.has(raw)) return raw
   return nameByCode.get(raw) || raw
 }
 
-export const normalizePermissionNames = (values: Array<string | number> | null | undefined) => {
+export const normalizePermissionNames = (values: unknown) => {
   if (!Array.isArray(values)) return []
-  return [...new Set(values.map(toPermissionName).filter(Boolean))]
+  return [
+    ...new Set(values.map((item) => toPermissionName(item as PermissionSource)).filter(Boolean))
+  ]
 }
