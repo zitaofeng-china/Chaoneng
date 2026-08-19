@@ -7,6 +7,7 @@
         :search-schema="searchSchema"
         :fetch-data-api="fetchInviteList"
         :show-add-button="false"
+        @reset="handleBotChange('')"
         :table-props="{
           rowKey: 'id',
           highlightCurrentRow: false,
@@ -24,14 +25,14 @@
 
 <script setup lang="tsx">
 import { ref, onMounted, computed } from 'vue'
-import { ElTag } from 'element-plus'
+import { ElOption, ElSelect, ElTag } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { v1GetInviteList, type InviteRecordItem } from '@/api/management/UserGroup/InviteList'
-import { v1GetMessageBotList } from '@/api/management/common/message'
+import { v1GetMessageBotList, v1GetMessageUserList } from '@/api/management/common/message'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 
 const searchTableRef = ref()
@@ -40,7 +41,53 @@ const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 // 机器人列表
 const isBotListLoaded = ref(false)
 const botOptions = ref<{ label: string; value: string }[]>([{ label: '全部', value: '' }])
+const userOptions = ref<{ label: string; value: string }[]>([])
+const selectedBotId = ref('')
 const botMap = ref<Map<number, any>>(new Map())
+
+const fetchUserList = async (botId?: number | string) => {
+  if (!botId) {
+    userOptions.value = []
+    return
+  }
+
+  try {
+    const res = await v1GetMessageUserList(botId)
+    userOptions.value = (res.data || []).map((user) => ({
+      label: `${user.tg_user_name || user.tg_first_name || '-'} (${user.tg_user_id})`,
+      value: String(user.tg_user_id)
+    }))
+  } catch (error) {
+    userOptions.value = []
+    handleErrorMessage(error, '获取用户列表失败')
+  }
+}
+
+const handleBotChange = (botId?: string) => {
+  selectedBotId.value = botId ? String(botId) : ''
+  searchTableRef.value?.searchMethods?.setValues?.({
+    target_id: '',
+    source_id: ''
+  })
+  fetchUserList(selectedBotId.value)
+}
+
+const renderUserSelect = (formModel: Record<string, any>, field: 'target_id' | 'source_id') => (
+  <ElSelect
+    modelValue={formModel[field]}
+    filterable
+    clearable
+    placeholder={field === 'target_id' ? '请选择受邀人' : '请选择邀请人'}
+    style={{ width: '100%' }}
+    onUpdate:modelValue={(value: string) => {
+      formModel[field] = value
+    }}
+  >
+    {userOptions.value.map((item) => (
+      <ElOption key={`${field}-${item.value}`} label={item.label} value={item.value} />
+    ))}
+  </ElSelect>
+)
 
 // 获取机器人列表
 const fetchBotList = async () => {
@@ -150,13 +197,47 @@ const searchSchema = computed<FormSchema[]>(() => [
   },
   {
     field: 'bot_id',
-    component: 'Select' as const,
     label: '机器人',
-    componentProps: {
-      options: botOptions.value,
-      placeholder: '请选择机器人',
-      valueKey: 'value',
-      labelKey: 'label'
+    formItemProps: {
+      slots: {
+        default: (formModel: Record<string, any>) => (
+          <ElSelect
+            modelValue={formModel.bot_id}
+            clearable
+            filterable
+            placeholder="请选择机器人"
+            style={{ width: '100%' }}
+            onUpdate:modelValue={(value: string) => {
+              formModel.bot_id = value
+              handleBotChange(value)
+            }}
+          >
+            {botOptions.value.map((item) => (
+              <ElOption key={`bot-${item.value}`} label={item.label} value={item.value} />
+            ))}
+          </ElSelect>
+        )
+      }
+    }
+  },
+  {
+    field: 'target_id',
+    label: '受邀人',
+    remove: !selectedBotId.value,
+    formItemProps: {
+      slots: {
+        default: (formModel: Record<string, any>) => renderUserSelect(formModel, 'target_id')
+      }
+    }
+  },
+  {
+    field: 'source_id',
+    label: '邀请人',
+    remove: !selectedBotId.value,
+    formItemProps: {
+      slots: {
+        default: (formModel: Record<string, any>) => renderUserSelect(formModel, 'source_id')
+      }
     }
   }
 ])
@@ -170,6 +251,9 @@ const fetchInviteList = async (params: any = {}) => {
     }
 
     if (params?.keyword) apiParams.keyword = params.keyword
+    if (params?.bot_id) apiParams.bot_id = Number(params.bot_id)
+    if (params?.target_id) apiParams.target_id = Number(params.target_id)
+    if (params?.source_id) apiParams.source_id = Number(params.source_id)
 
     // 处理排序参数
     apiParams.order = params?.order || DEFAULT_CREATED_AT_ORDER
@@ -180,7 +264,12 @@ const fetchInviteList = async (params: any = {}) => {
     const total = response.data?.pager?.total || response.data?.total || 0
 
     // 添加数据为空提示
-    const hasSearchCondition = !!params?.keyword
+    const hasSearchCondition = !!(
+      params?.keyword ||
+      params?.bot_id ||
+      params?.target_id ||
+      params?.source_id
+    )
     handleListMessage(list, hasSearchCondition, '邀请记录')
 
     return {
