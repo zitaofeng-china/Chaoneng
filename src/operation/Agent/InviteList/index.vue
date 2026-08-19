@@ -3,10 +3,12 @@
     <ContentWrap>
       <SearchTable
         v-if="isBotListLoaded"
+        ref="searchTableRef"
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchInviteList"
         :show-add-button="false"
+        @reset="handleBotChange('')"
         :table-props="{
           rowKey: 'id',
           highlightCurrentRow: false,
@@ -23,6 +25,7 @@
 
 <script setup lang="tsx">
 import { ref, onMounted, computed } from 'vue'
+import { ElOption, ElSelect } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import type { TableColumn } from '@/components/Table'
@@ -33,7 +36,11 @@ import {
   type InviteRecordItem,
   type BotOption
 } from '@/api/opertion/Agent/InviteList'
-import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
+import {
+  v1GetMessageBotList,
+  v1GetMessageUserList,
+  type MessageBotItem
+} from '@/api/opertion/common/message'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 import {
   createPageParams,
@@ -51,8 +58,11 @@ type InviteSearchParams = Omit<InviteListQueryParams, 'status'> & {
 }
 type InviteTableSlot = TableSlot<InviteRecordItem>
 
+const searchTableRef = ref()
 const isBotListLoaded = ref(false)
 const botOptions = ref<BotOption[]>(withAllOption<string>([]))
+const userOptions = ref<BotOption[]>([])
+const selectedBotId = ref('')
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 
 const buildInviteListParams = (params: InviteSearchParams = {}): InviteListQueryParams => {
@@ -62,11 +72,67 @@ const buildInviteListParams = (params: InviteSearchParams = {}): InviteListQuery
 
   if (params.keyword) apiParams.keyword = params.keyword
   if (hasSearchValue(params.bot_id)) apiParams.bot_id = Number(params.bot_id)
+  if (hasSearchValue(params.target_id)) apiParams.target_id = Number(params.target_id)
+  if (hasSearchValue(params.source_id)) apiParams.source_id = Number(params.source_id)
   if (hasSearchValue(params.status)) apiParams.status = Number(params.status)
   apiParams.order = params.order || DEFAULT_CREATED_AT_ORDER
 
   return apiParams
 }
+
+const applyUserOptions = (options: BotOption[]) => {
+  userOptions.value = options
+  searchTableRef.value?.searchMethods?.setSchema?.([
+    { field: 'target_id', path: 'componentProps.options', value: options },
+    { field: 'source_id', path: 'componentProps.options', value: options }
+  ])
+}
+
+const fetchUserList = async (botId?: number | string) => {
+  if (!hasSearchValue(botId)) {
+    applyUserOptions([])
+    return
+  }
+
+  try {
+    const res = await v1GetMessageUserList(botId)
+    applyUserOptions(
+      (res.data || []).map((user) => ({
+        label: `${user.tg_user_name || user.tg_first_name || '-'} (${user.tg_user_id})`,
+        value: String(user.tg_user_id)
+      }))
+    )
+  } catch (error) {
+    applyUserOptions([])
+    handleErrorMessage(error, '获取用户列表失败')
+  }
+}
+
+const handleBotChange = (botId?: string) => {
+  selectedBotId.value = hasSearchValue(botId) ? String(botId) : ''
+  searchTableRef.value?.searchMethods?.setValues?.({
+    target_id: '',
+    source_id: ''
+  })
+  fetchUserList(selectedBotId.value)
+}
+
+const renderUserSelect = (formModel: Record<string, any>, field: 'target_id' | 'source_id') => (
+  <ElSelect
+    modelValue={formModel[field]}
+    filterable
+    clearable
+    placeholder={field === 'target_id' ? '请选择受邀人' : '请选择邀请人'}
+    style={{ width: '100%' }}
+    onUpdate:modelValue={(value: string) => {
+      formModel[field] = value
+    }}
+  >
+    {userOptions.value.map((item) => (
+      <ElOption key={`${field}-${item.value}`} label={item.label} value={item.value} />
+    ))}
+  </ElSelect>
+)
 
 const fetchBotList = async () => {
   isBotListLoaded.value = false
@@ -170,13 +236,47 @@ const searchSchema = computed<FormSchema[]>(() => [
   },
   {
     field: 'bot_id',
-    component: 'Select' as const,
     label: '机器人',
-    componentProps: {
-      options: botOptions.value,
-      placeholder: '请选择机器人',
-      valueKey: 'value',
-      labelKey: 'label'
+    formItemProps: {
+      slots: {
+        default: (formModel: Record<string, any>) => (
+          <ElSelect
+            modelValue={formModel.bot_id}
+            clearable
+            filterable
+            placeholder="请选择机器人"
+            style={{ width: '100%' }}
+            onUpdate:modelValue={(value: string) => {
+              formModel.bot_id = value
+              handleBotChange(value)
+            }}
+          >
+            {botOptions.value.map((item) => (
+              <ElOption key={`bot-${item.value}`} label={item.label} value={item.value} />
+            ))}
+          </ElSelect>
+        )
+      }
+    }
+  },
+  {
+    field: 'target_id',
+    label: '受邀人',
+    remove: !selectedBotId.value,
+    formItemProps: {
+      slots: {
+        default: (formModel: Record<string, any>) => renderUserSelect(formModel, 'target_id')
+      }
+    }
+  },
+  {
+    field: 'source_id',
+    label: '邀请人',
+    remove: !selectedBotId.value,
+    formItemProps: {
+      slots: {
+        default: (formModel: Record<string, any>) => renderUserSelect(formModel, 'source_id')
+      }
     }
   },
   {
@@ -200,7 +300,13 @@ const fetchInviteList = async (
     const list = response.data?.list || []
     const total = response.data?.pager?.total || 0
 
-    const hasSearchCondition = [params.keyword, params.bot_id, params.status].some(hasSearchValue)
+    const hasSearchCondition = [
+      params.keyword,
+      params.bot_id,
+      params.target_id,
+      params.source_id,
+      params.status
+    ].some(hasSearchValue)
     handleListMessage(list, hasSearchCondition, '邀请记录')
 
     return {
