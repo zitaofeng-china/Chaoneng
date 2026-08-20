@@ -148,7 +148,10 @@ const toWebAuthnCredentialJSON = (credential: PublicKeyCredential): PasskeyCrede
     rawId: encodeBase64Url(credential.rawId) || '',
     type: credential.type,
     authenticatorAttachment: credential.authenticatorAttachment || undefined,
-    clientExtensionResults: credential.getClientExtensionResults?.() || {},
+    clientExtensionResults: (credential.getClientExtensionResults?.() || {}) as Record<
+      string,
+      unknown
+    >,
     response: {
       clientDataJSON: encodeBase64Url(response.clientDataJSON) || ''
     }
