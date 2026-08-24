@@ -75,6 +75,7 @@ import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
 import { v1GetInnerButtonList, type InnerButtonItem } from '@/api/opertion/common/menuList'
 import { getMessageFileType } from '@/operation/components/MessageDialog/utils'
 import { getReplyContentPreviewText, normalizeReplyContentHtml } from '@/utils/replyContent'
+import { formatReplyLang, normalizeReplyLang } from '@/constants/replyLang'
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const replyFormDialogRef = ref<InstanceType<typeof ReplyFormDialog> | null>(null)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
@@ -198,6 +199,17 @@ const columns: TableColumn[] = [
       default: (data: { row: ReplyItem }) => {
         const kw = (data.row.keyword || '').toString().trim()
         return <span>{kw ? kw : '-'}</span>
+      }
+    }
+  },
+  {
+    field: 'lang',
+    label: '语音',
+    width: 120,
+    showOverflowTooltip: false,
+    slots: {
+      default: (data: { row: ReplyItem }) => {
+        return <span>{formatReplyLang(data.row.lang)}</span>
       }
     }
   },
@@ -361,7 +373,11 @@ const searchSchema = computed<FormSchema[]>(() => [
     component: 'Select',
     componentProps: {
       placeholder: '全部',
-      options: [{ label: '-', value: '' }, ...botOptionsForDialog.value],
+      options: [
+        { label: '全部', value: '' },
+        { label: '全局生效', value: 0 },
+        ...botOptionsForDialog.value
+      ],
       clearable: true,
       filterable: true
     }
@@ -415,6 +431,7 @@ const fetchReplyList = async (params: any) => {
           tg_bot_id: item.bot_id,
           bot_name: fullName,
           key_name: item.key_name,
+          lang: item.lang || '',
           content: item.content,
           files: item.files || [],
           status: item.status,
@@ -428,7 +445,8 @@ const fetchReplyList = async (params: any) => {
         }
       })
 
-      const hasSearchCondition = !!(params.tg_bot_id || params.query || params.status)
+      const hasBotFilter = params.tg_bot_id !== undefined && params.tg_bot_id !== ''
+      const hasSearchCondition = !!(hasBotFilter || params.query || params.status)
       handleListMessage(mappedList, hasSearchCondition, '关键词回复')
 
       return {
@@ -494,6 +512,7 @@ const handleDialogSubmitted = async (data: ReplySaveParams) => {
         inner_buttons:
           data.inner_buttons || (data.inline_menu_ids?.length ? [data.inline_menu_ids] : []),
         key_name: data.key_name,
+        lang: normalizeReplyLang(data.lang),
         status: data.status
       }
       await v1UpdateReply(updateParams)
@@ -505,6 +524,7 @@ const handleDialogSubmitted = async (data: ReplySaveParams) => {
         inner_buttons:
           data.inner_buttons || (data.inline_menu_ids?.length ? [data.inline_menu_ids] : []),
         key_name: data.key_name,
+        lang: normalizeReplyLang(data.lang),
         status: data.status
       }
       await v1CreateReply(createParams)
@@ -540,6 +560,7 @@ const handleStatusChange = async (row: ReplyItem, newStatus: number) => {
       files: row.files || [],
       inner_buttons: getReplyInnerButtonLayout(row),
       key_name: row.key_name,
+      lang: normalizeReplyLang(row.lang),
       status: newStatus
     })
     await searchTableRef.value?.reload()
