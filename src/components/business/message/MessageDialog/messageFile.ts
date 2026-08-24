@@ -62,3 +62,30 @@ export const isVideoFile = (file: MessageFileLike): boolean => {
 
 export const getMessageFileType = (file: MessageFileLike): MessageFileType =>
   isVideoFile(file) ? 'video' : 'image'
+
+/** 消息/关键词回复仅允许上传 1 个文件（图片或视频） */
+export const MAX_MESSAGE_UPLOAD_FILES = 1
+
+export const toSingleFileUrl = (value?: string | string[] | null): string => {
+  if (typeof value === 'string') return value.trim()
+  if (Array.isArray(value)) {
+    const first = value.find((item) => typeof item === 'string' && item.trim())
+    return first ? first.trim() : ''
+  }
+  return ''
+}
+
+export const clampMessageUploadFiles = <T>(files: T[]): T[] =>
+  files.slice(0, MAX_MESSAGE_UPLOAD_FILES)
+
+export const buildSinglePreviewFile = (value?: string | string[] | null) => {
+  const url = toSingleFileUrl(value)
+  if (!url) return []
+  return [
+    {
+      type: getMessageFileType(url),
+      url,
+      name: url.split('/').pop()?.split('?')[0] || 'file'
+    }
+  ]
+}

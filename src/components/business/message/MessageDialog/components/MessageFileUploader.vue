@@ -2,21 +2,10 @@
   <div class="file-uploader">
     <ElFormItem label="上传图片/视频">
       <div class="flex flex-col gap-2 w-full">
-        <div
-          v-if="fileList.length > 0"
-          :style="{
-            color: fileList.length >= 10 ? '#f56c6c' : '#409eff',
-            fontWeight: 600,
-            fontSize: '13px',
-            marginBottom: '8px'
-          }"
-        >
-          {{ fileList.length }}/10
-        </div>
         <ElUpload
           action="#"
           list-type="picture-card"
-          :limit="10"
+          :limit="MAX_MESSAGE_UPLOAD_FILES"
           accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,video/mp4,video/avi,video/mov,video/quicktime"
           :auto-upload="false"
           :file-list="fileList"
@@ -26,6 +15,7 @@
           :on-exceed="handleExceed"
           :show-file-list="true"
           class="compact-upload"
+          :class="{ 'is-limit-reached': fileList.length >= MAX_MESSAGE_UPLOAD_FILES }"
         >
           <template #file="{ file }">
             <div
@@ -47,7 +37,7 @@
           <BaseButton type="primary" size="small">选择文件</BaseButton>
         </ElUpload>
         <p class="text-gray-500 text-sm m-0">
-          支持图片（PNG、JPEG、JPG、GIF、WEBP）和视频（MP4、AVI、MOV），最多上传 10 个文件
+          支持图片（PNG、JPEG、JPG、GIF、WEBP）和视频（MP4、AVI、MOV），图片或视频只能上传 1 个文件
         </p>
       </div>
     </ElFormItem>
@@ -60,7 +50,7 @@ import { ElFormItem, ElUpload } from 'element-plus'
 import type { UploadUserFile } from 'element-plus'
 import { BaseButton } from '@/components/Button'
 import { handleWarningMessage } from '@/utils/messageHelper'
-import { getMessageFileType } from '../messageFile'
+import { getMessageFileType, MAX_MESSAGE_UPLOAD_FILES } from '../messageFile'
 import VideoPoster from './VideoPoster.vue'
 
 defineProps({
@@ -86,7 +76,7 @@ const handleRemove = (file: UploadUserFile) => {
 }
 
 const handleExceed = () => {
-  handleWarningMessage('最多只能上传 10 个文件')
+  handleWarningMessage('只能上传 1 个文件，请先删除已选文件后再上传')
 }
 </script>
 
@@ -106,6 +96,10 @@ const handleExceed = () => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.compact-upload.is-limit-reached :deep(.el-upload--picture-card) {
+  display: none;
 }
 
 .compact-upload :deep(.el-upload-list--picture-card .el-upload-list__item) {
