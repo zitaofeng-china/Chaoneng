@@ -25,6 +25,17 @@
         </ElSelect>
       </ElFormItem>
 
+      <ElFormItem label="语音" prop="lang">
+        <ElSelect v-model="formData.lang" placeholder="请选择语音" style="width: 100%">
+          <ElOption
+            v-for="opt in REPLY_LANG_OPTIONS"
+            :key="opt.value"
+            :label="opt.label"
+            :value="opt.value"
+          />
+        </ElSelect>
+      </ElFormItem>
+
       <ElFormItem label="关键词" prop="keyword">
         <ElInput v-model="formData.keyword" placeholder="请输入关键词" />
       </ElFormItem>
@@ -127,6 +138,12 @@ import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
 import { getMessageFileType } from '@/components/business/message/MessageDialog/messageFile'
 import { v1GetInnerButtonList, type InnerButtonItem } from '@/api/opertion/common/menuList'
 import { getErrorMessage } from '@/utils/messageHelper'
+import {
+  REPLY_LANG_OPTIONS,
+  REPLY_LANG_SELECT_ALL,
+  normalizeReplyLang,
+  toReplyLangSelectValue
+} from '@/constants/replyLang'
 import type { MessagePreviewData } from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
 
 export type ReplyBotOption = {
@@ -138,6 +155,7 @@ export type ReplyBotOption = {
 export type ReplyFormRowData = {
   id?: number
   key_name?: string
+  lang?: string
   content?: string
   status?: number
   files?: string[]
@@ -151,6 +169,7 @@ export type ReplyFormSubmitParams = {
   id?: number
   tg_bot_id: number
   key_name: string
+  lang: string
   content: string
   files: string[]
   inline_menu_ids: number[]
@@ -187,7 +206,7 @@ const submitLoading = ref(false)
 
 const dialogTitle = computed(() => (props.isEdit ? '编辑关键词回复' : '新增关键词回复'))
 
-const ALL_BOT_OPTION: ReplyBotOption = { label: '-', value: 0 }
+const ALL_BOT_OPTION: ReplyBotOption = { label: '全部', value: 0 }
 const botSelectOptions = computed<ReplyBotOption[]>(() =>
   props.includeAllBotOption ? [ALL_BOT_OPTION, ...props.botOptions] : props.botOptions
 )
@@ -198,6 +217,7 @@ const showBotSelect = computed(() => !props.isEdit || props.allowEditBot)
 const formData = ref({
   bot_id: undefined as number | undefined,
   keyword: '',
+  lang: REPLY_LANG_SELECT_ALL,
   content: '',
   status: 1 as number
 })
@@ -542,6 +562,7 @@ const unregisterGlobalDragEvents = () => {
 // 验证规则
 const formRules = computed(() => {
   const rules: Record<string, any[]> = {
+    lang: [required('请选择语音')],
     keyword: [required('关键词不能为空')],
     content: [required('回复内容不能为空')],
     status: [required('请选择状态')]
@@ -567,6 +588,7 @@ watch(
             ? Number(props.rowData.tg_bot_id ?? (props.includeAllBotOption ? 0 : undefined))
             : undefined,
           keyword: props.rowData.key_name || '',
+          lang: toReplyLangSelectValue(props.rowData.lang),
           content: props.rowData.content || '',
           status: props.rowData.status ?? 1
         }
@@ -583,6 +605,7 @@ watch(
         formData.value = {
           bot_id: defaultBotId,
           keyword: '',
+          lang: REPLY_LANG_SELECT_ALL,
           content: '',
           status: 1
         }
@@ -656,6 +679,7 @@ const handleConfirmSubmit = async (buttonLayout?: number[][]) => {
         id: props.rowData.id,
         tg_bot_id: botIdAsNumber,
         key_name: processedKeywords,
+        lang: normalizeReplyLang(formData.value.lang),
         content: formData.value.content,
         files: uploadedFiles,
         inline_menu_ids: normalizedSelectedInlineButtonIds,
@@ -672,6 +696,7 @@ const handleConfirmSubmit = async (buttonLayout?: number[][]) => {
       params = {
         tg_bot_id: botIdAsNumber,
         key_name: processedKeywords,
+        lang: normalizeReplyLang(formData.value.lang),
         content: formData.value.content,
         files: uploadedFiles,
         inline_menu_ids: normalizedSelectedInlineButtonIds,
