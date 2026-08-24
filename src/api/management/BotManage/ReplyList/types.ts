@@ -55,6 +55,7 @@ export interface ReplyItemV1 {
       }>
   > // 内联按钮列表/二维布局
   key_name: string // 关键词名称
+  lang?: string // 语音
   is_command?: number // 是否命令
   status: number // 状态
   updated_at: string // 更新时间
@@ -77,6 +78,7 @@ export interface CreateReplyParamsV1 {
   files?: string[] // 文件URL数组
   inner_buttons?: number[][] // 内联按钮二维布局
   key_name: string[] // 关键词名称数组（必填）
+  lang?: string // 语音，空字符串表示全部
   status: number // 状态（必填）
 }
 
@@ -89,6 +91,7 @@ export interface UpdateReplyParamsV1 {
   id: number // 回复ID（必填）
   inner_buttons?: number[][] // 内联按钮二维布局
   key_name: string // 关键词名称（必填）
+  lang?: string // 语音，空字符串表示全部
   status: number // 状态（必填）
 }
 
@@ -107,6 +110,7 @@ export interface ReplyItem {
   tg_bot_id: number // from backend: bot_id
   bot_name: string // from backend: name (for bot_username display)
   key_name: string // from backend: key_name (for keyword display)
+  lang?: string // from backend: lang (for 语音 display)
   content?: string // from backend: content
   files?: string[] // from backend: files
   status: number // from backend: status
@@ -145,6 +149,7 @@ export interface ReplySaveParams {
   id?: number // For edit mode
   tg_bot_id: number // Changed from string to number
   key_name: string
+  lang?: string // 语音，空字符串表示全部
   content?: string // 回复内容 from the new dialog
   files?: string[] // 上传后的图片/视频地址
   inline_menu_ids?: number[] // 已选择的内联按钮ID
