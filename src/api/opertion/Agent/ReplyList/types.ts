@@ -32,7 +32,7 @@ export interface ReplyItemV1 {
   bot_id: number // 机器人ID
   content: string // 回复内容
   created_at: string // 创建时间
-  files?: string[] // 回复携带的图片/视频
+  file?: string // 回复携带的图片/视频（仅 1 个）
   id: number // 回复ID
   inner_buttons?: Array<
     | {
@@ -75,7 +75,7 @@ export interface ReplyListResponseV1 {
 export interface CreateReplyParamsV1 {
   bot_id: number // 机器人ID（必填）
   content: string // 回复内容
-  files?: string[] // 文件URL数组
+  file?: string // 单个文件URL
   inner_buttons?: number[][] // 内联按钮二维布局
   key_name: string // 关键词名称（必填）
   lang?: string // 语音，空字符串表示全部
@@ -87,7 +87,7 @@ export interface CreateReplyParamsV1 {
  */
 export interface UpdateReplyParamsV1 {
   content: string // 回复内容
-  files?: string[] // 文件URL数组
+  file?: string // 单个文件URL
   id: number // 回复ID（必填）
   inner_buttons?: number[][] // 内联按钮二维布局
   key_name: string // 关键词名称（必填）
@@ -112,7 +112,7 @@ export interface ReplyItem {
   key_name: string // from backend: key_name (for keyword display)
   lang?: string // from backend: lang (for 语音 display)
   content?: string // from backend: content
-  files?: string[] // from backend: files
+  file?: string // from backend: file
   status: number // from backend: status
   created_at: string // from backend: created_at (直接使用后端字段)
   updated_at: string // from backend: updated_at (直接使用后端字段)
@@ -151,7 +151,7 @@ export interface ReplySaveParams {
   key_name: string
   lang?: string // 语音，空字符串表示全部
   content?: string // 回复内容 from the new dialog
-  files?: string[] // 上传后的图片/视频地址
+  file?: string // 上传后的图片/视频地址
   inline_menu_ids?: number[] // 已选择的内联按钮ID
   inner_buttons?: number[][] // 已确认的内联按钮二维布局
   status: number // 状态 from the new dialog
