@@ -88,7 +88,10 @@ import MessagePreviewDialog from '../UserList/components/MessageDialog/component
 import type { MessagePreviewData } from '../UserList/components/MessageDialog/components/MessagePreviewDialog.vue'
 import { handleErrorMessage } from '@/utils/messageHelper'
 import { getReplyContentPreviewText, normalizeReplyContentHtml } from '@/utils/replyContent'
-import { getMessageFileType } from '@/components/business/message/MessageDialog/messageFile'
+import {
+  buildSinglePreviewFile,
+  toSingleFileUrl
+} from '@/components/business/message/MessageDialog/messageFile'
 
 // SearchTable 引用
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -173,18 +176,10 @@ const goToInlineButtons = () => {
   inlineButtonDialogVisible.value = true
 }
 
-const buildMessagePreviewFiles = (files: string[] = []) => {
-  return files.map((fileUrl) => ({
-    type: getMessageFileType(fileUrl),
-    url: fileUrl,
-    name: fileUrl.split('/').pop() || 'file'
-  }))
-}
-
 const handleFilePreview = (row: any) => {
   filePreviewData.value = {
     botName: row.bot_name || '未知机器人',
-    files: buildMessagePreviewFiles(row.files || [])
+    files: buildSinglePreviewFile(row.file ?? row.files)
   }
   filePreviewDialogVisible.value = true
 }
@@ -196,7 +191,7 @@ const handleViewDetail = (row: any) => {
     botName: row.bot_name || '未知机器人',
     content: row.content || '',
     htmlContent: getNormalizedMessageHtml(row.content),
-    files: buildMessagePreviewFiles(row.files || []),
+    files: buildSinglePreviewFile(row.file ?? row.files),
     buttons: (row.inner_buttons || []).flat().map((btn: any) => ({
       id: Number(btn.id),
       text: btn.text || btn.name || '按钮',
@@ -268,7 +263,7 @@ const handleResend = async (row: any) => {
       recipientInfo,
       content: row.content || '',
       htmlContent: getNormalizedMessageHtml(row.content),
-      files: buildMessagePreviewFiles(row.files || []),
+      files: buildSinglePreviewFile(row.file ?? row.files),
       buttons: (row.inner_buttons || []).flat().map((btn: any) => ({
         id: btn.id,
         text: btn.text || btn.name || '按钮',
@@ -306,7 +301,7 @@ const handleConfirmResend = async (buttonLayout?: number[][]) => {
       bot_ids: [row.bot_id],
       content: row.content || '',
       delete_sent: row.delete_sent || 2,
-      files: row.files || [],
+      file: toSingleFileUrl(row.file ?? row.files),
       // 与用户消息一致传二维布局；若后端仅支持一维，由网关/服务端兼容
       inner_buttons: innerButtons as any,
       period: 0, // 重发时周期改为0（只发一次）
@@ -510,13 +505,13 @@ const tableColumns: TableColumn[] = [
     }
   },
   {
-    field: 'files',
+    field: 'file',
     label: '文件',
     align: 'center',
     width: 100,
     slots: {
       default: ({ row }: { row: any }) => {
-        if (row.files && row.files.length > 0) {
+        if (toSingleFileUrl(row.file ?? row.files)) {
           return (
             <a
               style="color: var(--el-color-primary); cursor: pointer; text-decoration: none;"

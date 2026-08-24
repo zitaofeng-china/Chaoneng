@@ -82,7 +82,7 @@ import MessagePreviewDialog from '@/operation/components/MessageDialog/component
 import type { MessagePreviewData } from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
 import { getErrorMessage, handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 import { getReplyContentPreviewText, normalizeReplyContentHtml } from '@/utils/replyContent'
-import { getMessageFileType } from '@/operation/components/MessageDialog/utils'
+import { buildSinglePreviewFile, toSingleFileUrl } from '@/operation/components/MessageDialog/utils'
 import {
   createPageParams,
   formatTableDateTime,
@@ -201,18 +201,10 @@ const goToInlineButtons = () => {
 
 const getNormalizedMessageHtml = (content?: string) => normalizeReplyContentHtml(content)
 
-const buildMessagePreviewFiles = (files: string[] = []) => {
-  return files.map((fileUrl) => ({
-    type: getMessageFileType(fileUrl),
-    url: fileUrl,
-    name: fileUrl.split('/').pop() || 'file'
-  }))
-}
-
 const handleFilePreview = (row: MassSendItemV1) => {
   filePreviewData.value = {
     botName: row.bot_name || (row.bot_id ? `机器人 ID: ${row.bot_id}` : ''),
-    files: buildMessagePreviewFiles(row.files || [])
+    files: buildSinglePreviewFile(row.file ?? row.files)
   }
   filePreviewDialogVisible.value = true
 }
@@ -222,7 +214,7 @@ const handleViewDetail = (row: MassSendItemV1) => {
   detailPreviewData.value = {
     botName: row.bot_name || (row.bot_id ? `机器人 ID: ${row.bot_id}` : ''),
     content: row.content || '',
-    files: buildMessagePreviewFiles(row.files || []),
+    files: buildSinglePreviewFile(row.file ?? row.files),
     buttons: (row.inner_buttons || []).flatMap((buttonRow) =>
       buttonRow.map((button) => ({
         id: Number(button.id),
@@ -255,7 +247,7 @@ const handleResend = async (row: MassSendItemV1) => {
       bot_ids: [row.bot_id],
       content: row.content || '',
       delete_sent: row.delete_sent || 2,
-      files: row.files || [],
+      file: toSingleFileUrl(row.file ?? row.files),
       inner_buttons: (row.inner_buttons || []).map((rowBtns) => rowBtns.map((btn) => btn.id)),
       period: 0,
       send_at: Math.floor(Date.now() / 1000),
@@ -452,13 +444,13 @@ const tableColumns: TableColumn[] = [
     }
   },
   {
-    field: 'files',
+    field: 'file',
     label: '文件',
     align: 'center',
     width: 100,
     slots: {
       default: ({ row }: MessageTableSlot) => {
-        if (row.files && row.files.length > 0) {
+        if (toSingleFileUrl(row.file ?? row.files)) {
           return (
             <a
               style="color: var(--el-color-primary); cursor: pointer; text-decoration: none;"
