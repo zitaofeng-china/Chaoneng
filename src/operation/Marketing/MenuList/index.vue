@@ -23,7 +23,7 @@
         </template>
       </SearchTable>
 
-      <Dialog v-model="dialogVisible" :title="dialogTitle" width="680px">
+      <Dialog v-model="dialogVisible" :title="dialogTitle" width="720px">
         <ElForm
           ref="formRef"
           :model="formData"
@@ -31,14 +31,38 @@
           label-position="top"
           class="menu-form"
         >
-          <ElFormItem label="菜单名称" prop="menu_name">
+          <ElFormItem label="菜单名称" prop="name">
             <ElInput
-              v-model="formData.menu_name"
+              v-model="formData.name"
               placeholder="请输入菜单名称"
               maxlength="50"
               clearable
             />
           </ElFormItem>
+
+          <div class="form-section-title">触发条件显示</div>
+          <div class="translation-grid">
+            <ElFormItem
+              v-for="lang in MENU_LANG_OPTIONS"
+              :key="lang.value"
+              :label="lang.label"
+              :prop="`translations.${lang.value}`"
+              :rules="
+                isRequiredMenuLang(lang.value)
+                  ? [{ required: true, message: `请输入${lang.label}`, trigger: 'blur' }]
+                  : []
+              "
+            >
+              <ElInput
+                v-model="formData.translations[lang.value]"
+                :placeholder="
+                  isRequiredMenuLang(lang.value) ? `请输入${lang.label}` : `选填，${lang.label}`
+                "
+                maxlength="50"
+                clearable
+              />
+            </ElFormItem>
+          </div>
 
           <ElFormItem label="排序" prop="order_num">
             <ElInputNumber
@@ -146,6 +170,15 @@ import {
   type SelectOption,
   type TableSlot
 } from '@/utils/tableHelpers'
+import {
+  MENU_LANG_OPTIONS,
+  buildMenuWriteFields,
+  createEmptyMenuTranslations,
+  getMenuDisplayName,
+  isRequiredMenuLang,
+  normalizeMenuTranslations,
+  type MenuTranslations
+} from '@/constants/menuLang'
 import MenuSort from './components/MenuPreview.vue'
 import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
 
@@ -154,7 +187,8 @@ const VISIBLE_SCOPE_PARTIAL = 2
 
 interface MenuFormValues {
   id?: number
-  menu_name: string
+  name: string
+  translations: MenuTranslations
   order_num: number
   status: number
   visibility_scope: number
@@ -176,7 +210,8 @@ const agentLoading = ref(false)
 const agentOptions = ref<AgentOption[]>([])
 
 const formData = reactive<MenuFormValues>({
-  menu_name: '',
+  name: '',
+  translations: createEmptyMenuTranslations(),
   order_num: 0,
   status: 1,
   visibility_scope: VISIBLE_SCOPE_ALL,
@@ -186,7 +221,7 @@ const formData = reactive<MenuFormValues>({
 const showVisibleAgentSelect = computed(() => formData.visibility_scope === VISIBLE_SCOPE_PARTIAL)
 
 const formRules: FormRules<MenuFormValues> = {
-  menu_name: [{ required: true, message: '菜单名称不能为空', trigger: 'blur' }],
+  name: [{ required: true, message: '菜单名称不能为空', trigger: 'blur' }],
   order_num: [{ required: true, message: '排序不能为空', trigger: 'change' }],
   status: [{ required: true, message: '状态不能为空', trigger: 'change' }],
   visibility_scope: [{ required: true, message: '请选择可见范围', trigger: 'change' }],
@@ -211,7 +246,8 @@ const formRules: FormRules<MenuFormValues> = {
 const resetFormData = () => {
   Object.assign(formData, {
     id: undefined,
-    menu_name: '',
+    name: '',
+    translations: createEmptyMenuTranslations(),
     order_num: 0,
     status: 1,
     visibility_scope: VISIBLE_SCOPE_ALL,
@@ -227,7 +263,8 @@ const openMenuDialog = async (title: string, row?: MenuDialogRow) => {
   if (row) {
     Object.assign(formData, {
       id: row.id ? Number(row.id) : undefined,
-      menu_name: row.menu_name ? String(row.menu_name) : '',
+      name: getMenuDisplayName(row),
+      translations: normalizeMenuTranslations(row.translations),
       order_num: row.order_num ? Number(row.order_num) : 0,
       status: row.status ? Number(row.status) : 1
     })
@@ -312,7 +349,7 @@ const buildVisibilityPayload = () => {
 
 const columns: TableColumn[] = [
   {
-    field: 'menu_name',
+    field: 'name',
     label: '菜单名称',
     minWidth: 150,
     slots: {
@@ -322,7 +359,7 @@ const columns: TableColumn[] = [
           {
             style: { color: '#333', fontWeight: '500' }
           },
-          row.menu_name
+          getMenuDisplayName(row)
         )
     }
   },
@@ -402,7 +439,13 @@ const fetchMenuList = async (params: Partial<GetBotMenuListParams> = {}) => {
     const response = await getBotMenuList(queryParams)
 
     if (response.code === '000000' && response.data) {
-      const list = Array.isArray(response.data) ? response.data : []
+      const list = (Array.isArray(response.data) ? response.data : []).map((item) => {
+        const writeFields = buildMenuWriteFields(item)
+        return {
+          ...item,
+          ...writeFields
+        }
+      })
       list.sort((a, b) => {
         const orderDiff = Number(b.order_num || 0) - Number(a.order_num || 0)
         if (orderDiff !== 0) return orderDiff
@@ -485,13 +528,17 @@ const handleSubmit = async () => {
     )
     if (duplicated) {
       handleWarningMessage(
-        `排序号 ${formData.order_num} 已被「${duplicated.menu_name}」占用，请更换`
+        `排序号 ${formData.order_num} 已被「${getMenuDisplayName(duplicated)}」占用，请更换`
       )
       return
     }
 
     submitting.value = true
     const visibilityPayload = buildVisibilityPayload()
+    const writeFields = buildMenuWriteFields({
+      name: formData.name,
+      translations: formData.translations
+    })
 
     if (formData.id) {
       const updateParams: BatchUpdateBotMenuParams = {
@@ -499,7 +546,7 @@ const handleSubmit = async () => {
         menus: [
           {
             id: formData.id,
-            menu_name: formData.menu_name,
+            ...writeFields,
             order_num: formData.order_num,
             status: formData.status,
             ...visibilityPayload
@@ -510,7 +557,7 @@ const handleSubmit = async () => {
       await batchUpdateBotMenu(updateParams)
     } else {
       const addParams: AddBotMenuParams = {
-        menu_name: formData.menu_name,
+        ...writeFields,
         order_num: formData.order_num,
         status: formData.status,
         ...visibilityPayload
@@ -552,7 +599,7 @@ const handleStatusChange = async (row: BotMenuItem) => {
       menus: [
         {
           id: row.id,
-          menu_name: row.menu_name,
+          ...buildMenuWriteFields(row),
           order_num: row.order_num,
           status: row.status,
           whitelist: Array.isArray(row.whitelist)
@@ -592,5 +639,18 @@ const handleStatusChange = async (row: BotMenuItem) => {
 
 .agent-select-form-item :deep(.el-select) {
   width: 100%;
+}
+
+.form-section-title {
+  margin: 4px 0 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+}
+
+.translation-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
 }
 </style>
