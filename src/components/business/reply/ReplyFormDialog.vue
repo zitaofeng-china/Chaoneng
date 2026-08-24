@@ -135,7 +135,12 @@ import InlineButtonSelector from '@/operation/components/MessageDialog/InlineBut
 import VideoPreviewDialog from '@/operation/components/MessageDialog/components/VideoPreviewDialog.vue'
 import MessagePreviewDialog from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
 import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
-import { getMessageFileType } from '@/components/business/message/MessageDialog/messageFile'
+import {
+  MAX_MESSAGE_UPLOAD_FILES,
+  clampMessageUploadFiles,
+  getMessageFileType,
+  toSingleFileUrl
+} from '@/components/business/message/MessageDialog/messageFile'
 import { v1GetInnerButtonList, type InnerButtonItem } from '@/api/opertion/common/menuList'
 import { getErrorMessage } from '@/utils/messageHelper'
 import {
@@ -158,7 +163,7 @@ export type ReplyFormRowData = {
   lang?: string
   content?: string
   status?: number
-  files?: string[]
+  file?: string
   inline_menu_ids?: Array<number | string>
   tg_bot_id?: number
   bot_username?: string
@@ -171,7 +176,7 @@ export type ReplyFormSubmitParams = {
   key_name: string
   lang: string
   content: string
-  files: string[]
+  file: string
   inline_menu_ids: number[]
   inner_buttons: number[][]
   status: number
@@ -244,16 +249,19 @@ const setContent = async (newContent: string) => {
 }
 const { renderFormattingButtons } = useHtmlInsert(getContent, setContent, contentTextareaRef)
 
-const normalizeFileList = (files: string[] = []) => {
-  return files.map((url, index) => ({
-    name: url.split('/').pop()?.split('?')[0] || `file-${index + 1}`,
-    url,
-    uid: index + 1
-  })) as UploadUserFile[]
+const normalizeFileList = (fileUrl = '') => {
+  const url = toSingleFileUrl(fileUrl)
+  if (!url) return []
+  return [
+    {
+      name: url.split('/').pop()?.split('?')[0] || 'file',
+      url,
+      uid: 1
+    }
+  ] as UploadUserFile[]
 }
 
 const acceptedFilePattern = /^(image\/(png|jpeg|jpg|gif|webp)|video\/(mp4|avi|mov|quicktime))$/i
-const MAX_UPLOAD_FILES = 10
 
 const isAcceptedUploadFile = (file?: File | null) => {
   if (!file) return false
@@ -262,7 +270,7 @@ const isAcceptedUploadFile = (file?: File | null) => {
 }
 
 const normalizeUploadFileList = (files: UploadUserFile[]) => {
-  return files.slice(0, MAX_UPLOAD_FILES)
+  return clampMessageUploadFiles(files)
 }
 
 const revokeBlobUrl = (url?: string) => {
@@ -353,8 +361,8 @@ const handlePreview = (uploadFile: UploadUserFile) => {
 
 const handleFileChange = (_file: UploadUserFile, fileList: UploadUserFile[]) => {
   const nextFileList = normalizeUploadFileList(fileList)
-  if (fileList.length > MAX_UPLOAD_FILES) {
-    ElMessage.warning(`图片和视频总共只能上传 ${MAX_UPLOAD_FILES} 个文件`)
+  if (fileList.length > MAX_MESSAGE_UPLOAD_FILES) {
+    ElMessage.warning('只能上传 1 个文件，请先删除已选文件后再上传')
   }
 
   nextFileList.forEach((uploadFile) => {
@@ -383,32 +391,24 @@ const handleFileRemove = (file: UploadUserFile) => {
   return true
 }
 
-const uploadSelectedFiles = async () => {
-  const uploadedFiles: string[] = []
+const uploadSelectedFile = async () => {
+  const fileItem = fileListRef.value[0]
+  if (!fileItem) return ''
 
-  for (const fileItem of fileListRef.value) {
-    if (fileItem.raw) {
-      const formDataObj = new FormData()
-      formDataObj.append('file', fileItem.raw)
-      const res = await props.uploadFile(formDataObj)
-      if (res && res.data) {
-        const fileUrl = res.data.url || res.data.filename
-        if (fileUrl) {
-          uploadedFiles.push(
-            /^https?:\/\//.test(fileUrl) ? fileUrl : `${window.location.origin}/${fileUrl}`
-          )
-          continue
-        }
+  if (fileItem.raw) {
+    const formDataObj = new FormData()
+    formDataObj.append('file', fileItem.raw)
+    const res = await props.uploadFile(formDataObj)
+    if (res && res.data) {
+      const fileUrl = res.data.url || res.data.filename
+      if (fileUrl) {
+        return /^https?:\/\//.test(fileUrl) ? fileUrl : `${window.location.origin}/${fileUrl}`
       }
-      throw new Error(`文件 ${fileItem.name || ''} 上传失败`)
     }
-
-    if (fileItem.url) {
-      uploadedFiles.push(fileItem.url)
-    }
+    throw new Error(`文件 ${fileItem.name || ''} 上传失败`)
   }
 
-  return uploadedFiles
+  return fileItem.url || ''
 }
 
 const getSelectedInlineButtons = () => {
@@ -480,8 +480,8 @@ const replaceWithDroppedFile = (file: File) => {
     return
   }
 
-  if (fileListRef.value.length >= MAX_UPLOAD_FILES) {
-    ElMessage.warning(`图片和视频总共只能上传 ${MAX_UPLOAD_FILES} 个文件`)
+  if (fileListRef.value.length >= MAX_MESSAGE_UPLOAD_FILES) {
+    ElMessage.warning('只能上传 1 个文件，请先删除已选文件后再上传')
     return
   }
 
@@ -540,7 +540,16 @@ const handleWindowDrop = (event: DragEvent) => {
     return
   }
 
-  files.forEach((file) => replaceWithDroppedFile(file))
+  if (fileListRef.value.length >= MAX_MESSAGE_UPLOAD_FILES) {
+    ElMessage.warning('只能上传 1 个文件，请先删除已选文件后再上传')
+    return
+  }
+
+  if (files.length > 1) {
+    ElMessage.warning('只能上传 1 个文件')
+  }
+
+  replaceWithDroppedFile(files[0])
 }
 
 const registerGlobalDragEvents = () => {
@@ -592,7 +601,7 @@ watch(
           content: props.rowData.content || '',
           status: props.rowData.status ?? 1
         }
-        fileListRef.value = normalizeFileList(props.rowData.files || [])
+        fileListRef.value = normalizeFileList(props.rowData.file)
         selectedInlineButtonIds.value = (props.rowData.inline_menu_ids || []).map((id) =>
           Number(id)
         )
@@ -648,7 +657,7 @@ const handleConfirmSubmit = async (buttonLayout?: number[][]) => {
 
   submitLoading.value = true
   try {
-    const uploadedFiles = await uploadSelectedFiles()
+    const uploadedFile = await uploadSelectedFile()
     const normalizedButtonLayout = normalizeButtonLayout(buttonLayout)
     const normalizedSelectedInlineButtonIds = normalizedButtonLayout.length
       ? normalizedButtonLayout.flat()
@@ -681,7 +690,7 @@ const handleConfirmSubmit = async (buttonLayout?: number[][]) => {
         key_name: processedKeywords,
         lang: normalizeReplyLang(formData.value.lang),
         content: formData.value.content,
-        files: uploadedFiles,
+        file: uploadedFile,
         inline_menu_ids: normalizedSelectedInlineButtonIds,
         inner_buttons: normalizedButtonLayout,
         status: formData.value.status
@@ -698,7 +707,7 @@ const handleConfirmSubmit = async (buttonLayout?: number[][]) => {
         key_name: processedKeywords,
         lang: normalizeReplyLang(formData.value.lang),
         content: formData.value.content,
-        files: uploadedFiles,
+        file: uploadedFile,
         inline_menu_ids: normalizedSelectedInlineButtonIds,
         inner_buttons: normalizedButtonLayout,
         status: formData.value.status
