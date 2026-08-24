@@ -4,6 +4,20 @@
  */
 
 /**
+ * 菜单多语言文案
+ */
+export interface BotMenuTranslations {
+  ar?: string
+  cn?: string
+  en?: string
+  es?: string
+  ja?: string
+  ko?: string
+  tr?: string
+  tw?: string
+}
+
+/**
  * 菜单项
  */
 export interface BotMenuItem {
@@ -12,7 +26,10 @@ export interface BotMenuItem {
   updated_at: number
   agent_id: number
   bot_id: number
-  menu_name: string
+  name: string
+  translations?: BotMenuTranslations
+  /** @deprecated 旧字段，兼容读取 */
+  menu_name?: string
   order_num: number
   status: number // 1=启用, 2=禁用
 }
@@ -38,7 +55,8 @@ export type GetBotMenuListResponse = BotMenuItem[]
  * POST /v1/bot/menu
  */
 export interface AddBotMenuParams {
-  menu_name: string
+  name: string
+  translations: BotMenuTranslations
   order_num: number
   status: number // 1=启用, 2=禁用
 }
@@ -48,7 +66,8 @@ export interface AddBotMenuParams {
  */
 export interface UpdateBotMenuItemParams {
   id: number
-  menu_name: string
+  name: string
+  translations: BotMenuTranslations
   order_num: number
   status: number
 }
