@@ -10,6 +10,7 @@ import {
 } from '@/api/opertion/common/menuList'
 import { useDraggable } from '@/hooks/event/useDraggable'
 import { getErrorMessage } from '@/utils/messageHelper'
+import { buildMenuWriteFields, getMenuDisplayName, isSameMenuItem } from '@/constants/menuLang'
 
 const props = defineProps<{
   modelValue: boolean
@@ -99,9 +100,11 @@ const fetchMenuList = async () => {
     const response = await getBotMenuList({ bot_id: 0 })
 
     if (response.code === '000000' && response.data) {
-      keyboardLayout.value = convertToKeyboardLayout(
-        Array.isArray(response.data) ? response.data : []
-      )
+      const list = (Array.isArray(response.data) ? response.data : []).map((item) => ({
+        ...item,
+        ...buildMenuWriteFields(item)
+      }))
+      keyboardLayout.value = convertToKeyboardLayout(list)
       return
     }
 
@@ -132,7 +135,7 @@ const saveMenuConfig = async () => {
 
     const updateParams: UpdateBotMenuItemParams[] = allItems.map((item) => ({
       id: item.id,
-      menu_name: item.menu_name,
+      ...buildMenuWriteFields(item),
       order_num: item.order_num,
       status: item.status,
       whitelist: Array.isArray(item.whitelist)
@@ -187,10 +190,7 @@ const handleEnabledItemDragStart = (
   dragStartPosition.value = { row: rowIndex, col: colIndex }
 
   e.dataTransfer.effectAllowed = 'move'
-  e.dataTransfer.setData(
-    'text/plain',
-    JSON.stringify({ fromEnabled: true, menu_name: item.menu_name })
-  )
+  e.dataTransfer.setData('text/plain', JSON.stringify({ fromEnabled: true, id: item.id }))
 }
 
 const handleEnabledItemDragOver = (e: DragEvent) => {
@@ -207,7 +207,7 @@ const computeInsertIndex = (targetRow: number, targetCol: number): number => {
   const targetItem = keyboardLayout.value[targetRow]?.[targetCol]
   if (!targetItem) return items.length
 
-  const index = items.findIndex((item) => item.menu_name === targetItem.menu_name)
+  const index = items.findIndex((item) => isSameMenuItem(item, targetItem))
   return index === -1 ? items.length : index
 }
 
@@ -224,8 +224,8 @@ const handleEnabledItemDrop = (e: DragEvent, targetRow: number, targetCol: numbe
 
   if (isFromDisabled) {
     const itemToEnable = dragItem.value
-    const indexToRemove = disabledMenus.value.findIndex(
-      (item) => item.menu_name === itemToEnable.menu_name
+    const indexToRemove = disabledMenus.value.findIndex((item) =>
+      isSameMenuItem(item, itemToEnable)
     )
 
     if (indexToRemove === -1) {
@@ -257,9 +257,7 @@ const handleEnabledItemDrop = (e: DragEvent, targetRow: number, targetCol: numbe
     }
 
     const allEnabledItems = collectMenuItems(keyboardLayout.value)
-    const draggedIndex = allEnabledItems.findIndex(
-      (item) => item.menu_name === dragItem.value?.menu_name
-    )
+    const draggedIndex = allEnabledItems.findIndex((item) => isSameMenuItem(item, dragItem.value))
     const targetItem = keyboardLayout.value[targetRow]?.[targetCol]
 
     if (draggedIndex === -1 || !targetItem) {
@@ -267,7 +265,7 @@ const handleEnabledItemDrop = (e: DragEvent, targetRow: number, targetCol: numbe
       return
     }
 
-    const targetIndex = allEnabledItems.findIndex((item) => item.menu_name === targetItem.menu_name)
+    const targetIndex = allEnabledItems.findIndex((item) => isSameMenuItem(item, targetItem))
     if (targetIndex === -1) {
       resetDragState()
       return
@@ -317,16 +315,14 @@ const handleDisabledZoneDrop = (e: DragEvent) => {
 
   const itemToDisable = dragItem.value
   const allEnabledItems = collectMenuItems(keyboardLayout.value)
-  const itemIndex = allEnabledItems.findIndex((item) => item.menu_name === itemToDisable.menu_name)
+  const itemIndex = allEnabledItems.findIndex((item) => isSameMenuItem(item, itemToDisable))
 
   if (itemIndex === -1) {
     resetDragState()
     return
   }
 
-  const updatedEnabledItems = allEnabledItems.filter(
-    (item) => item.menu_name !== itemToDisable.menu_name
-  )
+  const updatedEnabledItems = allEnabledItems.filter((item) => !isSameMenuItem(item, itemToDisable))
 
   disabledMenus.value.push({
     ...itemToDisable,
@@ -345,10 +341,7 @@ const handleDisabledItemDragStart = (item: MenuItemWithExtras, e: DragEvent) => 
   dragItem.value = { ...item, _fromDisabled: true }
 
   e.dataTransfer.effectAllowed = 'move'
-  e.dataTransfer.setData(
-    'text/plain',
-    JSON.stringify({ fromDisabled: true, menu_name: item.menu_name })
-  )
+  e.dataTransfer.setData('text/plain', JSON.stringify({ fromDisabled: true, id: item.id }))
 }
 
 const handlePreviewDragOver = (e: DragEvent) => {
@@ -380,9 +373,7 @@ const handlePreviewDrop = (e: DragEvent) => {
   }
 
   const itemToEnable = dragItem.value
-  const indexToRemove = disabledMenus.value.findIndex(
-    (item) => item.menu_name === itemToEnable.menu_name
-  )
+  const indexToRemove = disabledMenus.value.findIndex((item) => isSameMenuItem(item, itemToEnable))
 
   if (indexToRemove === -1) {
     resetDragState()
@@ -448,7 +439,7 @@ watch(
                 <div
                   v-if="item"
                   class="menu-item"
-                  :class="{ 'is-dragging': isDragging && dragItem?.menu_name === item?.menu_name }"
+                  :class="{ 'is-dragging': isDragging && isSameMenuItem(dragItem, item) }"
                   draggable="true"
                   @dragstart="(e) => handleEnabledItemDragStart(item, rowIndex, colIndex, e)"
                   @dragend="handleDragEnd"
@@ -456,7 +447,7 @@ watch(
                   @drop="(e) => handleEnabledItemDrop(e, rowIndex, colIndex)"
                 >
                   <el-button type="info" class="menu-button">
-                    {{ item.menu_name }}
+                    {{ getMenuDisplayName(item) }}
                   </el-button>
                 </div>
               </el-col>
@@ -484,15 +475,15 @@ watch(
           <div v-else class="disabled-menu-list">
             <div
               v-for="item in disabledMenus"
-              :key="item.menu_name"
+              :key="item.id"
               class="disabled-menu-item"
-              :class="{ 'is-dragging': isDragging && dragItem?.menu_name === item?.menu_name }"
+              :class="{ 'is-dragging': isDragging && isSameMenuItem(dragItem, item) }"
               draggable="true"
               @dragstart="(e) => handleDisabledItemDragStart(item, e)"
               @dragend="handleDragEnd"
             >
               <el-button type="info" plain class="disabled-menu-button">
-                {{ item.menu_name }}
+                {{ getMenuDisplayName(item) }}
               </el-button>
             </div>
           </div>
