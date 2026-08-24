@@ -19,7 +19,7 @@
               <div
                 v-if="item"
                 class="menu-item"
-                :class="{ 'is-dragging': isDragging && dragItem?.menu_name === item?.menu_name }"
+                :class="{ 'is-dragging': isDragging && isSameMenuItem(dragItem, item) }"
                 draggable="true"
                 @dragstart="(e) => handleEnabledItemDragStart(item, rowIndex, colIndex, e)"
                 @dragend="handleDragEnd"
@@ -27,7 +27,7 @@
                 @drop="(e) => handleEnabledItemDrop(e, rowIndex, colIndex)"
               >
                 <el-button type="info" class="menu-button">
-                  {{ item.menu_name }}
+                  {{ getMenuDisplayName(item) }}
                 </el-button>
               </div>
             </el-col>
@@ -54,15 +54,15 @@
         <div v-else class="disabled-menu-list">
           <div
             v-for="item in disabledMenus"
-            :key="item.menu_name"
+            :key="item.id"
             class="disabled-menu-item"
-            :class="{ 'is-dragging': isDragging && dragItem?.menu_name === item?.menu_name }"
+            :class="{ 'is-dragging': isDragging && isSameMenuItem(dragItem, item) }"
             draggable="true"
             @dragstart="(e) => handleDisabledItemDragStart(item, e)"
             @dragend="handleDragEnd"
           >
             <el-button type="info" plain class="disabled-menu-button">
-              {{ item.menu_name }}
+              {{ getMenuDisplayName(item) }}
             </el-button>
           </div>
         </div>
@@ -79,6 +79,7 @@ import type {
   UpdateBotMenuItemParams
 } from '@/api/management/BotManage/common/botMenu/types'
 import { useDraggable } from '@/hooks/event/useDraggable'
+import { buildMenuWriteFields, getMenuDisplayName, isSameMenuItem } from '@/constants/menuLang'
 
 // 扩展 BotMenuItem 类型以支持拖拽和显示
 interface MenuItemWithExtras extends BotMenuItem {
@@ -216,7 +217,11 @@ const fetchMenuData = async () => {
       return
     }
 
-    keyboardLayout.value = convertToKeyboardLayout(response.data)
+    const list = (Array.isArray(response.data) ? response.data : []).map((item) => ({
+      ...item,
+      ...buildMenuWriteFields(item)
+    }))
+    keyboardLayout.value = convertToKeyboardLayout(list)
   } catch (error) {
     ElMessage.error('获取菜单数据失败，请刷新重试')
     keyboardLayout.value = []
@@ -247,7 +252,7 @@ const saveMenuConfig = async () => {
     // 构建批量更新参数
     const updateParams: UpdateBotMenuItemParams[] = allItems.map((item) => ({
       id: item.id,
-      menu_name: item.menu_name,
+      ...buildMenuWriteFields(item),
       order_num: item.order_num,
       status: item.status
     }))
@@ -301,10 +306,7 @@ const handleEnabledItemDragStart = (
   dragStartPosition.value = { row: rowIndex, col: colIndex }
 
   e.dataTransfer.effectAllowed = 'move'
-  e.dataTransfer.setData(
-    'text/plain',
-    JSON.stringify({ fromEnabled: true, menu_name: item.menu_name })
-  )
+  e.dataTransfer.setData('text/plain', JSON.stringify({ fromEnabled: true, id: item.id }))
 }
 
 /**
@@ -340,10 +342,10 @@ const handleEnabledItemDrop = (e: DragEvent, targetRow: number, targetCol: numbe
   // 情况1：从禁用区域拖到启用区域
   if (isFromDisabled) {
     const itemToEnable = dragItem.value
-    const itemMenuName = itemToEnable.menu_name
 
-    // 从禁用列表中移除（使用 menu_name 识别）
-    const indexToRemove = disabledMenus.value.findIndex((item) => item.menu_name === itemMenuName)
+    const indexToRemove = disabledMenus.value.findIndex((item) =>
+      isSameMenuItem(item, itemToEnable)
+    )
     if (indexToRemove === -1) {
       resetDragState()
       return
@@ -379,9 +381,7 @@ const handleEnabledItemDrop = (e: DragEvent, targetRow: number, targetCol: numbe
 
     // 收集所有启用的菜单项
     const allEnabledItems = collectMenuItems(keyboardLayout.value)
-    const draggedIndex = allEnabledItems.findIndex(
-      (item) => item.menu_name === dragItem.value!.menu_name
-    )
+    const draggedIndex = allEnabledItems.findIndex((item) => isSameMenuItem(item, dragItem.value))
     const targetItem = keyboardLayout.value[targetRow]?.[targetCol]
 
     if (draggedIndex === -1 || !targetItem) {
@@ -389,7 +389,7 @@ const handleEnabledItemDrop = (e: DragEvent, targetRow: number, targetCol: numbe
       return
     }
 
-    const targetIndex = allEnabledItems.findIndex((item) => item.menu_name === targetItem.menu_name)
+    const targetIndex = allEnabledItems.findIndex((item) => isSameMenuItem(item, targetItem))
     if (targetIndex === -1) {
       resetDragState()
       return
@@ -417,7 +417,7 @@ const computeInsertIndex = (targetRow: number, targetCol: number): number => {
   const targetItem = keyboardLayout.value[targetRow]?.[targetCol]
   if (!targetItem) return items.length
 
-  const index = items.findIndex((item) => item.menu_name === targetItem.menu_name)
+  const index = items.findIndex((item) => isSameMenuItem(item, targetItem))
   return index === -1 ? items.length : index
 }
 
@@ -479,18 +479,16 @@ const handleDisabledZoneDrop = (e: DragEvent) => {
   }
 
   const itemToDisable = dragItem.value
-  const itemMenuName = itemToDisable.menu_name
 
-  // 从启用列表中移除（使用 menu_name 识别）
   const allEnabledItems = collectMenuItems(keyboardLayout.value)
-  const itemIndex = allEnabledItems.findIndex((item) => item.menu_name === itemMenuName)
+  const itemIndex = allEnabledItems.findIndex((item) => isSameMenuItem(item, itemToDisable))
 
   if (itemIndex === -1) {
     resetDragState()
     return
   }
 
-  const updatedEnabledItems = allEnabledItems.filter((item) => item.menu_name !== itemMenuName)
+  const updatedEnabledItems = allEnabledItems.filter((item) => !isSameMenuItem(item, itemToDisable))
 
   // 添加到禁用列表末尾
   disabledMenus.value.push({
@@ -517,10 +515,7 @@ const handleDisabledItemDragStart = (item: MenuItemWithExtras, e: DragEvent) => 
   dragItem.value = { ...item, _fromDisabled: true } as MenuItemWithExtras
 
   e.dataTransfer.effectAllowed = 'move'
-  e.dataTransfer.setData(
-    'text/plain',
-    JSON.stringify({ fromDisabled: true, menu_name: item.menu_name })
-  )
+  e.dataTransfer.setData('text/plain', JSON.stringify({ fromDisabled: true, id: item.id }))
 }
 
 /**
@@ -569,10 +564,8 @@ const handlePreviewDrop = (e: DragEvent) => {
   }
 
   const itemToEnable = dragItem.value
-  const itemMenuName = itemToEnable.menu_name
 
-  // 从禁用列表中移除（使用 menu_name 识别）
-  const indexToRemove = disabledMenus.value.findIndex((item) => item.menu_name === itemMenuName)
+  const indexToRemove = disabledMenus.value.findIndex((item) => isSameMenuItem(item, itemToEnable))
   if (indexToRemove === -1) {
     resetDragState()
     return
