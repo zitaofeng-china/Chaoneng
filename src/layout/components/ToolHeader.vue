@@ -107,7 +107,7 @@ export default defineComponent({
         ]}
       >
         {layout.value !== 'top' ? (
-          <div class="h-full flex items-center">
+          <div class="tool-header-left h-full flex items-center">
             {hamburger.value && layout.value !== 'cutMenu' ? (
               <Collapse class="custom-hover" color="var(--top-header-text-color)"></Collapse>
             ) : undefined}
@@ -206,8 +206,29 @@ export default defineComponent({
   transition: left var(--transition-time-02);
 }
 
+.tool-header-left {
+  min-width: 0;
+  overflow: hidden;
+}
+
 .tool-header-actions {
+  flex-shrink: 0;
   gap: 12px;
+
+  :deep(.v-user-info),
+  :deep(.el-dropdown) {
+    flex-shrink: 0;
+  }
+}
+
+@media (width <= 1024px) {
+  .tool-header-actions {
+    gap: 8px;
+  }
+
+  :deep(.top-tool-action__label) {
+    display: none;
+  }
 }
 
 .top-tool-action {

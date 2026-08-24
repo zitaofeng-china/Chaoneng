@@ -63,16 +63,15 @@ const openTotp = () => {
 </script>
 
 <template>
-  <ElDropdown class="custom-hover" :class="prefixCls" trigger="click">
-    <div class="flex items-center">
-      <!-- <img
-        src="@/assets/imgs/avatar.jpg"
-        alt=""
-        class="w-[calc(var(--logo-height)-25px)] rounded-[50%]"
-      /> -->
-      <span class="<lg:hidden text-14px pl-[5px] text-[var(--top-header-text-color)]">{{
-        userStore.getUserInfo?.username
-      }}</span>
+  <ElDropdown
+    class="custom-hover"
+    :class="prefixCls"
+    trigger="hover"
+    :show-timeout="0"
+    :hide-timeout="200"
+  >
+    <div class="user-info-trigger">
+      <span class="user-info-name">{{ userStore.getUserInfo?.username || '账户' }}</span>
     </div>
     <template #dropdown>
       <ElDropdownMenu>
@@ -117,6 +116,24 @@ const openTotp = () => {
 </template>
 
 <style scoped lang="less">
+.user-info-trigger {
+  display: inline-flex;
+  align-items: center;
+  max-width: 160px;
+  min-height: var(--top-tool-height);
+  padding: 0 8px;
+  cursor: pointer;
+}
+
+.user-info-name {
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--top-header-text-color);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .fade-bottom-enter-active,
 .fade-bottom-leave-active {
   transition:
