@@ -287,7 +287,11 @@ import InlineButtonSelector from '@/operation/components/MessageDialog/InlineBut
 import VideoPreviewDialog from '@/operation/components/MessageDialog/components/VideoPreviewDialog.vue'
 import MessagePreviewDialog from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
 import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
-import { getMessageFileType } from '@/operation/components/MessageDialog/utils'
+import {
+  MAX_MESSAGE_UPLOAD_FILES,
+  clampMessageUploadFiles,
+  getMessageFileType
+} from '@/operation/components/MessageDialog/utils'
 import { resolveMessageFilePreview } from '@/operation/components/MessageDialog/previewHelpers'
 import { getChatTypeText } from '@/operation/utils/chat'
 import type { MessagePreviewData } from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
@@ -519,7 +523,12 @@ const handlePreview = (uploadFile: UploadUserFile) => {
 
 // 文件选择变化
 const handleFileChange = (_file: UploadUserFile, fileList: UploadUserFile[]) => {
-  fileList.forEach((uploadFile) => {
+  const nextFileList = clampMessageUploadFiles(fileList)
+  if (fileList.length > MAX_MESSAGE_UPLOAD_FILES) {
+    ElMessage.warning('只能上传 1 个文件，请先删除已选文件后再上传')
+  }
+
+  nextFileList.forEach((uploadFile) => {
     if (uploadFile.raw && !uploadFile.url) {
       const fileType = getMessageFileType(uploadFile.raw)
       if (fileType === 'video') {
@@ -529,7 +538,7 @@ const handleFileChange = (_file: UploadUserFile, fileList: UploadUserFile[]) => 
     }
   })
 
-  fileListRef.value = fileList
+  fileListRef.value = nextFileList
 }
 
 // 移除文件
@@ -830,7 +839,7 @@ const handleConfirmSend = async (buttonLayout?: number[][]) => {
       bot_ids: botIds,
       content: formData.value.content,
       delete_sent: formData.value.delete_sent ? 1 : 2,
-      files: uploadedFiles.length > 0 ? uploadedFiles : [],
+      file: uploadedFiles[0] || '',
       inner_buttons: innerButtons.length > 0 ? innerButtons : [],
       period: formData.value.enable_period
         ? formData.value.period >= 1

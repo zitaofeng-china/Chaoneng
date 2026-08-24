@@ -285,6 +285,10 @@ import InlineButtonDialog from '../../../MessageList/components/InlineButtonDial
 import BotSelector from './components/BotSelector.vue'
 import RecipientSelector from './components/RecipientSelector.vue'
 import MessageContentEditor from './components/MessageContentEditor.vue'
+import {
+  MAX_MESSAGE_UPLOAD_FILES,
+  clampMessageUploadFiles
+} from '@/components/business/message/MessageDialog/messageFile'
 import FileUploader from './components/FileUploader.vue'
 import InlineButtonSelector from './components/InlineButtonSelector.vue'
 import VideoPreviewDialog from './components/VideoPreviewDialog.vue'
@@ -556,8 +560,12 @@ const handlePreview = (uploadFile: UploadUserFile) => {
 
 // 文件选择变化
 const handleFileChange = (_file: UploadUserFile, fileList: UploadUserFile[]) => {
-  // 处理每个文件的预览URL
-  fileList.forEach((uploadFile) => {
+  const nextFileList = clampMessageUploadFiles(fileList)
+  if (fileList.length > MAX_MESSAGE_UPLOAD_FILES) {
+    ElMessage.warning('只能上传 1 个文件，请先删除已选文件后再上传')
+  }
+
+  nextFileList.forEach((uploadFile) => {
     if (uploadFile.raw && !uploadFile.url) {
       const fileType = getFileType(uploadFile.raw)
       if (fileType === 'video') {
@@ -567,9 +575,8 @@ const handleFileChange = (_file: UploadUserFile, fileList: UploadUserFile[]) => 
     }
   })
 
-  fileListRef.value = fileList
-  // 保存第一个文件用于上传（后续需要改为支持多文件上传）
-  fileToUpload.value = fileList.length > 0 ? fileList[0].raw || null : null
+  fileListRef.value = nextFileList
+  fileToUpload.value = nextFileList.length > 0 ? nextFileList[0].raw || null : null
 }
 
 // 移除文件
@@ -842,7 +849,7 @@ const handleConfirmSend = async (buttonLayout?: number[][]) => {
       bot_ids: botIds,
       content: formData.value.content,
       delete_sent: formData.value.delete_sent ? 1 : 2, // 将 boolean 转换为 1/2
-      files: uploadedFiles.length > 0 ? uploadedFiles : [],
+      file: uploadedFiles[0] || '',
       inner_buttons: innerButtons.length > 0 ? innerButtons : [],
       period: formData.value.enable_period
         ? formData.value.period >= 1
