@@ -73,7 +73,7 @@ import MessagePreviewDialog from '@/operation/components/MessageDialog/component
 import type { MessagePreviewData } from '@/operation/components/MessageDialog/components/MessagePreviewDialog.vue'
 import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
 import { v1GetInnerButtonList, type InnerButtonItem } from '@/api/opertion/common/menuList'
-import { getMessageFileType } from '@/operation/components/MessageDialog/utils'
+import { buildSinglePreviewFile, toSingleFileUrl } from '@/operation/components/MessageDialog/utils'
 import { getReplyContentPreviewText, normalizeReplyContentHtml } from '@/utils/replyContent'
 import { formatReplyLang, normalizeReplyLang } from '@/constants/replyLang'
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -276,7 +276,7 @@ const columns: TableColumn[] = [
     }
   },
   {
-    field: 'files',
+    field: 'file',
     label: '文件',
     width: 100,
     slots: {
@@ -285,7 +285,7 @@ const columns: TableColumn[] = [
           return <span>-</span>
         }
         return (
-          <ElLink type="primary" onClick={() => handleViewContent(data.row, 'files')}>
+          <ElLink type="primary" onClick={() => handleViewContent(data.row, 'file')}>
             查看
           </ElLink>
         )
@@ -433,7 +433,7 @@ const fetchReplyList = async (params: any) => {
           key_name: item.key_name,
           lang: item.lang || '',
           content: item.content,
-          files: item.files || [],
+          file: toSingleFileUrl(item.file ?? item.files),
           status: item.status,
           created_at: item.created_at,
           updated_at: item.updated_at,
@@ -508,7 +508,7 @@ const handleDialogSubmitted = async (data: ReplySaveParams) => {
       const updateParams: UpdateReplyParamsV1 = {
         id: data.id,
         content: data.content || '',
-        files: data.files || [],
+        file: data.file || '',
         inner_buttons:
           data.inner_buttons || (data.inline_menu_ids?.length ? [data.inline_menu_ids] : []),
         key_name: data.key_name,
@@ -520,7 +520,7 @@ const handleDialogSubmitted = async (data: ReplySaveParams) => {
       const createParams: CreateReplyParamsV1 = {
         bot_id: data.tg_bot_id,
         content: data.content || '',
-        files: data.files || [],
+        file: data.file || '',
         inner_buttons:
           data.inner_buttons || (data.inline_menu_ids?.length ? [data.inline_menu_ids] : []),
         key_name: data.key_name,
@@ -557,7 +557,7 @@ const handleStatusChange = async (row: ReplyItem, newStatus: number) => {
     await v1UpdateReply({
       id: row.id,
       content: row.content || '',
-      files: row.files || [],
+      file: row.file || '',
       inner_buttons: getReplyInnerButtonLayout(row),
       key_name: row.key_name,
       lang: normalizeReplyLang(row.lang),
@@ -583,13 +583,7 @@ const viewContentDialogVisible = ref(false)
 const currentPreviewData = ref<MessagePreviewData>({})
 const getReplyContentHtml = (row: ReplyItem) => normalizeReplyContentHtml(row.content)
 const getReplyContentPreviewTextForRow = (row: ReplyItem) => getReplyContentPreviewText(row.content)
-const getReplyPreviewFiles = (row: ReplyItem) => {
-  return (row.files || []).map((fileUrl) => ({
-    type: getMessageFileType(fileUrl),
-    url: fileUrl,
-    name: fileUrl.split('/').pop() || fileUrl
-  }))
-}
+const getReplyPreviewFiles = (row: ReplyItem) => buildSinglePreviewFile(row.file)
 const getReplyInlineButtons = (row: ReplyItem) => {
   const rowInnerButtons = flattenInnerButtons(row.inner_buttons)
   if (rowInnerButtons.length > 0) {
@@ -616,12 +610,12 @@ const hasReplyContent = (row: ReplyItem) => !!getReplyContentHtml(row)
 const hasReplyFiles = (row: ReplyItem) => getReplyPreviewFiles(row).length > 0
 const hasReplyInlineButtons = (row: ReplyItem) => getReplyInlineButtons(row).length > 0
 
-const handleViewContent = (row: ReplyItem, previewType: 'content' | 'files' | 'buttons') => {
+const handleViewContent = (row: ReplyItem, previewType: 'content' | 'file' | 'buttons') => {
   currentPreviewData.value = {
     botName: row.bot_username || row.bot_name,
     content: previewType === 'content' ? getReplyContentPreviewTextForRow(row) : '',
     htmlContent: previewType === 'content' ? getReplyContentHtml(row) : '',
-    files: previewType === 'files' ? getReplyPreviewFiles(row) : [],
+    files: previewType === 'file' ? getReplyPreviewFiles(row) : [],
     buttons: previewType === 'buttons' ? getReplyInlineButtons(row) : []
   }
   viewContentDialogVisible.value = true
