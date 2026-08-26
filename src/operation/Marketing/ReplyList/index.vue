@@ -614,7 +614,8 @@ const getReplyInlineButtons = (row: ReplyItem) => {
 
 const hasReplyContent = (row: ReplyItem) => !!getReplyContentHtml(row)
 const hasReplyFiles = (row: ReplyItem) => getReplyPreviewFiles(row).length > 0
-const hasReplyInlineButtons = (row: ReplyItem) => getReplyInlineButtons(row).length > 0
+const hasReplyInlineButtons = (row: ReplyItem) =>
+  row.key_name?.trim() !== '/start' && getReplyInlineButtons(row).length > 0
 
 const handleViewContent = (row: ReplyItem, previewType: 'content' | 'file' | 'buttons') => {
   currentPreviewData.value = {
