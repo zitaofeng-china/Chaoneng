@@ -57,6 +57,20 @@ const baseRoutes: AppRouteRecordRaw[] = [
       noTagsView: true
     }
   },
+  ...(!isManagement
+    ? [
+        {
+          path: '/bind-passkey',
+          component: () => import('@/views/Login/BindPasskey.vue'),
+          name: 'BindPasskey',
+          meta: {
+            hidden: true,
+            title: '绑定通行密钥',
+            noTagsView: true
+          }
+        } as AppRouteRecordRaw
+      ]
+    : []),
   {
     path: '/personal',
     component: Layout,

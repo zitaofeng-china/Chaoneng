@@ -5,13 +5,14 @@ import { useTitle } from '@/hooks/web/useTitle'
 import { useNProgress } from '@/hooks/web/useNProgress'
 import { usePermissionStoreWithOut } from '@/store/modules/permission'
 import { usePageLoading } from '@/hooks/web/usePageLoading'
-import { NO_REDIRECT_WHITE_LIST } from '@/constants'
+import { BIND_PASSKEY_PATH, NO_REDIRECT_WHITE_LIST } from '@/constants'
 import { useUserStoreWithOut } from '@/store/modules/user'
 import { ElMessage } from 'element-plus'
 import { isOperationSystem } from '@/utils/system'
 import { useAdminAuthStoreWithOut } from '@/store/modules/adminAuth'
 import { v1GetAdminMe } from '@/api/common/login'
 import { buildUserTypeFromAdminMe } from '@/auth/admin/me'
+import { hasAdminPasskey } from '@/auth/admin/types'
 
 const { start, done } = useNProgress()
 
@@ -30,6 +31,7 @@ router.beforeEach(async (to, from, next) => {
   const shouldReloadOperationUser =
     isOperationSystem() &&
     (!userStore.getUserInfo ||
+      userStore.getUserInfo.passkey_count == null ||
       (!userStore.getUserInfo.permissions?.length && !userStore.isSuperAdmin))
 
   if (adminAuthStore.isAuthenticated && shouldReloadOperationUser) {
@@ -74,6 +76,32 @@ router.beforeEach(async (to, from, next) => {
         ElMessage.warning('登录已过期，请重新登录')
         userStore.logout()
         next(`/login?redirect=${to.path}`)
+        return
+      }
+    }
+
+    if (isOperationSystem() && adminAuthStore.isAuthenticated) {
+      const needBind = !hasAdminPasskey(userStore.getUserInfo.passkey_count)
+      if (needBind) {
+        if (to.path === BIND_PASSKEY_PATH) {
+          next()
+          return
+        }
+        const redirect =
+          typeof to.query.redirect === 'string'
+            ? to.query.redirect
+            : to.path !== '/login'
+              ? to.fullPath
+              : undefined
+        next({
+          path: BIND_PASSKEY_PATH,
+          query: redirect ? { redirect } : {},
+          replace: true
+        })
+        return
+      }
+      if (to.path === BIND_PASSKEY_PATH) {
+        next({ path: '/home', replace: true })
         return
       }
     }
