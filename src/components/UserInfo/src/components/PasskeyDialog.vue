@@ -211,14 +211,14 @@ const save = async () => {
     challenge.options as Parameters<typeof createPasskeyCredential>[0]
   )
   rememberPasskeyCredentialId(credential.id)
-  await createAdminPasskey(authStore.getAccessToken, {
+  const result = await createAdminPasskey(authStore.getAccessToken, {
     ceremony_id: challenge.ceremony_id,
     credential,
     name,
     verification_method: 'email_code',
     email_code: emailCode.value
   })
-  finish('通行密钥已添加，请重新登录')
+  finish(result.msg || '通行密钥设置成功，请重新登录')
 }
 
 const remove = async () => {

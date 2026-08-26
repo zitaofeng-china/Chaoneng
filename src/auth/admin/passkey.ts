@@ -57,6 +57,77 @@ export const isPasskeySupported = () =>
   typeof PublicKeyCredential !== 'undefined' &&
   Boolean(navigator.credentials)
 
+type UAData = {
+  platform?: string
+  getHighEntropyValues?: (hints: string[]) => Promise<{
+    model?: string
+    platform?: string
+    platformVersion?: string
+  }>
+}
+
+const majorVersion = (value?: string) => {
+  const major = String(value || '').split(/[._]/)[0]
+  return /^\d+$/.test(major) ? major : ''
+}
+
+/** 仅生成可编辑的候选名称，不可用作设备信任或风控依据。只取系统主版本。 */
+export const suggestPasskeyDisplayName = async () => {
+  const uaData = (navigator as Navigator & { userAgentData?: UAData }).userAgentData
+  const hints = await uaData
+    ?.getHighEntropyValues?.(['platform', 'platformVersion', 'model'])
+    .catch(() => undefined)
+  const platform = hints?.platform ?? uaData?.platform ?? ''
+  const platformVersion = hints?.platformVersion?.trim()
+  const model = hints?.model?.trim()
+  const ua = navigator.userAgent
+
+  if (platform === 'Windows' || /Windows NT/.test(ua)) {
+    if (platformVersion) {
+      const major = majorVersion(platformVersion)
+      if (Number(major) >= 13) return '我的 Windows 11'
+      if (major === '10') {
+        const chromeVer = Number(ua.match(/Chrome\/(\d+)/)?.[1] || 0)
+        return chromeVer >= 110 ? '我的 Windows 10' : '我的 Windows 10/11'
+      }
+      if (major) return `我的 Windows ${major}`
+    }
+    const nt = parseFloat(ua.match(/Windows NT ([\d.]+)/)?.[1] || '')
+    if (nt >= 10) return '我的 Windows 10/11'
+    if (nt >= 6.3) return '我的 Windows 8.1'
+    if (nt >= 6.2) return '我的 Windows 8'
+    if (nt >= 6.1) return '我的 Windows 7'
+    return '我的 Windows 设备'
+  }
+
+  if (platform === 'Android' || /Android/.test(ua)) {
+    const version = majorVersion(ua.match(/Android ([\d.]+)/)?.[1])
+    if (model && version) return `我的${model}（Android ${version}）`.slice(0, 32)
+    if (model) return `我的${model}`.slice(0, 32)
+    if (version) return `我的 Android ${version}`
+    return '我的 Android 设备'
+  }
+
+  if (/iPhone/.test(ua)) {
+    const version = majorVersion(ua.match(/OS ([\d_]+)/)?.[1])
+    return version ? `我的 iPhone（iOS ${version}）` : '我的 iPhone'
+  }
+
+  if (/iPad/.test(ua)) {
+    const version = majorVersion(ua.match(/OS ([\d_]+)/)?.[1])
+    return version ? `我的 iPad（iOS ${version}）` : '我的 iPad'
+  }
+
+  if (/Macintosh/.test(ua)) {
+    const raw = ua.match(/Mac OS X ([\d_]+)/)?.[1]?.replace(/_/g, '.')
+    const major = majorVersion(raw)
+    return major ? `我的 macOS ${major}` : '我的 Mac'
+  }
+
+  if (model) return `我的 ${model}`.slice(0, 32)
+  return '我的此设备'
+}
+
 export const getPasskeyErrorMessage = (error: unknown, fallback: string) => {
   const err = error as { name?: string; msg?: string; message?: string } | undefined
   if (err?.name === 'NotAllowedError') return '通行密钥操作已取消'
