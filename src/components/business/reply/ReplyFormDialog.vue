@@ -64,6 +64,7 @@
       />
 
       <InlineButtonSelector
+        v-if="!isStartKeyword"
         v-model="selectedInlineButtonIds"
         :menu-list="menuList"
         @edit="openInlineButtonDialog"
@@ -226,6 +227,8 @@ const formData = ref({
   content: '',
   status: 1 as number
 })
+
+const isStartKeyword = computed(() => formData.value.keyword.trim() === '/start')
 
 const fileListRef = ref<UploadUserFile[]>([])
 const selectedInlineButtonIds = ref<(number | string)[]>([])
@@ -470,7 +473,7 @@ const buildPreviewData = () => {
     botName: getPreviewBotName(),
     content: formData.value.content,
     files: getPreviewFiles(),
-    buttons: getSelectedInlineButtons()
+    buttons: isStartKeyword.value ? [] : getSelectedInlineButtons()
   }
 }
 
@@ -658,10 +661,14 @@ const handleConfirmSubmit = async (buttonLayout?: number[][]) => {
   submitLoading.value = true
   try {
     const uploadedFile = await uploadSelectedFile()
-    const normalizedButtonLayout = normalizeButtonLayout(buttonLayout)
-    const normalizedSelectedInlineButtonIds = normalizedButtonLayout.length
-      ? normalizedButtonLayout.flat()
-      : selectedInlineButtonIds.value.map((id) => Number(id)).filter((id) => !isNaN(id))
+    const normalizedButtonLayout = isStartKeyword.value
+      ? []
+      : normalizeButtonLayout(buttonLayout)
+    const normalizedSelectedInlineButtonIds = isStartKeyword.value
+      ? []
+      : normalizedButtonLayout.length
+        ? normalizedButtonLayout.flat()
+        : selectedInlineButtonIds.value.map((id) => Number(id)).filter((id) => !isNaN(id))
 
     let params: ReplyFormSubmitParams
 
