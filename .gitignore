@@ -20,8 +20,7 @@ deploy.sh
 .env
 .env.*
 
-# Netlify 配置文件（仅测试仓库使用）
-netlify.toml
+# 代理端等 Netlify 配置仅本地保留；运营端 netlify.toml 供测试仓库部署
 netlify-1.toml
 netlify-2.toml
 netlify-operation.toml
