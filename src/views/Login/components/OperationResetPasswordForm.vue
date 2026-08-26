@@ -13,7 +13,7 @@ import {
 import type { FormRules } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { resetAdminSecurity, sendAdminEmailCode } from '@/auth/admin/api'
-import type { AdminResetTarget } from '@/auth/admin/types'
+import { ADMIN_TOTP_ENABLED, type AdminResetTarget } from '@/auth/admin/types'
 import { useAdminAuthStore } from '@/store/modules/adminAuth'
 import { useUserStore } from '@/store/modules/user'
 import { useValidator } from '@/hooks/web/useValidator'
@@ -23,7 +23,7 @@ const { passwordPolicy } = useValidator()
 const adminAuthStore = useAdminAuthStore()
 const userStore = useUserStore()
 const form = reactive({
-  email: '',
+  account: '',
   email_code: '',
   target: 'password' as AdminResetTarget,
   new_password: '',
@@ -43,7 +43,7 @@ const submitText = computed(() => {
 })
 
 const rules = computed<FormRules>(() => ({
-  email: [{ required: true, type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }],
+  account: [{ required: true, message: '请输入账号或邮箱', trigger: 'blur' }],
   email_code: [
     { required: true, pattern: /^\d{6}$/, message: '请输入6位邮箱验证码', trigger: 'blur' }
   ],
@@ -65,12 +65,13 @@ const startCountdown = (duration: number) => {
 }
 
 const sendCode = async () => {
-  if (!form.email) return ElMessage.warning('请先输入邮箱')
+  const account = form.account.trim()
+  if (!account) return ElMessage.warning('请先输入账号或邮箱')
   sending.value = true
   try {
-    const result = await sendAdminEmailCode({ email: form.email, purpose: 'reset' })
+    const result = await sendAdminEmailCode({ account, purpose: 'reset' })
     startCountdown(result.resend_after)
-    ElMessage.success('如该邮箱已注册，验证码已发送')
+    ElMessage.success('如该账号已注册，验证码已发送到绑定邮箱')
   } catch (error: any) {
     ElMessage.error(error?.msg || '验证码发送失败，请稍后重试')
   } finally {
@@ -86,7 +87,7 @@ const submit = async () => {
   loading.value = true
   try {
     await resetAdminSecurity({
-      email: form.email,
+      account: form.account.trim(),
       email_code: form.email_code,
       target: form.target,
       ...(isPasswordReset.value ? { new_password: form.new_password } : {})
@@ -112,12 +113,12 @@ onBeforeUnmount(() => window.clearInterval(timer))
       <ElFormItem label="重置类型" required>
         <ElRadioGroup v-model="form.target">
           <ElRadio label="password">密码</ElRadio>
-          <ElRadio label="totp">动态验证码</ElRadio>
+          <ElRadio v-if="ADMIN_TOTP_ENABLED" label="totp">动态验证码</ElRadio>
           <ElRadio label="passkey">通行密钥</ElRadio>
         </ElRadioGroup>
       </ElFormItem>
-      <ElFormItem label="邮箱" prop="email">
-        <ElInput v-model="form.email" autocomplete="email" />
+      <ElFormItem label="账号" prop="account">
+        <ElInput v-model="form.account" placeholder="请输入用户名或邮箱" autocomplete="username" />
       </ElFormItem>
       <ElFormItem label="邮箱验证码" prop="email_code">
         <div class="flex w-[100%] gap-8px">

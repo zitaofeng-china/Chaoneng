@@ -54,7 +54,7 @@ const sendCode = async () => {
   }
   sending.value = true
   try {
-    const result = await sendAdminEmailCode({ email: form.email, purpose: 'register' })
+    const result = await sendAdminEmailCode({ account: form.email, purpose: 'register' })
     startCountdown(result.resend_after)
     ElMessage.success('验证码已发送')
   } catch (error: any) {
