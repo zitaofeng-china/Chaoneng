@@ -44,6 +44,7 @@ declare global {
     headers?: RawAxiosRequestHeaders
     responseType?: AxiosResponseType
     skipErrorHandler?: boolean
+    skipElevate?: boolean
   }
 
   declare interface IResponse<T = any> {

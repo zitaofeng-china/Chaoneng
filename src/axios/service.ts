@@ -2,13 +2,16 @@ import axios, { AxiosError } from 'axios'
 import {
   defaultRequestInterceptors,
   defaultResponseInterceptors,
-  isAuthExpiredCode
+  isAuthExpiredCode,
+  isElevateRequiredCode
 } from './config'
 import { AxiosInstance, InternalAxiosRequestConfig, RequestConfig, AxiosResponse } from './types'
 import { ElMessage } from 'element-plus'
 import { REQUEST_TIMEOUT } from '@/constants'
 import qs from 'qs'
-import { isAdminAuthPath } from '@/auth/admin/api'
+import { isAdminAuthPath, isAdminElevatePath } from '@/auth/admin/api'
+import { ensureAdminElevated } from '@/auth/admin/elevate'
+import { isOperationSystem } from '@/utils/system'
 import {
   expireAdminSession,
   pendingAuthRedirect,
@@ -136,6 +139,24 @@ const canRefreshAdminSession = (config?: any, status?: number, businessCode?: un
   )
 }
 
+const canElevateAdminSession = (config?: any, businessCode?: unknown) => {
+  return (
+    isOperationSystem() &&
+    isElevateRequiredCode(businessCode) &&
+    !config?._adminElevateRetried &&
+    !config?.skipElevate &&
+    !isAdminAuthPath(config?.url) &&
+    !isAdminElevatePath(config?.url)
+  )
+}
+
+/** 敏感操作未增强认证：challenge → WebAuthn 签名 → elevate → 只重试一次原请求。 */
+async function elevateAndRetry(config: any) {
+  await ensureAdminElevated()
+  config._adminElevateRetried = true
+  return axiosInstance.request(config)
+}
+
 /** 用 Refresh Cookie 换新 AT，并只重试一次原请求。失败时不弹接口错误。 */
 async function refreshAndRetry(config: any) {
   const adminAuthStore = useAdminAuthStoreWithOut()
@@ -160,6 +181,9 @@ axiosInstance.interceptors.response.use(
       if (retried) return retried
       return expireAdminSession()
     }
+    if (canElevateAdminSession(config, res.data?.code)) {
+      return elevateAndRetry(config)
+    }
     return res
   },
   (error: AxiosError) => {
@@ -181,6 +205,9 @@ axiosInstance.interceptors.response.use(
       !isAdminAuthPath(config?.url)
     ) {
       return expireAdminSession()
+    }
+    if (canElevateAdminSession(config, businessCode)) {
+      return elevateAndRetry(config)
     }
 
     return rejectHttpError(error)

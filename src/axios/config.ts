@@ -8,7 +8,12 @@ import { objToFormData } from '@/utils'
 /** 登录失效业务码（后端可能返回 number 或 string） */
 export const AUTH_EXPIRED_CODE = '400002'
 
+/** 敏感操作需要增强认证。HTTP 仍可能是 200，必须看业务码。 */
+export const ELEVATE_REQUIRED_CODE = '000008'
+
 export const isAuthExpiredCode = (code: unknown) => String(code ?? '') === AUTH_EXPIRED_CODE
+
+export const isElevateRequiredCode = (code: unknown) => String(code ?? '') === ELEVATE_REQUIRED_CODE
 
 const defaultRequestInterceptors = (config: InternalAxiosRequestConfig) => {
   if (

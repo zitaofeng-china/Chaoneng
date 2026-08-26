@@ -29,7 +29,8 @@ const request = async <T = any>(option: AxiosConfig) => {
       ...headers
     },
     // 传递 skipErrorHandler 配置
-    skipErrorHandler: (option as any).skipErrorHandler
+    skipErrorHandler: (option as any).skipErrorHandler,
+    skipElevate: (option as any).skipElevate
   } as any)
 }
 
