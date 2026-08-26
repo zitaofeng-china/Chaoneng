@@ -40,7 +40,7 @@ export interface AdminRole {
 
 export interface AdminSecurity {
   current_auth_method?: string
-  passkey_enabled?: boolean
+  passkey_count?: number
   totp_enabled?: boolean
   role_name?: string
   permissions?: Array<string | number | AdminRolePermission> | null
@@ -58,7 +58,6 @@ export interface AdminMe {
   notify_chat_id?: AdminNotify['chat_id']
   notify_chat_ids?: AdminNotify['chat_ids']
   notify_threshold?: number | string
-  passkey_enabled?: boolean
   permissions?: Array<string | number> | null
   price_id?: number
   role?: AdminRole
@@ -70,15 +69,23 @@ export interface AdminMe {
   username?: string
 }
 
+const toPasskeyCount = (value: unknown) => {
+  const count = Number(value)
+  return Number.isFinite(count) && count > 0 ? count : 0
+}
+
+export const hasAdminPasskey = (value?: number | null) => toPasskeyCount(value) > 0
+
 export const getAdminSecurity = (me?: AdminMe | null) => ({
   current_auth_method: me?.security?.current_auth_method || me?.current_auth_method || '',
-  passkey_enabled: Boolean(me?.security?.passkey_enabled ?? me?.passkey_enabled),
+  passkey_count: toPasskeyCount(me?.security?.passkey_count),
   totp_enabled: Boolean(me?.security?.totp_enabled),
   role_name: me?.security?.role_name || me?.role?.name || '',
   permissions: me?.security?.permissions ?? me?.role?.permissions ?? me?.permissions ?? []
 })
 
 export type AdminEmailCodePurpose =
+  | 'login'
   | 'register'
   | 'reset'
   | 'set_passkey'
@@ -88,11 +95,23 @@ export type AdminEmailCodePurpose =
 
 export type AdminResetTarget = 'password' | 'totp' | 'passkey'
 
+/** 运营端动态验证码（TOTP）暂不开放 */
+export const ADMIN_TOTP_ENABLED = false
+
 export type SecurityVerificationMethod = 'password' | 'email_code'
 
 export type PasskeyVerificationMethod = SecurityVerificationMethod
 
-export type PasskeyChallengePurpose = 'login' | 'set'
+export type PasskeyChallengePurpose = 'login' | 'set' | 'elevate'
+
+/** GET /v1/admin/security/passkey */
+export interface AdminPasskey {
+  created_at?: string | number
+  device_id?: string
+  id: number | string
+  last_used_at?: string | number
+  name: string
+}
 
 export interface AdminEmailCodeResult {
   expires_in: number

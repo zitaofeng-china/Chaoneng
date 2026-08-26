@@ -38,7 +38,8 @@ export const toUserTypeFromAdminMe = (
   username: me.username || fallbackName,
   role_ID: me.role?.id ?? me.role_id,
   role_name: getAdminSecurity(me).role_name || me.role?.name,
-  created_at: toUnixSeconds(me.created_at)
+  created_at: toUnixSeconds(me.created_at),
+  passkey_count: getAdminSecurity(me).passkey_count
 })
 
 export const resolveAdminPermissions = async (me: AdminMe): Promise<string[]> => {

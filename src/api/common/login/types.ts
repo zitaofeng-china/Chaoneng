@@ -14,6 +14,7 @@ export interface UserType {
   role_ID?: number // 角色ID
   role_name?: string // 角色名称
   created_at?: number // 创建时间
+  passkey_count?: number
 }
 
 /**
