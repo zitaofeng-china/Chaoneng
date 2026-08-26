@@ -5,6 +5,7 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchAgentLedgerList"
+        :initial-params="initialSearchParams"
         :show-add-button="false"
         :table-props="{ rowKey: getLedgerRowKey }"
         ref="searchTableRef"
@@ -21,17 +22,18 @@
 </template>
 
 <script setup lang="tsx">
-import { ref } from 'vue'
+import { onActivated, ref, watch } from 'vue'
 import { ElLink } from 'element-plus'
 import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import { SearchTable } from '@/components/SearchTable'
+import type { SearchTableExpose } from '@/components/SearchTable'
 import type { FormSchema } from '@/components/Form'
 import type { TableColumn } from '@/components/Table'
 import { v1GetAgentBillList } from '@/api/opertion/Agent/Ledger'
 import type { AgentBillItem, AgentBillListParams } from '@/api/opertion/Agent/Ledger'
 import { ContentWrap } from '@/components/ContentWrap'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 import {
   createDefaultDateTimeRange,
@@ -45,16 +47,54 @@ import {
 } from '@/utils/tableHelpers'
 import { AGENT_BILL_ORDER_TYPE_MAP, AGENT_BILL_ORDER_TYPE_OPTIONS } from '../constants'
 
-const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
-const router = useRouter()
-const currentSearchParams = ref<AgentLedgerSearchParams>({})
-const AGENT_LEDGER_EXPORT_ORDER = 'created_at DESC'
-
 type AgentLedgerSearchParams = Omit<AgentBillListParams, 'kinds'> & {
   kind?: number | string
   dateRange?: DateRangeValue
 }
 type AgentLedgerTableSlot = TableSlot<AgentBillItem>
+
+const searchTableRef = ref<SearchTableExpose | null>(null)
+const route = useRoute()
+const router = useRouter()
+const currentSearchParams = ref<AgentLedgerSearchParams>({})
+const AGENT_LEDGER_EXPORT_ORDER = 'created_at DESC'
+const hasActivatedOnce = ref(false)
+
+const getRouteKeyword = () => {
+  const keyword = route.query.keyword
+  if (Array.isArray(keyword)) return keyword[0] || ''
+  return keyword ? String(keyword) : ''
+}
+
+const getRouteSearchParams = (): AgentLedgerSearchParams => {
+  const keyword = getRouteKeyword()
+  if (!keyword) return {}
+  return { keyword }
+}
+
+const initialSearchParams = getRouteSearchParams()
+
+const isSameSearchParamValue = (left: unknown, right: unknown) => {
+  if (!hasSearchValue(left) && !hasSearchValue(right)) return true
+  return String(left ?? '') === String(right ?? '')
+}
+
+const syncRouteSearchParams = async () => {
+  if (!searchTableRef.value) return
+
+  const params = getRouteSearchParams()
+  if (!Object.keys(params).length) return
+
+  const currentParams = searchTableRef.value.searchParams.value || {}
+  const changed = Object.entries(params).some(([key, value]) => {
+    return !isSameSearchParamValue(currentParams[key], value)
+  })
+
+  if (!changed) return
+
+  searchTableRef.value.setSearchParams(params)
+  await searchTableRef.value.reload()
+}
 
 const isQuickChargeBill = (row: AgentBillItem) =>
   [15, 21].includes(Number(row.kind)) || row.describe?.includes('速充')
@@ -284,6 +324,22 @@ const handleExport = async () => {
     handleErrorMessage(error, '导出失败')
   }
 }
+
+watch(
+  () => getRouteKeyword(),
+  async (keyword, previousKeyword) => {
+    if (keyword === previousKeyword) return
+    await syncRouteSearchParams()
+  }
+)
+
+onActivated(async () => {
+  if (!hasActivatedOnce.value) {
+    hasActivatedOnce.value = true
+    return
+  }
+  await syncRouteSearchParams()
+})
 </script>
 
 <style scoped></style>

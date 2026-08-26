@@ -771,7 +771,7 @@ const columns = computed<TableColumn[]>(() => [
   {
     field: 'action',
     label: '操作',
-    minWidth: 180,
+    minWidth: 280,
     fixed: 'right',
     formatter: (row: AgentItem) => renderActionButtons(row)
   }
@@ -794,6 +794,13 @@ const renderActionButtons = (row: AgentItem) => {
         onClick={() => handleRecharge(row)}
       >
         充值
+      </BaseButton>
+      <BaseButton
+        type="warning"
+        disabled={isBatchEditMode.value}
+        onClick={() => handleDeductionRecord(row)}
+      >
+        扣款记录
       </BaseButton>
     </div>
   )
@@ -868,6 +875,21 @@ const handleRecharge = (row: AgentItem) => {
 
   currentAccount.value = row
   rechargeDialogVisible.value = true
+}
+
+const handleDeductionRecord = (row: AgentItem) => {
+  if (guardBatchEditMutation('查看扣款记录')) return
+
+  const keyword = row.username?.trim()
+  if (!keyword) {
+    ElMessage.warning('该代理没有用户名，无法查询扣款记录')
+    return
+  }
+
+  router.push({
+    path: '/agent/ledger',
+    query: { keyword }
+  })
 }
 
 const handleRechargeSuccess = async ({ amount, coin }: { amount: number; coin: string }) => {
