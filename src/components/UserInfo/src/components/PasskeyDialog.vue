@@ -9,13 +9,15 @@ import {
   ElMessageBox,
   ElSkeleton
 } from 'element-plus'
+import dayjs from 'dayjs'
 import Dialog from '@/components/Dialog/src/Dialog.vue'
 import { v1GetAdminMe } from '@/api/common/login'
-import { getAdminSecurity } from '@/auth/admin/types'
+import { getAdminSecurity, type AdminPasskey } from '@/auth/admin/types'
 import {
+  createAdminPasskey,
   createPasskeyChallenge,
   deleteAdminPasskey,
-  saveAdminPasskey,
+  listAdminPasskeys,
   sendAdminEmailCode
 } from '@/auth/admin/api'
 import {
@@ -40,16 +42,33 @@ const authStore = useAdminAuthStore()
 const userStore = useUserStore()
 const email = ref('')
 const emailCode = ref('')
+const passkeyName = ref('')
 const loading = ref(false)
 const sending = ref(false)
 const seconds = ref(0)
 const needEmail = ref(false)
-const passkeyEnabled = ref(false)
+const passkeys = ref<AdminPasskey[]>([])
+const selectedId = ref<string>('')
 const statusReady = ref(false)
 const action = ref<PasskeyAction>('set')
 const supported = isPasskeySupported()
 let timer: number | undefined
 const emailCodePurpose = computed(() => (action.value === 'set' ? 'set_passkey' : 'delete_passkey'))
+const hasPasskeys = computed(() => passkeys.value.length > 0)
+const selectedPasskey = computed(
+  () => passkeys.value.find((item) => String(item.id) === selectedId.value) || passkeys.value[0]
+)
+
+const formatTime = (value?: string | number) => {
+  if (value == null || value === '') return '—'
+  const numeric = typeof value === 'number' ? value : Number(value)
+  if (Number.isFinite(numeric) && numeric > 0) {
+    const sec = numeric > 1e12 ? Math.floor(numeric / 1000) : Math.floor(numeric)
+    return dayjs.unix(sec).format('YYYY-MM-DD HH:mm')
+  }
+  const parsed = dayjs(String(value))
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD HH:mm') : '—'
+}
 
 const isNoAccountEmailError = (error: unknown) => {
   const text = String((error as { msg?: string; message?: string } | undefined)?.msg || '')
@@ -66,20 +85,20 @@ const getEmailCodeErrorMessage = (error: unknown) => {
 const actions = computed(() => [
   {
     value: 'set' as const,
-    title: '设置',
-    desc: passkeyEnabled.value ? '已设置，需先删除' : '为当前账号登记通行密钥',
-    disabled: passkeyEnabled.value
+    title: '添加',
+    desc: '为当前账号登记通行密钥',
+    disabled: false
   },
   {
     value: 'remove' as const,
     title: '删除',
-    desc: '关闭通行密钥登录',
-    disabled: !passkeyEnabled.value
+    desc: hasPasskeys.value ? '删除选中的通行密钥' : '当前没有可删除的通行密钥',
+    disabled: !hasPasskeys.value
   }
 ])
 
 const canSend = computed(() => seconds.value === 0 && !sending.value && !loading.value)
-const confirmText = computed(() => (action.value === 'set' ? '确认设置' : '确认删除'))
+const confirmText = computed(() => (action.value === 'set' ? '确认添加' : '确认删除'))
 
 const startCountdown = (duration: number) => {
   seconds.value = duration
@@ -106,6 +125,9 @@ const resetCodeState = () => {
 
 const resetForm = () => {
   email.value = ''
+  passkeyName.value = ''
+  selectedId.value = ''
+  passkeys.value = []
   action.value = 'set'
   loading.value = false
   needEmail.value = false
@@ -115,18 +137,31 @@ const resetForm = () => {
 
 const loadAccountStatus = async () => {
   statusReady.value = false
+  let passkeyCount = 0
   try {
     const res = await v1GetAdminMe()
     const boundEmail = String(res.data?.email || '').trim()
     email.value = boundEmail
     needEmail.value = !boundEmail
-    passkeyEnabled.value = getAdminSecurity(res.data).passkey_enabled
-    action.value = passkeyEnabled.value ? 'remove' : 'set'
+    passkeyCount = getAdminSecurity(res.data).passkey_count
   } catch {
     email.value = ''
     needEmail.value = false
-    passkeyEnabled.value = false
+  }
+
+  try {
+    const list = await listAdminPasskeys(authStore.getAccessToken)
+    passkeys.value = list
+    selectedId.value = list[0] ? String(list[0].id) : ''
+    action.value = list.length ? 'remove' : 'set'
+    if (!list.length && passkeyCount > 0) {
+      ElMessage.warning('未获取到通行密钥列表，请稍后重试')
+    }
+  } catch (error: unknown) {
+    passkeys.value = []
+    selectedId.value = ''
     action.value = 'set'
+    ElMessage.error((error as { msg?: string } | undefined)?.msg || '通行密钥列表加载失败')
   } finally {
     statusReady.value = true
   }
@@ -167,6 +202,7 @@ const sendCode = async () => {
 }
 
 const save = async () => {
+  const name = passkeyName.value.trim()
   const challenge = await createPasskeyChallenge(
     { device_id: getPasskeyDeviceId(), purpose: 'set' },
     authStore.getAccessToken
@@ -175,18 +211,24 @@ const save = async () => {
     challenge.options as Parameters<typeof createPasskeyCredential>[0]
   )
   rememberPasskeyCredentialId(credential.id)
-  await saveAdminPasskey(authStore.getAccessToken, {
+  await createAdminPasskey(authStore.getAccessToken, {
     ceremony_id: challenge.ceremony_id,
     credential,
+    name,
     verification_method: 'email_code',
     email_code: emailCode.value
   })
-  finish('通行密钥已设置，请重新登录')
+  finish('通行密钥已添加，请重新登录')
 }
 
 const remove = async () => {
+  const current = selectedPasskey.value
+  if (!current) {
+    ElMessage.warning('请选择要删除的通行密钥')
+    return
+  }
   await ElMessageBox.confirm(
-    '删除后将无法使用通行密钥登录，当前会话会立即退出。',
+    `删除「${current.name}」后，该密钥将无法用于登录，当前会话会立即退出。`,
     '确认删除通行密钥',
     {
       type: 'warning',
@@ -195,7 +237,7 @@ const remove = async () => {
       confirmButtonClass: 'el-button--danger'
     }
   )
-  await deleteAdminPasskey(authStore.getAccessToken, {
+  await deleteAdminPasskey(authStore.getAccessToken, current.id, {
     verification_method: 'email_code',
     email_code: emailCode.value
   })
@@ -206,11 +248,11 @@ const submit = async () => {
   if (action.value === 'set' && !supported) {
     return ElMessage.warning('当前环境不支持通行密钥')
   }
-  if (action.value === 'set' && passkeyEnabled.value) {
-    return ElMessage.warning('已设置通行密钥，请先删除后再重新设置')
+  if (action.value === 'set' && !passkeyName.value.trim()) {
+    return ElMessage.warning('请输入通行密钥名称')
   }
-  if (action.value === 'remove' && !passkeyEnabled.value) {
-    return ElMessage.warning('当前账号未设置通行密钥')
+  if (action.value === 'remove' && !selectedPasskey.value) {
+    return ElMessage.warning('请选择要删除的通行密钥')
   }
   if (needEmail.value) {
     return ElMessage.warning('当前账号未绑定邮箱，请先设置邮箱')
@@ -239,16 +281,37 @@ onBeforeUnmount(() => window.clearInterval(timer))
 </script>
 
 <template>
-  <Dialog v-model="visible" title="通行密钥" width="460px" :fullscreen="false" max-height="auto">
+  <Dialog v-model="visible" title="通行密钥" width="520px" :fullscreen="false" max-height="auto">
     <ElSkeleton v-if="!statusReady" animated :rows="4" />
     <div v-else class="passkey-dialog">
       <p class="passkey-lead">
-        设置和删除都需要邮箱验证码，不能混用。成功后全部会话会退出，需要重新登录。
+        添加和删除都需要邮箱验证码，不能混用。成功后全部会话会退出，需要重新登录。
       </p>
 
       <p v-if="!supported" class="passkey-warn"
         >当前浏览器或访问地址不支持通行密钥，请使用 HTTPS 正式域名操作。</p
       >
+
+      <div class="passkey-list">
+        <p class="passkey-list__title">已登记的通行密钥</p>
+        <p v-if="!hasPasskeys" class="passkey-list__empty">尚未登记通行密钥</p>
+        <button
+          v-for="item in passkeys"
+          :key="String(item.id)"
+          type="button"
+          class="passkey-item"
+          :class="{
+            'is-active': action === 'remove' && String(item.id) === String(selectedPasskey?.id)
+          }"
+          :disabled="loading"
+          @click="selectedId = String(item.id)"
+        >
+          <span class="passkey-item__name">{{ item.name }}</span>
+          <span class="passkey-item__meta">
+            创建 {{ formatTime(item.created_at) }} · 最近使用 {{ formatTime(item.last_used_at) }}
+          </span>
+        </button>
+      </div>
 
       <div class="passkey-actions" role="radiogroup" aria-label="通行密钥操作">
         <button
@@ -267,6 +330,14 @@ onBeforeUnmount(() => window.clearInterval(timer))
 
       <ElForm label-position="top" @submit.prevent="submit">
         <p v-if="needEmail" class="passkey-warn">当前账号未绑定邮箱，请先设置邮箱后再操作。</p>
+        <ElFormItem v-if="action === 'set'" label="名称" required>
+          <ElInput
+            v-model="passkeyName"
+            maxlength="32"
+            placeholder="例如：办公电脑"
+            @keyup.enter="submit"
+          />
+        </ElFormItem>
         <ElFormItem label="邮箱验证码" required>
           <div class="passkey-code">
             <ElInput
@@ -289,10 +360,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
       <ElButton
         :type="action === 'remove' ? 'danger' : 'primary'"
         :loading="loading"
-        :disabled="
-          (action === 'set' && (!supported || passkeyEnabled)) ||
-          (action === 'remove' && !passkeyEnabled)
-        "
+        :disabled="(action === 'set' && !supported) || (action === 'remove' && !hasPasskeys)"
         @click="submit"
       >
         {{ confirmText }}
@@ -324,6 +392,72 @@ onBeforeUnmount(() => window.clearInterval(timer))
   color: var(--el-color-warning-dark-2);
   background: var(--el-color-warning-light-9);
   border-radius: 6px;
+}
+
+.passkey-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.passkey-list__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.passkey-list__empty {
+  padding: 10px 12px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-radius: 8px;
+}
+
+.passkey-item {
+  display: flex;
+  padding: 8px 12px;
+  color: var(--el-text-color-primary);
+  text-align: left;
+  cursor: pointer;
+  background: var(--el-fill-color-blank);
+  border: 1px solid var(--el-border-color);
+  border-radius: 8px;
+  transition:
+    border-color 0.2s,
+    background-color 0.2s,
+    box-shadow 0.2s;
+  flex-direction: column;
+  gap: 4px;
+
+  &:hover:not(:disabled) {
+    border-color: var(--el-color-primary-light-5);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
+
+  &.is-active {
+    background: var(--el-color-danger-light-9);
+    border-color: var(--el-color-danger);
+    box-shadow: 0 0 0 1px var(--el-color-danger-light-7);
+  }
+}
+
+.passkey-item__name {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.passkey-item__meta {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-text-color-secondary);
 }
 
 .passkey-actions {
