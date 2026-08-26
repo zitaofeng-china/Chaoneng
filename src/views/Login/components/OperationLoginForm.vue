@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref } from 'vue'
 import {
   ElButton,
   ElForm,
@@ -11,8 +11,12 @@ import {
   ElTabs
 } from 'element-plus'
 import { useRouter } from 'vue-router'
-import type { RouteRecordRaw } from 'vue-router'
-import { createPasskeyChallenge, loginWithPasskey, loginWithPassword } from '@/auth/admin/api'
+import {
+  createPasskeyChallenge,
+  loginWithPasskey,
+  loginWithPassword,
+  sendAdminEmailCode
+} from '@/auth/admin/api'
 import {
   getPasskeyAssertion,
   getPasskeyDeviceId,
@@ -22,33 +26,70 @@ import {
 } from '@/auth/admin/passkey'
 import { useAdminAuthStore } from '@/store/modules/adminAuth'
 import { useUserStore } from '@/store/modules/user'
-import { useAppStore } from '@/store/modules/app'
-import { usePermissionStore } from '@/store/modules/permission'
 import { v1GetAdminMe } from '@/api/common/login'
 import { buildUserTypeFromAdminMe } from '@/auth/admin/me'
-import { getFirstAccessibleRoutePath } from '@/utils/routerHelper'
+import { enterOperationWorkspace } from '@/auth/admin/workspace'
 import { isOperationSystem } from '@/utils/system'
+import { ADMIN_TOTP_ENABLED, getAdminSecurity, hasAdminPasskey } from '@/auth/admin/types'
+import { BIND_PASSKEY_PATH } from '@/constants'
 
 const emit = defineEmits(['to-register'])
-const { currentRoute, addRoute, push, replace } = useRouter()
+const router = useRouter()
+const { currentRoute, push, replace } = router
 const adminAuthStore = useAdminAuthStore()
 const userStore = useUserStore()
-const appStore = useAppStore()
-const permissionStore = usePermissionStore()
 const isOperation = isOperationSystem()
 
 const mode = ref<'passkey' | 'password'>(isOperation ? 'passkey' : 'password')
 const loading = ref(false)
+const sending = ref(false)
+const seconds = ref(0)
 const passkeyAvailable = isPasskeySupported()
-const passwordForm = reactive({ account: '', password: '', totp_code: '' })
+const passwordForm = reactive({ account: '', password: '', email_code: '', totp_code: '' })
 const passwordFormRef = ref<InstanceType<typeof ElForm>>()
+let timer: number | undefined
 
-const passwordRules = {
+const canSend = computed(() => seconds.value === 0 && !sending.value && !loading.value)
+
+const passwordRules = computed(() => ({
   account: [{ required: true, message: '请输入账号或邮箱', trigger: 'blur' }],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
     { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
-  ]
+  ],
+  ...(isOperation
+    ? {
+        email_code: [
+          { required: true, pattern: /^\d{6}$/, message: '请输入6位邮箱验证码', trigger: 'blur' }
+        ]
+      }
+    : {})
+}))
+
+const startCountdown = (duration: number) => {
+  seconds.value = duration
+  window.clearInterval(timer)
+  timer = window.setInterval(() => {
+    seconds.value = Math.max(0, seconds.value - 1)
+    if (!seconds.value) window.clearInterval(timer)
+  }, 1000)
+}
+
+const sendLoginCode = async () => {
+  if (!canSend.value) return
+  const account = passwordForm.account.trim()
+  if (!account) return ElMessage.warning('请先输入账号或邮箱')
+
+  sending.value = true
+  try {
+    const result = await sendAdminEmailCode({ account, purpose: 'login' })
+    startCountdown(result.resend_after)
+    ElMessage.success('验证码已发送到该账号绑定的邮箱')
+  } catch (error: any) {
+    ElMessage.error(error?.msg || '验证码发送失败，请稍后重试')
+  } finally {
+    sending.value = false
+  }
 }
 
 const redirect = computed(() => currentRoute.value.query.redirect as string | undefined)
@@ -56,26 +97,30 @@ const redirect = computed(() => currentRoute.value.query.redirect as string | un
 const completeLogin = async (fallbackName: string) => {
   if (!isOperation) {
     userStore.setUserInfo({ username: fallbackName })
-  } else {
-    try {
-      const userInfo = await v1GetAdminMe()
-      if (userInfo?.data) {
-        userStore.setUserInfo(await buildUserTypeFromAdminMe(userInfo.data, fallbackName))
-      } else {
-        userStore.setUserInfo({ username: fallbackName })
-      }
-    } catch {
-      userStore.setUserInfo({ username: fallbackName })
-    }
+    await enterOperationWorkspace(router, redirect.value)
+    return true
   }
 
-  appStore.$patch({ dynamicRouter: false, serverDynamicRouter: false })
-  await permissionStore.generateRoutes('static')
-  permissionStore.getAddRouters.forEach((route) => addRoute(route as RouteRecordRaw))
-  permissionStore.setIsAddRouters(true)
-  await replace({
-    path: redirect.value || getFirstAccessibleRoutePath(permissionStore.getAddRouters) || '/home'
-  })
+  try {
+    const userInfo = await v1GetAdminMe()
+    if (!userInfo?.data) {
+      ElMessage.error('获取账号信息失败')
+      return false
+    }
+    userStore.setUserInfo(await buildUserTypeFromAdminMe(userInfo.data, fallbackName))
+    if (!hasAdminPasskey(getAdminSecurity(userInfo.data).passkey_count)) {
+      await replace({
+        path: BIND_PASSKEY_PATH,
+        query: redirect.value ? { redirect: redirect.value } : {}
+      })
+      return false
+    }
+  } catch {
+    return false
+  }
+
+  await enterOperationWorkspace(router, redirect.value)
+  return true
 }
 
 const signInWithPasskey = async () => {
@@ -96,8 +141,9 @@ const signInWithPasskey = async () => {
       device_id
     })
     adminAuthStore.applySession(session)
-    await completeLogin('管理员')
-    ElMessage.success('登录成功')
+    if (await completeLogin('管理员')) {
+      ElMessage.success('登录成功')
+    }
   } catch (error: any) {
     const message = getPasskeyErrorMessage(error, '通行密钥验证失败，请重试或使用密码登录')
     ElMessage[error?.name === 'NotAllowedError' ? 'info' : 'error'](message)
@@ -113,20 +159,25 @@ const signInWithPassword = async () => {
   loading.value = true
   try {
     const totpCode = passwordForm.totp_code.trim()
+    const emailCode = passwordForm.email_code.trim()
     const session = await loginWithPassword({
       account: passwordForm.account,
       password: passwordForm.password,
-      ...(totpCode ? { totp_code: totpCode } : {})
+      ...(isOperation ? { email_code: emailCode } : {}),
+      ...(ADMIN_TOTP_ENABLED && totpCode ? { totp_code: totpCode } : {})
     })
     adminAuthStore.applySession(session)
-    await completeLogin(passwordForm.account)
-    ElMessage.success('登录成功')
+    if (await completeLogin(passwordForm.account)) {
+      ElMessage.success('登录成功')
+    }
   } catch (error: any) {
-    ElMessage.error(error?.msg || '登录失败，请检查账号、密码或动态验证码')
+    ElMessage.error(error?.msg || '登录失败，请检查账号、密码或验证码')
   } finally {
     loading.value = false
   }
 }
+
+onBeforeUnmount(() => window.clearInterval(timer))
 </script>
 
 <template>
@@ -148,7 +199,7 @@ const signInWithPassword = async () => {
           :model="passwordForm"
           :rules="passwordRules"
           label-position="top"
-          @submit.prevent
+          @submit.prevent="signInWithPassword"
         >
           <ElFormItem label="账号" prop="account">
             <ElInput
@@ -166,7 +217,21 @@ const signInWithPassword = async () => {
               autocomplete="current-password"
             />
           </ElFormItem>
-          <ElFormItem label="动态验证码" prop="totp_code">
+          <ElFormItem v-if="isOperation" label="邮箱验证码" prop="email_code">
+            <div class="flex w-[100%] gap-8px">
+              <ElInput
+                v-model="passwordForm.email_code"
+                maxlength="6"
+                inputmode="numeric"
+                placeholder="请输入6位验证码"
+                @keyup.enter="signInWithPassword"
+              />
+              <ElButton :disabled="!canSend" :loading="sending" @click="sendLoginCode">
+                {{ seconds ? `${seconds}秒后重发` : '发送验证码' }}
+              </ElButton>
+            </div>
+          </ElFormItem>
+          <ElFormItem v-if="ADMIN_TOTP_ENABLED" label="动态验证码" prop="totp_code">
             <ElInput
               v-model="passwordForm.totp_code"
               maxlength="6"
