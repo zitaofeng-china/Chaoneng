@@ -2,6 +2,7 @@ import axios from 'axios'
 import type {
   AdminEmailCodePurpose,
   AdminEmailCodeResult,
+  AdminPasskey,
   AdminResetTarget,
   AdminSession,
   PasskeyChallengePurpose,
@@ -36,11 +37,12 @@ const unwrap = async <T>(request: Promise<{ data: ApiResult<T> }>) => {
 export const loginWithPassword = (data: {
   account: string
   password: string
+  email_code?: string
   totp_code?: string
 }) => unwrap<AdminSession>(client.post('/v1/admin/auth/login', { method: 'password', ...data }))
 
 export const sendAdminEmailCode = (
-  data: { email?: string; purpose: AdminEmailCodePurpose },
+  data: { account?: string; purpose: AdminEmailCodePurpose },
   accessToken?: string
 ) =>
   unwrap<AdminEmailCodeResult>(
@@ -57,7 +59,7 @@ export const registerAdmin = (data: {
 }) => unwrap<string>(client.post('/v1/admin/auth/register', data))
 
 export const resetAdminSecurity = (data: {
-  email: string
+  account: string
   email_code: string
   target: AdminResetTarget
   new_password?: string
@@ -65,7 +67,7 @@ export const resetAdminSecurity = (data: {
 
 /** @deprecated 使用 resetAdminSecurity */
 export const resetAdminPassword = (data: {
-  email: string
+  account: string
   email_code: string
   new_password: string
 }) => resetAdminSecurity({ ...data, target: 'password' })
@@ -89,18 +91,67 @@ export const createPasskeyChallenge = (
     })
   )
 
-export const saveAdminPasskey = (
+const normalizeAdminPasskeyList = (data: unknown): AdminPasskey[] => {
+  const rows = Array.isArray(data)
+    ? data
+    : data && typeof data === 'object'
+      ? ((data as { items?: unknown; list?: unknown; passkeys?: unknown; records?: unknown })
+          .list ??
+        (data as { items?: unknown }).items ??
+        (data as { passkeys?: unknown }).passkeys ??
+        (data as { records?: unknown }).records ??
+        [])
+      : []
+  if (!Array.isArray(rows)) return []
+  return rows.map((item, index) => {
+    const row = (item || {}) as Record<string, unknown>
+    return {
+      id: (row.id ?? row.passkey_id ?? row.credential_id ?? index) as number | string,
+      name: String(row.name || '未命名通行密钥'),
+      created_at: row.created_at as string | number | undefined,
+      last_used_at: (row.last_used_at ?? row.last_used) as string | number | undefined,
+      device_id: row.device_id as string | undefined
+    }
+  })
+}
+
+export const listAdminPasskeys = (accessToken: string) =>
+  unwrap<unknown>(
+    client.get('/v1/admin/security/passkey', {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    })
+  ).then(normalizeAdminPasskeyList)
+
+export const createAdminPasskey = (
   accessToken: string,
   data: {
     ceremony_id: string
     credential: PasskeyCredentialPayload
+    name: string
     verification_method: SecurityVerificationMethod
     email_code?: string
     current_password?: string
   }
 ) =>
   unwrap<string>(
-    client.put('/v1/admin/security/passkey', data, {
+    client.post('/v1/admin/security/passkey', data, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    })
+  )
+
+/** @deprecated 使用 createAdminPasskey */
+export const saveAdminPasskey = createAdminPasskey
+
+export const elevateAdminSession = (
+  accessToken: string,
+  data: {
+    ceremony_id: string
+    credential: PasskeyCredentialPayload
+    device_id?: string
+  }
+) =>
+  unwrap<string>(
+    client.put('/v1/admin/security/elevate', data, {
       headers: { Authorization: `Bearer ${accessToken}` }
     })
   )
@@ -136,6 +187,7 @@ export const deleteAdminTotp = (
 
 export const deleteAdminPasskey = (
   accessToken: string,
+  id: number | string,
   data: {
     verification_method: SecurityVerificationMethod
     email_code?: string
@@ -143,7 +195,7 @@ export const deleteAdminPasskey = (
   }
 ) =>
   unwrap<string>(
-    client.delete('/v1/admin/security/passkey', {
+    client.delete(`/v1/admin/security/passkey/${encodeURIComponent(String(id))}`, {
       data,
       headers: { Authorization: `Bearer ${accessToken}` }
     })
@@ -171,3 +223,6 @@ export const changeAdminPassword = (
   )
 
 export const isAdminAuthPath = (url?: string) => Boolean(url?.includes('/v1/admin/auth/'))
+
+export const isAdminElevatePath = (url?: string) =>
+  Boolean(url?.includes('/v1/admin/security/elevate'))
