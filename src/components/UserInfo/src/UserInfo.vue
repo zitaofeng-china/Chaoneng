@@ -12,6 +12,7 @@ import ChangePasswordDialog from './components/ChangepasswordDialog.vue'
 import PasskeyDialog from './components/PasskeyDialog.vue'
 import TotpDialog from './components/TotpDialog.vue'
 import { isOperationSystem } from '@/utils/system'
+import { ADMIN_TOTP_ENABLED } from '@/auth/admin/types'
 
 const { push } = useRouter()
 
@@ -94,7 +95,7 @@ const openTotp = () => {
         <ElDropdownItem v-if="isOperationSystem()"
           ><div @click="openPasskey">通行密钥</div></ElDropdownItem
         >
-        <ElDropdownItem v-if="isOperationSystem()"
+        <ElDropdownItem v-if="isOperationSystem() && ADMIN_TOTP_ENABLED"
           ><div @click="openTotp">动态验证码</div></ElDropdownItem
         >
         <ElDropdownItem>
@@ -107,7 +108,7 @@ const openTotp = () => {
   <LockDialog v-if="dialogVisible" v-model="dialogVisible" />
   <ChangePasswordDialog v-model="changePasswordDialogVisible" />
   <PasskeyDialog v-if="isOperationSystem()" v-model="passkeyDialogVisible" />
-  <TotpDialog v-if="isOperationSystem()" v-model="totpDialogVisible" />
+  <TotpDialog v-if="isOperationSystem() && ADMIN_TOTP_ENABLED" v-model="totpDialogVisible" />
   <teleport to="body">
     <transition name="fade-bottom" mode="out-in">
       <LockPage v-if="getIsLock" />
