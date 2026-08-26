@@ -16,6 +16,17 @@
             导出
           </BaseButton>
         </template>
+        <template #beforeTable>
+          <div class="ledger-stats-row">
+            <div class="stat-box">
+              <div class="stat-label">累计金额变化</div>
+              <div class="stat-value-row">
+                <span class="stat-in">{{ formatFundAmount(ledgerStats.inAmount, false) }}</span>
+                <span class="stat-out">{{ formatFundAmount(ledgerStats.outAmount, true) }}</span>
+              </div>
+            </div>
+          </div>
+        </template>
       </SearchTable>
     </ContentWrap>
   </div>
@@ -31,7 +42,11 @@ import type { SearchTableExpose } from '@/components/SearchTable'
 import type { FormSchema } from '@/components/Form'
 import type { TableColumn } from '@/components/Table'
 import { v1GetAgentBillList } from '@/api/opertion/Agent/Ledger'
-import type { AgentBillItem, AgentBillListParams } from '@/api/opertion/Agent/Ledger'
+import type {
+  AgentBillItem,
+  AgentBillListParams,
+  AgentBillListResponse
+} from '@/api/opertion/Agent/Ledger'
 import { ContentWrap } from '@/components/ContentWrap'
 import { useRoute, useRouter } from 'vue-router'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
@@ -45,13 +60,26 @@ import {
   type DateRangeValue,
   type TableSlot
 } from '@/utils/tableHelpers'
-import { AGENT_BILL_ORDER_TYPE_MAP, AGENT_BILL_ORDER_TYPE_OPTIONS } from '../constants'
+import {
+  AGENT_BILL_FLOW_IN,
+  AGENT_BILL_FLOW_MAP,
+  AGENT_BILL_FLOW_OPTIONS,
+  AGENT_BILL_FLOW_OUT,
+  AGENT_BILL_ORDER_TYPE_MAP,
+  AGENT_BILL_ORDER_TYPE_OPTIONS
+} from '../constants'
 
 type AgentLedgerSearchParams = Omit<AgentBillListParams, 'kinds'> & {
   kind?: number | string
   dateRange?: DateRangeValue
 }
 type AgentLedgerTableSlot = TableSlot<AgentBillItem>
+type AgentLedgerFundDirection = 'in' | 'out'
+
+interface AgentLedgerStats {
+  inAmount: number
+  outAmount: number
+}
 
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const route = useRoute()
@@ -59,6 +87,27 @@ const router = useRouter()
 const currentSearchParams = ref<AgentLedgerSearchParams>({})
 const AGENT_LEDGER_EXPORT_ORDER = 'created_at DESC'
 const hasActivatedOnce = ref(false)
+const emptyLedgerStats = (): AgentLedgerStats => ({ inAmount: 0, outAmount: 0 })
+const ledgerStats = ref<AgentLedgerStats>(emptyLedgerStats())
+
+const FUND_IN_STAT_KEYS = [
+  'sum_flow_in_trx',
+  'sum_in_trx',
+  'total_in_trx',
+  'sum_in',
+  'total_in',
+  'in_trx',
+  'in'
+]
+const FUND_OUT_STAT_KEYS = [
+  'sum_flow_out_trx',
+  'sum_out_trx',
+  'total_out_trx',
+  'sum_out',
+  'total_out',
+  'out_trx',
+  'out'
+]
 
 const getRouteKeyword = () => {
   const keyword = route.query.keyword
@@ -99,6 +148,96 @@ const syncRouteSearchParams = async () => {
 const isQuickChargeBill = (row: AgentBillItem) =>
   [15, 21].includes(Number(row.kind)) || row.describe?.includes('速充')
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const parseAmountValue = (value: unknown) => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0
+  const matched = String(value ?? '')
+    .replace(/,/g, '')
+    .match(/-?\d+(?:\.\d+)?/)
+  const amount = matched ? Number(matched[0]) : 0
+  return Number.isFinite(amount) ? amount : 0
+}
+
+const getFundDirection = (row: AgentBillItem): AgentLedgerFundDirection => {
+  const flow = Number(row.flow)
+  if (flow === AGENT_BILL_FLOW_IN) return 'in'
+  if (flow === AGENT_BILL_FLOW_OUT) return 'out'
+  return parseAmountValue(row.amount) < 0 ? 'out' : 'in'
+}
+
+const getFundDirectionLabel = (row: AgentBillItem) =>
+  AGENT_BILL_FLOW_MAP[getFundDirection(row) === 'out' ? AGENT_BILL_FLOW_OUT : AGENT_BILL_FLOW_IN]
+
+const formatFundAmount = (value: number, isOut: boolean) => {
+  const abs = Math.abs(Number(value) || 0)
+  const text = abs.toLocaleString('zh-CN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 8
+  })
+  return `${isOut ? '-' : '+'}${text}`
+}
+
+const normalizeStatRecords = (value: unknown): Record<string, unknown>[] => {
+  if (Array.isArray(value)) return value.filter(isRecord)
+  return isRecord(value) ? [value] : []
+}
+
+const pickStatAmount = (sources: unknown[], keys: string[]) => {
+  for (const source of sources) {
+    for (const record of normalizeStatRecords(source)) {
+      for (const key of keys) {
+        if (!hasSearchValue(record[key])) continue
+        return Math.abs(parseAmountValue(record[key]))
+      }
+    }
+  }
+  return undefined
+}
+
+const pickStatAmountByFlow = (stats: unknown, flow: number) => {
+  for (const record of normalizeStatRecords(stats)) {
+    if (Number(record.flow) !== flow) continue
+    const coin = String(record.coin || 'TRX').toUpperCase()
+    if (coin && coin !== 'TRX') continue
+    const amount = record.sum ?? record.amount ?? record.total ?? record.sum_amount
+    if (!hasSearchValue(amount)) continue
+    return Math.abs(parseAmountValue(amount))
+  }
+  return undefined
+}
+
+const aggregateListFundAmount = (list: AgentBillItem[]): AgentLedgerStats =>
+  list.reduce((summary, item) => {
+    const amount = Math.abs(parseAmountValue(item.amount))
+    if (getFundDirection(item) === 'out') summary.outAmount += amount
+    else summary.inAmount += amount
+    return summary
+  }, emptyLedgerStats())
+
+const applyLedgerStats = (data: AgentBillListResponse | undefined, list: AgentBillItem[]) => {
+  if (!data) {
+    ledgerStats.value = emptyLedgerStats()
+    return
+  }
+
+  const dataRecord = data as unknown as Record<string, unknown>
+  const sources = [data.stats, data.summary, dataRecord]
+  const aggregate = aggregateListFundAmount(list)
+
+  ledgerStats.value = {
+    inAmount:
+      pickStatAmount(sources, FUND_IN_STAT_KEYS) ??
+      pickStatAmountByFlow(data.stats, AGENT_BILL_FLOW_IN) ??
+      aggregate.inAmount,
+    outAmount:
+      pickStatAmount(sources, FUND_OUT_STAT_KEYS) ??
+      pickStatAmountByFlow(data.stats, AGENT_BILL_FLOW_OUT) ??
+      aggregate.outAmount
+  }
+}
+
 const buildAgentBillParams = (
   params: AgentLedgerSearchParams = {},
   pageSize?: number
@@ -109,6 +248,7 @@ const buildAgentBillParams = (
 
   if (params.keyword) apiParams.keyword = params.keyword
   if (hasSearchValue(params.kind)) apiParams.kinds = [Number(params.kind)]
+  if (hasSearchValue(params.flow)) apiParams.flow = Number(params.flow)
   apiParams.order = params.order || AGENT_LEDGER_EXPORT_ORDER
 
   Object.assign(apiParams, dateRangeToSeconds(params.dateRange))
@@ -133,8 +273,11 @@ const fetchAgentLedgerList = async (params: AgentLedgerSearchParams = {}) => {
     const list = response.data?.list || []
 
     currentSearchParams.value = params
+    applyLedgerStats(response.data, list)
 
-    const hasSearchCondition = [params.keyword, params.kind, params.dateRange].some(hasSearchValue)
+    const hasSearchCondition = [params.keyword, params.kind, params.flow, params.dateRange].some(
+      hasSearchValue
+    )
     handleListMessage(list, hasSearchCondition, '代理账单')
 
     return {
@@ -142,6 +285,7 @@ const fetchAgentLedgerList = async (params: AgentLedgerSearchParams = {}) => {
       total: response.data?.pager?.total || 0
     }
   } catch (error) {
+    ledgerStats.value = emptyLedgerStats()
     handleErrorMessage(error, '获取代理账单列表失败')
     return { list: [], total: 0 }
   }
@@ -168,6 +312,16 @@ const searchSchema = ref<FormSchema[]>([
       placeholder: '请选择交易类型',
       clearable: true,
       options: AGENT_BILL_ORDER_TYPE_OPTIONS
+    }
+  },
+  {
+    field: 'flow',
+    component: 'Select',
+    label: '资金方向',
+    componentProps: {
+      placeholder: '请选择资金方向',
+      clearable: true,
+      options: AGENT_BILL_FLOW_OPTIONS
     }
   },
   {
@@ -266,6 +420,15 @@ const columns = ref<TableColumn[]>([
     }
   },
   {
+    field: 'flow',
+    label: '资金方向',
+    width: 100,
+    formatter: (row: AgentBillItem) => {
+      const isOut = getFundDirection(row) === 'out'
+      return <span style={{ color: isOut ? 'red' : 'green' }}>{getFundDirectionLabel(row)}</span>
+    }
+  },
+  {
     field: 'amount',
     label: '金额变动',
     width: 100,
@@ -313,6 +476,7 @@ const handleExport = async () => {
         代理名称: item.agent_name || '-',
         机器人名称: item.bot_name || '-',
         交易类型: AGENT_BILL_ORDER_TYPE_MAP[item.kind] || item.describe || '-',
+        资金方向: getFundDirectionLabel(item),
         金额变动: formatAmountChange(item),
         交易后TRX余额: item.balance || '-',
         扣款状态: '已完成',
@@ -342,4 +506,42 @@ onActivated(async () => {
 })
 </script>
 
-<style scoped></style>
+<style scoped>
+.ledger-stats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.stat-box {
+  min-width: 220px;
+  padding: 12px 16px;
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+}
+
+.stat-label {
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #909399;
+}
+
+.stat-value-row {
+  display: flex;
+  gap: 16px;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-in {
+  color: #67c23a;
+}
+
+.stat-out {
+  color: #f56c6c;
+}
+</style>

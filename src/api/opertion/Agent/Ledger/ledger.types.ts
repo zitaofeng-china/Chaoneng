@@ -18,6 +18,7 @@ export interface AgentBillListParams {
   coin?: string // 币种：TRX, USDT
   current_page?: number // 当前页码
   end_time?: string // 结束时间
+  flow?: 1 | 2 | number // 资金方向：1-入款，2-出款
   keyword?: string // 关键字
   kinds?: number[] // 类型数组：12-奖励, 15-速充能量, 20-托管, 21-托管速充等
   order_id?: string // 订单ID
@@ -39,6 +40,7 @@ export interface AgentBillItem {
   amount: string // 金额
   balance: string // 余额
   coin: string // 币种（如 "TRX"）
+  flow?: number // 资金方向：1-入款，2-出款
   profit: string // 利润
   describe: string // 描述
   agent_name: string // 代理名称
@@ -47,9 +49,21 @@ export interface AgentBillItem {
 }
 
 /**
+ * 代理账单累计金额统计
+ */
+export interface AgentBillStats {
+  sum_flow_in_trx?: number | string
+  sum_flow_out_trx?: number | string
+  sum_flow_in_usdt?: number | string
+  sum_flow_out_usdt?: number | string
+}
+
+/**
  * 代理账单列表响应
  */
 export interface AgentBillListResponse {
   list: AgentBillItem[] // 账单列表
   pager: Pager // 分页信息
+  stats?: AgentBillStats | AgentBillStats[]
+  summary?: AgentBillStats
 }

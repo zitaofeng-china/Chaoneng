@@ -63,6 +63,19 @@ export const AGENT_BILL_ORDER_TYPE_OPTIONS = Object.entries(AGENT_BILL_ORDER_TYP
   })
 )
 
+export const AGENT_BILL_FLOW_IN = 1
+export const AGENT_BILL_FLOW_OUT = 2
+
+export const AGENT_BILL_FLOW_MAP: Record<number, string> = {
+  [AGENT_BILL_FLOW_IN]: '入款',
+  [AGENT_BILL_FLOW_OUT]: '出款'
+}
+
+export const AGENT_BILL_FLOW_OPTIONS = [
+  { label: '入款', value: AGENT_BILL_FLOW_IN },
+  { label: '出款', value: AGENT_BILL_FLOW_OUT }
+]
+
 export const USER_BILL_ORDER_TYPE_MAP: Record<number, string> = {
   1: '代理充值',
   2: '用户充值',
