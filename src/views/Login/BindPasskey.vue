@@ -4,13 +4,15 @@ import { ElButton, ElForm, ElFormItem, ElInput, ElLink, ElMessage } from 'elemen
 import { useRoute, useRouter } from 'vue-router'
 import { v1GetAdminMe } from '@/api/common/login'
 import { createAdminPasskey, createPasskeyChallenge, sendAdminEmailCode } from '@/auth/admin/api'
+import { consumeBindEmailCodeDraft, EMAIL_CODE_RESEND_SECONDS } from '@/auth/admin/emailCode'
 import { buildUserTypeFromAdminMe } from '@/auth/admin/me'
 import {
   createPasskeyCredential,
   getPasskeyDeviceId,
   getPasskeyErrorMessage,
   isPasskeySupported,
-  rememberPasskeyCredentialId
+  rememberPasskeyCredentialId,
+  suggestPasskeyDisplayName
 } from '@/auth/admin/passkey'
 import { getAdminSecurity, hasAdminPasskey } from '@/auth/admin/types'
 import { enterOperationWorkspace } from '@/auth/admin/workspace'
@@ -76,40 +78,14 @@ const sendCode = async () => {
 
   sending.value = true
   try {
-    const result = await sendAdminEmailCode({ purpose: 'set_passkey' }, authStore.getAccessToken)
-    startCountdown(result.resend_after)
+    await sendAdminEmailCode({ purpose: 'set_passkey' }, authStore.getAccessToken)
+    startCountdown(EMAIL_CODE_RESEND_SECONDS)
     ElMessage.success('验证码已发送到当前账号邮箱')
   } catch (error: unknown) {
     if (isNoAccountEmailError(error)) needEmail.value = true
     ElMessage.error((error as { msg?: string } | undefined)?.msg || '验证码发送失败，请稍后重试')
   } finally {
     sending.value = false
-  }
-}
-
-const enterAfterBind = async () => {
-  try {
-    const res = await v1GetAdminMe()
-    if (res?.data) {
-      const nextUser = await buildUserTypeFromAdminMe(res.data, userStore.getUserInfo?.username)
-      if (!hasAdminPasskey(nextUser.passkey_count)) {
-        nextUser.passkey_count = 1
-      }
-      userStore.setUserInfo(nextUser)
-    } else {
-      userStore.setUserInfo({
-        username: userStore.getUserInfo?.username || '',
-        permissions: userStore.getUserInfo?.permissions,
-        role_ID: userStore.getUserInfo?.role_ID,
-        role_name: userStore.getUserInfo?.role_name,
-        passkey_count: 1
-      })
-    }
-    await enterOperationWorkspace(router, redirect.value)
-    ElMessage.success('通行密钥已绑定')
-  } catch {
-    ElMessage.success('通行密钥已绑定，请使用通行密钥登录')
-    userStore.reset()
   }
 }
 
@@ -138,14 +114,16 @@ const submit = async () => {
       challenge.options as Parameters<typeof createPasskeyCredential>[0]
     )
     rememberPasskeyCredentialId(credential.id)
-    await createAdminPasskey(authStore.getAccessToken, {
+    const result = await createAdminPasskey(authStore.getAccessToken, {
       ceremony_id: challenge.ceremony_id,
       credential,
       name,
       verification_method: 'email_code',
       email_code: form.email_code
     })
-    await enterAfterBind()
+    authStore.clearSession(false)
+    ElMessage.success(result.msg || '通行密钥设置成功，请重新登录')
+    userStore.reset()
   } catch (error: any) {
     const message = getPasskeyErrorMessage(error, '通行密钥绑定失败')
     ElMessage[error?.name === 'NotAllowedError' ? 'info' : 'error'](message)
@@ -166,6 +144,14 @@ const backToLogin = async () => {
 }
 
 onMounted(() => {
+  const draft = consumeBindEmailCodeDraft()
+  if (draft) {
+    form.email_code = draft.email_code
+    startCountdown(draft.remaining)
+  }
+  void suggestPasskeyDisplayName().then((name) => {
+    if (!form.name.trim()) form.name = name.slice(0, 32)
+  })
   loadAccount()
 })
 
@@ -176,7 +162,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
   <div class="bind-passkey-page">
     <section class="bind-passkey-card">
       <h2 class="bind-passkey-title">绑定通行密钥</h2>
-      <p class="bind-passkey-desc">当前账号尚未绑定通行密钥，绑定成功后即可进入系统。</p>
+      <p class="bind-passkey-desc">当前账号尚未绑定通行密钥，绑定成功后请使用通行密钥重新登录。</p>
       <p v-if="!supported" class="bind-passkey-warn">
         当前浏览器或访问地址不支持通行密钥，请使用 HTTPS 正式域名操作。
       </p>
@@ -213,7 +199,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
           :disabled="!supported"
           @click="submit"
         >
-          绑定并进入系统
+          绑定通行密钥
         </ElButton>
       </ElForm>
       <div class="bind-passkey-footer">

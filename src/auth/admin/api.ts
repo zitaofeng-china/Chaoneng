@@ -34,6 +34,14 @@ const unwrap = async <T>(request: Promise<{ data: ApiResult<T> }>) => {
   return data.data
 }
 
+const unwrapWithMsg = async <T>(request: Promise<{ data: ApiResult<T> }>) => {
+  const { data } = await request
+  if (data.code !== '000000') {
+    return Promise.reject(data)
+  }
+  return { data: data.data, msg: data.msg }
+}
+
 export const loginWithPassword = (data: {
   account: string
   password: string
@@ -133,7 +141,7 @@ export const createAdminPasskey = (
     current_password?: string
   }
 ) =>
-  unwrap<string>(
+  unwrapWithMsg<string>(
     client.post('/v1/admin/security/passkey', data, {
       headers: { Authorization: `Bearer ${accessToken}` }
     })

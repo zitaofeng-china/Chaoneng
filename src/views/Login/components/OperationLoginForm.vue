@@ -31,6 +31,7 @@ import { buildUserTypeFromAdminMe } from '@/auth/admin/me'
 import { enterOperationWorkspace } from '@/auth/admin/workspace'
 import { isOperationSystem } from '@/utils/system'
 import { ADMIN_TOTP_ENABLED, getAdminSecurity, hasAdminPasskey } from '@/auth/admin/types'
+import { EMAIL_CODE_RESEND_SECONDS, stashBindEmailCodeDraft } from '@/auth/admin/emailCode'
 import { BIND_PASSKEY_PATH } from '@/constants'
 
 const emit = defineEmits(['to-register'])
@@ -82,8 +83,8 @@ const sendLoginCode = async () => {
 
   sending.value = true
   try {
-    const result = await sendAdminEmailCode({ account, purpose: 'login' })
-    startCountdown(result.resend_after)
+    await sendAdminEmailCode({ account, purpose: 'login' })
+    startCountdown(EMAIL_CODE_RESEND_SECONDS)
     ElMessage.success('验证码已发送到该账号绑定的邮箱')
   } catch (error: any) {
     ElMessage.error(error?.msg || '验证码发送失败，请稍后重试')
@@ -109,6 +110,7 @@ const completeLogin = async (fallbackName: string) => {
     }
     userStore.setUserInfo(await buildUserTypeFromAdminMe(userInfo.data, fallbackName))
     if (!hasAdminPasskey(getAdminSecurity(userInfo.data).passkey_count)) {
+      stashBindEmailCodeDraft(passwordForm.email_code, seconds.value)
       await replace({
         path: BIND_PASSKEY_PATH,
         query: redirect.value ? { redirect: redirect.value } : {}
