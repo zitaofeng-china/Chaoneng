@@ -10,19 +10,32 @@ const isBlank = (value?: string) => {
 }
 
 const COUNTRY_ZH: Record<string, string> = {
+  CN: '中国',
   China: '中国',
+  HK: '中国香港',
   'Hong Kong': '中国香港',
+  JP: '日本',
   Japan: '日本',
-  Singapore: '新加坡',
+  KR: '韩国',
   'South Korea': '韩国',
+  SG: '新加坡',
+  Singapore: '新加坡',
+  TW: '中国台湾',
   Taiwan: '中国台湾',
+  GB: '英国',
   'United Kingdom': '英国',
+  US: '美国',
   'United States': '美国'
 }
 
 const normalizePart = (value?: string) => (isBlank(value) ? '' : String(value).trim())
 
-const localizeCountry = (country: string) => COUNTRY_ZH[country] || country
+const localizeCountry = (country: string) => {
+  if (!country) return ''
+  return COUNTRY_ZH[country] || COUNTRY_ZH[country.toUpperCase()] || country
+}
+
+const isChina = (country: string) => country === '中国'
 
 export const privateIpLocation = (ip?: string) => {
   const value = String(ip || '').trim()
@@ -54,12 +67,12 @@ export const composeIpAddress = (city?: string, region?: string, country?: strin
   const nextCity = normalizePart(city)
   const nextRegion = normalizePart(region)
   const nextCountry = localizeCountry(normalizePart(country))
-  const china = ['中国', 'China', 'CN', 'cn'].includes(nextCountry)
-  if (china) return nextCity || nextRegion || '中国'
-  if (nextCity && nextCity !== nextRegion) {
-    return nextCountry && nextCountry !== nextCity ? `${nextCity} ${nextCountry}` : nextCity
-  }
-  return nextCity || nextRegion || nextCountry
+  const place =
+    nextCity && nextRegion && nextCity !== nextRegion ? nextCity : nextCity || nextRegion
+
+  if (isChina(nextCountry)) return place || '中国'
+  if (place && nextCountry && place !== nextCountry) return `${place} ${nextCountry}`
+  return place || nextCountry
 }
 
 const fetchJson = async (url: string, timeout = 4000) => {
@@ -79,7 +92,7 @@ const fromUserAgentInfo = async (ip: string) => {
   return composeIpAddress(
     String(data.city || ''),
     String(data.province || data.region || ''),
-    String(data.country || '')
+    String(data.country || data.short_name || data.country_code || '')
   )
 }
 
@@ -89,7 +102,7 @@ const fromIpWho = async (ip: string) => {
   return composeIpAddress(
     String(data.city || ''),
     String(data.region || data.regionName || ''),
-    String(data.country || '')
+    String(data.country || data.country_code || '')
   )
 }
 
