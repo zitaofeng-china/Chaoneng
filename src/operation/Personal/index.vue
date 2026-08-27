@@ -52,7 +52,6 @@ const SCORE_CIRCUMFERENCE = 2 * Math.PI * SCORE_RADIUS
 const authStore = useAdminAuthStore()
 const userStore = useUserStore()
 const ready = ref(false)
-const passkeyExpanded = ref(false)
 const verifyVisible = ref(false)
 const verifySubmitting = ref(false)
 const verifyAction = ref<'remove' | 'set'>('set')
@@ -368,7 +367,7 @@ onActivated(() => {
 
       <ContentWrap title="添加验证方法">
         <div class="method">
-          <button type="button" class="method__main" @click="passkeyExpanded = !passkeyExpanded">
+          <div class="method__main">
             <div class="method__icon">
               <Icon icon="vi-mdi:fingerprint" :size="22" />
             </div>
@@ -379,7 +378,7 @@ onActivated(() => {
                 最后登录 {{ passkeyLastLoginText }}
               </p>
             </div>
-          </button>
+          </div>
           <ElTag
             class="method__status"
             :type="hasPasskeys ? 'success' : 'info'"
@@ -388,22 +387,21 @@ onActivated(() => {
           >
             {{ hasPasskeys ? '已设置' : '未设置' }}
           </ElTag>
-          <button
-            type="button"
-            class="method__chevron-btn"
-            :aria-expanded="passkeyExpanded"
-            aria-label="展开通行密钥"
-            @click="passkeyExpanded = !passkeyExpanded"
-          >
-            <Icon
-              class="method__chevron"
-              :class="{ 'is-open': passkeyExpanded }"
-              icon="vi-mdi:chevron-right"
-              :size="18"
-            />
-          </button>
+          <div class="method__actions">
+            <ElButton type="primary" plain :disabled="verifySubmitting" @click="openAddPasskey">
+              添加通行密钥
+            </ElButton>
+            <ElButton
+              type="danger"
+              plain
+              :disabled="verifySubmitting || !passkeys.length"
+              @click="openRemovePasskey"
+            >
+              删除选中密钥
+            </ElButton>
+          </div>
         </div>
-        <div v-if="passkeyExpanded" class="passkey-panel">
+        <div class="passkey-panel">
           <p v-if="!passkeys.length" class="passkey-panel__empty">尚未登记通行密钥</p>
           <button
             v-for="item in passkeys"
@@ -419,19 +417,6 @@ onActivated(() => {
               {{ formatPasskeyTime(item.last_used_at) }}
             </span>
           </button>
-          <div class="passkey-panel__actions">
-            <ElButton type="primary" plain :disabled="verifySubmitting" @click="openAddPasskey">
-              添加通行密钥
-            </ElButton>
-            <ElButton
-              type="danger"
-              plain
-              :disabled="verifySubmitting || !passkeys.length"
-              @click="openRemovePasskey"
-            >
-              删除选中密钥
-            </ElButton>
-          </div>
         </div>
       </ContentWrap>
     </template>
@@ -662,6 +647,7 @@ onActivated(() => {
 
 .method {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   align-items: center;
 }
@@ -669,12 +655,6 @@ onActivated(() => {
 .method__main {
   display: flex;
   min-width: 0;
-  padding: 0;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  background: transparent;
-  border: 0;
   flex: 1;
   gap: 12px;
   align-items: center;
@@ -720,28 +700,18 @@ onActivated(() => {
   color: var(--el-text-color-secondary);
 }
 
-.method__chevron-btn {
-  display: inline-flex;
-  padding: 4px;
-  color: var(--el-text-color-secondary);
-  cursor: pointer;
-  background: transparent;
-  border: 0;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-}
-
-.method__chevron {
-  transition: transform 0.2s ease;
-}
-
-.method__chevron.is-open {
-  transform: rotate(90deg);
-}
-
 .method__status {
   flex-shrink: 0;
+}
+
+.method__actions {
+  display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  gap: 8px;
+  margin-left: auto;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .passkey-panel {
@@ -794,15 +764,13 @@ onActivated(() => {
   color: var(--el-text-color-secondary);
 }
 
-.passkey-panel__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 @media (width <= 900px) {
   .account-security__grid {
     grid-template-columns: 1fr;
+  }
+
+  .method__actions {
+    width: 100%;
   }
 }
 </style>
