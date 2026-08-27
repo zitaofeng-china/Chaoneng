@@ -128,7 +128,7 @@ import {
   type FundPriceConfig,
   type UpdateFundPriceConfigParams
 } from '@/api/opertion/FinancialManage/FinancialPrice'
-import { getErrorMessage } from '@/utils/messageHelper'
+import { toastErrorMessage } from '@/utils/messageHelper'
 import { hasRouteButtonPermission } from '@/operation/utils/permission'
 
 type FormField =
@@ -286,7 +286,7 @@ const loadConfig = async () => {
       fillFormData(response.data)
     }
   } catch (error: unknown) {
-    ElMessage.error(getErrorMessage(error, '加载理财价格配置失败，请稍后重试'))
+    toastErrorMessage(error, '加载理财价格配置失败，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -308,7 +308,7 @@ const handleSave = async () => {
     await loadConfig()
     ElMessage.success('保存成功')
   } catch (error: unknown) {
-    ElMessage.error(getErrorMessage(error, '保存失败，请稍后重试'))
+    toastErrorMessage(error, '保存失败，请稍后重试')
   } finally {
     saving.value = false
   }
