@@ -11,6 +11,7 @@ import type {
   PasskeyRegistrationBody,
   SecurityVerificationBody
 } from './types'
+import { normalizeAdminLoginLogs, type AdminLoginLogsQuery } from './loginLogs'
 
 // 网关前缀由运行时配置或环境变量决定，例如留空、/api 或完整同源地址。
 const baseURL = (window as any).APP_CONFIG?.API_BASE_URL || import.meta.env.VITE_API_BASE_PATH
@@ -127,6 +128,25 @@ export const listAdminPasskeys = (accessToken: string) =>
       headers: { Authorization: `Bearer ${accessToken}` }
     })
   ).then(normalizeAdminPasskeyList)
+
+export const listAdminLoginLogs = (accessToken: string, params: AdminLoginLogsQuery = {}) => {
+  const query: Record<string, string | number> = {
+    current_page: params.current_page ?? 1,
+    page_size: params.page_size ?? 5
+  }
+  if (params.status !== undefined && params.status !== '') query.status = params.status
+  if (params.start_time !== undefined && params.start_time !== '') {
+    query.start_time = params.start_time
+  }
+  if (params.end_time !== undefined && params.end_time !== '') query.end_time = params.end_time
+
+  return unwrap<unknown>(
+    client.get('/v1/admin/login-logs', {
+      params: query,
+      headers: { Authorization: `Bearer ${accessToken}` }
+    })
+  ).then(normalizeAdminLoginLogs)
+}
 
 export const createAdminPasskey = (accessToken: string, data: PasskeyRegistrationBody) =>
   unwrapWithMsg<string>(
