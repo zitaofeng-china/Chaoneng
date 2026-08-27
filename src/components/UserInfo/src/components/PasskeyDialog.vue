@@ -27,6 +27,7 @@ import {
   isPasskeySupported,
   rememberPasskeyCredentialId
 } from '@/auth/admin/passkey'
+import { toUnixSeconds } from '@/auth/admin/me'
 import { useAdminAuthStore } from '@/store/modules/adminAuth'
 import { useUserStore } from '@/store/modules/user'
 
@@ -59,15 +60,10 @@ const selectedPasskey = computed(
   () => passkeys.value.find((item) => String(item.id) === selectedId.value) || passkeys.value[0]
 )
 
-const formatTime = (value?: string | number) => {
-  if (value == null || value === '') return '—'
-  const numeric = typeof value === 'number' ? value : Number(value)
-  if (Number.isFinite(numeric) && numeric > 0) {
-    const sec = numeric > 1e12 ? Math.floor(numeric / 1000) : Math.floor(numeric)
-    return dayjs.unix(sec).format('YYYY-MM-DD HH:mm')
-  }
-  const parsed = dayjs(String(value))
-  return parsed.isValid() ? parsed.format('YYYY-MM-DD HH:mm') : '—'
+const formatTime = (value?: string | number, empty = '从未使用') => {
+  const unix = toUnixSeconds(value)
+  if (!unix || unix <= 0) return empty
+  return dayjs.unix(unix).format('YYYY-MM-DD HH:mm')
 }
 
 const isNoAccountEmailError = (error: unknown) => {
@@ -320,7 +316,8 @@ onBeforeUnmount(() => window.clearInterval(timer))
         >
           <span class="passkey-item__name">{{ item.name }}</span>
           <span class="passkey-item__meta">
-            创建 {{ formatTime(item.created_at) }} · 最近使用 {{ formatTime(item.last_used_at) }}
+            创建 {{ formatTime(item.created_at, '—') }} · 最后登录
+            {{ formatTime(item.last_used_at) }}
           </span>
         </button>
       </div>
