@@ -104,6 +104,18 @@ export type PasskeyVerificationMethod = SecurityVerificationMethod
 
 export type PasskeyChallengePurpose = 'login' | 'set' | 'elevate'
 
+/** 安全设置变更的二次验证（邮箱验证码或当前密码）。 */
+export interface SecurityVerificationBody {
+  verification_method: SecurityVerificationMethod
+  email_code?: string
+  current_password?: string
+}
+
+export const buildEmailCodeVerification = (email_code: string): SecurityVerificationBody => ({
+  verification_method: 'email_code',
+  email_code
+})
+
 /** GET /v1/admin/security/passkey */
 export interface AdminPasskey {
   created_at?: string | number
@@ -171,3 +183,22 @@ export interface PasskeyCredentialPayload {
     transports?: string[]
   }
 }
+
+/** 通行密钥断言：登录、elevate 以及业务接口二次验证共用。 */
+export interface PasskeyAssertionBody {
+  ceremony_id: string
+  credential: PasskeyCredentialPayload
+  device_id: string
+}
+
+/** 登记通行密钥：WebAuthn 注册凭据 + 二次验证。 */
+export type PasskeyRegistrationBody = SecurityVerificationBody & {
+  ceremony_id: string
+  credential: PasskeyCredentialPayload
+  name: string
+}
+
+export const withPasskeyAssertion = <T extends object>(
+  data: T,
+  assertion: PasskeyAssertionBody
+): T & PasskeyAssertionBody => ({ ...data, ...assertion })
