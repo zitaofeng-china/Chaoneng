@@ -1,3 +1,5 @@
+import { composeIpAddress } from '@/auth/admin/ipLocation'
+
 /** GET /v1/admin/login-logs 查询参数（与后端约定字段一致）。 */
 export interface AdminLoginLogsQuery {
   current_page?: number
@@ -101,8 +103,10 @@ const pickLocation = (row: Record<string, unknown>) => {
   const region =
     pickString(row, ['region', 'province', 'area']) ||
     (nested ? pickString(nested, ['region', 'province', 'area']) : '')
-  const country = pickString(row, ['country']) || (nested ? pickString(nested, ['country']) : '')
-  const composed = [city, region || country].filter(Boolean).join(' ')
+  const country =
+    pickString(row, ['country', 'country_name', 'country_code']) ||
+    (nested ? pickString(nested, ['country', 'country_name', 'country_code']) : '')
+  const composed = composeIpAddress(city, region, country)
   if (composed) return composed
   if (nested) return pickString(nested, ['location', 'address', 'display', 'label'])
   return pickString(row, ['location', 'address', 'geo_location'])
