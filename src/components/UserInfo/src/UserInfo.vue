@@ -9,7 +9,6 @@ import { useLockStore } from '@/store/modules/lock'
 import { useUserStore } from '@/store/modules/user'
 import { useRouter } from 'vue-router'
 import ChangePasswordDialog from './components/ChangepasswordDialog.vue'
-import PasskeyDialog from './components/PasskeyDialog.vue'
 import TotpDialog from './components/TotpDialog.vue'
 import { isOperationSystem } from '@/utils/system'
 import { ADMIN_TOTP_ENABLED } from '@/auth/admin/types'
@@ -34,7 +33,6 @@ const loginOut = () => {
 
 const dialogVisible = ref<boolean>(false)
 const changePasswordDialogVisible = ref<boolean>(false)
-const passkeyDialogVisible = ref(false)
 const totpDialogVisible = ref(false)
 
 // 锁定屏幕
@@ -52,10 +50,6 @@ const toPage = (path: string) => {
 
 const changePassword = () => {
   changePasswordDialogVisible.value = true
-}
-
-const openPasskey = () => {
-  passkeyDialogVisible.value = true
 }
 
 const openTotp = () => {
@@ -90,12 +84,9 @@ const openTotp = () => {
             {{ '修改密码' }}
           </div>
         </ElDropdownItem>
-        <ElDropdownItem v-if="isOperationSystem()"
-          ><div @click="openPasskey">通行密钥</div></ElDropdownItem
-        >
-        <ElDropdownItem v-if="isOperationSystem() && ADMIN_TOTP_ENABLED"
-          ><div @click="openTotp">动态验证码</div></ElDropdownItem
-        >
+        <ElDropdownItem v-if="isOperationSystem() && ADMIN_TOTP_ENABLED">
+          <div @click="openTotp">动态验证码</div>
+        </ElDropdownItem>
         <ElDropdownItem>
           <div @click="loginOut">{{ t('common.loginOut') }}</div>
         </ElDropdownItem>
@@ -105,7 +96,6 @@ const openTotp = () => {
 
   <LockDialog v-if="dialogVisible" v-model="dialogVisible" />
   <ChangePasswordDialog v-model="changePasswordDialogVisible" />
-  <PasskeyDialog v-if="isOperationSystem()" v-model="passkeyDialogVisible" />
   <TotpDialog v-if="isOperationSystem() && ADMIN_TOTP_ENABLED" v-model="totpDialogVisible" />
   <teleport to="body">
     <transition name="fade-bottom" mode="out-in">
