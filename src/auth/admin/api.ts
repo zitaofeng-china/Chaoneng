@@ -115,8 +115,11 @@ const normalizeAdminPasskeyList = (data: unknown): AdminPasskey[] => {
     return {
       id: (row.id ?? row.passkey_id ?? row.credential_id ?? index) as number | string,
       name: String(row.name || '未命名通行密钥'),
-      created_at: row.created_at as string | number | undefined,
-      last_used_at: (row.last_used_at ?? row.last_used) as string | number | undefined,
+      created_at: (row.created_at ?? row.createdAt) as string | number | undefined,
+      last_used_at: (row.last_used_at ?? row.lastUsedAt ?? row.last_used) as
+        | string
+        | number
+        | undefined,
       device_id: row.device_id as string | undefined
     }
   })
