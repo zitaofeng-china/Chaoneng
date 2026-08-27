@@ -2,6 +2,7 @@
 import { Table, TableExpose, TableProps, TableSetProps, TableColumn } from '@/components/Table'
 import { ElTable, ElMessageBox, ElMessage } from 'element-plus'
 import { ref, watch, unref, nextTick, onMounted } from 'vue'
+import { isElevateCancelled } from '@/auth/admin/elevateError'
 
 // const { t } = useI18n()
 
@@ -183,8 +184,10 @@ export const useTable = (config: UseTableConfig) => {
           return true
         }
         return false
-      } catch {
-        ElMessage.error('删除失败')
+      } catch (error) {
+        if (!isElevateCancelled(error)) {
+          ElMessage.error('删除失败')
+        }
         return false
       }
     }
