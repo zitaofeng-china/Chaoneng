@@ -8,7 +8,7 @@ import { ElTree, ElMessage, ElCheckbox } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import operationRoutes from '@/router/modules/operation'
 import { v2CreateRole, v2UpdateRole } from '@/api/opertion/Authorization/common/role'
-import { getErrorMessage } from '@/utils/messageHelper'
+import { toastErrorMessage } from '@/utils/messageHelper'
 import type { CreateRolePayload, UpdateRolePayload } from '@/api/opertion/Authorization/common/role'
 import { normalizePermissionNames } from '@/operation/constants/permissionTable'
 
@@ -571,7 +571,7 @@ const submit = async () => {
     close()
     emit('success')
   } catch (error: unknown) {
-    ElMessage.error(getErrorMessage(error, t('common.apiError')))
+    toastErrorMessage(error, t('common.apiError'))
   } finally {
     saveLoading.value = false
   }
