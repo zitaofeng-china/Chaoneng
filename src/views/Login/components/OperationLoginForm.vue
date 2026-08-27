@@ -11,19 +11,9 @@ import {
   ElTabs
 } from 'element-plus'
 import { useRouter } from 'vue-router'
-import {
-  createPasskeyChallenge,
-  loginWithPasskey,
-  loginWithPassword,
-  sendAdminEmailCode
-} from '@/auth/admin/api'
-import {
-  getPasskeyAssertion,
-  getPasskeyDeviceId,
-  getPasskeyErrorMessage,
-  isPasskeySupported,
-  rememberPasskeyCredentialId
-} from '@/auth/admin/passkey'
+import { loginWithPasskey, loginWithPassword, sendAdminEmailCode } from '@/auth/admin/api'
+import { collectPasskeyAssertion } from '@/auth/admin/assertion'
+import { getPasskeyErrorMessage, isPasskeySupported } from '@/auth/admin/passkey'
 import { useAdminAuthStore } from '@/store/modules/adminAuth'
 import { useUserStore } from '@/store/modules/user'
 import { v1GetAdminMe } from '@/api/common/login'
@@ -133,15 +123,7 @@ const signInWithPasskey = async () => {
   }
   loading.value = true
   try {
-    const device_id = getPasskeyDeviceId()
-    const challenge = await createPasskeyChallenge({ device_id, purpose: 'login' })
-    const credential = await getPasskeyAssertion(challenge.options)
-    rememberPasskeyCredentialId(credential.id)
-    const session = await loginWithPasskey({
-      ceremony_id: challenge.ceremony_id,
-      credential,
-      device_id
-    })
+    const session = await loginWithPasskey(await collectPasskeyAssertion('login'))
     adminAuthStore.applySession(session)
     if (await completeLogin('管理员')) {
       ElMessage.success('登录成功')
