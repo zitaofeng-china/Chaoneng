@@ -5,10 +5,11 @@ import type {
   AdminPasskey,
   AdminResetTarget,
   AdminSession,
+  PasskeyAssertionBody,
   PasskeyChallengePurpose,
   PasskeyChallengeResult,
-  PasskeyCredentialPayload,
-  SecurityVerificationMethod
+  PasskeyRegistrationBody,
+  SecurityVerificationBody
 } from './types'
 
 // 网关前缀由运行时配置或环境变量决定，例如留空、/api 或完整同源地址。
@@ -80,11 +81,8 @@ export const resetAdminPassword = (data: {
   new_password: string
 }) => resetAdminSecurity({ ...data, target: 'password' })
 
-export const loginWithPasskey = (data: {
-  ceremony_id: string
-  credential: PasskeyCredentialPayload
-  device_id: string
-}) => unwrap<AdminSession>(client.post('/v1/admin/auth/login', { method: 'passkey', ...data }))
+export const loginWithPasskey = (data: PasskeyAssertionBody) =>
+  unwrap<AdminSession>(client.post('/v1/admin/auth/login', { method: 'passkey', ...data }))
 
 export const createPasskeyChallenge = (
   data: {
@@ -130,17 +128,7 @@ export const listAdminPasskeys = (accessToken: string) =>
     })
   ).then(normalizeAdminPasskeyList)
 
-export const createAdminPasskey = (
-  accessToken: string,
-  data: {
-    ceremony_id: string
-    credential: PasskeyCredentialPayload
-    name: string
-    verification_method: SecurityVerificationMethod
-    email_code?: string
-    current_password?: string
-  }
-) =>
+export const createAdminPasskey = (accessToken: string, data: PasskeyRegistrationBody) =>
   unwrapWithMsg<string>(
     client.post('/v1/admin/security/passkey', data, {
       headers: { Authorization: `Bearer ${accessToken}` }
@@ -150,42 +138,21 @@ export const createAdminPasskey = (
 /** @deprecated 使用 createAdminPasskey */
 export const saveAdminPasskey = createAdminPasskey
 
-export const elevateAdminSession = (
-  accessToken: string,
-  data: {
-    ceremony_id: string
-    credential: PasskeyCredentialPayload
-    device_id?: string
-  }
-) =>
+export const elevateAdminSession = (accessToken: string, data: PasskeyAssertionBody) =>
   unwrap<string>(
     client.put('/v1/admin/security/elevate', data, {
       headers: { Authorization: `Bearer ${accessToken}` }
     })
   )
 
-export const bindAdminTotp = (
-  accessToken: string,
-  data: {
-    verification_method: SecurityVerificationMethod
-    email_code?: string
-    current_password?: string
-  }
-) =>
+export const bindAdminTotp = (accessToken: string, data: SecurityVerificationBody) =>
   unwrap<{ key_url: string }>(
     client.put('/v1/admin/security/totp', data, {
       headers: { Authorization: `Bearer ${accessToken}` }
     })
   )
 
-export const deleteAdminTotp = (
-  accessToken: string,
-  data: {
-    verification_method: SecurityVerificationMethod
-    email_code?: string
-    current_password?: string
-  }
-) =>
+export const deleteAdminTotp = (accessToken: string, data: SecurityVerificationBody) =>
   unwrap<string>(
     client.delete('/v1/admin/security/totp', {
       data,
@@ -196,11 +163,7 @@ export const deleteAdminTotp = (
 export const deleteAdminPasskey = (
   accessToken: string,
   id: number | string,
-  data: {
-    verification_method: SecurityVerificationMethod
-    email_code?: string
-    current_password?: string
-  }
+  data: SecurityVerificationBody
 ) =>
   unwrap<string>(
     client.delete(`/v1/admin/security/passkey/${encodeURIComponent(String(id))}`, {
