@@ -1,4 +1,5 @@
 import { ElMessage } from 'element-plus'
+import { isElevateCancelled } from '@/auth/admin/elevateError'
 
 /**
  * 统一的消息提示工具
@@ -15,6 +16,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => {
  * @param fallback 默认错误消息
  */
 export const getErrorMessage = (error: unknown, fallback: string = '操作失败') => {
+  if (isElevateCancelled(error)) return ''
   if (typeof error === 'string' && error) return error
   if (!isRecord(error)) return fallback
 
@@ -62,7 +64,15 @@ export const handleSuccessMessage = (message: string = '操作成功') => {
  * @param error 错误对象或错误消息
  * @param defaultMessage 默认错误消息
  */
+export const toastErrorMessage = (error: unknown, fallback: string = '操作失败') => {
+  if (isElevateCancelled(error)) return
+  const message = getErrorMessage(error, fallback)
+  if (message) ElMessage.error(message)
+}
+
 export const handleErrorMessage = (error: unknown, defaultMessage: string = '操作失败') => {
+  if (isElevateCancelled(error)) return
+
   // 如果error是字符串，直接使用
   if (typeof error === 'string') {
     ElMessage.error(error)
