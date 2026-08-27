@@ -86,8 +86,8 @@ const actions = computed(() => [
   {
     value: 'set' as const,
     title: '添加',
-    desc: hasPasskeys.value ? '已有通行密钥，请先删除后再添加' : '为当前账号登记通行密钥',
-    disabled: hasPasskeys.value
+    desc: '为当前账号登记通行密钥',
+    disabled: false
   },
   {
     value: 'remove' as const,
@@ -99,9 +99,14 @@ const actions = computed(() => [
 
 const selectAction = (value: PasskeyAction, disabled?: boolean) => {
   if (disabled || loading.value) return
-  if (value === 'set' && hasPasskeys.value) return
   if (value === 'remove' && !hasPasskeys.value) return
   action.value = value
+}
+
+const selectPasskey = (id: string | number) => {
+  if (loading.value) return
+  selectedId.value = String(id)
+  action.value = 'remove'
 }
 
 const canSend = computed(() => seconds.value === 0 && !sending.value && !loading.value)
@@ -209,10 +214,6 @@ const sendCode = async () => {
 }
 
 const save = async () => {
-  if (hasPasskeys.value) {
-    ElMessage.warning('已有通行密钥，请先删除后再添加')
-    return
-  }
   const name = passkeyName.value.trim()
   const challenge = await createPasskeyChallenge(
     { device_id: getPasskeyDeviceId(), purpose: 'set' },
@@ -256,9 +257,6 @@ const remove = async () => {
 }
 
 const submit = async () => {
-  if (action.value === 'set' && hasPasskeys.value) {
-    return ElMessage.warning('已有通行密钥，请先删除后再添加')
-  }
   if (action.value === 'set' && !supported) {
     return ElMessage.warning('当前环境不支持通行密钥')
   }
@@ -318,7 +316,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
             'is-active': action === 'remove' && String(item.id) === String(selectedPasskey?.id)
           }"
           :disabled="loading"
-          @click="selectedId = String(item.id)"
+          @click="selectPasskey(item.id)"
         >
           <span class="passkey-item__name">{{ item.name }}</span>
           <span class="passkey-item__meta">
@@ -374,9 +372,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
       <ElButton
         :type="action === 'remove' ? 'danger' : 'primary'"
         :loading="loading"
-        :disabled="
-          (action === 'set' && (!supported || hasPasskeys)) || (action === 'remove' && !hasPasskeys)
-        "
+        :disabled="(action === 'set' && !supported) || (action === 'remove' && !hasPasskeys)"
         @click="submit"
       >
         {{ confirmText }}
