@@ -13,7 +13,7 @@ import QRCode from 'qrcode'
 import Dialog from '@/components/Dialog/src/Dialog.vue'
 import { v1GetAdminMe } from '@/api/common/login'
 import { bindAdminTotp, deleteAdminTotp, sendAdminEmailCode } from '@/auth/admin/api'
-import { getAdminSecurity } from '@/auth/admin/types'
+import { buildEmailCodeVerification, getAdminSecurity } from '@/auth/admin/types'
 import { useAdminAuthStore } from '@/store/modules/adminAuth'
 import { useUserStore } from '@/store/modules/user'
 
@@ -127,10 +127,7 @@ const sendCode = async () => {
   }
 }
 
-const buildVerifyPayload = () => ({
-  verification_method: 'email_code' as const,
-  email_code: emailCode.value
-})
+const buildVerifyPayload = () => buildEmailCodeVerification(emailCode.value)
 
 const save = async () => {
   const result = await bindAdminTotp(authStore.getAccessToken, buildVerifyPayload())

@@ -14,7 +14,7 @@ import {
   rememberPasskeyCredentialId,
   suggestPasskeyDisplayName
 } from '@/auth/admin/passkey'
-import { getAdminSecurity, hasAdminPasskey } from '@/auth/admin/types'
+import { buildEmailCodeVerification, getAdminSecurity, hasAdminPasskey } from '@/auth/admin/types'
 import { enterOperationWorkspace } from '@/auth/admin/workspace'
 import { useAdminAuthStore } from '@/store/modules/adminAuth'
 import { useUserStore } from '@/store/modules/user'
@@ -118,8 +118,7 @@ const submit = async () => {
       ceremony_id: challenge.ceremony_id,
       credential,
       name,
-      verification_method: 'email_code',
-      email_code: form.email_code
+      ...buildEmailCodeVerification(form.email_code)
     })
     authStore.clearSession(false)
     ElMessage.success(result.msg || '通行密钥设置成功，请重新登录')
