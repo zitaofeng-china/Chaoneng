@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onActivated, onMounted, ref } from 'vue'
 import { ElButton, ElMessage, ElMessageBox, ElSkeleton, ElTag } from 'element-plus'
-import dayjs from 'dayjs'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Icon } from '@/components/Icon'
 import { v1GetAdminMe } from '@/api/common/login'
@@ -23,6 +22,7 @@ import {
   suggestPasskeyDisplayName
 } from '@/auth/admin/passkey'
 import {
+  ADMIN_TOTP_ENABLED,
   buildEmailCodeVerification,
   getAdminSecurity,
   type AdminMe,
@@ -33,10 +33,11 @@ import { useUserStore } from '@/store/modules/user'
 import PasskeyVerifyDialog from './components/PasskeyVerifyDialog.vue'
 import {
   calcSecurityScore,
-  countPreAuthMethods,
   formatLoginDevice,
+  formatPasskeyTime,
   formatRelativeTime,
   getPreAuthWarning,
+  latestPasskeyUsedAt,
   loginStatusMeta,
   maskEmail
 } from './helpers'
@@ -71,6 +72,11 @@ const selectedPasskey = computed(
   () =>
     passkeys.value.find((item) => String(item.id) === selectedPasskeyId.value) || passkeys.value[0]
 )
+const passkeyLastLoginText = computed(() => {
+  if (!passkeys.value.length) return ''
+  const latest = latestPasskeyUsedAt(passkeys.value)
+  return latest ? formatPasskeyTime(latest) : '从未使用'
+})
 const score = computed(() =>
   calcSecurityScore({
     hasAccount: Boolean(username.value || me.value?.id),
@@ -78,10 +84,13 @@ const score = computed(() =>
     hasPasskey: hasPasskeys.value
   })
 )
-const preAuthCount = computed(() =>
-  countPreAuthMethods(hasPasskeys.value, security.value.totp_enabled)
+const preAuthWarning = computed(() =>
+  getPreAuthWarning({
+    hasPasskey: hasPasskeys.value,
+    totpAvailable: ADMIN_TOTP_ENABLED,
+    totpEnabled: security.value.totp_enabled
+  })
 )
-const preAuthWarning = computed(() => getPreAuthWarning(preAuthCount.value))
 const displayLogs = computed(() =>
   loginLogs.value.map((item) => ({
     ...item,
@@ -99,17 +108,6 @@ const scoreTone = computed(() => {
   if (score.value >= 50) return 'warning'
   return 'danger'
 })
-
-const formatPasskeyTime = (value?: string | number) => {
-  if (value == null || value === '') return '—'
-  const numeric = typeof value === 'number' ? value : Number(value)
-  if (Number.isFinite(numeric) && numeric > 0) {
-    const sec = numeric > 1e12 ? Math.floor(numeric / 1000) : Math.floor(numeric)
-    return dayjs.unix(sec).format('YYYY-MM-DD HH:mm')
-  }
-  const parsed = dayjs(String(value))
-  return parsed.isValid() ? parsed.format('YYYY-MM-DD HH:mm') : '—'
-}
 
 const finish = (message: string) => {
   verifyVisible.value = false
@@ -314,6 +312,9 @@ onActivated(() => {
                     </span>
                   </div>
                   <div class="info-row__value">{{ hasPasskeys ? '已设置' : '未设置' }}</div>
+                  <div v-if="passkeyLastLoginText" class="info-row__extra">
+                    最后登录 {{ passkeyLastLoginText }}
+                  </div>
                 </div>
               </div>
               <div v-if="preAuthWarning" class="basics__warning">
@@ -374,6 +375,9 @@ onActivated(() => {
             <div class="method__body">
               <div class="method__title">通行密钥 (Passkey)</div>
               <p class="method__desc">使用指纹、面容、屏幕锁定或安全密钥，在本机完成身份验证。</p>
+              <p v-if="passkeyLastLoginText" class="method__used">
+                最后登录 {{ passkeyLastLoginText }}
+              </p>
             </div>
           </button>
           <ElTag
@@ -411,7 +415,7 @@ onActivated(() => {
           >
             <span class="passkey-item__name">{{ item.name }}</span>
             <span class="passkey-item__meta">
-              创建 {{ formatPasskeyTime(item.created_at) }} · 最近使用
+              创建 {{ formatPasskeyTime(item.created_at, '—') }} · 最后登录
               {{ formatPasskeyTime(item.last_used_at) }}
             </span>
           </button>
@@ -533,6 +537,13 @@ onActivated(() => {
   color: var(--el-text-color-primary);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.info-row__extra {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--el-text-color-secondary);
 }
 
 .score {
@@ -699,6 +710,13 @@ onActivated(() => {
   margin: 4px 0 0;
   font-size: 13px;
   line-height: 20px;
+  color: var(--el-text-color-secondary);
+}
+
+.method__used {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 18px;
   color: var(--el-text-color-secondary);
 }
 
