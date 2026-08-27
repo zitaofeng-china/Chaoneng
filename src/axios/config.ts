@@ -53,6 +53,18 @@ const defaultResponseInterceptors = (response: AxiosResponse) => {
   } else if (response.data.code === SUCCESS_CODE) {
     return response.data
   } else {
+    // 000008 交给增强认证拦截器：不能 toast / reject，否则会丢掉原请求 config。
+    const elevateConfig = response.config as {
+      skipElevate?: boolean
+      _adminElevateRetried?: boolean
+    }
+    if (
+      isElevateRequiredCode(response?.data?.code) &&
+      !elevateConfig?.skipElevate &&
+      !elevateConfig?._adminElevateRetried
+    ) {
+      return response
+    }
     if (isAuthExpiredCode(response?.data?.code)) {
       if ((response.config as any)?.skipAuthRefresh) {
         return Promise.reject(response?.data)
