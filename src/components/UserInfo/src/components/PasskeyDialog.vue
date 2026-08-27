@@ -12,7 +12,7 @@ import {
 import dayjs from 'dayjs'
 import Dialog from '@/components/Dialog/src/Dialog.vue'
 import { v1GetAdminMe } from '@/api/common/login'
-import { getAdminSecurity, type AdminPasskey } from '@/auth/admin/types'
+import { buildEmailCodeVerification, getAdminSecurity, type AdminPasskey } from '@/auth/admin/types'
 import {
   createAdminPasskey,
   createPasskeyChallenge,
@@ -86,8 +86,8 @@ const actions = computed(() => [
   {
     value: 'set' as const,
     title: '添加',
-    desc: '为当前账号登记通行密钥',
-    disabled: false
+    desc: hasPasskeys.value ? '已有通行密钥，请先删除后再添加' : '为当前账号登记通行密钥',
+    disabled: hasPasskeys.value
   },
   {
     value: 'remove' as const,
@@ -96,6 +96,13 @@ const actions = computed(() => [
     disabled: !hasPasskeys.value
   }
 ])
+
+const selectAction = (value: PasskeyAction, disabled?: boolean) => {
+  if (disabled || loading.value) return
+  if (value === 'set' && hasPasskeys.value) return
+  if (value === 'remove' && !hasPasskeys.value) return
+  action.value = value
+}
 
 const canSend = computed(() => seconds.value === 0 && !sending.value && !loading.value)
 const confirmText = computed(() => (action.value === 'set' ? '确认添加' : '确认删除'))
@@ -202,6 +209,10 @@ const sendCode = async () => {
 }
 
 const save = async () => {
+  if (hasPasskeys.value) {
+    ElMessage.warning('已有通行密钥，请先删除后再添加')
+    return
+  }
   const name = passkeyName.value.trim()
   const challenge = await createPasskeyChallenge(
     { device_id: getPasskeyDeviceId(), purpose: 'set' },
@@ -215,8 +226,7 @@ const save = async () => {
     ceremony_id: challenge.ceremony_id,
     credential,
     name,
-    verification_method: 'email_code',
-    email_code: emailCode.value
+    ...buildEmailCodeVerification(emailCode.value)
   })
   finish(result.msg || '通行密钥设置成功，请重新登录')
 }
@@ -237,14 +247,18 @@ const remove = async () => {
       confirmButtonClass: 'el-button--danger'
     }
   )
-  await deleteAdminPasskey(authStore.getAccessToken, current.id, {
-    verification_method: 'email_code',
-    email_code: emailCode.value
-  })
+  await deleteAdminPasskey(
+    authStore.getAccessToken,
+    current.id,
+    buildEmailCodeVerification(emailCode.value)
+  )
   finish('通行密钥已删除，请重新登录')
 }
 
 const submit = async () => {
+  if (action.value === 'set' && hasPasskeys.value) {
+    return ElMessage.warning('已有通行密钥，请先删除后再添加')
+  }
   if (action.value === 'set' && !supported) {
     return ElMessage.warning('当前环境不支持通行密钥')
   }
@@ -321,7 +335,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
           class="passkey-action"
           :class="{ 'is-active': action === item.value, 'is-danger': item.value === 'remove' }"
           :disabled="loading || item.disabled"
-          @click="action = item.value"
+          @click="selectAction(item.value, item.disabled)"
         >
           <span class="passkey-action__title">{{ item.title }}</span>
           <span class="passkey-action__desc">{{ item.desc }}</span>
@@ -360,7 +374,9 @@ onBeforeUnmount(() => window.clearInterval(timer))
       <ElButton
         :type="action === 'remove' ? 'danger' : 'primary'"
         :loading="loading"
-        :disabled="(action === 'set' && !supported) || (action === 'remove' && !hasPasskeys)"
+        :disabled="
+          (action === 'set' && (!supported || hasPasskeys)) || (action === 'remove' && !hasPasskeys)
+        "
         @click="submit"
       >
         {{ confirmText }}
