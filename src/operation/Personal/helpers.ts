@@ -32,14 +32,38 @@ export const calcSecurityScore = (options: {
 export const countPreAuthMethods = (hasPasskey: boolean, totpEnabled: boolean) =>
   Number(hasPasskey) + Number(totpEnabled)
 
-export const getPreAuthWarning = (count: number) => {
-  if (count >= 2) return ''
+export const getPreAuthWarning = (options: {
+  hasPasskey: boolean
+  totpAvailable?: boolean
+  totpEnabled: boolean
+}) => {
+  const totpAvailable = Boolean(options.totpAvailable)
+  const count = countPreAuthMethods(options.hasPasskey, options.totpEnabled)
+  const available = 1 + Number(totpAvailable)
+  if (count >= available) return ''
+  if (!totpAvailable) {
+    return '待处理：尚未设置通行密钥。管理员账号建议至少配置1种预验证方式'
+  }
   return `待处理：你只有${count}种可用的预验证方式。管理员账号建议至少配置2种`
+}
+
+export const formatPasskeyTime = (value?: string | number, empty = '从未使用') => {
+  const unix = toUnixSeconds(value)
+  if (!unix || unix <= 0) return empty
+  return dayjs.unix(unix).format('YYYY-MM-DD HH:mm')
+}
+
+export const latestPasskeyUsedAt = (list: Array<{ last_used_at?: string | number }>) => {
+  const times = list
+    .map((item) => toUnixSeconds(item.last_used_at))
+    .filter((unix): unix is number => Boolean(unix) && unix > 0)
+  if (!times.length) return undefined
+  return Math.max(...times)
 }
 
 export const formatRelativeTime = (value?: string | number) => {
   const unix = toUnixSeconds(value)
-  if (!unix) return '—'
+  if (!unix || unix <= 0) return '—'
   const diff = Math.max(0, Math.floor(Date.now() / 1000) - unix)
   if (diff < 60) return '刚刚'
   if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`
