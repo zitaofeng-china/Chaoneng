@@ -76,11 +76,9 @@ const openTotp = () => {
     </div>
     <template #dropdown>
       <ElDropdownMenu>
-        <!-- <ElDropdownItem>
-        <div @click="toPage('/personal/personal-center')">
-          {{ t('router.personalCenter') }}
-        </div>
-      </ElDropdownItem> -->
+        <ElDropdownItem v-if="isOperationSystem()">
+          <div @click="toPage('/personal/personal-center')">个人中心</div>
+        </ElDropdownItem>
         <!-- <ElDropdownItem>
         <div @click="toDocument">{{ t('common.document') }}</div>
       </ElDropdownItem> -->

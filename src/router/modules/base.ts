@@ -79,12 +79,15 @@ const baseRoutes: AppRouteRecordRaw[] = [
     meta: {
       title: t('router.personal'),
       hidden: true,
-      canTo: true
+      canTo: true,
+      breadcrumb: false
     },
     children: [
       {
         path: 'personal-center',
-        component: () => import('@/views/Personal/PersonalCenter/PersonalCenter.vue'),
+        component: isManagement
+          ? () => import('@/views/Personal/PersonalCenter/PersonalCenter.vue')
+          : () => import('@/operation/Personal/index.vue'),
         name: 'PersonalCenter',
         meta: {
           title: t('router.personalCenter'),
