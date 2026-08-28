@@ -451,7 +451,7 @@ const renderImage = (row: AdBannerItem) => {
       src={imageSource}
       fit="cover"
       class="table-image-preview"
-      style={{ width: '80px', height: '44px' }}
+      style={{ width: '96px', height: '42px' }}
       preview-teleported
       preview-src-list={[imageSource]}
     >
@@ -772,8 +772,8 @@ const cancelCrop = () => {
 
 .form-image-preview {
   display: block;
-  width: 220px;
-  height: 90px;
+  width: 224px;
+  height: 98px;
   margin-top: 10px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 4px;
@@ -801,8 +801,8 @@ const cancelCrop = () => {
 }
 
 .table-image-preview {
-  width: 80px;
-  height: 44px;
+  width: 96px;
+  height: 42px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 4px;
 }
