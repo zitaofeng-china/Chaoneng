@@ -40,10 +40,7 @@ const runElevateCeremony = async () => {
     if (isElevateCancelled(error)) {
       throw error
     }
-    const message = getPasskeyErrorMessage(
-      error,
-      error?.msg || error?.message || '通行密钥验证失败'
-    )
+    const message = getPasskeyErrorMessage(error, '通行密钥验证失败')
     ElMessage[error?.name === 'NotAllowedError' ? 'info' : 'error'](message)
     throw error
   }
