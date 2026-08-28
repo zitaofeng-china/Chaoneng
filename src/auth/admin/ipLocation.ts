@@ -28,11 +28,60 @@ const COUNTRY_ZH: Record<string, string> = {
   'United States': '美国'
 }
 
+/** 接口未返回中文时的城市/地区兜底（键一律小写）。 */
+const PLACE_ZH: Record<string, string> = {
+  osaka: '大阪',
+  'osaka prefecture': '大阪府',
+  tokyo: '东京',
+  kyoto: '京都',
+  yokohama: '横滨',
+  nagoya: '名古屋',
+  fukuoka: '福冈',
+  sapporo: '札幌',
+  seoul: '首尔',
+  busan: '釜山',
+  singapore: '新加坡',
+  'hong kong': '香港',
+  taipei: '台北',
+  taichung: '台中',
+  kaohsiung: '高雄',
+  beijing: '北京',
+  shanghai: '上海',
+  guangzhou: '广州',
+  shenzhen: '深圳',
+  hangzhou: '杭州',
+  chengdu: '成都',
+  wuhan: '武汉',
+  nanjing: '南京',
+  chongqing: '重庆',
+  tianjin: '天津',
+  suzhou: '苏州',
+  london: '伦敦',
+  manchester: '曼彻斯特',
+  'new york': '纽约',
+  'los angeles': '洛杉矶',
+  chicago: '芝加哥',
+  'san francisco': '旧金山',
+  seattle: '西雅图',
+  houston: '休斯顿',
+  miami: '迈阿密',
+  washington: '华盛顿'
+}
+
+const HAS_CJK = /[\u4e00-\u9fff]/
+
 const normalizePart = (value?: string) => (isBlank(value) ? '' : String(value).trim())
 
 const localizeCountry = (country: string) => {
   if (!country) return ''
+  if (HAS_CJK.test(country)) return country
   return COUNTRY_ZH[country] || COUNTRY_ZH[country.toUpperCase()] || country
+}
+
+const localizePlace = (place: string) => {
+  if (!place) return ''
+  if (HAS_CJK.test(place)) return place
+  return PLACE_ZH[place.toLowerCase()] || place
 }
 
 const isChina = (country: string) => country === '中国'
@@ -64,8 +113,8 @@ export const privateIpLocation = (ip?: string) => {
 }
 
 export const composeIpAddress = (city?: string, region?: string, country?: string) => {
-  const nextCity = normalizePart(city)
-  const nextRegion = normalizePart(region)
+  const nextCity = localizePlace(normalizePart(city))
+  const nextRegion = localizePlace(normalizePart(region))
   const nextCountry = localizeCountry(normalizePart(country))
   const place =
     nextCity && nextRegion && nextCity !== nextRegion ? nextCity : nextCity || nextRegion
