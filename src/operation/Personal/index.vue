@@ -11,7 +11,7 @@ import {
   listAdminLoginLogs,
   listAdminPasskeys
 } from '@/auth/admin/api'
-import { lookupIpLocations, resolveIpLocationSync } from '@/auth/admin/ipLocation'
+import { buildIpLookupUrl, lookupIpLocations, resolveIpLocationSync } from '@/auth/admin/ipLocation'
 import type { AdminLoginLogView } from '@/auth/admin/loginLogs'
 import {
   createPasskeyCredential,
@@ -348,7 +348,16 @@ onActivated(() => {
               <div class="login-item__main">
                 <div class="login-item__device">{{ item.deviceText }}</div>
                 <div class="login-item__meta">
-                  <span>{{ item.ip || '—' }}</span>
+                  <a
+                    v-if="item.ip"
+                    class="login-item__ip"
+                    :href="buildIpLookupUrl(item.ip)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {{ item.ip }}
+                  </a>
+                  <span v-else>—</span>
                   <span>{{ item.timeText }}</span>
                 </div>
               </div>
@@ -643,6 +652,16 @@ onActivated(() => {
   font-size: 12px;
   line-height: 18px;
   color: var(--el-text-color-secondary);
+}
+
+.login-item__ip {
+  color: var(--el-color-primary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.login-item__ip:hover {
+  text-decoration: underline;
 }
 
 .method {
