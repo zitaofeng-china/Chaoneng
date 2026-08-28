@@ -197,7 +197,7 @@ const DEFAULT_FORM: AdBannerForm = {
 }
 
 const IMAGE_MAX_SIZE = 2 * 1024 * 1024
-const BANNER_ASPECT_RATIO = 4
+const BANNER_ASPECT_RATIO = 16 / 7
 const BANNER_MAX_WIDTH = 1920
 const IMAGE_FORMAT_MESSAGE = '仅支持 JPG、PNG、WebP 图片'
 
