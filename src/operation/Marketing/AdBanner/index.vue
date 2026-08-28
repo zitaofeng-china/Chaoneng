@@ -54,8 +54,8 @@
                 </template>
               </ElImage>
               <span class="field-tip">
-                仅支持 JPG、PNG、WebP；上传后可裁剪为 4:1 横幅，裁剪结果大小不超过 2MB，推荐
-                1600×400 或 1920×480。
+                仅支持 JPG、PNG、WebP；上传后可裁剪为 16:7 横幅，裁剪结果大小不超过 2MB，推荐
+                1600×700 或 1920×840。
               </span>
             </div>
           </ElFormItem>
@@ -121,7 +121,7 @@
           />
         </div>
         <div class="cropper-tip">
-          请调整图片位置和裁剪区域，最终会按 4:1 横幅比例上传，最长边不超过 1920px。
+          请调整图片位置和裁剪区域，最终会按 16:7 横幅比例上传，最长边不超过 1920px。
         </div>
 
         <template #footer>
