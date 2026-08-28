@@ -180,6 +180,9 @@ const lookupOne = async (ip: string) => {
   return resolved
 }
 
+export const buildIpLookupUrl = (ip: string) =>
+  `https://ippure.com/?ip=${encodeURIComponent(String(ip).trim())}`
+
 export const resolveIpLocationSync = (ip?: string) => {
   const value = String(ip || '').trim()
   if (!value) return ''
