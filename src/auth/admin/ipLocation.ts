@@ -97,7 +97,7 @@ const fromUserAgentInfo = async (ip: string) => {
 }
 
 const fromIpWho = async (ip: string) => {
-  const data = await fetchJson(`https://ipwho.is/${encodeURIComponent(ip)}`)
+  const data = await fetchJson(`https://ipwho.is/${encodeURIComponent(ip)}?lang=zh-CN`)
   if (data.success === false) return ''
   return composeIpAddress(
     String(data.city || ''),
