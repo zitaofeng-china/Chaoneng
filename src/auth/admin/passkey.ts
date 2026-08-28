@@ -128,16 +128,76 @@ export const suggestPasskeyDisplayName = async () => {
   return '我的此设备'
 }
 
+type PasskeyErrorLike = {
+  name?: string
+  msg?: string
+  message?: string
+  response?: { data?: { msg?: string; message?: string } }
+}
+
+const pickPasskeyErrorText = (error: unknown) => {
+  const err = error as PasskeyErrorLike | undefined
+  return String(
+    err?.msg || err?.message || err?.response?.data?.msg || err?.response?.data?.message || ''
+  ).trim()
+}
+
+const hasLatinSentence = (text: string) =>
+  /[A-Za-z]{4,}(?:[\s_-]+[A-Za-z]{3,})+/.test(text) || /[A-Za-z]{10,}/.test(text)
+
+const PASSKEY_ERROR_ZH: Array<[RegExp, string]> = [
+  [/notallowed|the operation was aborted|user cancelled|abort error/i, '通行密钥操作已取消'],
+  [
+    /令牌无效或已过期|(?:token|ceremony|challenge|session).*(?:invalid|expired)|(?:invalid|expired).*(?:token|ceremony|challenge|session)/i,
+    '通行密钥验证已过期，请重新点击登录'
+  ],
+  [
+    /failed to lookup client-side discoverable credential/i,
+    '未找到可用的通行密钥，请重试或使用密码登录'
+  ],
+  [
+    /error validating the authenticator response|authenticator response did not pass validation/i,
+    '通行密钥验证失败，请确认使用已绑定的密钥后重试'
+  ],
+  [
+    /unable to find the credential|credential (?:id )?is not|unknown credential|no credentials/i,
+    '本机通行密钥未在该账号登记，请改用密码登录或重新绑定'
+  ],
+  [/sessiondata.*userid|user\.id do not match|user (?:id )?mismatch/i, '通行密钥与当前账号不匹配'],
+  [/proof of user verification/i, '需要完成指纹、面容或锁屏验证'],
+  [/proof of user presence/i, '需要在本机确认通行密钥操作'],
+  [
+    /relying party|rp id|well-known\/webauthn/i,
+    '通行密钥域名不匹配：请在与站点域名一致的 HTTPS 地址下操作，本地 localhost 无法绑定测试环境的通行密钥'
+  ],
+  [/invalid origin|origin not allowed/i, '当前页面来源不被允许，请使用正式站点登录'],
+  [
+    /invalid attestation|error parsing registration|error creating authenticator/i,
+    '通行密钥绑定失败，请重试'
+  ],
+  [/error (?:getting|parsing) assertion/i, '通行密钥签名失败，请重试']
+]
+
 export const getPasskeyErrorMessage = (error: unknown, fallback: string) => {
-  const err = error as { name?: string; msg?: string; message?: string } | undefined
+  const err = error as PasskeyErrorLike | undefined
   if (err?.name === 'NotAllowedError') return '通行密钥操作已取消'
-  if (
-    err?.name === 'SecurityError' ||
-    /relying party ID|rp id|well-known\/webauthn/i.test(String(err?.message || ''))
-  ) {
+  if (err?.name === 'InvalidStateError') return '该通行密钥已在本机登记，请直接登录或换用其他设备'
+  if (err?.name === 'NotSupportedError') return '当前浏览器不支持通行密钥'
+  if (err?.name === 'ConstraintError') return '当前设备不满足通行密钥要求'
+  if (err?.name === 'TimeoutError') return '通行密钥验证超时，请重试'
+  if (err?.name === 'SecurityError') {
     return '通行密钥域名不匹配：请在与站点域名一致的 HTTPS 地址下操作，本地 localhost 无法绑定测试环境的通行密钥'
   }
-  return err?.msg || err?.message || fallback
+
+  const raw = pickPasskeyErrorText(error)
+  if (!raw) return fallback
+
+  for (const [pattern, zh] of PASSKEY_ERROR_ZH) {
+    if (pattern.test(raw) || pattern.test(err?.name || '')) return zh
+  }
+
+  if (hasLatinSentence(raw)) return fallback
+  return raw
 }
 
 export const getPasskeyAssertion = async (
