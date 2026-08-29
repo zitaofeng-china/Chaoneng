@@ -37,7 +37,12 @@
       </ElFormItem>
 
       <ElFormItem label="关键词" prop="keyword">
-        <ElInput v-model="formData.keyword" placeholder="请输入关键词" />
+        <ElInput
+          v-model="formData.keyword"
+          placeholder="请输入关键词"
+          :maxlength="MAX_REPLY_KEYWORD_LENGTH"
+          show-word-limit
+        />
       </ElFormItem>
 
       <!-- 回复内容编辑器 -->
@@ -203,7 +208,9 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'submitted'])
 
-const { required } = useValidator()
+const { required, maxlength } = useValidator()
+
+const MAX_REPLY_KEYWORD_LENGTH = 32
 
 // 表单 ref
 const elFormRef = ref<FormInstance>()
@@ -583,7 +590,7 @@ const unregisterGlobalDragEvents = () => {
 const formRules = computed(() => {
   const rules: Record<string, any[]> = {
     lang: [required('请选择语音')],
-    keyword: [required('关键词不能为空')],
+    keyword: [required('关键词不能为空'), maxlength(MAX_REPLY_KEYWORD_LENGTH)],
     content: [required('回复内容不能为空')],
     status: [required('请选择状态')]
   }
