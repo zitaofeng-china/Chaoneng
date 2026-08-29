@@ -37,7 +37,8 @@
           <BaseButton type="primary" size="small">选择文件</BaseButton>
         </ElUpload>
         <p class="text-gray-500 text-sm m-0">
-          支持图片（PNG、JPEG、JPG、GIF、WEBP）和视频（MP4、AVI、MOV），图片或视频只能上传 1 个文件
+          支持图片（PNG、JPEG、JPG、GIF、WEBP）和视频（MP4、AVI、MOV），图片或视频只能上传 1
+          个文件，单个文件不超过 10MB
         </p>
       </div>
     </ElFormItem>
@@ -50,7 +51,12 @@ import { ElFormItem, ElUpload } from 'element-plus'
 import type { UploadUserFile } from 'element-plus'
 import { BaseButton } from '@/components/Button'
 import { handleWarningMessage } from '@/utils/messageHelper'
-import { getMessageFileType, MAX_MESSAGE_UPLOAD_FILES } from '../messageFile'
+import {
+  getMessageFileType,
+  isMessageUploadFileOversize,
+  MAX_MESSAGE_UPLOAD_FILES,
+  MESSAGE_UPLOAD_OVERSIZE_MESSAGE
+} from '../messageFile'
 import VideoPoster from './VideoPoster.vue'
 
 defineProps({
@@ -67,6 +73,15 @@ const handlePreview = (uploadFile: UploadUserFile) => {
 }
 
 const handleChange = (file: UploadUserFile, fileList: UploadUserFile[]) => {
+  if (isMessageUploadFileOversize(file)) {
+    handleWarningMessage(MESSAGE_UPLOAD_OVERSIZE_MESSAGE)
+    emit(
+      'change',
+      file,
+      fileList.filter((item) => item.uid !== file.uid)
+    )
+    return
+  }
   emit('change', file, fileList)
 }
 
