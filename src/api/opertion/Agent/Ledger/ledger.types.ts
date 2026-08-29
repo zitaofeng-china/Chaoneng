@@ -49,9 +49,13 @@ export interface AgentBillItem {
 }
 
 /**
- * 代理账单累计金额统计
+ * 代理账单累计金额统计（当前筛选条件下）
  */
 export interface AgentBillStats {
+  sum_income?: number | string
+  sum_expense?: number | string
+  /** 兼容后端拼写 */
+  sum_inome?: number | string
   sum_flow_in_trx?: number | string
   sum_flow_out_trx?: number | string
   sum_flow_in_usdt?: number | string

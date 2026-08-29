@@ -240,11 +240,22 @@ export interface UserBillItemV1 {
 }
 
 /**
+ * 用户账单累计金额统计（当前筛选条件下）
+ */
+export interface UserBillStats {
+  sum_income?: number | string
+  sum_expense?: number | string
+  /** 兼容后端拼写 */
+  sum_inome?: number | string
+}
+
+/**
  * 用户账单列表响应 - 新接口 v1
  */
 export interface UserBillListResponseV1 {
   list: UserBillItemV1[] // 账单列表
   pager: Pager // 分页信息
+  stats?: UserBillStats
 }
 
 // ========== 旧类型定义 ==========

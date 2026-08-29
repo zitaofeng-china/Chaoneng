@@ -16,6 +16,18 @@
             导出
           </BaseButton>
         </template>
+        <template #beforeTable>
+          <div class="ledger-stats-row">
+            <div class="stat-box">
+              <div class="stat-label">累计收入</div>
+              <div class="stat-in">{{ formatFundAmount(ledgerStats.inAmount, false) }}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">累计支出</div>
+              <div class="stat-out">{{ formatFundAmount(ledgerStats.outAmount, true) }}</div>
+            </div>
+          </div>
+        </template>
       </SearchTable>
     </ContentWrap>
   </div>
@@ -34,7 +46,8 @@ import type { TableColumn } from '@/components/Table'
 import {
   v1GetUserBillList,
   type UserBillItemV1,
-  type UserBillListParamsV1
+  type UserBillListParamsV1,
+  type UserBillStats
 } from '@/api/management/common/tgUser'
 import { v1GetMessageBotList, type MessageBotItem } from '@/api/management/common/message'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
@@ -74,6 +87,43 @@ const isBotListLoaded = ref(false)
 const router = useRouter()
 const currentSearchParams = ref<UserLedgerSearchParams>({})
 const USER_LEDGER_EXPORT_ORDER = 'created_at DESC'
+
+interface UserLedgerStats {
+  inAmount: number
+  outAmount: number
+}
+
+const emptyLedgerStats = (): UserLedgerStats => ({ inAmount: 0, outAmount: 0 })
+const ledgerStats = ref<UserLedgerStats>(emptyLedgerStats())
+
+const parseAmountValue = (value: unknown) => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0
+  const matched = String(value ?? '')
+    .replace(/,/g, '')
+    .match(/-?\d+(?:\.\d+)?/)
+  const amount = matched ? Number(matched[0]) : 0
+  return Number.isFinite(amount) ? amount : 0
+}
+
+const formatFundAmount = (value: number, isOut: boolean) => {
+  const abs = Math.abs(Number(value) || 0)
+  const text = abs.toLocaleString('zh-CN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 8
+  })
+  return `${isOut ? '-' : '+'}${text}`
+}
+
+const applyUserBillStats = (stats?: UserBillStats) => {
+  if (!stats) {
+    ledgerStats.value = emptyLedgerStats()
+    return
+  }
+  ledgerStats.value = {
+    inAmount: Math.abs(parseAmountValue(stats.sum_income ?? stats.sum_inome)),
+    outAmount: Math.abs(parseAmountValue(stats.sum_expense))
+  }
+}
 
 type UserLedgerSearchParams = Omit<UserBillListParamsV1, 'kinds'> & {
   kind?: number | string
@@ -148,6 +198,7 @@ const fetchUserBillList = async (params: UserLedgerSearchParams = {}) => {
     const response = await v1GetUserBillList(buildUserBillParams(params))
     const list = response.data?.list || []
     currentSearchParams.value = params
+    applyUserBillStats(response.data?.stats)
 
     const hasSearchCondition = [params.keyword, params.bot_id, params.kind, params.dateRange].some(
       hasSearchValue
@@ -155,6 +206,7 @@ const fetchUserBillList = async (params: UserLedgerSearchParams = {}) => {
     handleListMessage(list, hasSearchCondition, '用户账单')
     return { list, total: response.data?.pager?.total || 0 }
   } catch (error) {
+    ledgerStats.value = emptyLedgerStats()
     handleErrorMessage(error, '获取用户账单列表失败')
     return { list: [], total: 0 }
   }
@@ -343,4 +395,41 @@ const handleExport = async () => {
 onMounted(loadBotList)
 </script>
 
-<style scoped></style>
+<style scoped>
+.ledger-stats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.stat-box {
+  min-width: 220px;
+  padding: 12px 16px;
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+}
+
+.stat-label {
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #909399;
+}
+
+.stat-in,
+.stat-out {
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-in {
+  color: #67c23a;
+}
+
+.stat-out {
+  color: #f56c6c;
+}
+</style>

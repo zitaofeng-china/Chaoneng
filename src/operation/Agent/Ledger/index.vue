@@ -19,11 +19,12 @@
         <template #beforeTable>
           <div class="ledger-stats-row">
             <div class="stat-box">
-              <div class="stat-label">累计金额变化</div>
-              <div class="stat-value-row">
-                <span class="stat-in">{{ formatFundAmount(ledgerStats.inAmount, false) }}</span>
-                <span class="stat-out">{{ formatFundAmount(ledgerStats.outAmount, true) }}</span>
-              </div>
+              <div class="stat-label">累计收入</div>
+              <div class="stat-in">{{ formatFundAmount(ledgerStats.inAmount, false) }}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">累计支出</div>
+              <div class="stat-out">{{ formatFundAmount(ledgerStats.outAmount, true) }}</div>
             </div>
           </div>
         </template>
@@ -91,6 +92,8 @@ const emptyLedgerStats = (): AgentLedgerStats => ({ inAmount: 0, outAmount: 0 })
 const ledgerStats = ref<AgentLedgerStats>(emptyLedgerStats())
 
 const FUND_IN_STAT_KEYS = [
+  'sum_income',
+  'sum_inome',
   'sum_flow_in_trx',
   'sum_in_trx',
   'total_in_trx',
@@ -100,6 +103,7 @@ const FUND_IN_STAT_KEYS = [
   'in'
 ]
 const FUND_OUT_STAT_KEYS = [
+  'sum_expense',
   'sum_flow_out_trx',
   'sum_out_trx',
   'total_out_trx',
@@ -529,9 +533,8 @@ onActivated(async () => {
   color: #909399;
 }
 
-.stat-value-row {
-  display: flex;
-  gap: 16px;
+.stat-in,
+.stat-out {
   font-size: 18px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
