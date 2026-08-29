@@ -66,6 +66,24 @@ export const getMessageFileType = (file: MessageFileLike): MessageFileType =>
 /** 消息/关键词回复仅允许上传 1 个文件（图片或视频） */
 export const MAX_MESSAGE_UPLOAD_FILES = 1
 
+/** 单个上传文件最大 10MB */
+export const MAX_MESSAGE_UPLOAD_FILE_SIZE = 10 * 1024 * 1024
+
+export const MESSAGE_UPLOAD_OVERSIZE_MESSAGE = '文件大小不能超过 10MB'
+
+export const getMessageUploadFileSize = (file?: MessageFileLike | null) => {
+  if (!file || typeof file === 'string') return 0
+  if (file instanceof File) return file.size
+
+  const raw = getUploadFileRaw(file)
+  if (raw) return raw.size
+  if (isObject(file) && typeof file.size === 'number') return file.size
+  return 0
+}
+
+export const isMessageUploadFileOversize = (file?: MessageFileLike | null) =>
+  getMessageUploadFileSize(file) > MAX_MESSAGE_UPLOAD_FILE_SIZE
+
 export const toSingleFileUrl = (value?: string | string[] | null): string => {
   if (typeof value === 'string') return value.trim()
   if (Array.isArray(value)) {
