@@ -1,25 +1,9 @@
 import request from '@/axios'
 import type { UserType } from '@/api/common/login/types'
 import { normalizePermissionNames } from '@/operation/constants/permissionTable'
-import { getAdminSecurity, type AdminMe } from './types'
+import { getAdminSecurity, parseUnixSeconds, type AdminMe } from './types'
 
-export const toUnixSeconds = (value: unknown): number | undefined => {
-  if (value === undefined || value === null || value === '') return undefined
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value > 1e12 ? Math.floor(value / 1000) : value
-  }
-  if (typeof value === 'string') {
-    const trimmed = value.trim()
-    if (!trimmed) return undefined
-    if (/^\d+(\.\d+)?$/.test(trimmed)) {
-      const numeric = Number(trimmed)
-      return numeric > 1e12 ? Math.floor(numeric / 1000) : numeric
-    }
-    const milliseconds = Date.parse(trimmed)
-    if (!Number.isNaN(milliseconds)) return Math.floor(milliseconds / 1000)
-  }
-  return undefined
-}
+export const toUnixSeconds = (value: unknown): number | undefined => parseUnixSeconds(value)
 
 const readPermissions = (me: AdminMe): string[] => {
   const permissions = normalizePermissionNames(getAdminSecurity(me).permissions)
