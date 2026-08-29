@@ -3,6 +3,7 @@ import { ElMessage } from 'element-plus'
 import qs from 'qs'
 import { SUCCESS_CODE, TRANSFORM_REQUEST_DATA } from '@/constants'
 import { expireAdminSession } from '@/store/modules/adminAuth'
+import { isAdminAuthPath } from '@/auth/admin/api'
 import { objToFormData } from '@/utils'
 
 /** 登录失效业务码（后端可能返回 number 或 string） */
@@ -65,9 +66,18 @@ const defaultResponseInterceptors = (response: AxiosResponse) => {
     ) {
       return response
     }
+    // 400002 交给刷新拦截器：不能 toast / reject，否则会丢掉原请求、也不会换新令牌。
     if (isAuthExpiredCode(response?.data?.code)) {
-      if ((response.config as any)?.skipAuthRefresh) {
+      const authConfig = response.config as {
+        skipAuthRefresh?: boolean
+        _adminAuthRetried?: boolean
+        url?: string
+      }
+      if (authConfig?.skipAuthRefresh) {
         return Promise.reject(response?.data)
+      }
+      if (!authConfig?._adminAuthRetried && !isAdminAuthPath(authConfig?.url)) {
+        return response
       }
       return expireAdminSession()
     }
