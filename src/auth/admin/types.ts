@@ -7,12 +7,26 @@ export interface AdminSession {
   token_type: 'Bearer'
 }
 
-/** 登录/刷新返回的 unix 秒；兼容毫秒和数字字符串。 */
-export const parseUnixSeconds = (value?: UnixTimestamp | null): number | undefined => {
+/** 登录/刷新过期时间：ISO 时间（如 2026-08-15T12:15:00+08:00）、unix 秒或毫秒。 */
+export const parseUnixSeconds = (value?: unknown): number | undefined => {
   if (value == null || value === '') return undefined
-  const n = typeof value === 'number' ? value : Number(value)
-  if (!Number.isFinite(n) || n <= 0) return undefined
-  return n > 1e12 ? Math.floor(n / 1000) : Math.floor(n)
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value) || value <= 0) return undefined
+    return value > 1e12 ? Math.floor(value / 1000) : Math.floor(value)
+  }
+  if (typeof value !== 'string') return undefined
+
+  const trimmed = value.trim()
+  if (!trimmed) return undefined
+  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+    const n = Number(trimmed)
+    if (!Number.isFinite(n) || n <= 0) return undefined
+    return n > 1e12 ? Math.floor(n / 1000) : Math.floor(n)
+  }
+
+  const ms = Date.parse(trimmed)
+  if (!Number.isFinite(ms) || ms <= 0) return undefined
+  return Math.floor(ms / 1000)
 }
 
 export interface AdminNotify {
