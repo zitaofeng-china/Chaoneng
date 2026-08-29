@@ -138,8 +138,10 @@ import MessagePreviewDialog from '@/operation/components/MessageDialog/component
 import InlineButtonDialog from '@/operation/components/InlineButtonDialog.vue'
 import {
   MAX_MESSAGE_UPLOAD_FILES,
+  MESSAGE_UPLOAD_OVERSIZE_MESSAGE,
   clampMessageUploadFiles,
   getMessageFileType,
+  isMessageUploadFileOversize,
   toSingleFileUrl
 } from '@/components/business/message/MessageDialog/messageFile'
 import { v1GetInnerButtonList, type InnerButtonItem } from '@/api/opertion/common/menuList'
@@ -363,7 +365,8 @@ const handlePreview = (uploadFile: UploadUserFile) => {
 }
 
 const handleFileChange = (_file: UploadUserFile, fileList: UploadUserFile[]) => {
-  const nextFileList = normalizeUploadFileList(fileList)
+  const validFileList = fileList.filter((item) => !isMessageUploadFileOversize(item))
+  const nextFileList = normalizeUploadFileList(validFileList)
   if (fileList.length > MAX_MESSAGE_UPLOAD_FILES) {
     ElMessage.warning('只能上传 1 个文件，请先删除已选文件后再上传')
   }
@@ -480,6 +483,11 @@ const buildPreviewData = () => {
 const replaceWithDroppedFile = (file: File) => {
   if (!isAcceptedUploadFile(file)) {
     ElMessage.warning('仅支持图片 PNG/JPEG/JPG/GIF/WEBP 或视频 MP4/AVI/MOV')
+    return
+  }
+
+  if (isMessageUploadFileOversize(file)) {
+    ElMessage.warning(MESSAGE_UPLOAD_OVERSIZE_MESSAGE)
     return
   }
 
@@ -661,9 +669,7 @@ const handleConfirmSubmit = async (buttonLayout?: number[][]) => {
   submitLoading.value = true
   try {
     const uploadedFile = await uploadSelectedFile()
-    const normalizedButtonLayout = isStartKeyword.value
-      ? []
-      : normalizeButtonLayout(buttonLayout)
+    const normalizedButtonLayout = isStartKeyword.value ? [] : normalizeButtonLayout(buttonLayout)
     const normalizedSelectedInlineButtonIds = isStartKeyword.value
       ? []
       : normalizedButtonLayout.length
