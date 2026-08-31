@@ -897,7 +897,7 @@ const handleExport = async () => {
         分类: getAgentLevelLabel(item),
         出入款: getDirection(item) === 'out' ? '出款' : '收款',
         数量: formatAmountDisplay(item),
-        资金池: getUnitLabel(item),
+        单位: getUnitLabel(item),
         出款地址: getFromAddress(item),
         收款地址: getToAddress(item),
         状态: getChainRecordStatusLabel(item),
@@ -990,7 +990,7 @@ const columns: TableColumn[] = [
   },
   {
     field: 'unit',
-    label: '资金池',
+    label: '单位',
     minWidth: 130,
     formatter: (row: ChainRecordItem) => getUnitLabel(row)
   },
@@ -1087,7 +1087,7 @@ const searchSchema = ref<FormSchema[]>([
   {
     field: 'unit',
     component: 'Select' as const,
-    label: '资金池',
+    label: '单位',
     componentProps: {
       placeholder: '全部',
       clearable: true,
