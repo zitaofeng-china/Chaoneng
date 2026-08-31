@@ -20,7 +20,7 @@ export interface SystemBillListParams {
   order?: string
   order_id?: string
   page_size?: number
-  pool_kind?: number // 资金池：1-TRX池子，2-USDT池子，3-能量池子，4-带宽池子，5-激活池子，6-能量接收池子，7-带宽接收池子，8-财务池子
+  unit?: string // 资金池：TRX, USDT, Energy, Bandwidth
   price_id?: number
   resource_type?: number // 资源类型：0=带宽，1=能量
   status?: number | string // 状态：1=正常，2=交易失败，3=未匹配，4=订单异常
@@ -38,7 +38,7 @@ export interface SystemBillItem extends Recordable {
   id: string
   kind: number // 交易类型：1-代理充值，2-用户充值，3-闪兑，4-时间能量，5-笔数能量，6-福利能量，81-补充资源，82-资源收购
   order_id: string
-  pool_kind: number // 资金池：1-TRX池子，2-USDT池子，3-能量池子，4-带宽池子，5-激活池子，6-能量接收池子，7-带宽接收池子，8-财务池子
+  unit?: string // 资金池：TRX, USDT, Energy, Bandwidth
   price_id?: number
   resource_type?: number | string // 资源类型：0=带宽，1=能量
   status: number // 状态：1=正常，2=交易失败，3=未匹配，4=订单异常

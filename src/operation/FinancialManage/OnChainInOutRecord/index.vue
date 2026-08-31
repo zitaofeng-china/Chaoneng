@@ -61,18 +61,15 @@ import {
 } from '@/utils/tableHelpers'
 import { getTronscanTransactionUrl } from '@/utils/tronscan'
 import { OrderStatus } from '@/utils/orderStatus'
-import {
-  RESOURCE_POOL_TYPE_MAP,
-  RESOURCE_POOL_TYPE_OPTIONS
-} from '@/operation/SystemConfig/ResourcePool/constants'
 
 type ChainRecordDirection = 'out' | 'in'
+type ChainRecordUnit = 'TRX' | 'USDT' | 'Energy' | 'Bandwidth'
 type ChainRecordItem = SystemBillItem & Record<string, unknown>
 type ChainRecordTableSlot = TableSlot<ChainRecordItem>
 type ChainRecordSearchParams = SystemBillListParams &
   Recordable & {
     direction?: ChainRecordDirection | ''
-    pool_kind?: number | string
+    unit?: ChainRecordUnit | string
     price_id?: number | string
     status?: ChainRecordStatus | string
     dateRange?: DateRangeValue
@@ -163,11 +160,25 @@ const DIRECTION_OPTIONS = withAllOption([
   { label: '收款', value: 'in' }
 ])
 
-const CHAIN_RECORD_POOL_KIND_SEARCH_OPTIONS = withAllOption(RESOURCE_POOL_TYPE_OPTIONS.slice(0, 4))
+const SYSTEM_BILL_UNITS: ChainRecordUnit[] = ['TRX', 'USDT', 'Energy', 'Bandwidth']
 
-const POOL_KIND_CURRENCY_MAP: Record<number, string> = {
-  1: 'T',
-  2: 'U'
+const SYSTEM_BILL_UNIT_LABEL_MAP: Record<ChainRecordUnit, string> = {
+  TRX: 'TRX',
+  USDT: 'USDT',
+  Energy: '能量',
+  Bandwidth: '带宽'
+}
+
+const SYSTEM_BILL_UNIT_SEARCH_OPTIONS = withAllOption(
+  SYSTEM_BILL_UNITS.map((value) => ({
+    label: SYSTEM_BILL_UNIT_LABEL_MAP[value],
+    value
+  }))
+)
+
+const UNIT_CURRENCY_MAP: Record<string, string> = {
+  TRX: 'T',
+  USDT: 'U'
 }
 
 const FLOW_DIRECTION_MAP: Record<number, ChainRecordDirection> = {
@@ -300,20 +311,22 @@ const extractCurrencyFromAmount = (value?: unknown) => {
   return normalizeCurrency(matched?.[1])
 }
 
-const getPoolKind = (row: ChainRecordItem) => {
-  const value = Number(pickValue(row, ['pool_kind']))
-  return Number.isFinite(value) && value > 0 ? value : undefined
+const normalizeUnit = (value?: unknown): ChainRecordUnit | '' => {
+  const raw = String(value ?? '').trim()
+  if (!raw) return ''
+  return SYSTEM_BILL_UNITS.find((unit) => unit.toLowerCase() === raw.toLowerCase()) || ''
 }
 
-const getPoolKindLabel = (row: ChainRecordItem) => {
-  const poolKind = getPoolKind(row)
-  if (!poolKind) return '-'
-  return RESOURCE_POOL_TYPE_MAP[poolKind] || '-'
+const getUnit = (row: ChainRecordItem) => normalizeUnit(pickValue(row, ['unit']))
+
+const getUnitLabel = (row: ChainRecordItem) => {
+  const unit = getUnit(row)
+  return unit ? SYSTEM_BILL_UNIT_LABEL_MAP[unit] : '-'
 }
 
 const getCurrency = (row: ChainRecordItem) => {
-  const poolKind = getPoolKind(row)
-  if (poolKind && POOL_KIND_CURRENCY_MAP[poolKind]) return POOL_KIND_CURRENCY_MAP[poolKind]
+  const unit = getUnit(row)
+  if (unit && UNIT_CURRENCY_MAP[unit]) return UNIT_CURRENCY_MAP[unit]
   return extractCurrencyFromAmount(row.amount)
 }
 
@@ -701,7 +714,8 @@ const buildChainRecordParams = (params: ChainRecordSearchParams = {}) => {
   if (hasSearchValue(params.direction)) {
     apiParams.flow = DIRECTION_FLOW_MAP[params.direction as ChainRecordDirection]
   }
-  if (hasSearchValue(params.pool_kind)) apiParams.pool_kind = Number(params.pool_kind)
+  const selectedUnit = normalizeUnit(params.unit)
+  if (selectedUnit) apiParams.unit = selectedUnit
   if (hasSearchValue(params.price_id)) apiParams.price_id = Number(params.price_id)
   const selectedStatus = parseChainRecordStatus(params.status)
   if (selectedStatus) apiParams.status = selectedStatus
@@ -822,7 +836,7 @@ const fetchChainRecordList = async (params: ChainRecordSearchParams = {}) => {
           params.keyword,
           params.kinds,
           params.direction,
-          params.pool_kind,
+          params.unit,
           params.price_id,
           params.status,
           params.dateRange
@@ -883,7 +897,7 @@ const handleExport = async () => {
         分类: getAgentLevelLabel(item),
         出入款: getDirection(item) === 'out' ? '出款' : '收款',
         数量: formatAmountDisplay(item),
-        资金池: getPoolKindLabel(item),
+        资金池: getUnitLabel(item),
         出款地址: getFromAddress(item),
         收款地址: getToAddress(item),
         状态: getChainRecordStatusLabel(item),
@@ -975,10 +989,10 @@ const columns: TableColumn[] = [
     }
   },
   {
-    field: 'pool_kind',
+    field: 'unit',
     label: '资金池',
     minWidth: 130,
-    formatter: (row: ChainRecordItem) => getPoolKindLabel(row)
+    formatter: (row: ChainRecordItem) => getUnitLabel(row)
   },
   {
     field: 'from_address',
@@ -1071,13 +1085,13 @@ const searchSchema = ref<FormSchema[]>([
     }
   },
   {
-    field: 'pool_kind',
+    field: 'unit',
     component: 'Select' as const,
     label: '资金池',
     componentProps: {
       placeholder: '全部',
       clearable: true,
-      options: CHAIN_RECORD_POOL_KIND_SEARCH_OPTIONS,
+      options: SYSTEM_BILL_UNIT_SEARCH_OPTIONS,
       style: { width: '180px' }
     }
   },
