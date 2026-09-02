@@ -141,6 +141,7 @@ export const buildEmailCodeVerification = (email_code: string): SecurityVerifica
 /** GET /v1/admin/security/passkey */
 export interface AdminPasskey {
   created_at?: string | number
+  credential_id?: string
   device_id?: string
   id: number | string
   last_used_at?: string | number
@@ -218,6 +219,7 @@ export interface PasskeyRegistrationBody {
   account: string
   ceremony_id: string
   credential: PasskeyCredentialPayload
+  device_id?: string
   email_code: string
   name: string
 }

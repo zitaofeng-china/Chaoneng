@@ -49,7 +49,34 @@ export const rememberPasskeyCredentialId = (credentialId: string) => {
   if (credentialId) localStorage.setItem(lastCredentialStorageKey, credentialId)
 }
 
-const getLastPasskeyCredentialId = () => localStorage.getItem(lastCredentialStorageKey) || undefined
+export const getLastPasskeyCredentialId = () =>
+  localStorage.getItem(lastCredentialStorageKey) || undefined
+
+export const LOCAL_NATIVE_PASSKEY_EXISTS_MESSAGE =
+  '本机已有该账号的通行密钥，无法再添加。同一台电脑的浏览器原生通常只能保存一把。多把密钥请换其他电脑、手机或安全密钥。'
+
+type PasskeyDeviceHint = {
+  credential_id?: string
+  device_id?: string
+  id?: number | string
+}
+
+/** 本机已为该账号创建过原生通行密钥。列表为空时允许首次绑定。 */
+export const hasLocalNativePasskey = (passkeys: PasskeyDeviceHint[]) => {
+  if (!passkeys.length) return false
+  const deviceId = localStorage.getItem(deviceStorageKey) || ''
+  const lastId = getLastPasskeyCredentialId()
+  if (deviceId && passkeys.some((item) => item.device_id && item.device_id === deviceId)) {
+    return true
+  }
+  if (
+    lastId &&
+    passkeys.some((item) => item.credential_id === lastId || String(item.id) === lastId)
+  ) {
+    return true
+  }
+  return Boolean(lastId)
+}
 
 export const isPasskeySupported = () =>
   typeof window !== 'undefined' &&
@@ -181,7 +208,9 @@ const PASSKEY_ERROR_ZH: Array<[RegExp, string]> = [
 export const getPasskeyErrorMessage = (error: unknown, fallback: string) => {
   const err = error as PasskeyErrorLike | undefined
   if (err?.name === 'NotAllowedError') return '通行密钥操作已取消'
-  if (err?.name === 'InvalidStateError') return '该通行密钥已在本机登记，请直接登录或换用其他设备'
+  if (err?.name === 'InvalidStateError') {
+    return '本机已有该账号的通行密钥，同一浏览器原生通常只能保存一把，请直接登录或换用其他设备'
+  }
   if (err?.name === 'NotSupportedError') return '当前浏览器不支持通行密钥'
   if (err?.name === 'ConstraintError') return '当前设备不满足通行密钥要求'
   if (err?.name === 'TimeoutError') return '通行密钥验证超时，请重试'

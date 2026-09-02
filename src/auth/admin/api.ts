@@ -168,6 +168,7 @@ const normalizeAdminPasskeyList = (data: unknown): AdminPasskey[] => {
         | string
         | number
         | undefined,
+      credential_id: (row.credential_id ?? row.credentialId) as string | undefined,
       device_id: row.device_id as string | undefined
     }
   })

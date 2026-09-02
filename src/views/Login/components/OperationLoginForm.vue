@@ -24,6 +24,7 @@ import { EMAIL_CODE_RESEND_SECONDS } from '@/auth/admin/emailCode'
 import { buildUserTypeFromAdminMe } from '@/auth/admin/me'
 import {
   createPasskeyCredential,
+  getPasskeyDeviceId,
   getPasskeyErrorMessage,
   isPasskeySupported,
   rememberPasskeyCredentialId,
@@ -181,6 +182,7 @@ const onBindConfirm = async (payload: { email_code: string; name: string }) => {
       credential,
       name: payload.name,
       account,
+      device_id: getPasskeyDeviceId(),
       email_code: payload.email_code
     })
     bindPhase.value = 'result'

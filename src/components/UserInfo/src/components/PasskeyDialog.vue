@@ -22,8 +22,11 @@ import {
 } from '@/auth/admin/api'
 import {
   createPasskeyCredential,
+  getPasskeyDeviceId,
   getPasskeyErrorMessage,
+  hasLocalNativePasskey,
   isPasskeySupported,
+  LOCAL_NATIVE_PASSKEY_EXISTS_MESSAGE,
   rememberPasskeyCredentialId
 } from '@/auth/admin/passkey'
 import { toUnixSeconds } from '@/auth/admin/me'
@@ -55,6 +58,7 @@ const supported = isPasskeySupported()
 let timer: number | undefined
 const emailCodePurpose = computed(() => (action.value === 'set' ? 'set_passkey' : 'delete_passkey'))
 const hasPasskeys = computed(() => passkeys.value.length > 0)
+const currentDeviceHasPasskey = computed(() => hasLocalNativePasskey(passkeys.value))
 const selectedPasskey = computed(
   () => passkeys.value.find((item) => String(item.id) === selectedId.value) || passkeys.value[0]
 )
@@ -81,8 +85,8 @@ const actions = computed(() => [
   {
     value: 'set' as const,
     title: '添加',
-    desc: '为当前账号登记通行密钥',
-    disabled: false
+    desc: currentDeviceHasPasskey.value ? '本机已有通行密钥，无法再添加' : '为当前账号登记通行密钥',
+    disabled: currentDeviceHasPasskey.value
   },
   {
     value: 'remove' as const,
@@ -214,6 +218,13 @@ const sendCode = async () => {
 }
 
 const save = async () => {
+  if (currentDeviceHasPasskey.value) {
+    await ElMessageBox.alert(LOCAL_NATIVE_PASSKEY_EXISTS_MESSAGE, '无法在本机添加', {
+      type: 'warning',
+      confirmButtonText: '知道了'
+    }).catch(() => {})
+    return
+  }
   const name = passkeyName.value.trim()
   const account = email.value.trim()
   if (!account) {
@@ -226,6 +237,13 @@ const save = async () => {
     account,
     email_code: emailCode.value
   })
+  if (hasLocalNativePasskey(passkeys.value)) {
+    await ElMessageBox.alert(LOCAL_NATIVE_PASSKEY_EXISTS_MESSAGE, '无法在本机添加', {
+      type: 'warning',
+      confirmButtonText: '知道了'
+    }).catch(() => {})
+    return
+  }
   const credential = await createPasskeyCredential(
     challenge.options as Parameters<typeof createPasskeyCredential>[0]
   )
@@ -235,6 +253,7 @@ const save = async () => {
     credential,
     name,
     account,
+    device_id: getPasskeyDeviceId(),
     email_code: emailCode.value
   })
   finish(result.msg || '通行密钥设置成功，请重新登录')
@@ -270,6 +289,9 @@ const remove = async () => {
 }
 
 const submit = async () => {
+  if (action.value === 'set' && currentDeviceHasPasskey.value) {
+    return ElMessage.warning(LOCAL_NATIVE_PASSKEY_EXISTS_MESSAGE)
+  }
   if (action.value === 'set' && !supported) {
     return ElMessage.warning('当前环境不支持通行密钥')
   }
@@ -386,7 +408,10 @@ onBeforeUnmount(() => window.clearInterval(timer))
       <ElButton
         :type="action === 'remove' ? 'danger' : 'primary'"
         :loading="loading"
-        :disabled="(action === 'set' && !supported) || (action === 'remove' && !hasPasskeys)"
+        :disabled="
+          (action === 'set' && (!supported || currentDeviceHasPasskey)) ||
+          (action === 'remove' && !hasPasskeys)
+        "
         @click="submit"
       >
         {{ confirmText }}

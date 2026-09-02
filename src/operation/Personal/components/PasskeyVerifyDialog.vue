@@ -53,7 +53,7 @@ const description = computed(
   () =>
     props.description ||
     (props.action === 'set'
-      ? '添加需要邮箱验证码。确认后将调起本机指纹、面容、屏幕锁定或安全密钥。'
+      ? '添加需要邮箱验证码。同一台设备原生通常只能保存一把，多把请换其他设备。确认后将调起本机指纹、面容、屏幕锁定或安全密钥。'
       : `删除「${props.selectedName || '通行密钥'}」后将无法用于登录，当前会话会立即退出。`)
 )
 const canSend = computed(
