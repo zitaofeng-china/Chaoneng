@@ -83,18 +83,18 @@ router.beforeEach(async (to, from, next) => {
     if (isOperationSystem() && adminAuthStore.isAuthenticated) {
       const needBind = !hasAdminPasskey(userStore.getUserInfo.passkey_count)
       if (needBind) {
-        if (to.path === BIND_PASSKEY_PATH) {
+        if (to.path === '/login') {
           next()
           return
         }
         const redirect =
           typeof to.query.redirect === 'string'
             ? to.query.redirect
-            : to.path !== '/login'
+            : to.path !== BIND_PASSKEY_PATH && to.path !== '/login'
               ? to.fullPath
               : undefined
         next({
-          path: BIND_PASSKEY_PATH,
+          path: '/login',
           query: redirect ? { redirect } : {},
           replace: true
         })

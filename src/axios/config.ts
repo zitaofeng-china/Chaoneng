@@ -12,9 +12,14 @@ export const AUTH_EXPIRED_CODE = '400002'
 /** 敏感操作需要增强认证。HTTP 仍可能是 200，必须看业务码。 */
 export const ELEVATE_REQUIRED_CODE = '000008'
 
+/** 请求过于频繁，前端延迟重试。 */
+export const RATE_LIMIT_CODE = '000006'
+
 export const isAuthExpiredCode = (code: unknown) => String(code ?? '') === AUTH_EXPIRED_CODE
 
 export const isElevateRequiredCode = (code: unknown) => String(code ?? '') === ELEVATE_REQUIRED_CODE
+
+export const isRateLimitCode = (code: unknown) => String(code ?? '') === RATE_LIMIT_CODE
 
 const defaultRequestInterceptors = (config: InternalAxiosRequestConfig) => {
   if (
@@ -92,6 +97,8 @@ const defaultResponseInterceptors = (response: AxiosResponse) => {
         errorMsg.includes('1062')
       ) {
         ElMessage.error('该数据已存在，请勿重复添加')
+      } else if (isRateLimitCode(response?.data?.code)) {
+        ElMessage.warning(response?.data?.msg || '请求过于频繁，请稍后重试')
       } else {
         ElMessage.error(errorMsg)
       }

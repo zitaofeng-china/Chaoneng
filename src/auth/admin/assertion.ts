@@ -23,7 +23,10 @@ export const collectPasskeyAssertion = async (
   }
 
   const device_id = getPasskeyDeviceId()
-  const challenge = await createPasskeyChallenge({ device_id, purpose }, accessToken)
+  const challenge = await createPasskeyChallenge(
+    purpose === 'login' ? { purpose: 'login', device_id } : { purpose: 'elevate', device_id },
+    accessToken
+  )
   const credential = await getPasskeyAssertion(challenge.options)
   rememberPasskeyCredentialId(credential.id)
   return {

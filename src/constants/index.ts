@@ -14,7 +14,7 @@ export const CONTENT_TYPE: AxiosContentType = 'application/json'
 export const REQUEST_TIMEOUT = 60000
 
 /**
- * 运营端登录后强制绑定通行密钥
+ * 历史绑定页路径，未绑定通行密钥时改在登录页弹窗完成
  */
 export const BIND_PASSKEY_PATH = '/bind-passkey'
 
@@ -31,7 +31,6 @@ export const NO_RESET_WHITE_LIST = [
   'RedirectWrap',
   'Login',
   'ResetPassword',
-  'BindPasskey',
   'NoFind',
   'Root'
 ]

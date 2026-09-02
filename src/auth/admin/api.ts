@@ -6,7 +6,7 @@ import type {
   AdminResetTarget,
   AdminSession,
   PasskeyAssertionBody,
-  PasskeyChallengePurpose,
+  PasskeyChallengeRequest,
   PasskeyChallengeResult,
   PasskeyRegistrationBody,
   SecurityVerificationBody
@@ -28,34 +28,88 @@ type ApiResult<T> = {
   msg: string
 }
 
-const unwrap = async <T>(request: Promise<{ data: ApiResult<T> }>) => {
-  const { data } = await request
-  if (data.code !== '000000') {
-    return Promise.reject(data)
+type RequestFactory<T> = () => Promise<{ data: ApiResult<T> }>
+
+const RATE_LIMIT_CODE = '000006'
+const RATE_LIMIT_RETRY = 2
+const RATE_LIMIT_DELAY_MS = 1500
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const toApiError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return error
+  const err = error as {
+    code?: unknown
+    data?: unknown
+    msg?: unknown
+    response?: { data?: { code?: unknown; data?: unknown; msg?: unknown } }
   }
-  return data.data
+  if (typeof err.code === 'string' && (err.msg !== undefined || err.data !== undefined)) {
+    return err
+  }
+  const payload = err.response?.data
+  if (payload && typeof payload === 'object' && payload.code != null) return payload
+  return error
 }
 
-const unwrapWithMsg = async <T>(request: Promise<{ data: ApiResult<T> }>) => {
-  const { data } = await request
-  if (data.code !== '000000') {
-    return Promise.reject(data)
+const isRateLimitError = (error: unknown) =>
+  String((error as { code?: unknown } | undefined)?.code ?? '') === RATE_LIMIT_CODE
+
+const withRateLimitRetry = async <T>(run: () => Promise<T>): Promise<T> => {
+  let last: unknown
+  for (let attempt = 0; attempt <= RATE_LIMIT_RETRY; attempt++) {
+    try {
+      return await run()
+    } catch (error) {
+      last = toApiError(error)
+      if (!isRateLimitError(last) || attempt === RATE_LIMIT_RETRY) {
+        return Promise.reject(last)
+      }
+      await sleep(RATE_LIMIT_DELAY_MS * (attempt + 1))
+    }
   }
-  return { data: data.data, msg: data.msg }
+  return Promise.reject(last)
 }
+
+const unwrap = async <T>(factory: RequestFactory<T>) =>
+  withRateLimitRetry(async () => {
+    try {
+      const { data } = await factory()
+      if (data.code !== '000000') {
+        return Promise.reject(data)
+      }
+      return data.data
+    } catch (error) {
+      return Promise.reject(toApiError(error))
+    }
+  })
+
+const unwrapWithMsg = async <T>(factory: RequestFactory<T>) =>
+  withRateLimitRetry(async () => {
+    try {
+      const { data } = await factory()
+      if (data.code !== '000000') {
+        return Promise.reject(data)
+      }
+      return { data: data.data, msg: data.msg }
+    } catch (error) {
+      return Promise.reject(toApiError(error))
+    }
+  })
 
 export const loginWithPassword = (data: {
   account: string
   password: string
   email_code?: string
   totp_code?: string
-}) => unwrap<AdminSession>(client.post('/v1/admin/auth/login', { method: 'password', ...data }))
+}) =>
+  unwrap<AdminSession>(() => client.post('/v1/admin/auth/login', { method: 'password', ...data }))
 
 export const sendAdminEmailCode = (
-  data: { account?: string; purpose: AdminEmailCodePurpose },
+  data: { account: string; purpose: AdminEmailCodePurpose },
   accessToken?: string
 ) =>
-  unwrap<AdminEmailCodeResult>(
+  unwrap<AdminEmailCodeResult>(() =>
     client.post('/v1/admin/auth/email-code', data, {
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined
     })
@@ -66,14 +120,14 @@ export const registerAdmin = (data: {
   email_code: string
   password: string
   username: string
-}) => unwrap<string>(client.post('/v1/admin/auth/register', data))
+}) => unwrap<string>(() => client.post('/v1/admin/auth/register', data))
 
 export const resetAdminSecurity = (data: {
   account: string
   email_code: string
   target: AdminResetTarget
   new_password?: string
-}) => unwrap<string>(client.post('/v1/admin/auth/reset', data))
+}) => unwrap<string>(() => client.post('/v1/admin/auth/reset', data))
 
 /** @deprecated 使用 resetAdminSecurity */
 export const resetAdminPassword = (data: {
@@ -83,16 +137,10 @@ export const resetAdminPassword = (data: {
 }) => resetAdminSecurity({ ...data, target: 'password' })
 
 export const loginWithPasskey = (data: PasskeyAssertionBody) =>
-  unwrap<AdminSession>(client.post('/v1/admin/auth/login', { method: 'passkey', ...data }))
+  unwrap<AdminSession>(() => client.post('/v1/admin/auth/login', { method: 'passkey', ...data }))
 
-export const createPasskeyChallenge = (
-  data: {
-    device_id?: string
-    purpose: PasskeyChallengePurpose
-  },
-  accessToken?: string
-) =>
-  unwrap<PasskeyChallengeResult>(
+export const createPasskeyChallenge = (data: PasskeyChallengeRequest, accessToken?: string) =>
+  unwrap<PasskeyChallengeResult>(() =>
     client.post('/v1/admin/auth/passkey/challenge', data, {
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined
     })
@@ -126,7 +174,7 @@ const normalizeAdminPasskeyList = (data: unknown): AdminPasskey[] => {
 }
 
 export const listAdminPasskeys = (accessToken: string) =>
-  unwrap<unknown>(
+  unwrap<unknown>(() =>
     client.get('/v1/admin/security/passkey', {
       headers: { Authorization: `Bearer ${accessToken}` }
     })
@@ -143,7 +191,7 @@ export const listAdminLoginLogs = (accessToken: string, params: AdminLoginLogsQu
   }
   if (params.end_time !== undefined && params.end_time !== '') query.end_time = params.end_time
 
-  return unwrap<unknown>(
+  return unwrap<unknown>(() =>
     client.get('/v1/admin/login-logs', {
       params: query,
       headers: { Authorization: `Bearer ${accessToken}` }
@@ -151,10 +199,13 @@ export const listAdminLoginLogs = (accessToken: string, params: AdminLoginLogsQu
   ).then(normalizeAdminLoginLogs)
 }
 
-export const createAdminPasskey = (accessToken: string, data: PasskeyRegistrationBody) =>
-  unwrapWithMsg<string>(
-    client.post('/v1/admin/security/passkey', data, {
-      headers: { Authorization: `Bearer ${accessToken}` }
+export const createAdminPasskey = (
+  accessToken: string | undefined,
+  data: PasskeyRegistrationBody
+) =>
+  unwrapWithMsg<string>(() =>
+    client.post('/v1/admin/auth/passkey', data, {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined
     })
   )
 
@@ -162,21 +213,21 @@ export const createAdminPasskey = (accessToken: string, data: PasskeyRegistratio
 export const saveAdminPasskey = createAdminPasskey
 
 export const elevateAdminSession = (accessToken: string, data: PasskeyAssertionBody) =>
-  unwrap<string>(
+  unwrap<string>(() =>
     client.put('/v1/admin/security/elevate', data, {
       headers: { Authorization: `Bearer ${accessToken}` }
     })
   )
 
 export const bindAdminTotp = (accessToken: string, data: SecurityVerificationBody) =>
-  unwrap<{ key_url: string }>(
+  unwrap<{ key_url: string }>(() =>
     client.put('/v1/admin/security/totp', data, {
       headers: { Authorization: `Bearer ${accessToken}` }
     })
   )
 
 export const deleteAdminTotp = (accessToken: string, data: SecurityVerificationBody) =>
-  unwrap<string>(
+  unwrap<string>(() =>
     client.delete('/v1/admin/security/totp', {
       data,
       headers: { Authorization: `Bearer ${accessToken}` }
@@ -186,19 +237,20 @@ export const deleteAdminTotp = (accessToken: string, data: SecurityVerificationB
 export const deleteAdminPasskey = (
   accessToken: string,
   id: number | string,
-  data: SecurityVerificationBody
+  data: SecurityVerificationBody & { account: string }
 ) =>
-  unwrap<string>(
-    client.delete(`/v1/admin/security/passkey/${encodeURIComponent(String(id))}`, {
+  unwrap<string>(() =>
+    client.delete(`/v1/admin/auth/passkey/${encodeURIComponent(String(id))}`, {
       data,
       headers: { Authorization: `Bearer ${accessToken}` }
     })
   )
 
-export const refreshAdminSession = () => unwrap<AdminSession>(client.post('/v1/admin/auth/refresh'))
+export const refreshAdminSession = () =>
+  unwrap<AdminSession>(() => client.post('/v1/admin/auth/refresh'))
 
 export const logoutAdminSession = (accessToken: string, scope: 'current' | 'all') =>
-  unwrap<string>(
+  unwrap<string>(() =>
     client.post(
       '/v1/admin/auth/logout',
       { scope },
@@ -210,7 +262,7 @@ export const changeAdminPassword = (
   accessToken: string,
   data: { current_password: string; new_password: string }
 ) =>
-  unwrap<string>(
+  unwrap<string>(() =>
     client.put('/v1/admin/security/password', data, {
       headers: { Authorization: `Bearer ${accessToken}` }
     })

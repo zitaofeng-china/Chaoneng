@@ -11,11 +11,15 @@ type PasskeyVerifyAction = 'remove' | 'set'
 
 const props = defineProps<{
   action: PasskeyVerifyAction
+  confirmText?: string
   defaultName?: string
+  description?: string
+  email?: string
   modelValue: boolean
   needEmail: boolean
   selectedName?: string
   submitting?: boolean
+  title?: string
 }>()
 
 const emit = defineEmits<{
@@ -32,12 +36,26 @@ let timer: number | undefined
 
 const visible = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
+  set: (value) => {
+    if (!value && props.submitting) return
+    emit('update:modelValue', value)
+  }
 })
 
 const emailCodePurpose = computed(() => (props.action === 'set' ? 'set_passkey' : 'delete_passkey'))
-const title = computed(() => (props.action === 'set' ? '添加通行密钥' : '删除通行密钥'))
-const confirmText = computed(() => (props.action === 'set' ? '确认添加' : '确认删除'))
+const title = computed(
+  () => props.title || (props.action === 'set' ? '添加通行密钥' : '删除通行密钥')
+)
+const confirmText = computed(
+  () => props.confirmText || (props.action === 'set' ? '确认添加' : '确认删除')
+)
+const description = computed(
+  () =>
+    props.description ||
+    (props.action === 'set'
+      ? '添加需要邮箱验证码。确认后将调起本机指纹、面容、屏幕锁定或安全密钥。'
+      : `删除「${props.selectedName || '通行密钥'}」后将无法用于登录，当前会话会立即退出。`)
+)
 const canSend = computed(
   () => seconds.value === 0 && !sending.value && !props.submitting && !props.needEmail
 )
@@ -82,11 +100,15 @@ const sendCode = async () => {
   if (props.needEmail) {
     return ElMessage.warning('当前账号未绑定邮箱，请先设置邮箱')
   }
+  const account = String(props.email || '').trim()
+  if (!account) {
+    return ElMessage.warning('当前账号未绑定邮箱，请先设置邮箱')
+  }
 
   sending.value = true
   try {
     const result = await sendAdminEmailCode(
-      { purpose: emailCodePurpose.value },
+      { account, purpose: emailCodePurpose.value },
       authStore.getAccessToken
     )
     startCountdown(result.resend_after || EMAIL_CODE_RESEND_SECONDS)
@@ -121,13 +143,7 @@ onBeforeUnmount(() => window.clearInterval(timer))
 <template>
   <Dialog v-model="visible" :title="title" width="480px" :fullscreen="false" max-height="auto">
     <div class="passkey-verify">
-      <p class="passkey-verify__lead">
-        {{
-          action === 'set'
-            ? '添加需要邮箱验证码。确认后将调起本机指纹、面容、屏幕锁定或安全密钥。'
-            : `删除「${selectedName || '通行密钥'}」后将无法用于登录，当前会话会立即退出。`
-        }}
-      </p>
+      <p class="passkey-verify__lead">{{ description }}</p>
       <p v-if="needEmail" class="passkey-verify__warn">
         当前账号未绑定邮箱，请先设置邮箱后再操作。
       </p>

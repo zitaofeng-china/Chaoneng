@@ -22,7 +22,6 @@ import {
 } from '@/auth/admin/api'
 import {
   createPasskeyCredential,
-  getPasskeyDeviceId,
   getPasskeyErrorMessage,
   isPasskeySupported,
   rememberPasskeyCredentialId
@@ -195,8 +194,13 @@ const sendCode = async () => {
 
   sending.value = true
   try {
+    const account = email.value.trim()
+    if (!account) {
+      needEmail.value = true
+      return ElMessage.warning('当前账号未绑定邮箱，请先设置邮箱')
+    }
     const result = await sendAdminEmailCode(
-      { purpose: emailCodePurpose.value },
+      { account, purpose: emailCodePurpose.value },
       authStore.getAccessToken
     )
     startCountdown(result.resend_after)
@@ -211,10 +215,17 @@ const sendCode = async () => {
 
 const save = async () => {
   const name = passkeyName.value.trim()
-  const challenge = await createPasskeyChallenge(
-    { device_id: getPasskeyDeviceId(), purpose: 'set' },
-    authStore.getAccessToken
-  )
+  const account = email.value.trim()
+  if (!account) {
+    needEmail.value = true
+    ElMessage.warning('当前账号未绑定邮箱，请先设置邮箱')
+    return
+  }
+  const challenge = await createPasskeyChallenge({
+    purpose: 'set',
+    account,
+    email_code: emailCode.value
+  })
   const credential = await createPasskeyCredential(
     challenge.options as Parameters<typeof createPasskeyCredential>[0]
   )
@@ -223,7 +234,8 @@ const save = async () => {
     ceremony_id: challenge.ceremony_id,
     credential,
     name,
-    ...buildEmailCodeVerification(emailCode.value)
+    account,
+    email_code: emailCode.value
   })
   finish(result.msg || '通行密钥设置成功，请重新登录')
 }
@@ -244,11 +256,16 @@ const remove = async () => {
       confirmButtonClass: 'el-button--danger'
     }
   )
-  await deleteAdminPasskey(
-    authStore.getAccessToken,
-    current.id,
-    buildEmailCodeVerification(emailCode.value)
-  )
+  const account = email.value.trim()
+  if (!account) {
+    needEmail.value = true
+    ElMessage.warning('当前账号未绑定邮箱，请先设置邮箱')
+    return
+  }
+  await deleteAdminPasskey(authStore.getAccessToken, current.id, {
+    account,
+    ...buildEmailCodeVerification(emailCode.value)
+  })
   finish('通行密钥已删除，请重新登录')
 }
 

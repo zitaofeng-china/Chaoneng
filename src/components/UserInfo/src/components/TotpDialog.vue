@@ -28,6 +28,7 @@ const visible = computed({
 const authStore = useAdminAuthStore()
 const userStore = useUserStore()
 const emailCode = ref('')
+const email = ref('')
 const loading = ref(false)
 const sending = ref(false)
 const seconds = ref(0)
@@ -67,6 +68,7 @@ const logoutToLogin = (message: string) => {
 
 const resetForm = () => {
   emailCode.value = ''
+  email.value = ''
   loading.value = false
   sending.value = false
   seconds.value = 0
@@ -80,9 +82,14 @@ const loadTotpStatus = async () => {
   statusReady.value = false
   try {
     const res = await v1GetAdminMe()
+    const boundEmail = String(res.data?.email || '').trim()
+    email.value = boundEmail
+    needEmail.value = !boundEmail
     totpEnabled.value = getAdminSecurity(res.data).totp_enabled
     action.value = totpEnabled.value ? 'remove' : 'set'
   } catch {
+    email.value = ''
+    needEmail.value = false
     totpEnabled.value = false
     action.value = 'set'
   } finally {
@@ -109,8 +116,13 @@ const sendCode = async () => {
 
   sending.value = true
   try {
+    const account = email.value.trim()
+    if (!account) {
+      needEmail.value = true
+      return ElMessage.warning('当前账号未绑定邮箱，请先设置邮箱')
+    }
     const result = await sendAdminEmailCode(
-      { purpose: emailCodePurpose.value },
+      { account, purpose: emailCodePurpose.value },
       authStore.getAccessToken
     )
     startCountdown(result.resend_after)

@@ -122,8 +122,14 @@ const submit = async () => {
 </script>
 
 <template>
-  <Dialog v-model="dialogVisible" title="修改密码" width="500px">
-    <Form :schema="formSchema" label-width="120px" @register="formRegister" />
+  <Dialog
+    v-model="dialogVisible"
+    title="修改密码"
+    width="480px"
+    :fullscreen="false"
+    max-height="auto"
+  >
+    <Form :schema="formSchema" :is-col="false" label-width="100px" @register="formRegister" />
 
     <template #footer>
       <el-button @click="dialogVisible = false">取消</el-button>
@@ -132,4 +138,8 @@ const submit = async () => {
   </Dialog>
 </template>
 
-<style scoped></style>
+<style scoped>
+:deep(.el-form-item:last-child) {
+  margin-bottom: 0;
+}
+</style>

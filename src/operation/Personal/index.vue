@@ -15,7 +15,6 @@ import { buildIpLookupUrl, lookupIpLocations, resolveIpLocationSync } from '@/au
 import type { AdminLoginLogView } from '@/auth/admin/loginLogs'
 import {
   createPasskeyCredential,
-  getPasskeyDeviceId,
   getPasskeyErrorMessage,
   isPasskeySupported,
   rememberPasskeyCredentialId,
@@ -165,10 +164,16 @@ const load = async () => {
 }
 
 const enablePasskey = async (payload: { email_code: string; name: string }) => {
-  const challenge = await createPasskeyChallenge(
-    { device_id: getPasskeyDeviceId(), purpose: 'set' },
-    authStore.getAccessToken
-  )
+  const account = email.value.trim()
+  if (!account) {
+    ElMessage.warning('当前账号未绑定邮箱，请先设置邮箱')
+    return
+  }
+  const challenge = await createPasskeyChallenge({
+    purpose: 'set',
+    account,
+    email_code: payload.email_code
+  })
   const credential = await createPasskeyCredential(
     challenge.options as Parameters<typeof createPasskeyCredential>[0]
   )
@@ -177,22 +182,27 @@ const enablePasskey = async (payload: { email_code: string; name: string }) => {
     ceremony_id: challenge.ceremony_id,
     credential,
     name: payload.name,
-    ...buildEmailCodeVerification(payload.email_code)
+    account,
+    email_code: payload.email_code
   })
   finish(result.msg || '通行密钥设置成功，请重新登录')
 }
 
 const disablePasskey = async (emailCode: string) => {
   const current = selectedPasskey.value
+  const account = email.value
   if (!current) {
     ElMessage.warning('未获取到通行密钥列表，请稍后重试')
     return
   }
-  await deleteAdminPasskey(
-    authStore.getAccessToken,
-    current.id,
-    buildEmailCodeVerification(emailCode)
-  )
+  if (!account) {
+    ElMessage.warning('当前账号未绑定邮箱，请先设置邮箱')
+    return
+  }
+  await deleteAdminPasskey(authStore.getAccessToken, current.id, {
+    account,
+    ...buildEmailCodeVerification(emailCode)
+  })
   finish('通行密钥已删除，请重新登录')
 }
 
@@ -434,6 +444,7 @@ onActivated(() => {
       v-model="verifyVisible"
       :action="verifyAction"
       :default-name="defaultPasskeyName"
+      :email="email"
       :need-email="!email"
       :selected-name="selectedPasskey?.name"
       :submitting="verifySubmitting"

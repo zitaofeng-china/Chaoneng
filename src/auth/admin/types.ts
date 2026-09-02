@@ -118,6 +118,14 @@ export type PasskeyVerificationMethod = SecurityVerificationMethod
 
 export type PasskeyChallengePurpose = 'login' | 'set' | 'elevate'
 
+/** 密码登录成功但未绑定通行密钥，此时没有 Token。 */
+export const PASSKEY_REQUIRED_CODE = '000009'
+
+export type PasskeyChallengeRequest =
+  | { purpose: 'login'; device_id: string }
+  | { purpose: 'set'; account: string; email_code: string }
+  | { purpose: 'elevate'; device_id?: string }
+
 /** 安全设置变更的二次验证（邮箱验证码或当前密码）。 */
 export interface SecurityVerificationBody {
   verification_method: SecurityVerificationMethod
@@ -205,10 +213,12 @@ export interface PasskeyAssertionBody {
   device_id: string
 }
 
-/** 登记通行密钥：WebAuthn 注册凭据 + 二次验证。 */
-export type PasskeyRegistrationBody = SecurityVerificationBody & {
+/** 登记通行密钥：WebAuthn 注册凭据 + 账号邮箱验证码。 */
+export interface PasskeyRegistrationBody {
+  account: string
   ceremony_id: string
   credential: PasskeyCredentialPayload
+  email_code: string
   name: string
 }
 

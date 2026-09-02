@@ -3,7 +3,8 @@ import {
   defaultRequestInterceptors,
   defaultResponseInterceptors,
   isAuthExpiredCode,
-  isElevateRequiredCode
+  isElevateRequiredCode,
+  isRateLimitCode
 } from './config'
 import { AxiosInstance, InternalAxiosRequestConfig, RequestConfig, AxiosResponse } from './types'
 import { ElMessage } from 'element-plus'
@@ -114,10 +115,14 @@ const rejectHttpError = (error: AxiosError) => {
     const skipErrorHandler = config?.skipErrorHandler
     if (!skipErrorHandler) {
       const data: any = error.response.data
-      const msg =
-        (typeof data === 'object' && data && (data.msg || data.message)) ||
-        (status >= 500 ? '服务异常，请稍后重试' : `请求失败（${status}）`)
-      ElMessage.error(String(msg))
+      if (isRateLimitCode(data?.code)) {
+        ElMessage.warning(String(data?.msg || '请求过于频繁，请稍后重试'))
+      } else {
+        const msg =
+          (typeof data === 'object' && data && (data.msg || data.message)) ||
+          (status >= 500 ? '服务异常，请稍后重试' : `请求失败（${status}）`)
+        ElMessage.error(String(msg))
+      }
     }
     return Promise.reject(error)
   }
@@ -148,6 +153,22 @@ const canElevateAdminSession = (config?: any, businessCode?: unknown) => {
     !isAdminAuthPath(config?.url) &&
     !isAdminElevatePath(config?.url)
   )
+}
+
+const RATE_LIMIT_RETRY = 2
+const RATE_LIMIT_DELAY_MS = 1500
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const canRetryRateLimit = (config?: any, businessCode?: unknown) => {
+  return isRateLimitCode(businessCode) && Number(config?._rateLimitRetried || 0) < RATE_LIMIT_RETRY
+}
+
+async function retryRateLimit(config: any) {
+  const retried = Number(config._rateLimitRetried || 0)
+  await sleep(RATE_LIMIT_DELAY_MS * (retried + 1))
+  config._rateLimitRetried = retried + 1
+  return axiosInstance.request(config)
 }
 
 /** 敏感操作未增强认证：challenge → WebAuthn 签名 → elevate → 只重试一次原请求。 */
@@ -184,6 +205,9 @@ axiosInstance.interceptors.response.use(
     if (canElevateAdminSession(config, res.data?.code)) {
       return elevateAndRetry(config)
     }
+    if (canRetryRateLimit(config, res.data?.code)) {
+      return retryRateLimit(config)
+    }
     return res
   },
   (error: AxiosError) => {
@@ -208,6 +232,9 @@ axiosInstance.interceptors.response.use(
     }
     if (canElevateAdminSession(config, businessCode)) {
       return elevateAndRetry(config)
+    }
+    if (canRetryRateLimit(config, businessCode)) {
+      return retryRateLimit(config)
     }
 
     return rejectHttpError(error)
