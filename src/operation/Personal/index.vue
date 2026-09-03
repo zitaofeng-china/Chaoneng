@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onActivated, onMounted, ref, watch } from 'vue'
+import { computed, onActivated, onMounted, ref } from 'vue'
 import { ElButton, ElMessage, ElMessageBox, ElSkeleton, ElTag } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Icon } from '@/components/Icon'
@@ -17,9 +17,7 @@ import {
   createPasskeyCredential,
   getPasskeyDeviceId,
   getPasskeyErrorMessage,
-  hasLocalNativePasskey,
   isPasskeySupported,
-  LOCAL_NATIVE_PASSKEY_EXISTS_MESSAGE,
   rememberPasskeyCredentialId,
   suggestPasskeyDisplayName
 } from '@/auth/admin/passkey'
@@ -69,7 +67,6 @@ const username = computed(() => me.value?.username || userStore.getUserInfo?.use
 const email = computed(() => String(me.value?.email || '').trim())
 const security = computed(() => getAdminSecurity(me.value))
 const hasPasskeys = computed(() => passkeys.value.length > 0 || security.value.passkey_count > 0)
-const currentDeviceHasPasskey = computed(() => hasLocalNativePasskey(passkeys.value))
 const selectedPasskey = computed(
   () =>
     passkeys.value.find((item) => String(item.id) === selectedPasskeyId.value) || passkeys.value[0]
@@ -167,19 +164,7 @@ const load = async () => {
   }
 }
 
-const blockAddOnThisDevice = async () => {
-  verifyVisible.value = false
-  await ElMessageBox.alert(LOCAL_NATIVE_PASSKEY_EXISTS_MESSAGE, '无法在本机添加', {
-    type: 'warning',
-    confirmButtonText: '知道了'
-  }).catch(() => {})
-}
-
 const enablePasskey = async (payload: { email_code: string; name: string }) => {
-  if (currentDeviceHasPasskey.value) {
-    await blockAddOnThisDevice()
-    return
-  }
   const account = email.value.trim()
   if (!account) {
     ElMessage.warning('当前账号未绑定邮箱，请先设置邮箱')
@@ -190,10 +175,6 @@ const enablePasskey = async (payload: { email_code: string; name: string }) => {
     account,
     email_code: payload.email_code
   })
-  if (hasLocalNativePasskey(passkeys.value)) {
-    await blockAddOnThisDevice()
-    return
-  }
   const credential = await createPasskeyCredential(
     challenge.options as Parameters<typeof createPasskeyCredential>[0]
   )
@@ -245,23 +226,15 @@ const onVerifyConfirm = async (payload: { email_code: string; name: string }) =>
   }
 }
 
-const openAddPasskey = async () => {
+const openAddPasskey = () => {
   if (verifySubmitting.value) return
   if (!supported) {
     ElMessage.warning('当前环境不支持通行密钥')
     return
   }
-  if (currentDeviceHasPasskey.value) {
-    await blockAddOnThisDevice()
-    return
-  }
   verifyAction.value = 'set'
   verifyVisible.value = true
 }
-
-watch(currentDeviceHasPasskey, (blocked) => {
-  if (blocked && verifyAction.value === 'set') verifyVisible.value = false
-})
 
 const openRemovePasskey = async () => {
   if (!passkeys.value.length) {
@@ -424,11 +397,7 @@ onActivated(() => {
               <div class="method__title">通行密钥 (Passkey)</div>
               <p class="method__desc">使用指纹、面容、屏幕锁定或安全密钥，在本机完成身份验证。</p>
               <p class="method__hint">
-                {{
-                  currentDeviceHasPasskey
-                    ? '本机已有通行密钥，无法再添加。多把密钥请换其他电脑、手机或安全密钥。'
-                    : '同一台设备的浏览器原生通行密钥通常只能保存一把。多把密钥请换其他电脑、手机或安全密钥。'
-                }}
+                同一台设备的浏览器原生通行密钥通常只能保存一把。多把密钥请换其他电脑、手机或安全密钥。
               </p>
               <p v-if="passkeyLastLoginText" class="method__used">
                 最后登录 {{ passkeyLastLoginText }}
@@ -444,15 +413,9 @@ onActivated(() => {
             {{ hasPasskeys ? '已设置' : '未设置' }}
           </ElTag>
           <div class="method__actions">
-            <span class="method__add" @click="openAddPasskey">
-              <ElButton
-                type="primary"
-                plain
-                :disabled="verifySubmitting || currentDeviceHasPasskey"
-              >
-                添加通行密钥
-              </ElButton>
-            </span>
+            <ElButton type="primary" plain :disabled="verifySubmitting" @click="openAddPasskey">
+              添加通行密钥
+            </ElButton>
             <ElButton
               type="danger"
               plain
@@ -790,14 +753,6 @@ onActivated(() => {
   margin-left: auto;
   align-items: center;
   justify-content: flex-end;
-}
-
-.method__add {
-  display: inline-flex;
-
-  :deep(.el-button) {
-    pointer-events: none;
-  }
 }
 
 .passkey-panel {
