@@ -30,11 +30,11 @@ export const v2GetOrderDetail = (id: string): Promise<IResponse<V2OrderDetailRes
 
 /**
  * 回收资源（停止代理）
- * POST /v1/order/{order_id}/recycle
+ * POST /v1/order/{order_id}/close
  */
 export const v2RecycleOrder = (order_id: string): Promise<IResponse<string>> => {
   return request.post({
-    url: `/v1/order/${order_id}/recycle`
+    url: `/v1/order/${order_id}/close`
   })
 }
 
