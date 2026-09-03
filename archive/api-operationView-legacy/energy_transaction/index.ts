@@ -23,7 +23,7 @@ const BASE_URL = '/v1/order/energy'
  */
 export const v2GetEnergyList = (
   params: V2EnergyListParams
-): Promise<IResponse<V2EnergyListResponse>> => {
+): Promise<ApiResponse<V2EnergyListResponse>> => {
   console.log('[v2GetEnergyList] 调用参数:', params)
   return request.get({
     url: `${BASE_URL}`,
@@ -35,7 +35,7 @@ export const v2GetEnergyList = (
  * 获取订单详情 - 新接口 v2
  * GET /v2/order/{id}
  */
-export const v2GetOrderDetail = (id: string): Promise<IResponse<V2OrderDetailResponse>> => {
+export const v2GetOrderDetail = (id: string): Promise<ApiResponse<V2OrderDetailResponse>> => {
   console.log('[v2GetOrderDetail] 调用参数:', { id })
   return request.get({
     url: `/v1/order/${id}`
@@ -44,12 +44,12 @@ export const v2GetOrderDetail = (id: string): Promise<IResponse<V2OrderDetailRes
 
 /**
  * 回收资源（停止代理）- 新接口 v2
- * POST /v2/order/recycle
+ * POST /v2/order/close
  */
-export const v2RecycleOrder = (order_id: string): Promise<IResponse<string>> => {
+export const v2RecycleOrder = (order_id: string): Promise<ApiResponse<string>> => {
   console.log('[v2RecycleOrder] 调用参数:', { order_id })
   return request.post({
-    url: `/v1/order/${order_id}/recycle`
+    url: `/v1/order/${order_id}/close`
   })
 }
 
