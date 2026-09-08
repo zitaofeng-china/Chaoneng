@@ -22,9 +22,14 @@ export interface ConversationListParams {
   agent_id?: number
   bot_id?: number
   current_page?: number
+  /** Unix 秒级时间戳 */
+  end_time?: string | number
   keyword?: string
+  /** 单字段 `column [ASC|DESC]`，多字段逗号分隔 */
   order?: string
   page_size?: number
+  /** Unix 秒级时间戳 */
+  start_time?: string | number
   unread_only?: boolean
 }
 

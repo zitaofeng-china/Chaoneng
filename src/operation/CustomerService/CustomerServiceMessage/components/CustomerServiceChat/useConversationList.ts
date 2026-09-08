@@ -10,8 +10,10 @@ import {
 } from '@/api/opertion/common/message'
 import type { ChatMessage, Conversation, Direction } from './types'
 import { parseApiDateTime, type ApiDateTime } from './time'
+import type { DateRangeValue } from '@/utils/tableHelpers'
 
 const CONVERSATION_PAGE_SIZE = 50
+const CONVERSATION_LIST_ORDER = 'last_message_at DESC'
 
 interface UseConversationListOptions {
   selectedId: Ref<number | null>
@@ -27,6 +29,8 @@ export function useConversationList(options: UseConversationListOptions) {
   const keyword = ref('')
   const botId = ref<number | undefined>()
   const agentId = ref<number | undefined>()
+  const dateRange = ref<DateRangeValue>()
+  const unreadOnly = ref(false)
   const listLoading = ref(false)
   const conversationTotal = ref(0)
   const botList = ref<MessageBotItem[]>([])
@@ -190,12 +194,17 @@ export function useConversationList(options: UseConversationListOptions) {
   }
 
   async function requestConversationPage(page: number) {
+    const [startTime, endTime] = dateRange.value ?? []
     const res = await getConversationList({
       agent_id: agentId.value,
       bot_id: botId.value,
       keyword: keyword.value.trim() || undefined,
       current_page: page,
-      page_size: CONVERSATION_PAGE_SIZE
+      page_size: CONVERSATION_PAGE_SIZE,
+      start_time: startTime,
+      end_time: endTime,
+      unread_only: unreadOnly.value || undefined,
+      order: CONVERSATION_LIST_ORDER
     })
     return {
       list: res.data?.list ?? [],
@@ -339,6 +348,8 @@ export function useConversationList(options: UseConversationListOptions) {
     keyword.value = ''
     botId.value = undefined
     agentId.value = undefined
+    dateRange.value = undefined
+    unreadOnly.value = false
     void fetchBotList()
     void fetchConversationList()
   }
@@ -362,6 +373,8 @@ export function useConversationList(options: UseConversationListOptions) {
     keyword,
     botId,
     agentId,
+    dateRange,
+    unreadOnly,
     botOptions,
     agentOptions,
     listLoading,

@@ -34,9 +34,9 @@ function toUnixTimestamp(value: ConversationMessageTime): number {
   return Math.floor(date.getTime() / 1000)
 }
 
-function normalizeConversationMessageParams(
-  params?: ConversationMessageParams
-): ConversationMessageParams | undefined {
+function normalizeTimeParams<
+  T extends { start_time?: ConversationMessageTime; end_time?: ConversationMessageTime }
+>(params?: T): T | undefined {
   if (!params) return params
 
   return {
@@ -46,10 +46,11 @@ function normalizeConversationMessageParams(
   }
 }
 
+/** GET /v1/conversation 分页获取客服会话列表 */
 export const getConversationList = (
   params: ConversationListParams
 ): Promise<IResponse<ConversationListResponse>> => {
-  return request.get({ url: CONVERSATION_BASE_URL, params })
+  return request.get({ url: CONVERSATION_BASE_URL, params: normalizeTimeParams(params) })
 }
 
 export const getConversationMessages = (
@@ -58,7 +59,7 @@ export const getConversationMessages = (
 ): Promise<IResponse<ConversationMessageResponse>> => {
   return request.get({
     url: `${CONVERSATION_BASE_URL}/${id}/message`,
-    params: normalizeConversationMessageParams(params)
+    params: normalizeTimeParams(params)
   })
 }
 

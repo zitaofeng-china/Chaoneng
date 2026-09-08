@@ -43,6 +43,27 @@
         />
       </el-select>
     </div>
+    <div class="customer-service-filters__field customer-service-filters__field--range">
+      <span>时间：</span>
+      <el-date-picker
+        :model-value="dateRange"
+        type="datetimerange"
+        value-format="x"
+        start-placeholder="开始时间"
+        end-placeholder="结束时间"
+        :default-time="defaultDateTimeRange"
+        clearable
+        @update:model-value="emit('update:date-range', $event || undefined)"
+      />
+    </div>
+    <div class="customer-service-filters__field">
+      <el-checkbox
+        :model-value="unreadOnly"
+        @update:model-value="emit('update:unread-only', Boolean($event))"
+      >
+        仅未读
+      </el-checkbox>
+    </div>
     <div class="customer-service-filters__actions">
       <el-button type="primary" :loading="loading" @click="emit('search')">查询</el-button>
       <el-button :disabled="loading" @click="emit('reset')">重置</el-button>
@@ -51,10 +72,14 @@
 </template>
 
 <script setup lang="ts">
+import { createDefaultDateTimeRange, type DateRangeValue } from '@/utils/tableHelpers'
+
 defineProps<{
   keyword: string
   botId?: number
   agentId?: number
+  dateRange?: DateRangeValue
+  unreadOnly: boolean
   botOptions: Array<{ label: string; value: number | undefined }>
   agentOptions: Array<{ label: string; value: number | undefined }>
   loading: boolean
@@ -63,9 +88,13 @@ const emit = defineEmits<{
   (event: 'update:keyword', value: string): void
   (event: 'update:bot-id', value: number | undefined): void
   (event: 'update:agent-id', value: number | undefined): void
+  (event: 'update:date-range', value: DateRangeValue | undefined): void
+  (event: 'update:unread-only', value: boolean): void
   (event: 'search'): void
   (event: 'reset'): void
 }>()
+
+const defaultDateTimeRange = createDefaultDateTimeRange()
 </script>
 
 <style scoped lang="less">
@@ -95,6 +124,10 @@ const emit = defineEmits<{
     :deep(.el-select) {
       width: 220px;
     }
+
+    &--range :deep(.el-date-editor) {
+      width: 360px;
+    }
   }
 
   &__actions {
@@ -108,7 +141,8 @@ const emit = defineEmits<{
     width: 100%;
 
     :deep(.el-input),
-    :deep(.el-select) {
+    :deep(.el-select),
+    :deep(.el-date-editor) {
       flex: 1;
       width: auto;
     }

@@ -12,6 +12,8 @@
         v-model:keyword="keyword"
         v-model:bot-id="botId"
         v-model:agent-id="agentId"
+        v-model:date-range="dateRange"
+        v-model:unread-only="unreadOnly"
         :bot-options="botOptions"
         :agent-options="agentOptions"
         :loading="listLoading"
@@ -114,6 +116,8 @@ const {
   keyword,
   botId,
   agentId,
+  dateRange,
+  unreadOnly,
   botOptions,
   agentOptions,
   listLoading,
