@@ -41,6 +41,7 @@ export function useConversationList(options: UseConversationListOptions) {
   const currentPage = ref(1)
   let conversationListLoading = false
   let loadingMoreConversations = false
+  let pendingFullReload = false
   let conversationRefreshTimer: number | undefined
 
   const botOptions = computed(() => [
@@ -248,7 +249,10 @@ export function useConversationList(options: UseConversationListOptions) {
   }
 
   async function fetchConversationList(silent = false) {
-    if (conversationListLoading || loadingMoreConversations) return
+    if (conversationListLoading || loadingMoreConversations) {
+      if (!silent) pendingFullReload = true
+      return
+    }
     conversationListLoading = true
     if (!silent) listLoading.value = true
     try {
@@ -296,6 +300,10 @@ export function useConversationList(options: UseConversationListOptions) {
     } finally {
       conversationListLoading = false
       if (!silent) listLoading.value = false
+      if (pendingFullReload) {
+        pendingFullReload = false
+        void fetchConversationList(false)
+      }
     }
   }
 
@@ -324,6 +332,10 @@ export function useConversationList(options: UseConversationListOptions) {
     } finally {
       loadingMoreConversations = false
       moreLoading.value = false
+      if (pendingFullReload) {
+        pendingFullReload = false
+        void fetchConversationList(false)
+      }
     }
   }
 
@@ -384,6 +396,7 @@ export function useConversationList(options: UseConversationListOptions) {
     moreLoading,
     handleSearch,
     resetFilters,
-    loadMoreConversations
+    loadMoreConversations,
+    reloadConversations: fetchConversationList
   }
 }

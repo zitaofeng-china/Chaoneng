@@ -1,4 +1,4 @@
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import dayjs from 'dayjs'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type {
@@ -9,12 +9,13 @@ import type {
   SendReplyOptions
 } from './types'
 import {
-  getConversationList,
+  deleteConversations,
   getConversationMessages,
   markConversationRead,
   replyConversation
 } from '@/api/opertion/CustomerService/CustomerServiceMessage'
 import type {
+  ConversationDeleteParams,
   ConversationListItem,
   ConversationMessageItem,
   ConversationReplyParams,
@@ -26,6 +27,7 @@ import { usePendingMedia } from './usePendingMedia'
 import { useMessageMedia } from './useMessageMedia'
 import { useConversationList } from './useConversationList'
 import { parseApiDateTime, type ApiDateTime } from './time'
+import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 /**
  * 客服会话页的状态与交互控制器。
@@ -52,6 +54,7 @@ export function useCustomerServiceChat() {
   const replyInputFocused = ref(false)
   const mediaViewerVisible = ref(false)
   const chatFullscreen = ref(false)
+  const conversationDeleting = ref(false)
   const maxCachedMessages = 20
   const messageCacheIdleMs = 30 * 60 * 1000
   /** 会话消息缓存，只保留最近 20 条。 */
@@ -86,7 +89,8 @@ export function useCustomerServiceChat() {
     moreLoading,
     handleSearch,
     resetFilters,
-    loadMoreConversations
+    loadMoreConversations,
+    reloadConversations
   } = useConversationList({
     selectedId,
     getCachedMessages,
@@ -747,6 +751,121 @@ export function useCustomerServiceChat() {
     loadingRemainingUnread.value = false
   }
 
+  function escapeHtml(value: string) {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+  }
+
+  function formatDeleteTime(value: string | number | Date) {
+    const numeric = typeof value === 'number' ? value : Number(value)
+    if (!Number.isNaN(numeric)) {
+      return dayjs(numeric < 100_000_000_000 ? numeric * 1000 : numeric).format(
+        'YYYY-MM-DD HH:mm:ss'
+      )
+    }
+    return dayjs(value).format('YYYY-MM-DD HH:mm:ss')
+  }
+
+  function getFilterDeleteParams(): ConversationDeleteParams | null {
+    const [startTime, endTime] = dateRange.value ?? []
+    const params: ConversationDeleteParams = {}
+    if (botId.value !== undefined) params.bot_id = botId.value
+    if (startTime !== undefined && startTime !== '') params.start_time = startTime
+    if (endTime !== undefined && endTime !== '') params.end_time = endTime
+    if (
+      params.bot_id === undefined &&
+      params.start_time === undefined &&
+      params.end_time === undefined
+    ) {
+      return null
+    }
+    return params
+  }
+
+  function buildFilterDeleteMessage(params: ConversationDeleteParams) {
+    const botLabel =
+      params.bot_id === undefined
+        ? '不限'
+        : botOptions.value.find((item) => item.value === params.bot_id)?.label ||
+          `机器人#${params.bot_id}`
+    const timeLabel =
+      params.start_time !== undefined && params.end_time !== undefined
+        ? `${formatDeleteTime(params.start_time)} 至 ${formatDeleteTime(params.end_time)}`
+        : '不限'
+    const extraFilters: string[] = []
+    if (keyword.value.trim()) extraFilters.push('关键词')
+    if (agentId.value !== undefined) extraFilters.push('代理')
+    if (unreadOnly.value) extraFilters.push('仅未读')
+    const extraHint = extraFilters.length
+      ? `<p>当前筛选中的${extraFilters.join('、')}不会作为删除条件。</p>`
+      : ''
+    return `<p>将按以下条件删除客服会话及其全部消息，且不可恢复。</p><p>机器人：${escapeHtml(botLabel)}</p><p>最后消息时间：${escapeHtml(timeLabel)}</p>${extraHint}`
+  }
+
+  async function runDeleteConversations(params: ConversationDeleteParams, clearAllCaches: boolean) {
+    if (conversationDeleting.value) return
+    conversationDeleting.value = true
+    try {
+      const result = await deleteConversations(params)
+      if (clearAllCaches) {
+        Object.keys(messageCache.value).forEach((id) => clearMessageCache(Number(id)))
+      } else {
+        params.ids?.forEach((id) => clearMessageCache(id))
+      }
+      closeConversationPanel()
+      await reloadConversations()
+      handleSuccessMessage(result.msg || '删除成功')
+    } catch (error) {
+      if (error !== 'cancel') handleErrorMessage(error, '删除会话失败')
+    } finally {
+      conversationDeleting.value = false
+    }
+  }
+
+  async function handleDeleteActiveConversation() {
+    const conversation = activeConversation.value
+    if (!conversation || conversationDeleting.value) return
+    try {
+      await ElMessageBox.confirm(
+        `确定删除会话「${conversation.name}」及其全部消息吗？此操作不可恢复。`,
+        '删除客服会话',
+        {
+          type: 'warning',
+          confirmButtonText: '删除',
+          cancelButtonText: '取消',
+          confirmButtonClass: 'el-button--danger'
+        }
+      )
+      await runDeleteConversations({ ids: [conversation.id] }, false)
+    } catch (error) {
+      if (error !== 'cancel') handleErrorMessage(error, '删除会话失败')
+    }
+  }
+
+  async function handleDeleteByFilters() {
+    if (conversationDeleting.value) return
+    const params = getFilterDeleteParams()
+    if (!params) {
+      ElMessage.warning('请先选择机器人或时间范围，避免误删全部会话')
+      return
+    }
+    try {
+      await ElMessageBox.confirm(buildFilterDeleteMessage(params), '按条件删除客服会话', {
+        type: 'warning',
+        dangerouslyUseHTMLString: true,
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        confirmButtonClass: 'el-button--danger'
+      })
+      await runDeleteConversations(params, true)
+    } catch (error) {
+      if (error !== 'cancel') handleErrorMessage(error, '删除会话失败')
+    }
+  }
+
   function handleConversationWheel(event: WheelEvent) {
     if (!event.ctrlKey || !event.deltaY) return
     event.preventDefault()
@@ -965,6 +1084,9 @@ export function useCustomerServiceChat() {
     listLoading,
     handleSearch,
     resetFilters,
+    conversationDeleting,
+    handleDeleteByFilters,
+    handleDeleteActiveConversation,
     conversations,
     selectedId,
     conversationTotal,

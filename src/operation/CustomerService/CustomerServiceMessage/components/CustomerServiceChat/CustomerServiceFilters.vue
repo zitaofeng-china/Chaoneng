@@ -66,7 +66,10 @@
     </div>
     <div class="customer-service-filters__actions">
       <el-button type="primary" :loading="loading" @click="emit('search')">查询</el-button>
-      <el-button :disabled="loading" @click="emit('reset')">重置</el-button>
+      <el-button :disabled="loading || deleting" @click="emit('reset')">重置</el-button>
+      <el-button type="danger" :loading="deleting" :disabled="loading" @click="emit('delete')">
+        按条件删除
+      </el-button>
     </div>
   </div>
 </template>
@@ -83,6 +86,7 @@ defineProps<{
   botOptions: Array<{ label: string; value: number | undefined }>
   agentOptions: Array<{ label: string; value: number | undefined }>
   loading: boolean
+  deleting?: boolean
 }>()
 const emit = defineEmits<{
   (event: 'update:keyword', value: string): void
@@ -92,6 +96,7 @@ const emit = defineEmits<{
   (event: 'update:unread-only', value: boolean): void
   (event: 'search'): void
   (event: 'reset'): void
+  (event: 'delete'): void
 }>()
 
 const defaultDateTimeRange = createDefaultDateTimeRange()

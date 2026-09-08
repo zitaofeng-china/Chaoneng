@@ -44,6 +44,16 @@ export interface ConversationListResponse {
   pager: ConversationPager
 }
 
+/** DELETE /v1/conversation 查询参数，按 AND 组合；不传任何条件会删除全部会话 */
+export interface ConversationDeleteParams {
+  ids?: number[]
+  bot_id?: number
+  /** Unix 秒，按 last_message_at 筛选，含边界 */
+  start_time?: string | number
+  /** Unix 秒，按 last_message_at 筛选，含边界 */
+  end_time?: string | number
+}
+
 export interface MessageMediaMeta {
   file_name?: string
   file_size?: number

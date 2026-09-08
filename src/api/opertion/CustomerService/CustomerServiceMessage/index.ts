@@ -1,5 +1,6 @@
 import request from '@/axios'
 import type {
+  ConversationDeleteParams,
   ConversationListParams,
   ConversationListResponse,
   ConversationMessageParams,
@@ -65,6 +66,37 @@ export const getConversationMessages = (
 
 export const markConversationRead = (id: number): Promise<IResponse> => {
   return request.put({ url: `${CONVERSATION_BASE_URL}/${id}/read` })
+}
+
+function compactConversationDeleteParams(
+  params: ConversationDeleteParams
+): ConversationDeleteParams {
+  const compacted: ConversationDeleteParams = {}
+  if (params.ids?.length) compacted.ids = params.ids
+  if (params.bot_id !== undefined) compacted.bot_id = params.bot_id
+  if (params.start_time !== undefined) compacted.start_time = params.start_time
+  if (params.end_time !== undefined) compacted.end_time = params.end_time
+  return compacted
+}
+
+function hasConversationDeleteFilter(params: ConversationDeleteParams) {
+  return Boolean(
+    params.ids?.length ||
+      params.bot_id !== undefined ||
+      params.start_time !== undefined ||
+      params.end_time !== undefined
+  )
+}
+
+/** DELETE /v1/conversation 按条件批量删除客服会话及其消息，需增强认证 */
+export const deleteConversations = (
+  params: ConversationDeleteParams
+): Promise<IResponse<string>> => {
+  const query = compactConversationDeleteParams(normalizeTimeParams(params) ?? {})
+  if (!hasConversationDeleteFilter(query)) {
+    return Promise.reject(new Error('删除会话必须指定筛选条件'))
+  }
+  return request.delete({ url: CONVERSATION_BASE_URL, params: query })
 }
 
 export const replyConversation = (

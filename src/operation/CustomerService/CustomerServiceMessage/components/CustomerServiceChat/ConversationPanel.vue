@@ -12,6 +12,18 @@
         >
       </div>
       <div class="conversation-panel__header-actions">
+        <el-tooltip content="删除会话">
+          <el-button
+            class="conversation-panel__icon-button conversation-panel__icon-button--danger"
+            link
+            size="small"
+            aria-label="删除会话"
+            :disabled="deleting"
+            @click.stop="emit('delete')"
+          >
+            <Icon icon="vi-ep:delete" :size="18" />
+          </el-button>
+        </el-tooltip>
         <el-tooltip :content="chatFullscreen ? '退出全屏' : '全屏显示'">
           <el-button
             class="conversation-panel__icon-button"
@@ -284,11 +296,13 @@ const props = defineProps<{
   showQuickReply: boolean
   quickReplies: QuickReply[]
   formatFileSize: (size?: number) => string
+  deleting?: boolean
 }>()
 
 const emit = defineEmits<{
   (event: 'load-older'): void
   (event: 'toggle-fullscreen'): void
+  (event: 'delete'): void
   (event: 'close'): void
   (event: 'load-unread'): void
   (event: 'open-image', url: string): void
@@ -428,6 +442,10 @@ defineExpose({
       &:hover {
         color: var(--el-color-primary);
         background: var(--el-fill-color-light);
+      }
+
+      &--danger:hover {
+        color: var(--el-color-danger);
       }
     }
   }

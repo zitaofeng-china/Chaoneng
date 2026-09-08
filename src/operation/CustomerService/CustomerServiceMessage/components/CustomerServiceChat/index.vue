@@ -17,8 +17,10 @@
         :bot-options="botOptions"
         :agent-options="agentOptions"
         :loading="listLoading"
+        :deleting="conversationDeleting"
         @search="handleSearch"
         @reset="resetFilters"
+        @delete="handleDeleteByFilters"
       />
       <section class="service-workbench">
         <ConversationList
@@ -47,8 +49,10 @@
           :show-quick-reply="showQuickReply"
           :quick-replies="quickReplies"
           :format-file-size="formatFileSize"
+          :deleting="conversationDeleting"
           @load-older="loadOlderMessages(activeConversation.id)"
           @toggle-fullscreen="toggleChatFullscreen"
+          @delete="handleDeleteActiveConversation"
           @close="closeConversationPanel"
           @load-unread="loadRemainingUnreadMessages"
           @open-image="openImage"
@@ -123,6 +127,9 @@ const {
   listLoading,
   handleSearch,
   resetFilters,
+  conversationDeleting,
+  handleDeleteByFilters,
+  handleDeleteActiveConversation,
   conversations,
   selectedId,
   conversationTotal,
