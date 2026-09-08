@@ -44,6 +44,9 @@ export interface ConversationListResponse {
   pager: ConversationPager
 }
 
+/** GET /v1/conversation/{id} 会话详情，字段与列表项相同 */
+export type ConversationDetail = ConversationListItem
+
 /** DELETE /v1/conversation 查询参数，按 AND 组合；不传任何条件会删除全部会话 */
 export interface ConversationDeleteParams {
   ids?: number[]

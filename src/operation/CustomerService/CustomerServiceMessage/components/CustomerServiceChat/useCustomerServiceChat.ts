@@ -90,7 +90,8 @@ export function useCustomerServiceChat() {
     handleSearch,
     resetFilters,
     loadMoreConversations,
-    reloadConversations
+    reloadConversations,
+    refreshConversationDetail
   } = useConversationList({
     selectedId,
     getCachedMessages,
@@ -682,6 +683,7 @@ export function useCustomerServiceChat() {
   }
 
   function loadSelectedConversation(conversationId: number) {
+    void refreshConversationDetail(conversationId)
     const cachedMessages = getCachedMessages(conversationId)
     if (!cachedMessages?.length || messageCacheTruncated.value[conversationId]) {
       void loadConversationMessages(conversationId)

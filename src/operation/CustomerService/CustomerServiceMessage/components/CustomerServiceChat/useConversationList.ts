@@ -1,6 +1,9 @@
 import dayjs from 'dayjs'
 import { computed, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue'
-import { getConversationList } from '@/api/opertion/CustomerService/CustomerServiceMessage'
+import {
+  getConversationDetail,
+  getConversationList
+} from '@/api/opertion/CustomerService/CustomerServiceMessage'
 import type { ConversationListItem } from '@/api/opertion/CustomerService/CustomerServiceMessage'
 import {
   v1GetMessageAgentList,
@@ -192,6 +195,28 @@ export function useConversationList(options: UseConversationListOptions) {
 
   function updateHasMore(loadedCount: number, pageCount: number, total: number) {
     hasMoreConversations.value = loadedCount < total && pageCount >= CONVERSATION_PAGE_SIZE
+  }
+
+  function upsertConversation(item: ConversationListItem) {
+    const previous = conversations.value.find((conversation) => conversation.id === item.id)
+    const next = mapConversationItem(item, previous)
+    const index = conversations.value.findIndex((conversation) => conversation.id === item.id)
+    if (index >= 0) {
+      conversations.value[index] = next
+      return
+    }
+    if (options.selectedId.value !== item.id) return
+    conversations.value = [next, ...conversations.value]
+  }
+
+  async function refreshConversationDetail(id: number) {
+    try {
+      const res = await getConversationDetail(id)
+      if (!res.data?.id) return
+      upsertConversation(res.data)
+    } catch {
+      // 错误已由 http 拦截器处理
+    }
   }
 
   async function requestConversationPage(page: number) {
@@ -397,6 +422,7 @@ export function useConversationList(options: UseConversationListOptions) {
     handleSearch,
     resetFilters,
     loadMoreConversations,
-    reloadConversations: fetchConversationList
+    reloadConversations: fetchConversationList,
+    refreshConversationDetail
   }
 }

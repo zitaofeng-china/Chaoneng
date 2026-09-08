@@ -1,6 +1,7 @@
 import request from '@/axios'
 import type {
   ConversationDeleteParams,
+  ConversationDetail,
   ConversationListParams,
   ConversationListResponse,
   ConversationMessageParams,
@@ -52,6 +53,11 @@ export const getConversationList = (
   params: ConversationListParams
 ): Promise<IResponse<ConversationListResponse>> => {
   return request.get({ url: CONVERSATION_BASE_URL, params: normalizeTimeParams(params) })
+}
+
+/** GET /v1/conversation/{id} 获取客服会话详情 */
+export const getConversationDetail = (id: number): Promise<IResponse<ConversationDetail>> => {
+  return request.get({ url: `${CONVERSATION_BASE_URL}/${id}` })
 }
 
 export const getConversationMessages = (
