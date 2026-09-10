@@ -107,8 +107,6 @@ export type AdminEmailCodePurpose =
   | 'set_totp'
   | 'delete_totp'
 
-export type AdminResetTarget = 'password' | 'totp' | 'passkey'
-
 /** 运营端动态验证码（TOTP）暂不开放 */
 export const ADMIN_TOTP_ENABLED = false
 

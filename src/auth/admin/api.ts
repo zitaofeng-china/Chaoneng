@@ -3,7 +3,6 @@ import type {
   AdminEmailCodePurpose,
   AdminEmailCodeResult,
   AdminPasskey,
-  AdminResetTarget,
   AdminSession,
   PasskeyAssertionBody,
   PasskeyChallengeRequest,
@@ -105,6 +104,7 @@ export const loginWithPassword = (data: {
 }) =>
   unwrap<AdminSession>(() => client.post('/v1/admin/auth/login', { method: 'password', ...data }))
 
+/** POST /v1/admin/auth/email-code，account 必传 */
 export const sendAdminEmailCode = (
   data: { account: string; purpose: AdminEmailCodePurpose },
   accessToken?: string
@@ -122,19 +122,14 @@ export const registerAdmin = (data: {
   username: string
 }) => unwrap<string>(() => client.post('/v1/admin/auth/register', data))
 
-export const resetAdminSecurity = (data: {
-  account: string
-  email_code: string
-  target: AdminResetTarget
-  new_password?: string
-}) => unwrap<string>(() => client.post('/v1/admin/auth/reset', data))
-
-/** @deprecated 使用 resetAdminSecurity */
+/** POST /v1/admin/auth/reset，仅重置密码 */
 export const resetAdminPassword = (data: {
   account: string
   email_code: string
   new_password: string
-}) => resetAdminSecurity({ ...data, target: 'password' })
+}) => unwrap<string>(() => client.post('/v1/admin/auth/reset', data))
+
+export const resetAdminSecurity = resetAdminPassword
 
 export const loginWithPasskey = (data: PasskeyAssertionBody) =>
   unwrap<AdminSession>(() => client.post('/v1/admin/auth/login', { method: 'passkey', ...data }))

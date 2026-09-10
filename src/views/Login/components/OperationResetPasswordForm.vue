@@ -1,19 +1,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, reactive, ref } from 'vue'
-import {
-  ElButton,
-  ElForm,
-  ElFormItem,
-  ElInput,
-  ElLink,
-  ElMessage,
-  ElRadio,
-  ElRadioGroup
-} from 'element-plus'
+import { ElButton, ElForm, ElFormItem, ElInput, ElLink, ElMessage } from 'element-plus'
 import type { FormRules } from 'element-plus'
 import { useRouter } from 'vue-router'
-import { resetAdminSecurity, sendAdminEmailCode } from '@/auth/admin/api'
-import { ADMIN_TOTP_ENABLED, type AdminResetTarget } from '@/auth/admin/types'
+import { resetAdminPassword, sendAdminEmailCode } from '@/auth/admin/api'
 import { useAdminAuthStore } from '@/store/modules/adminAuth'
 import { useUserStore } from '@/store/modules/user'
 import { useValidator } from '@/hooks/web/useValidator'
@@ -25,7 +15,6 @@ const userStore = useUserStore()
 const form = reactive({
   account: '',
   email_code: '',
-  target: 'password' as AdminResetTarget,
   new_password: '',
   confirmPassword: ''
 })
@@ -34,26 +23,16 @@ const sending = ref(false)
 const seconds = ref(0)
 let timer: number | undefined
 
-const isPasswordReset = computed(() => form.target === 'password')
 const canSend = computed(() => seconds.value === 0 && !sending.value)
-const submitText = computed(() => {
-  if (form.target === 'totp') return '重置动态验证码'
-  if (form.target === 'passkey') return '重置通行密钥'
-  return '重置密码'
-})
 
-const rules = computed<FormRules>(() => ({
+const rules: FormRules = {
   account: [{ required: true, message: '请输入账号或邮箱', trigger: 'blur' }],
   email_code: [
     { required: true, pattern: /^\d{6}$/, message: '请输入6位邮箱验证码', trigger: 'blur' }
   ],
-  new_password: isPasswordReset.value
-    ? [{ required: true, message: '请输入新密码', trigger: 'blur' }, passwordPolicy()]
-    : [],
-  confirmPassword: isPasswordReset.value
-    ? [{ required: true, message: '请确认新密码', trigger: 'blur' }]
-    : []
-}))
+  new_password: [{ required: true, message: '请输入新密码', trigger: 'blur' }, passwordPolicy()],
+  confirmPassword: [{ required: true, message: '请确认新密码', trigger: 'blur' }]
+}
 
 const startCountdown = (duration: number) => {
   seconds.value = duration
@@ -80,17 +59,16 @@ const sendCode = async () => {
 }
 
 const submit = async () => {
-  if (isPasswordReset.value && form.new_password !== form.confirmPassword) {
+  if (form.new_password !== form.confirmPassword) {
     ElMessage.error('两次输入的密码不一致')
     return
   }
   loading.value = true
   try {
-    await resetAdminSecurity({
+    await resetAdminPassword({
       account: form.account.trim(),
       email_code: form.email_code,
-      target: form.target,
-      ...(isPasswordReset.value ? { new_password: form.new_password } : {})
+      new_password: form.new_password
     })
     adminAuthStore.clearSession()
     userStore.reset()
@@ -108,15 +86,8 @@ onBeforeUnmount(() => window.clearInterval(timer))
 
 <template>
   <section class="w-[100%] max-w-420px">
-    <h2 class="text-2xl font-bold text-center mb-24px">重置安全凭据</h2>
+    <h2 class="text-2xl font-bold text-center mb-24px">重置密码</h2>
     <ElForm :model="form" :rules="rules" label-position="top" @submit.prevent>
-      <ElFormItem label="重置类型" required>
-        <ElRadioGroup v-model="form.target">
-          <ElRadio label="password">密码</ElRadio>
-          <ElRadio v-if="ADMIN_TOTP_ENABLED" label="totp">动态验证码</ElRadio>
-          <ElRadio label="passkey">通行密钥</ElRadio>
-        </ElRadioGroup>
-      </ElFormItem>
       <ElFormItem label="账号" prop="account">
         <ElInput v-model="form.account" placeholder="请输入用户名或邮箱" autocomplete="username" />
       </ElFormItem>
@@ -128,26 +99,24 @@ onBeforeUnmount(() => window.clearInterval(timer))
           </ElButton>
         </div>
       </ElFormItem>
-      <template v-if="isPasswordReset">
-        <ElFormItem label="新密码" prop="new_password">
-          <ElInput
-            v-model="form.new_password"
-            type="password"
-            show-password
-            autocomplete="new-password"
-          />
-        </ElFormItem>
-        <ElFormItem label="确认新密码" prop="confirmPassword">
-          <ElInput
-            v-model="form.confirmPassword"
-            type="password"
-            show-password
-            autocomplete="new-password"
-          />
-        </ElFormItem>
-      </template>
+      <ElFormItem label="新密码" prop="new_password">
+        <ElInput
+          v-model="form.new_password"
+          type="password"
+          show-password
+          autocomplete="new-password"
+        />
+      </ElFormItem>
+      <ElFormItem label="确认新密码" prop="confirmPassword">
+        <ElInput
+          v-model="form.confirmPassword"
+          type="password"
+          show-password
+          autocomplete="new-password"
+        />
+      </ElFormItem>
       <ElButton type="primary" class="w-[100%]" :loading="loading" @click="submit">
-        {{ submitText }}
+        重置密码
       </ElButton>
     </ElForm>
     <div class="mt-16px text-right">
