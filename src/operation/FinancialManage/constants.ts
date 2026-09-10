@@ -50,6 +50,7 @@ export const RESOURCE_ORDER_STATUS_MAP: Record<number, StatusMeta> = {
 }
 
 export const SETTLEMENT_RECORD_STATUS_MAP: Record<number, StatusMeta> = {
+  0: { label: '确认中', type: 'warning' },
   1: { label: '成功', type: 'success' },
   2: { label: '失败', type: 'danger' }
 }

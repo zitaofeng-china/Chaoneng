@@ -85,6 +85,7 @@ import {
   createPageParams,
   dateRangeToSeconds,
   formatTableDateTime,
+  getStatusLabel,
   hasSearchValue,
   renderStatusTag,
   type DateRangeValue,
@@ -284,6 +285,10 @@ const detailSections = computed<DetailDisplaySection[]>(() => {
       title: '结算金额',
       items: [
         { label: '结算周期', value: row ? getPeriod(row) : '-' },
+        {
+          label: '结算状态',
+          value: getStatusLabel(SETTLEMENT_RECORD_STATUS_MAP, row?.status, '未知')
+        },
         { label: '数量', value: formatNumber(amount) },
         { label: 'SUN/天', value: String(row?.price ?? '-') },
         { label: '时长', value: formatDuration(row?.duration) },
@@ -496,7 +501,7 @@ const fetchEnergyOutboundOrderList = async (params: EnergyOutboundSearchParams =
       applySummaryStats(res.data, list, total)
       handleListMessage(
         list,
-        [params.keyword, params.order_id, params.outbound_date].some(hasSearchValue),
+        [params.keyword, params.order_id, params.status, params.outbound_date].some(hasSearchValue),
         '理财结算记录'
       )
       return { list, total }

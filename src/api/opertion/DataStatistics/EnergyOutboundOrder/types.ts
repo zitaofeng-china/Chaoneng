@@ -13,7 +13,7 @@ export interface EnergyOutboundOrderListParams {
   end_time?: string
   order?: string
   order_id?: number
-  /** 结算状态：1=成功，2=失败 */
+  /** 结算状态：0=确认中，1=成功，2=失败 */
   status?: number
 }
 
@@ -30,6 +30,7 @@ export interface EnergyOutboundOrderItem {
   duration?: number | string
   profit?: number | string
   expense?: number | string
+  /** 结算状态：0=确认中，1=成功，2=失败 */
   status?: number
   txid?: string
   created_at?: number | string
