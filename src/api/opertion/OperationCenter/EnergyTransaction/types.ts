@@ -150,6 +150,10 @@ export interface V2OrderDetailResponse {
   exchange?: V2OrderExchange // 兑换信息（可选，用于兑换类型订单）
   deliver_transaction?: V2Transaction // 发放交易信息（可选）
   pay_transaction?: V2Transaction // 支付交易信息（可选）
+  /** 速充扩展；status 已删除，统一用外层 status；before_used 可能为 null */
+  fast_charge?: {
+    before_used?: number | null
+  } | null
 }
 
 /**

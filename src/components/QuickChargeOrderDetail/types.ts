@@ -6,6 +6,12 @@ export interface QuickChargeOrderSummary {
   used_count: number
 }
 
+/** 速充扩展；status 已删除，统一用外层 order.status */
+export interface OrderFastCharge {
+  /** 使用前数量，可能为 null */
+  before_used?: number | null
+}
+
 export interface QuickChargeResource {
   id: number
   amount: string | number
@@ -53,6 +59,8 @@ export interface QuickChargeOrderDetail extends Recordable {
   used_txid: string
   flash_price: string
   kind?: number
+  /** 使用前数量，来自 fast_charge.before_used，null 时展示为 - */
+  before_used?: number | null
   summary: QuickChargeOrderSummary
   resources: QuickChargeResource[]
   activations: QuickChargeActivation[]
@@ -71,6 +79,7 @@ export interface QuickChargeOrderDetailSource {
   coin?: string | null
   receive_address?: string | null
   status: number
+  fast_charge?: OrderFastCharge | null
   created_at?: string | number | null
   updated_at?: string | number | null
   paid_at?: string | number | null

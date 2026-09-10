@@ -154,6 +154,7 @@ export const buildQuickChargeOrderDetail = (
     used_txid: firstResource?.used_txid || '',
     flash_price: String(detailData.amount ?? '-'),
     kind: detailData.kind,
+    before_used: detailData.fast_charge?.before_used ?? null,
     summary,
     resources: mapResources(detailData.resources),
     activations: detailData.activations || []

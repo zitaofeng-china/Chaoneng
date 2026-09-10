@@ -156,6 +156,10 @@ export interface EnergyOrderDetailV1 {
   summary: OrderSummary // 订单摘要
   resources: ResourceDetail[] // 资源列表
   activations?: ActivationDetail[] // 激活记录列表（可选，用于激活类型订单）
+  /** 速充扩展；status 已删除，统一用外层 status；before_used 可能为 null */
+  fast_charge?: {
+    before_used?: number | null
+  } | null
 }
 
 /**

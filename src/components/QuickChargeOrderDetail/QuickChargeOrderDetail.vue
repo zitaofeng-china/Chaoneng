@@ -137,6 +137,13 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
     }
   },
   {
+    label: '使用前数量',
+    field: 'before_used',
+    slots: {
+      default: (data: QuickChargeOrderDetail) => renderNullableText(data?.before_used)
+    }
+  },
+  {
     label: '回收时间',
     field: 'recycle_time',
     slots: {
