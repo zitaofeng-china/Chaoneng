@@ -34,7 +34,8 @@ export const v2GetExchangeDetail = (id: string): Promise<IResponse<V2ExchangeDet
  */
 export const v2RetryExchangeOrder = (id: string): Promise<IResponse<string>> => {
   return request.post({
-    url: `/v1/order/${id}/retry`
+    url: `/v1/order/${id}/retry`,
+    skipErrorHandler: true
   })
 }
 

@@ -34,7 +34,8 @@ export const v2GetExchangeDetail = (id: string) => {
  */
 export const v2RetryExchangeOrder = (id: string) => {
   return request.post({
-    url: `/v1/order/${id}/retry`
+    url: `/v1/order/${id}/retry`,
+    skipErrorHandler: true
   })
 }
 

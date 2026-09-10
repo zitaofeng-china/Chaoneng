@@ -51,7 +51,12 @@ import {
 } from '@/api/opertion/OperationCenter/ExchangeTransaction'
 import { BaseButton } from '@/components/Button'
 import { ContentWrap } from '@/components/ContentWrap'
-import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import {
+  getErrorMessage,
+  handleListMessage,
+  handleErrorMessage,
+  handleSuccessMessage
+} from '@/utils/messageHelper'
 import {
   createDefaultDateTimeRange,
   createNullablePageParams,
@@ -416,13 +421,13 @@ const handleRetry = async (row: V2ExchangeItem) => {
     const res = await v2RetryExchangeOrder(row.id)
     if (res.code === '000000') {
       await searchTableRef.value?.reload()
-      handleSuccessMessage('补发成功')
-    } else {
-      ElMessage.error(res.msg || '补发失败')
+      handleSuccessMessage(res.msg || '补发成功')
+      return
     }
+    ElMessage.error(res.msg || '补发失败')
   } catch (error: unknown) {
     if (error !== 'cancel') {
-      handleErrorMessage(error, '补发失败')
+      ElMessage.error(getErrorMessage(error, '补发失败'))
     }
   }
 }
