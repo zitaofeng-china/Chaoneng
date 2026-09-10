@@ -20,7 +20,8 @@ import {
   setGridProp,
   setComponentProps,
   setItemComponentSlots,
-  initModel
+  initModel,
+  normalizeSelectModelValue
 } from './helper'
 import { useRenderSelect } from './components/useRenderSelect'
 import { useRenderRadio } from './components/useRenderRadio'
@@ -387,10 +388,10 @@ export default defineComponent({
               // 如果field是多层路径，需要转换成对象
               const itemVal = computed({
                 get: () => {
-                  return get(formModel.value, item.field)
+                  return normalizeSelectModelValue(item, get(formModel.value, item.field))
                 },
                 set: (val) => {
-                  set(formModel.value, item.field, val)
+                  set(formModel.value, item.field, normalizeSelectModelValue(item, val))
                 }
               })
 

@@ -1,8 +1,16 @@
+import { unref } from 'vue'
 import { useI18n } from '@/hooks/web/useI18n'
-import { PlaceholderModel, FormSchema, ComponentNameEnum, ColProps } from '../types'
+import {
+  PlaceholderModel,
+  FormSchema,
+  ComponentNameEnum,
+  ColProps,
+  SelectComponentProps
+} from '../types'
 import { isFunction } from '@/utils/is'
 import { firstUpperCase, humpToDash } from '@/utils'
 import { set, get } from 'lodash-es'
+import { restoreSelectValueOnClear } from '@/utils/tableHelpers'
 
 const { t } = useI18n()
 
@@ -109,6 +117,18 @@ export const setComponentProps = (item: FormSchema): Recordable => {
     delete componentProps.on
   }
   return componentProps
+}
+
+export const normalizeSelectModelValue = (item: FormSchema, value: unknown) => {
+  if (
+    item.component !== ComponentNameEnum.SELECT &&
+    item.component !== ComponentNameEnum.SELECT_V2
+  ) {
+    return value
+  }
+  const componentProps = item.componentProps as SelectComponentProps | undefined
+  if (componentProps?.multiple) return value
+  return restoreSelectValueOnClear(value, unref(componentProps?.options))
 }
 
 /**

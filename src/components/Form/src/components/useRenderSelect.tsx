@@ -38,12 +38,14 @@ export const useRenderSelect = () => {
     const keyAlias = componentsProps?.props?.key
     const optionDefaultSlot = componentsProps.slots?.optionDefault
 
+    const optionValue = option[valueAlias || 'value']
+
     return (
       <ElOption
         {...option}
         key={option[keyAlias || 'key']}
         label={option[labelAlias || 'label']}
-        value={option[valueAlias || 'value']}
+        value={optionValue ?? ''}
       >
         {{
           default: () => (optionDefaultSlot ? optionDefaultSlot(option) : undefined)
