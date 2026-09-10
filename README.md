@@ -84,6 +84,7 @@ pnpm dev:m
 
 说明：
 
+- 只起本地 Vite，不走 ngrok
 - 等价于设置 `VITE_SYSTEM_TYPE=Management`
 - 本地端口默认 `4010`
 
@@ -95,8 +96,28 @@ pnpm dev:o
 
 说明：
 
+- 只起本地 Vite，不走 ngrok
 - 等价于设置 `VITE_SYSTEM_TYPE=Operation`
 - 本地端口默认 `4011`
+
+### 用 ngrok 暴露本地开发服务
+
+`pnpm dev:m` / `pnpm dev:o` 始终是本地启动，不走 ngrok。需要公网时用 `pnpm ngrok:m` / `pnpm ngrok:o`（起对应 Vite + 隧道）。
+
+免费账号同一时间只能开一条隧道，公网域名是 `https://sheep-jubilance-haste.ngrok-free.dev`。两端用路径区分，两个 pane 可以同时跑 `ngrok:m` 和 `ngrok:o`：后启动的会复用已有隧道，不再抢本地检查页 `4041`。
+
+| 命令           | 作用            | 地址                                                      |
+| -------------- | --------------- | --------------------------------------------------------- |
+| `pnpm dev:o`   | 运营端，仅本地  | `http://127.0.0.1:4011/operation`                         |
+| `pnpm dev:m`   | 代理端，仅本地  | `http://127.0.0.1:4010/management`                        |
+| `pnpm ngrok:o` | 运营端 + ngrok  | `https://sheep-jubilance-haste.ngrok-free.dev/operation`  |
+| `pnpm ngrok:m` | 代理端 + ngrok  | `https://sheep-jubilance-haste.ngrok-free.dev/management` |
+| `pnpm ngrok`   | 两端 + 一条隧道 | `/operation` 和 `/management`                             |
+
+1. 复制 `ngrok.env.example` 为 `.env.ngrok`，填入 [ngrok authtoken](https://dashboard.ngrok.com/get-started/your-authtoken)
+2. 本机需已安装 ngrok CLI（Windows 常见路径：`%LOCALAPPDATA%\ngrok\ngrok.exe`）
+
+对应端口已有 Vite 在跑时，`pnpm ngrok:o` / `ngrok:m` 不会重复启动 Vite。隧道已在跑时只复用，命令会提示后退出（或只看着本端 Vite）。免费版首次用浏览器打开公网地址时，ngrok 会显示一次跳转页，点 Visit Site 即可。不要把 `.env.ngrok` 提交进仓库。本仓库的 ngrok 本地检查页在 `http://127.0.0.1:4041`（`4040` 是其他项目的，不要占用或结束它）。
 
 ### 其他开发命令
 
