@@ -19,6 +19,7 @@ deploy.sh
 # 后续本地改动不要再提交；新增未跟踪的 .env* 仍被忽略
 .env
 .env.*
+.env.ngrok
 
 # Netlify 配置文件（仅测试仓库使用）
 netlify.toml
