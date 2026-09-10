@@ -13,10 +13,10 @@
     <div class="customer-service-filters__field">
       <span>机器人：</span>
       <el-select
-        :model-value="botId ?? ''"
+        :model-value="toOptionalNumber(botId) ?? ''"
         placeholder="全部"
         clearable
-        @update:model-value="emit('update:bot-id', $event === '' ? undefined : Number($event))"
+        @update:model-value="emit('update:bot-id', toOptionalNumber($event))"
       >
         <el-option
           v-for="option in botOptions"
@@ -29,11 +29,11 @@
     <div class="customer-service-filters__field">
       <span>代理：</span>
       <el-select
-        :model-value="agentId ?? ''"
+        :model-value="toOptionalNumber(agentId) ?? ''"
         placeholder="全部"
         clearable
         filterable
-        @update:model-value="emit('update:agent-id', $event === '' ? undefined : Number($event))"
+        @update:model-value="emit('update:agent-id', toOptionalNumber($event))"
       >
         <el-option
           v-for="option in agentOptions"
@@ -75,7 +75,11 @@
 </template>
 
 <script setup lang="ts">
-import { createDefaultDateTimeRange, type DateRangeValue } from '@/utils/tableHelpers'
+import {
+  createDefaultDateTimeRange,
+  toOptionalNumber,
+  type DateRangeValue
+} from '@/utils/tableHelpers'
 
 defineProps<{
   keyword: string
