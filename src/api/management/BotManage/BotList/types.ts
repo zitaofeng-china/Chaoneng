@@ -108,8 +108,8 @@ export type SystemPrice = {
   flash: string // 闪租能量价格
   hosting_65k: string // 托管65k价格
   hosting_131k: string // 托管131k价格
-  trx_2_usdt: string // TRX转USDT价格
-  usdt_2_trx: string // USDT转TRX价格
+  trx_2_usdt: string // TRX转USDT费率（小数最多 4 位）
+  usdt_2_trx: string // USDT转TRX费率（小数最多 4 位）
   batch_flash: string // 批量闪兑价格
   charge?: string // 速充价格
   bot_fee: string // 机器人费用
@@ -153,8 +153,8 @@ export type BotPriceConfig = {
   time_30d: string // 30天租赁
 
   // 闪兑配置
-  trx_2_usdt: string // TRX兑USDT利润（小数形式，如 "0.15" 表示 15%）
-  usdt_2_trx: string // USDT兑TRX利润（小数形式，如 "0.15" 表示 15%）
+  trx_2_usdt: string // TRX兑USDT利润（小数最多 4 位，如 "0.1512" 表示 15.12%）
+  usdt_2_trx: string // USDT兑TRX利润（小数最多 4 位，如 "0.1512" 表示 15.12%）
   min_trx_balance: string // 最低账号余额
   max_trx_2_usdt: string // TRX兑USDT可兑换上限
   max_usdt_2_trx: string // USDT兑TRX可兑换上限
@@ -302,8 +302,8 @@ export type UpdateBotPriceParams = {
   time_7d?: number // 7天租赁
 
   // 闪兑配置
-  trx_2_usdt?: number // TRX兑USDT利润（小数形式，如 0.15 表示 15%）
-  usdt_2_trx?: number // USDT兑TRX利润（小数形式，如 0.15 表示 15%）
+  trx_2_usdt?: number // TRX兑USDT利润（小数最多 4 位，如 0.1512 表示 15.12%）
+  usdt_2_trx?: number // USDT兑TRX利润（小数最多 4 位，如 0.1512 表示 15.12%）
   min_trx_balance?: number // 最低账号余额
   max_trx_2_usdt?: number // TRX兑USDT可兑换上限
   max_usdt_2_trx?: number // USDT兑TRX可兑换上限

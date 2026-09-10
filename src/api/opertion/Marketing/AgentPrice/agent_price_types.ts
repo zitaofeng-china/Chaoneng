@@ -35,8 +35,8 @@ export interface V1PriceListResponse {
   flash: string | number // 闪租价格
   hosting_65k: string | number // 托管65k价格
   hosting_131k: string | number // 托管131k价格
-  trx_2_usdt: string | number // 闪兑-TRX兑换USDT费率（小数，显示时需乘以100）
-  usdt_2_trx: string | number // 闪兑-USDT兑换TRX费率（小数，显示时需乘以100）
+  trx_2_usdt: string | number // 闪兑-TRX兑换USDT费率（小数最多 4 位，如 0.1512 表示 15.12%，显示时需乘以100）
+  usdt_2_trx: string | number // 闪兑-USDT兑换TRX费率（小数最多 4 位，如 0.1512 表示 15.12%，显示时需乘以100）
   bot_fee: string | number // 机器人价格
   batch_flash: string | number // 批量下单价格
   bandwidth?: string | number // 带宽价格
@@ -59,8 +59,8 @@ export interface V1UpdatePriceParams {
   flash?: string | number // 闪租价格
   hosting_65k?: string | number // 托管65k价格
   hosting_131k?: string | number // 托管131k价格
-  trx_2_usdt?: string | number // 闪兑-TRX兑换USDT费率（小数，保存时需除以100）
-  usdt_2_trx?: string | number // 闪兑-USDT兑换TRX费率（小数，保存时需除以100）
+  trx_2_usdt?: string | number // 闪兑-TRX兑换USDT费率（小数最多 4 位，保存时需除以100）
+  usdt_2_trx?: string | number // 闪兑-USDT兑换TRX费率（小数最多 4 位，保存时需除以100）
   bot_fee?: string | number // 机器人价格
   batch_flash?: string | number // 批量下单价格
   bandwidth?: string | number // 带宽价格

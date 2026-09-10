@@ -49,6 +49,7 @@ export function useBotConfigV1() {
   }
 
   const toPriceNumber = (value: unknown) => Number(parsePriceValue(value).toFixed(2))
+  // 百分比最多 2 位小数，对应 trx_2_usdt / usdt_2_trx 费率最多 4 位小数
   const toRatePercentValue = (value: unknown) => Number((parsePriceValue(value) * 100).toFixed(2))
   const toRateValue = (value: unknown) => Number((toPriceNumber(value) / 100).toFixed(4))
 

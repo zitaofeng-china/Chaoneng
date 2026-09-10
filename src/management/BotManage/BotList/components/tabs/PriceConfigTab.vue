@@ -537,7 +537,7 @@ const priceSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: {
       text: 'TRX兑USDT利润（百分比）',
-      tips: '例如，输入15，就是15%'
+      tips: '例如，输入15，就是15%。最多 2 位小数（对应费率 4 位小数）'
     },
     componentProps: {
       placeholder: '请输入利润金额',
@@ -566,7 +566,7 @@ const priceSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: {
       text: 'USDT兑TRX利润（百分比）',
-      tips: '例如，输入15，就是15%'
+      tips: '例如，输入15，就是15%。最多 2 位小数（对应费率 4 位小数）'
     },
     componentProps: {
       placeholder: '请输入利润金额',
