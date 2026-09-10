@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs'
 import { resolve } from 'path'
 import { loadEnv } from 'vite'
 import type { UserConfig, ConfigEnv } from 'vite'
@@ -26,6 +27,18 @@ const root = process.cwd()
 
 function pathResolve(dir: string) {
   return resolve(root, '.', dir)
+}
+
+function readNgrokDomain() {
+  if (process.env.NGROK_DOMAIN) return process.env.NGROK_DOMAIN
+  try {
+    const cfg = JSON.parse(readFileSync(pathResolve('ngrok.config.json'), 'utf8')) as {
+      domain?: string
+    }
+    return cfg.domain || 'sheep-jubilance-haste.ngrok-free.dev'
+  } catch {
+    return 'sheep-jubilance-haste.ngrok-free.dev'
+  }
 }
 
 export default ({ command, mode }: ConfigEnv): UserConfig => {
@@ -203,6 +216,8 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
     },
     server: {
       port: env.VITE_SYSTEM_TYPE === 'Management' ? 4010 : 4011,
+      // Vite 6 默认拒绝未知 Host。ngrok 公网域名必须显式放行，否则出现 Blocked request。
+      allowedHosts: ['.ngrok-free.dev', '.ngrok-free.app', '.ngrok.app', '.ngrok.io'],
       // 预热常用文件，减少首次访问延迟
       warmup: {
         clientFiles: [
@@ -242,10 +257,20 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
           rewrite: (path) => path
         }
       },
-      hmr: {
-        overlay: false
-      },
-      host: '0.0.0.0'
+      // NGROK=1 时页面走 https://<domain> :443，HMR 必须走 wss/443，不能用本地 4010/4011。
+      hmr:
+        process.env.NGROK === '1' || process.env.NGROK === 'true'
+          ? {
+              overlay: false,
+              protocol: 'wss',
+              clientPort: 443,
+              host: readNgrokDomain()
+            }
+          : {
+              overlay: false
+            },
+      host: '0.0.0.0',
+      strictPort: process.env.NGROK === '1' || process.env.NGROK === 'true'
     },
     optimizeDeps: {
       include: [
