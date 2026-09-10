@@ -3,6 +3,8 @@
  * 统一管理订单状态映射和显示
  */
 
+import { withAllOption } from '@/utils/tableHelpers'
+
 /**
  * 订单状态枚举
  */
@@ -78,8 +80,7 @@ export function getStatusType(
 /**
  * 订单状态选项 (用于搜索表单的下拉选择)
  */
-export const ORDER_STATUS_OPTIONS = [
-  { label: '全部', value: undefined },
+export const ORDER_STATUS_OPTIONS = withAllOption([
   { label: '新订单', value: OrderStatus.NEW },
   { label: '已支付', value: OrderStatus.PAID },
   { label: '已发送', value: OrderStatus.SENT },
@@ -89,4 +90,4 @@ export const ORDER_STATUS_OPTIONS = [
   { label: '已退款', value: OrderStatus.REFUNDED },
   { label: '已取消', value: OrderStatus.CANCELLED },
   { label: '已中止', value: OrderStatus.ABORTED }
-]
+])

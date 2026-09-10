@@ -3,6 +3,8 @@
  * 统一管理来源类型的判断和显示
  */
 
+import { withAllOption } from '@/utils/tableHelpers'
+
 /**
  * 来源类型枚举
  */
@@ -49,11 +51,10 @@ export function getSourceText(
 /**
  * 来源类型选项 (用于搜索表单的下拉选择)
  */
-export const SOURCE_TYPE_OPTIONS = [
-  { label: '全部', value: undefined },
+export const SOURCE_TYPE_OPTIONS = withAllOption([
   { label: '机器人', value: SourceType.BOT },
   { label: 'H5', value: SourceType.H5 }
-]
+])
 
 /**
  * 判断是否应该隐藏列（根据来源类型）

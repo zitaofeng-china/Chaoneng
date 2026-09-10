@@ -87,12 +87,11 @@ const RECHARGE_ORDER_STATUS_TYPE: Record<number, 'success' | 'warning' | 'info'>
   5: 'success',
   8: 'warning'
 }
-const RECHARGE_ORDER_STATUS_OPTIONS = [
-  { label: '全部', value: undefined },
+const RECHARGE_ORDER_STATUS_OPTIONS = withAllOption([
   { label: '新订单', value: 1 },
   { label: '已完成', value: 5 },
   { label: '已取消', value: 8 }
-]
+])
 type DepositSearchParams = Omit<
   V2DepositListParams,
   'bot_id' | 'origin' | 'pay_type' | 'status'

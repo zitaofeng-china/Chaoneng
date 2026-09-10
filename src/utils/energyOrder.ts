@@ -3,6 +3,8 @@
  * 处理能量订单相关的业务逻辑
  */
 
+import { withAllOption } from '@/utils/tableHelpers'
+
 /**
  * 能量订单类型枚举
  */
@@ -102,8 +104,7 @@ export function getEnergyOrderKindTagType(kind: number | undefined): EnergyOrder
 /**
  * 能量订单类型选项 (用于搜索表单的下拉选择)
  */
-export const ENERGY_ORDER_KIND_OPTIONS = [
-  { label: '全部', value: undefined },
+export const ENERGY_ORDER_KIND_OPTIONS = withAllOption([
   { label: '按时间', value: EnergyOrderKind.TIME_ENERGY },
   { label: '按笔数', value: EnergyOrderKind.COUNT_ENERGY },
   { label: '福利', value: EnergyOrderKind.WELFARE_ENERGY },
@@ -112,7 +113,7 @@ export const ENERGY_ORDER_KIND_OPTIONS = [
   { label: '托管', value: EnergyOrderKind.AUTO_HOSTING },
   { label: '批量下单', value: EnergyOrderKind.BATCH_ENERGY },
   { label: '激活', value: EnergyOrderKind.BATCH_ACTIVE }
-]
+])
 
 export const HIDDEN_ENERGY_ORDER_KINDS = [
   EnergyOrderKind.MANUAL_QUICK_CHARGE,
