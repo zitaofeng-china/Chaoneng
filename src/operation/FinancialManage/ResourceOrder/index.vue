@@ -86,6 +86,14 @@ type ResourceOrderTableSlot = TableSlot<V2ResourceOrderItem>
 type ResourceOrderSearchParams = V2ResourceOrderListParams & Recordable
 type BotOption = SelectOption<number | string>
 
+const hasFilterValue = (value: unknown) =>
+  Array.isArray(value) ? value.length > 0 : hasSearchValue(value)
+
+const toNumberList = (value: unknown) => {
+  const values = Array.isArray(value) ? value : hasSearchValue(value) ? [value] : []
+  return values.map(Number).filter(Number.isFinite)
+}
+
 const getResourceOrderKindText = (kind: number) => {
   return RESOURCE_ORDER_KIND_MAP[kind] || getEnergyOrderKindText(kind) || String(kind || '-')
 }
@@ -265,12 +273,16 @@ const searchSchema = ref<FormSchema[]>([
     }
   },
   {
-    field: 'status',
+    field: 'statuses',
     component: 'Select' as const,
     label: '状态',
     componentProps: {
       placeholder: '全部',
       clearable: true,
+      multiple: true,
+      collapseTags: true,
+      collapseTagsTooltip: true,
+      maxCollapseTags: 1,
       options: RESOURCE_ORDER_STATUS_OPTIONS
     }
   },
@@ -296,7 +308,8 @@ const buildResourceOrderListParams = (
 
   if (hasSearchValue(params.keyword)) apiParams.keyword = String(params.keyword).trim()
   if (hasSearchValue(params.kind)) apiParams.kind = Number(params.kind)
-  if (hasSearchValue(params.status)) apiParams.status = Number(params.status)
+  const selectedStatuses = toNumberList(params.statuses)
+  if (selectedStatuses.length > 0) apiParams.statuses = selectedStatuses
   if (hasSearchValue(params.bot_id)) apiParams.bot_id = Number(params.bot_id)
   if (Number(params.kind) === 6 && hasSearchValue(params.pay_method)) {
     apiParams.pay_method = Number(params.pay_method)
@@ -317,8 +330,8 @@ const fetchResourceOrderList = async (params: ResourceOrderSearchParams = {}) =>
 
       handleListMessage(
         list,
-        [params.keyword, params.kind, params.status, params.bot_id, params.pay_method].some(
-          hasSearchValue
+        [params.keyword, params.kind, params.statuses, params.bot_id, params.pay_method].some(
+          hasFilterValue
         ),
         '资源订单'
       )

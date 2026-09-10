@@ -71,4 +71,9 @@ export const RESOURCE_ORDER_KIND_OPTIONS = Object.entries(RESOURCE_ORDER_KIND_MA
 
 export const RESOURCE_ORDER_KIND_SEARCH_OPTIONS = withAllOption(RESOURCE_ORDER_KIND_OPTIONS)
 
-export const RESOURCE_ORDER_STATUS_OPTIONS = createStatusOptions(RESOURCE_ORDER_STATUS_MAP, '')
+export const RESOURCE_ORDER_STATUS_OPTIONS = Object.entries(RESOURCE_ORDER_STATUS_MAP).map(
+  ([value, meta]) => ({
+    label: meta.label,
+    value: Number(value)
+  })
+)
