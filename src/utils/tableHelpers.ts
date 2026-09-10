@@ -48,8 +48,30 @@ const unwrapRef = <T>(value: T | RefLike<T>): T | undefined => {
   return value as T
 }
 
-export const hasSearchValue = (value: unknown) =>
-  value !== undefined && value !== null && value !== ''
+export const isClearedSelectValue = (value: unknown) =>
+  value === undefined || value === null || value === '' || Number.isNaN(value)
+
+export const hasSearchValue = (value: unknown) => !isClearedSelectValue(value)
+
+/** 筛选下拉清空（点 X）时回到「全部」，而不是 Number(null) 变成 NaN。 */
+export const toOptionalNumber = (value: unknown): number | undefined => {
+  if (isClearedSelectValue(value)) return undefined
+  const numeric = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(numeric) ? numeric : undefined
+}
+
+const SELECT_ALL_LABEL = '全部'
+
+export const restoreSelectValueOnClear = <T = unknown>(
+  value: unknown,
+  options?: Array<{ label?: string; value?: T }> | null,
+  multiple?: boolean
+) => {
+  if (multiple || !isClearedSelectValue(value)) return value
+  const allOption = options?.find((option) => option.label === SELECT_ALL_LABEL)
+  if (!allOption) return value
+  return (allOption.value ?? '') as T | ''
+}
 
 export const createDefaultDateTimeRange = (): DateTimeRangeValue => [
   new Date(2000, 1, 1, 0, 0, 0),
