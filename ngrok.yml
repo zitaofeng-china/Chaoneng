@@ -1,0 +1,6 @@
+# Project-local ngrok agent config. Authtoken is NOT stored here — use .env.ngrok.
+version: "3"
+agent:
+  # Local inspector only. Public URLs stay on 443; apps are split by path.
+  # 4040 is often taken by other ngrok agents on this machine.
+  web_addr: 127.0.0.1:4041

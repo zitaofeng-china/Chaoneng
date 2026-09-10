@@ -1,0 +1,8 @@
+{
+  "domain": "sheep-jubilance-haste.ngrok-free.dev",
+  "gatewayPort": 4020,
+  "ports": {
+    "Management": 4010,
+    "Operation": 4011
+  }
+}
