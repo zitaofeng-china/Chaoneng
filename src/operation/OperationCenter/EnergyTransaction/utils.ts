@@ -10,7 +10,7 @@ import {
   getPaymentMethodText,
   shouldHideEnergyOrderKind
 } from '@/utils/energyOrder'
-import { getStatusText } from '@/utils/orderStatus'
+import { getStatusText, OrderStatus } from '@/utils/orderStatus'
 import { dateRangeToSeconds, formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
 
 export function buildEnergyListParams(params: SearchFormParams): EnergyListParams {
@@ -135,6 +135,9 @@ export function hasSearchCondition(params: SearchFormParams): boolean {
   ].some(hasSearchValue)
 }
 
+/** 可停止代理的订单状态：已发送、已中止 */
+const STOPPABLE_ORDER_STATUSES = new Set<number>([OrderStatus.SENT, OrderStatus.ABORTED])
+
 /**
  * 判断订单是否可以停止
  * @param order 订单数据
@@ -147,8 +150,11 @@ export function canStopOrder(
   stoppingOrders: Set<string>,
   stoppedOrders: Set<string>
 ): boolean {
-  // 状态必须是"已发送"（status=3）且不在停止中且没有被停止过
-  return order.status === 3 && !stoppingOrders.has(order.id) && !stoppedOrders.has(order.id)
+  return (
+    STOPPABLE_ORDER_STATUSES.has(order.status) &&
+    !stoppingOrders.has(order.id) &&
+    !stoppedOrders.has(order.id)
+  )
 }
 
 /**

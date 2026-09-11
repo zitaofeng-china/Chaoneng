@@ -47,7 +47,7 @@ import OrderDetail from './components/OrderDetail.vue'
 import { v2GetEnergyList, v2RecycleOrder } from '@/api/opertion/OperationCenter/EnergyTransaction'
 import { useRoute } from 'vue-router'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-import { ORDER_STATUS_OPTIONS } from '@/utils/orderStatus'
+import { ORDER_STATUS_OPTIONS, OrderStatus } from '@/utils/orderStatus'
 import { SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'
 import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
 import {
@@ -313,7 +313,7 @@ const pollOrderStatus = async (orderId: string) => {
       const currentData = (searchTableRef.value?.getTableData?.() || []) as EnergyOrder[]
       const order = currentData.find((item) => item.id === orderId)
 
-      if (!order || order.status !== 3) {
+      if (!order || order.status !== OrderStatus.SENT) {
         stoppingOrders.value.delete(orderId)
         stoppedOrders.value.add(orderId)
         return
