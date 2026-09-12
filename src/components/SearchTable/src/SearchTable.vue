@@ -38,12 +38,7 @@
       :show-overflow-tooltip="true"
       :data="dataList"
       :loading="loading"
-      :pagination="{
-        total: unref(tableState.total),
-        currentPage: unref(tableState.currentPage),
-        pageSize: unref(tableState.pageSize),
-        ...(pagination || {})
-      }"
+      :pagination="tablePagination"
       @register="tableRegister"
       :scrollbar-always-on="true"
       @sort-change="handleSortChange"
@@ -199,10 +194,20 @@ const {
   actionColumn: props.actionColumn
 })
 
-// 如果 pagination 传入了 pageSize，覆盖默认值
+// pagination.pageSize 只作为初始每页条数，后续以表格状态为准
 if (props.pagination?.pageSize) {
   tableState.pageSize.value = props.pagination.pageSize
 }
+
+const tablePagination = computed(() => {
+  const extra = props.pagination || {}
+  return {
+    ...extra,
+    currentPage: unref(tableState.currentPage),
+    pageSize: unref(tableState.pageSize),
+    total: extra.total ?? unref(tableState.total)
+  }
+})
 
 const handlePageChange = (page: number) => {
   tableState.currentPage.value = page
