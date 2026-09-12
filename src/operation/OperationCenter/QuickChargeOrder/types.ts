@@ -1,3 +1,11 @@
+import type {
+  ChargeOrderListItem,
+  ChargeOrderListParams
+} from '@/api/opertion/OperationCenter/QuickChargeOrder'
+
+export type EnergyOrder = ChargeOrderListItem
+export type EnergyListParams = ChargeOrderListParams
+
 export interface QuickChargeOrder {
   id: string
   pay_id: string

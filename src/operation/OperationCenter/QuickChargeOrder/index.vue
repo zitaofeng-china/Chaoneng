@@ -45,7 +45,7 @@ import type { SearchTableExpose } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import OrderDetail from './components/OrderDetail.vue'
-import { v2GetEnergyList } from '@/api/opertion/OperationCenter/EnergyTransaction'
+import { v1GetQuickChargeOrderList } from '@/api/opertion/OperationCenter/QuickChargeOrder'
 import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 import { getStatusText, getStatusType, ORDER_STATUS_OPTIONS } from '@/utils/orderStatus'
@@ -61,8 +61,12 @@ import {
 } from '@/utils/tableHelpers'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
-import type { EnergyListParams, EnergyOrder } from '../EnergyTransaction/types'
-import type { QuickChargeOrder, QuickChargeSearchParams } from './types'
+import type {
+  EnergyListParams,
+  EnergyOrder,
+  QuickChargeOrder,
+  QuickChargeSearchParams
+} from './types'
 import { useRoute, useRouter } from 'vue-router'
 import {
   getQuickChargeOrderTypeTagType,
@@ -245,7 +249,7 @@ const buildQuickChargeListParams = (params: QuickChargeSearchParams): EnergyList
   }
 
   if (hasSearchValue(params.pay_type)) {
-    apiParams.pay_type = Number(params.pay_type)
+    apiParams.pay_method = Number(params.pay_type)
   }
 
   apiParams.order = buildBackendOrder(params.order) || DEFAULT_START_TIME_ORDER
@@ -332,7 +336,7 @@ const loadBotOptions = async () => {
 
 const fetchDataWrapper = async (params: QuickChargeSearchParams = {}) => {
   try {
-    const response = await v2GetEnergyList(buildQuickChargeListParams(params))
+    const response = await v1GetQuickChargeOrderList(buildQuickChargeListParams(params))
 
     if (response?.code === '000000' && response.data) {
       const list = (response.data.list || []).map(mapEnergyOrderToQuickChargeOrder)
@@ -378,7 +382,7 @@ const handleExport = async () => {
     await exportTableData<EnergyOrder, QuickChargeSearchParams, EnergyListParams>({
       searchTableRef,
       filename: '速充订单列表',
-      fetchData: v2GetEnergyList,
+      fetchData: v1GetQuickChargeOrderList,
       buildParams: buildQuickChargeListParams,
       getList: (response) => response.data?.list || [],
       mapItem: (item) => mapQuickChargeExportItem(mapEnergyOrderToQuickChargeOrder(item)),
