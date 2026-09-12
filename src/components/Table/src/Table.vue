@@ -310,7 +310,7 @@ export default defineComponent({
           pageSizes: [10, 20, 30, 40, 50, 100],
           disabled: false,
           hideOnSinglePage: false,
-          total: 10
+          total: 0
         },
         unref(getProps).pagination
       )
