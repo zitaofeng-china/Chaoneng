@@ -32,6 +32,7 @@ import { ref, reactive, onActivated } from 'vue'
 import { ElButton, ElMessageBox, ElMessage, ElSelect, ElOption } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Icon } from '@/components/Icon'
+import { BaseButton } from '@/components/Button'
 import type { FormSchema } from '@/components/Form'
 import ResourcePoolAccountForm from './components/ResourcePoolAccountForm.vue'
 import NotifyBotDialog from '@/operation/Agent/components/NotifyBotDialog.vue'
@@ -40,6 +41,7 @@ import type { TableColumn } from '@/components/Table'
 import {
   v2GetPoolList,
   v2UpdatePool,
+  v2DeletePool,
   type V2PoolItem,
   type V2PoolListParams
 } from '@/api/opertion/SystemConfig/ResourcePool'
@@ -245,6 +247,23 @@ const columns = ref<TableColumn[]>([
     width: '180px',
     sortable: 'custom',
     formatter: (row: V2PoolItem) => formatTableDateTime(row.updated_at)
+  },
+  {
+    field: 'action',
+    label: '操作',
+    width: '100px',
+    fixed: 'right' as const,
+    showOverflowTooltip: false,
+    slots: {
+      default: ({ row }: ResourcePoolTableSlot) => {
+        if (!isPermission('ResourcePool.delete')) return null
+        return (
+          <BaseButton type="danger" onClick={() => handleDelete(row)}>
+            删除
+          </BaseButton>
+        )
+      }
+    }
   }
 ])
 
@@ -374,6 +393,26 @@ const handleStatusChangeAttempt = async (row: V2PoolItem, newValue: number) => {
       ElMessage.info('操作已取消')
     } else {
       handleErrorMessage(error, '操作失败')
+    }
+  }
+}
+
+const handleDelete = async (row: V2PoolItem) => {
+  try {
+    await ElMessageBox.confirm('确认要删除该账户吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    await v2DeletePool(row.id)
+    await reloadTable()
+    handleSuccessMessage('删除成功')
+  } catch (error) {
+    if (error === 'cancel') {
+      ElMessage.info('操作已取消')
+    } else {
+      handleErrorMessage(error, '删除失败')
     }
   }
 }

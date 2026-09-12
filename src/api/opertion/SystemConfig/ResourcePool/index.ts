@@ -37,6 +37,13 @@ export const v2UpdatePool = (data: UpdatePoolParams): Promise<IResponse<string>>
   })
 }
 
+/** DELETE /v1/pool/{id} */
+export const v2DeletePool = (id: number): Promise<IResponse<string>> => {
+  return request.delete<string>({
+    url: `${BASE_URL}/${id}`
+  })
+}
+
 /** GET /v1/pool/notify */
 export const getResourcePoolNotify = (): Promise<IResponse<ResourcePoolNotifyData>> => {
   return request.get<ResourcePoolNotifyData>({
