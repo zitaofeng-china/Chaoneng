@@ -7,8 +7,12 @@ import type {
 
 export * from './types'
 
-const BASE_URL = '/v1/order/energy'
+const BASE_URL = '/v1/order/charge'
 
+/**
+ * 分页获取用户速充列表
+ * GET /v1/order/charge
+ */
 export const v1GetQuickChargeOrderList = (
   params: QuickChargeOrderListParams
 ): Promise<IResponse<QuickChargeOrderListResponse>> => {
