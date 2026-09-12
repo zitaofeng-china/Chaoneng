@@ -52,6 +52,9 @@ export const ENERGY_ORDER_KIND_TAG_TYPE: Record<number, EnergyOrderKindTagType> 
   [EnergyOrderKind.HOSTING_QUICK_CHARGE]: 'primary'
 }
 
+const ENERGY_RESOURCE_CODE = 1
+const BANDWIDTH_RESOURCE_CODES = new Set([0, 2])
+
 const RESOURCE_TYPE_TEXT_MAP: Record<number, string> = {
   1: '能量',
   0: '带宽'
@@ -84,6 +87,24 @@ export const getResourceTypeTagType = (
   return normalizedValue === undefined
     ? fallback
     : RESOURCE_TYPE_TAG_MAP[normalizedValue] || fallback
+}
+
+type EnergyAmountResource = {
+  code?: number | string | null
+  amount?: number | string | null
+}
+
+export function getEnergyResourceAmount(
+  resources?: EnergyAmountResource[] | null,
+  fallback?: number | string | null
+) {
+  const list = resources || []
+  const energyResource =
+    list.find((item) => Number(item.code) === ENERGY_RESOURCE_CODE) ||
+    list.find((item) => !BANDWIDTH_RESOURCE_CODES.has(Number(item.code)))
+  const value = energyResource?.amount ?? fallback
+  if (value === null || value === undefined || value === '') return undefined
+  return value
 }
 
 /**

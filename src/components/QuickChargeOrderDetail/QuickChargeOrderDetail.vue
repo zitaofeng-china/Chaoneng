@@ -105,10 +105,7 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
     }
   },
   {
-    label: (() => {
-      const orderType = Number(currentOrder.value?.order_type)
-      return orderType === 7 || orderType === 9 ? '带宽数' : '能量数'
-    })(),
+    label: '能量数',
     field: 'summary.energy_count',
     slots: {
       default: (data: QuickChargeOrderDetail) => {

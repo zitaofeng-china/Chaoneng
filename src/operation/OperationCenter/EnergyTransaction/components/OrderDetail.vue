@@ -40,7 +40,8 @@ import { formatToWan } from '@/utils'
 import {
   EnergyOrderKind,
   getEnergyOrderKindTagType,
-  getEnergyOrderKindText
+  getEnergyOrderKindText,
+  getEnergyResourceAmount
 } from '@/utils/energyOrder'
 import { getStatusText, getStatusType } from '@/utils/orderStatus'
 import {
@@ -122,14 +123,11 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => {
       }
     },
     {
-      label: (() => {
-        const kind = Number(currentOrder.value?.kind)
-        return kind === 7 || kind === 9 ? '带宽数' : '能量数'
-      })(),
+      label: '能量数',
       field: 'resources',
       slots: {
         default: (data: V2OrderDetailResponse) => {
-          const value = data?.resources?.[0]?.amount ?? data?.summary?.energy_count
+          const value = getEnergyResourceAmount(data?.resources, data?.summary?.energy_count)
           if (value === null || value === undefined) return renderNullableText('0')
           return renderNullableText(Number(value) >= 10000 ? formatToWan(value) : value)
         }
