@@ -7,38 +7,39 @@ export interface QuickChargePager {
 }
 
 export interface QuickChargeOrderListParams {
+  bot_id?: number
   current_page?: number
-  end_time?: string
+  end_time?: number | string
   energy_address?: string
   keyword?: string
   kind?: number | number[]
-  order_id?: string
   order?: string
-  page_size?: number
-  receive_address?: string
-  start_time?: string
-  status?: number
+  order_id?: string
   origin?: number
-  bot_id?: number
+  page_size?: number
+  pay_method?: number
+  receive_address?: string
+  start_time?: number | string
+  status?: number
 }
 
 export interface QuickChargeOrderListItem {
   id: string
-  created_at: number
-  updated_at: number
-  paid_at: number | null
+  created_at: number | string
+  updated_at: number | string
+  paid_at: number | string | null
   kind: number
   status: number
   user_id: number
   agent_id: number
   bot_id: number
-  amount: string
+  amount: string | number
   fee?: string | number
   coin: string
   receive_address: string
   pay_id: string
   payment_address?: string
-  cost: string
+  cost?: string | number
   describe: string
   agent_name: string
   bot_name: string
@@ -46,12 +47,12 @@ export interface QuickChargeOrderListItem {
   tg_user_name: string
   tg_first_name: string
   energy_address: string
-  energy_amount: string
+  energy_amount: string | number
   energy_count: number
-  energy_actual_amount: string
-  expirated_at: string | null
-  delegated_at: string | null
-  recycled_at: string | null
+  energy_actual_amount: string | number
+  expirated_at: number | string | null
+  delegated_at: number | string | null
+  recycled_at: number | string | null
   username?: string
   email?: string
   origin?: number
