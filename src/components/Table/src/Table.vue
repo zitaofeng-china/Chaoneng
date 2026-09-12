@@ -301,7 +301,7 @@ export default defineComponent({
     })
 
     const pagination = computed(() => {
-      return Object.assign(
+      const merged: Pagination = Object.assign(
         {
           small: false,
           background: false,
@@ -314,6 +314,9 @@ export default defineComponent({
         },
         unref(getProps).pagination
       )
+      delete merged.pageSize
+      delete merged.currentPage
+      return merged
     })
 
     watch(
@@ -598,10 +601,10 @@ export default defineComponent({
           )}
           {unref(getProps).pagination ? (
             <ElPagination
-              v-model:pageSize={pageSizeRef.value}
-              v-model:currentPage={currentPageRef.value}
               class="mt-10px"
               {...unref(pagination)}
+              v-model:pageSize={pageSizeRef.value}
+              v-model:currentPage={currentPageRef.value}
             ></ElPagination>
           ) : undefined}
         </div>
