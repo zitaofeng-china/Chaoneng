@@ -369,8 +369,8 @@ const handleStatusChangeAttempt = async (row: V2PoolItem, newValue: number) => {
 
   const actionText = getResourcePoolStatusLabel(intendedStatus)
   let msg = `确认要将状态更改为 "${actionText}" 吗？`
-  if (isThresholdPoolKind(row.kind)) {
-    msg = `确认要将状态更改为 "${actionText}" ${intendedStatus === 1 ? '(设为主账户)' : intendedStatus === 3 ? '(设为备用账户)' : ''} 吗？`
+  if (isThresholdPoolKind(row.kind) && intendedStatus === 1) {
+    msg = `确认要将状态更改为 "${actionText}" (设为主账户) 吗？`
   }
 
   try {

@@ -27,14 +27,12 @@ interface ResourcePoolStatusMeta {
 
 export const RESOURCE_POOL_STATUS_META_MAP: Record<number, ResourcePoolStatusMeta> = {
   1: { label: '启用', className: 'text-green-300 font-bold' },
-  2: { label: '禁用', className: 'text-red-300 font-bold' },
-  3: { label: '备用', className: 'text-orange-300 font-bold' }
+  2: { label: '禁用', className: 'text-red-300 font-bold' }
 }
 
 export const RESOURCE_POOL_STATUS_MAP: Record<number, string> = {
   1: RESOURCE_POOL_STATUS_META_MAP[1].label,
-  2: RESOURCE_POOL_STATUS_META_MAP[2].label,
-  3: RESOURCE_POOL_STATUS_META_MAP[3].label
+  2: RESOURCE_POOL_STATUS_META_MAP[2].label
 }
 
 export const RESOURCE_POOL_STATUS_OPTIONS = Object.entries(RESOURCE_POOL_STATUS_META_MAP).map(

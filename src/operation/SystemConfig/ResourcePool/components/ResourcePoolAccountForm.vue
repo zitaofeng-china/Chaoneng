@@ -102,7 +102,7 @@ const energyPoolSchema: FormSchema[] = [
     componentProps: {
       placeholder: '请输入可用数量阈值',
       precision: 2,
-      remark: '说明：当达到阈值时，自动切换至最高优先级备用地址'
+      remark: '说明：当达到阈值时，自动切换至其他可用地址'
     }
   }
 ]
