@@ -15,6 +15,13 @@ export const renderNullableText = (value?: string | number | null, fallback = '-
   return h('span', value === undefined || value === null || value === '' ? fallback : String(value))
 }
 
+export const formatTxidPreview = (txid?: string | number | null) => {
+  const normalizedTxid = String(txid ?? '').trim()
+  if (!normalizedTxid) return '-'
+  if (normalizedTxid.length <= 18) return normalizedTxid
+  return `${normalizedTxid.slice(0, 8)}...${normalizedTxid.slice(-8)}`
+}
+
 export const renderTronscanTransactionLink = (
   txid?: string | number | null,
   linkText = '点击跳转'
@@ -155,6 +162,8 @@ export const buildQuickChargeOrderDetail = (
     flash_price: String(detailData.amount ?? '-'),
     kind: detailData.kind,
     before_used: detailData.fast_charge?.before_used ?? null,
+    delegated_txid: detailData.fast_charge?.delegated_txid?.trim() || '',
+    recycled_txid: detailData.fast_charge?.recycled_txid?.trim() || '',
     summary,
     resources: mapResources(detailData.resources),
     activations: detailData.activations || []

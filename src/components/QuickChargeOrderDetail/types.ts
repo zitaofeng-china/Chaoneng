@@ -10,6 +10,8 @@ export interface QuickChargeOrderSummary {
 export interface OrderFastCharge {
   /** 使用前数量，可能为 null */
   before_used?: number | null
+  delegated_txid?: string | null
+  recycled_txid?: string | null
 }
 
 export interface QuickChargeResource {
@@ -61,6 +63,10 @@ export interface QuickChargeOrderDetail extends Recordable {
   kind?: number
   /** 使用前数量，来自 fast_charge.before_used，null 时展示为 - */
   before_used?: number | null
+  /** 代理哈希，来自 fast_charge.delegated_txid */
+  delegated_txid?: string
+  /** 回收哈希，来自 fast_charge.recycled_txid */
+  recycled_txid?: string
   summary: QuickChargeOrderSummary
   resources: QuickChargeResource[]
   activations: QuickChargeActivation[]
