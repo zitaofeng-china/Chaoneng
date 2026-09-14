@@ -54,7 +54,12 @@ import {
 import { handleErrorMessage } from '@/utils/messageHelper'
 import ActivationDetails from './ActivationDetails.vue'
 import ResourceDetails from './ResourceDetails.vue'
-import { buildQuickChargeOrderDetail, renderNullableText } from './helpers'
+import {
+  buildQuickChargeOrderDetail,
+  formatTxidPreview,
+  renderNullableText,
+  renderTronscanTransactionLink
+} from './helpers'
 import type {
   FetchQuickChargeOrderDetail,
   QuickChargeOrderDetail,
@@ -138,6 +143,22 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
     field: 'before_used',
     slots: {
       default: (data: QuickChargeOrderDetail) => renderNullableText(data?.before_used)
+    }
+  },
+  {
+    label: '代理哈希',
+    field: 'delegated_txid',
+    slots: {
+      default: (data: QuickChargeOrderDetail) =>
+        renderTronscanTransactionLink(data?.delegated_txid, formatTxidPreview(data?.delegated_txid))
+    }
+  },
+  {
+    label: '回收哈希',
+    field: 'recycled_txid',
+    slots: {
+      default: (data: QuickChargeOrderDetail) =>
+        renderTronscanTransactionLink(data?.recycled_txid, formatTxidPreview(data?.recycled_txid))
     }
   },
   {
