@@ -153,6 +153,8 @@ export interface V2OrderDetailResponse {
   /** 速充扩展；status 已删除，统一用外层 status；before_used 可能为 null */
   fast_charge?: {
     before_used?: number | null
+    delegated_txid?: string | null
+    recycled_txid?: string | null
   } | null
 }
 
