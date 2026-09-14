@@ -73,7 +73,6 @@ import {
   getQuickChargeOrderTypeText,
   QUICK_CHARGE_RESOURCE_TYPE_OPTIONS
 } from './constants'
-import { renderDisplayableTransactionHash } from '@/operation/OperationCenter/utils/transactionLink'
 import { PAYMENT_TYPE_OPTIONS } from '@/constants/payment'
 
 const QUICK_CHARGE_ORDER_KINDS = [15, 21]
@@ -134,15 +133,7 @@ const columns: TableColumn[] = [
     }
   },
   { field: 'amount', label: '数量', width: 130 },
-  { field: 'unit_price', label: '单价（sun/天）', width: 130 },
-  {
-    field: 'pay_id',
-    label: '交易哈希',
-    minWidth: 220,
-    slots: {
-      default: ({ row }: QuickChargeTableSlot) => renderDisplayableTransactionHash(row.pay_id)
-    }
-  },
+  { field: 'unit_price', label: '单价（sun）', width: 130 },
   { field: 'start_time', label: '开始时间', width: 170 },
   { field: 'end_time', label: '结束时间', width: 170 },
   {
@@ -179,7 +170,7 @@ const searchSchema = ref<FormSchema[]>([
     component: 'Input',
     label: {
       text: '关键词',
-      tips: '订单号/代理/交易哈希'
+      tips: '订单号/代理'
     },
     componentProps: {
       placeholder: '关键词',
@@ -369,7 +360,7 @@ const mapQuickChargeExportItem = (item: QuickChargeOrder) => ({
   接收地址: item.receive_address,
   类型: item.order_type_label,
   数量: item.amount,
-  '单价（sun/天）': item.unit_price,
+  '单价（sun）': item.unit_price,
   开始时间: item.start_time,
   结束时间: item.end_time,
   订单状态: getStatusText(item.status),
