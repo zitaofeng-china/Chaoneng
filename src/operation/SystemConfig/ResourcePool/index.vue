@@ -46,13 +46,18 @@ import {
   type V2PoolListParams
 } from '@/api/opertion/SystemConfig/ResourcePool'
 import {
+  buildResourcePoolKindStats,
   getResourcePoolStatusClassName,
   getResourcePoolStatusLabel,
+  isResourcePoolDisableLocked,
   isThresholdPoolKind,
+  RESOURCE_POOL_DISABLE_LOCK_HINT,
+  RESOURCE_POOL_DISABLED_STATUS,
   RESOURCE_POOL_STATUS_MAP,
   RESOURCE_POOL_STATUS_SEARCH_OPTIONS,
   RESOURCE_POOL_TYPE_MAP,
-  RESOURCE_POOL_TYPE_SEARCH_OPTIONS
+  RESOURCE_POOL_TYPE_SEARCH_OPTIONS,
+  type ResourcePoolKindStat
 } from './constants'
 import { isPermission } from '@/utils/is'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
@@ -69,6 +74,8 @@ const searchTableRef = ref<InstanceType<typeof SearchTable>>()
 const notifyBotDialogVisible = ref(false)
 const hasActivatedOnce = ref(false)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
+const POOL_STATS_PAGE_SIZE = 500
+const poolKindStats = ref<Record<number, ResourcePoolKindStat>>({})
 
 type ResourcePoolSearchParams = Omit<V2PoolListParams, 'kind' | 'status'> & {
   kind?: number | string
@@ -199,7 +206,6 @@ const columns = ref<TableColumn[]>([
     width: '100px',
     slots: {
       default: ({ row }: ResourcePoolTableSlot) => {
-        const disableOthers = row.status === 1
         return (
           <ElSelect
             modelValue={row.status}
@@ -217,16 +223,23 @@ const columns = ref<TableColumn[]>([
                 )
               },
               default: () => {
-                return Object.entries(RESOURCE_POOL_STATUS_MAP).map(([value, label]) => (
-                  <ElOption
-                    key={value}
-                    label={label}
-                    value={parseInt(value, 10)}
-                    disabled={disableOthers && parseInt(value, 10) !== 1}
-                  >
-                    <span class={getResourcePoolStatusClassName(parseInt(value, 10))}>{label}</span>
-                  </ElOption>
-                ))
+                const lockDisable = isResourcePoolDisableLocked(row, poolKindStats.value)
+                return Object.entries(RESOURCE_POOL_STATUS_MAP).map(([value, label]) => {
+                  const optionValue = parseInt(value, 10)
+                  const disableOptionLocked =
+                    optionValue === RESOURCE_POOL_DISABLED_STATUS && lockDisable
+                  return (
+                    <ElOption
+                      key={value}
+                      label={label}
+                      value={optionValue}
+                      disabled={disableOptionLocked}
+                      title={disableOptionLocked ? RESOURCE_POOL_DISABLE_LOCK_HINT : undefined}
+                    >
+                      <span class={getResourcePoolStatusClassName(optionValue)}>{label}</span>
+                    </ElOption>
+                  )
+                })
               }
             }}
           </ElSelect>
@@ -299,6 +312,45 @@ const searchSchema = reactive<FormSchema[]>([
   }
 ])
 
+const fetchAllResourcePools = async () => {
+  const first = await v2GetPoolList({
+    current_page: 1,
+    page_size: POOL_STATS_PAGE_SIZE
+  })
+  const firstList = first?.data?.list || []
+  const total = first?.data?.pager?.total || firstList.length
+  if (total <= firstList.length) return firstList
+
+  const pageCount = Math.ceil(total / POOL_STATS_PAGE_SIZE)
+  const restPages = await Promise.all(
+    Array.from({ length: pageCount - 1 }, (_, index) =>
+      v2GetPoolList({
+        current_page: index + 2,
+        page_size: POOL_STATS_PAGE_SIZE
+      })
+    )
+  )
+
+  return firstList.concat(restPages.flatMap((res) => res?.data?.list || []))
+}
+
+const refreshPoolKindStats = async (
+  fallbackList: V2PoolItem[] = [],
+  options: { useFallbackOnly?: boolean } = {}
+) => {
+  if (options.useFallbackOnly) {
+    poolKindStats.value = buildResourcePoolKindStats(fallbackList)
+    return
+  }
+
+  try {
+    const allPools = await fetchAllResourcePools()
+    poolKindStats.value = buildResourcePoolKindStats(allPools)
+  } catch {
+    poolKindStats.value = buildResourcePoolKindStats(fallbackList)
+  }
+}
+
 const getResourcePoolData = async (params: ResourcePoolSearchParams = {}) => {
   try {
     const apiParams: V2PoolListParams = {
@@ -329,6 +381,9 @@ const getResourcePoolData = async (params: ResourcePoolSearchParams = {}) => {
         hasSearchValue(params.keyword) ||
         hasSearchValue(params.kind) ||
         hasSearchValue(params.status)
+      const useCurrentListForStats = !hasSearchCondition && list.length >= total
+
+      await refreshPoolKindStats(list, { useFallbackOnly: useCurrentListForStats })
       handleListMessage(list, hasSearchCondition, '资源池账户')
 
       return {
@@ -337,9 +392,11 @@ const getResourcePoolData = async (params: ResourcePoolSearchParams = {}) => {
       }
     }
 
+    poolKindStats.value = {}
     return { list: [], total: 0 }
   } catch (error) {
     handleErrorMessage(error, '获取列表失败')
+    poolKindStats.value = {}
     return { list: [], total: 0 }
   }
 }
@@ -364,6 +421,14 @@ const handleStatusChangeAttempt = async (row: V2PoolItem, newValue: number) => {
   const intendedStatus = newValue
 
   if (originalStatus === intendedStatus) {
+    return
+  }
+
+  if (
+    intendedStatus === RESOURCE_POOL_DISABLED_STATUS &&
+    isResourcePoolDisableLocked(row, poolKindStats.value)
+  ) {
+    ElMessage.warning(RESOURCE_POOL_DISABLE_LOCK_HINT)
     return
   }
 
