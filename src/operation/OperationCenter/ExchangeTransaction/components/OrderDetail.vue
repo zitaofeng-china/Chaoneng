@@ -181,9 +181,9 @@ const detailSchema = computed<DescriptionsSchema[]>(() => [
   },
   {
     label: '代理扣款',
-    field: 'agent_cost',
+    field: 'exchange',
     span: 8,
-    slots: { default: (data) => `${formatAmount(data.agent_cost)} TRX` }
+    slots: { default: (data) => `${formatAmount(data.exchange?.agent_cost)} TRX` }
   },
   {
     label: '完成时间',
