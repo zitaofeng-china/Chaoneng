@@ -16,6 +16,7 @@ import {
 import { getStatusText, getStatusType } from '@/utils/orderStatus'
 import { formatTableDateTime } from '@/utils/tableHelpers'
 import { renderDisplayableTransactionHash } from '@/operation/OperationCenter/utils/transactionLink'
+import { getActualIssuedEnergyAmount } from './utils'
 
 /**
  * 列配置项
@@ -125,10 +126,10 @@ export function getAllColumns(): ColumnConfig[] {
       formatter: (row) => formatToWan(row.energy_amount) || '-'
     },
     {
-      field: 'energy_actual_amount',
+      field: 'issued_energy_amount',
       label: '实际发放能量',
       width: 110,
-      formatter: (row) => formatToWan(row.energy_actual_amount) || '-'
+      formatter: (row) => formatToWan(getActualIssuedEnergyAmount(row.energy_amount))
     },
     {
       field: 'receive_address',
