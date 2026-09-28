@@ -75,7 +75,8 @@ const USER_BILL_ORDER_TYPE_MAP: Record<number, string> = {
   9: '批量能量',
   10: '激活',
   11: '机器人付费',
-  20: '托管'
+  20: '托管',
+  30: '速充退费'
 }
 
 const USER_BILL_ORDER_TYPE_OPTIONS = Object.entries(USER_BILL_ORDER_TYPE_MAP).map(
@@ -165,7 +166,7 @@ const formatAmountChange = (item: UserBillItemV1) => {
 }
 
 const isQuickChargeBill = (row: UserBillItemV1) =>
-  [15, 21].includes(Number(row.kind)) || row.describe?.includes('速充')
+  [15, 21, 30].includes(Number(row.kind)) || row.describe?.includes('速充')
 
 const getOrderDestination = (row: UserBillItemV1) => {
   switch (Number(row.kind)) {
@@ -185,6 +186,7 @@ const getOrderDestination = (row: UserBillItemV1) => {
       return { path: '/order_manage/energy_order', query: { order_id: row.order_id } }
     case 15:
     case 21:
+    case 30:
       return { path: '/order_manage/quick_charge_order', query: { keyword: row.order_id } }
     default:
       return isQuickChargeBill(row)
