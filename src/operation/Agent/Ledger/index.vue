@@ -150,7 +150,7 @@ const syncRouteSearchParams = async () => {
 }
 
 const isQuickChargeBill = (row: AgentBillItem) =>
-  [15, 21].includes(Number(row.kind)) || row.describe?.includes('速充')
+  [15, 21, 30].includes(Number(row.kind)) || row.describe?.includes('速充')
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -373,6 +373,7 @@ const columns = ref<TableColumn[]>([
             break
           case 15: // 速充能量
           case 21: // 托管速充
+          case 30: // 速充退费
             routePath = '/operation/quick_charge_order'
             break
           case 11: // 机器人付费
