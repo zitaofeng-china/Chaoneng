@@ -53,7 +53,8 @@ export const AGENT_BILL_ORDER_TYPE_MAP: Record<number, string> = {
   12: '奖励',
   15: '速充能量',
   20: '托管',
-  21: '托管速充'
+  21: '托管速充',
+  30: '速充退费'
 }
 
 export const AGENT_BILL_ORDER_TYPE_OPTIONS = Object.entries(AGENT_BILL_ORDER_TYPE_MAP).map(
@@ -88,7 +89,8 @@ export const USER_BILL_ORDER_TYPE_MAP: Record<number, string> = {
   9: '批量能量',
   10: '激活',
   11: '机器人付费',
-  20: '托管'
+  20: '托管',
+  30: '速充退费'
 }
 
 export const USER_BILL_ORDER_TYPE_OPTIONS = Object.entries(USER_BILL_ORDER_TYPE_MAP).map(
