@@ -162,14 +162,6 @@ const commonDetailSchema = computed<DescriptionsSchema[]>(() => [
     }
   },
   {
-    label: '回收时间',
-    field: 'recycle_time',
-    slots: {
-      default: (data: QuickChargeOrderDetail) =>
-        renderNullableText(formatTableDateTime(data?.recycle_time))
-    }
-  },
-  {
     label: '创建时间',
     field: 'create_time',
     slots: {

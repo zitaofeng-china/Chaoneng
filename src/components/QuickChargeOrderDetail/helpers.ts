@@ -149,7 +149,6 @@ export const buildQuickChargeOrderDetail = (
     receive_address: detailData.receive_address || '',
     energy_address: firstResource?.target || '',
     status: detailData.status,
-    recycle_time: toTimestamp(firstResource?.recycled_at),
     create_time: toTimestamp(detailData.created_at),
     finish_time: toTimestamp(detailData.updated_at),
     pay_time: toTimestamp(detailData.paid_at),

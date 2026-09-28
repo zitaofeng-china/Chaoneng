@@ -49,7 +49,6 @@ export interface QuickChargeOrderDetail extends Recordable {
   receive_address: string
   energy_address: string
   status: number
-  recycle_time: number
   create_time: number
   finish_time: number
   pay_time: number
