@@ -13,6 +13,16 @@ import {
 import { getStatusText, OrderStatus } from '@/utils/orderStatus'
 import { dateRangeToSeconds, formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
 
+/** 实际发放能量 = energy_amount × 105%。接口已不再返回 energy_actual_amount。 */
+export function getActualIssuedEnergyAmount(
+  energyAmount: string | number | null | undefined
+): number | undefined {
+  if (energyAmount === undefined || energyAmount === null || energyAmount === '') return undefined
+  const amount = Number(energyAmount)
+  if (!Number.isFinite(amount)) return undefined
+  return Math.round(amount * 1.05)
+}
+
 export function buildEnergyListParams(params: SearchFormParams): EnergyListParams {
   const apiParams: EnergyListParams = {}
 
@@ -94,7 +104,7 @@ export function transformOrderToExportData(
     交易金额: order.amount || '-',
     金额币种: order.coin || '-',
     应发放能量: formatEnergyAmount(order.energy_amount),
-    实际发放能量: formatEnergyAmount(order.energy_actual_amount),
+    实际发放能量: formatEnergyAmount(getActualIssuedEnergyAmount(order.energy_amount)),
     收款方式: getPaymentMethodText(order.energy_address, order.receive_address),
     能量接收地址: order.energy_address || '-',
     笔数: order.energy_count || '-',
