@@ -68,12 +68,6 @@ const resourceTableSchema = computed((): TableColumn[] => [
     label: '发放时间',
     width: 160,
     formatter: (row: QuickChargeResource) => formatTableDateTime(row.delegated_at)
-  },
-  {
-    field: 'recycled_at',
-    label: '回收时间',
-    width: 160,
-    formatter: (row: QuickChargeResource) => formatTableDateTime(row.recycled_at)
   }
 ])
 
