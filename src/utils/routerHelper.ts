@@ -8,7 +8,20 @@ import type {
 import { isUrl } from '@/utils/is'
 import { omit, cloneDeep } from 'lodash-es'
 
-const modules = import.meta.glob('../views/**/*.{vue,tsx}')
+// 这个 glob 的 key 是动态查找的，Rollup 会把命中的页面全部打进包。
+// 模板演示页没有正式路由，留在这里会把 Monaco 等演示依赖一起打进去。
+const modules = import.meta.glob([
+  '../views/**/*.{vue,tsx}',
+  '!../views/Authorization/**',
+  '!../views/Components/**',
+  '!../views/Dashboard/**',
+  '!../views/DataStatistics/**',
+  '!../views/Example/**',
+  '!../views/Function/**',
+  '!../views/Guide/**',
+  '!../views/Level/**',
+  '!../views/hooks/**'
+])
 
 /* Layout */
 export const Layout = () => import('@/layout/Layout.vue')
