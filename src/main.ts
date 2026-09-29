@@ -5,6 +5,8 @@ import '@/plugins/unocss'
 
 // 导入全局的svg图标
 import '@/plugins/svgIcon'
+// 客服菜单的 ant-design 图标随包注册，不依赖 Iconify 在线接口
+import '@/plugins/iconify'
 
 // 初始化多语言
 import { setupI18n } from '@/plugins/vueI18n'

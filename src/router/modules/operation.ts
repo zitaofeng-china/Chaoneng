@@ -441,7 +441,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
       name: 'CustomerService',
       meta: {
         title: '客服配置',
-        icon: 'ant-design:customer-service-outlined', // Material Design Icons: account-headset
+        icon: 'vi-ant-design:customer-service-outlined',
         alwaysShow: true
       },
       children: [
@@ -451,7 +451,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           component: () => import('@/operation/CustomerService/CustomerServiceMessage/index.vue'),
           meta: {
             title: '客服消息',
-            icon: 'ant-design:message-outlined'
+            icon: 'vi-ant-design:message-outlined'
           }
         },
         {
@@ -460,7 +460,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           component: () => import('@/operation/CustomerService/CustomerServicePage/index.vue'),
           meta: {
             title: '客服管理',
-            icon: 'ant-design:customer-service-outlined'
+            icon: 'vi-ant-design:customer-service-outlined'
           }
         }
       ]
