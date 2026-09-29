@@ -1,0 +1,3 @@
+# Isolate this repo from a parent pnpm-workspace.yaml (e.g. $HOME).
+packages:
+  - '.'
