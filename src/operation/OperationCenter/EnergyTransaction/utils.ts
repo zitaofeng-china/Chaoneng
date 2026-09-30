@@ -11,7 +11,8 @@ import {
   shouldHideEnergyOrderKind
 } from '@/utils/energyOrder'
 import { getStatusText, OrderStatus } from '@/utils/orderStatus'
-import { dateRangeToSeconds, formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
+import { formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
+import { assignCreatedTimeRange } from '@/utils/createdTimeFilter'
 
 /** 实际发放能量 = energy_amount × 105%。接口已不再返回 energy_actual_amount。 */
 export function getActualIssuedEnergyAmount(
@@ -23,10 +24,10 @@ export function getActualIssuedEnergyAmount(
   return Math.round(amount * 1.05)
 }
 
-export function buildEnergyListParams(params: SearchFormParams): EnergyListParams {
+export function buildEnergyListParams(params: SearchFormParams): EnergyListParams | null {
   const apiParams: EnergyListParams = {}
 
-  Object.assign(apiParams, dateRangeToSeconds(params.dateRange))
+  if (!assignCreatedTimeRange(apiParams, params)) return null
 
   if (params.keyword) {
     apiParams.keyword = params.keyword
@@ -141,7 +142,8 @@ export function hasSearchCondition(params: SearchFormParams): boolean {
     params.energy_address,
     params.status,
     params.kind,
-    params.dateRange
+    params.createdStartTime,
+    params.createdEndTime
   ].some(hasSearchValue)
 }
 

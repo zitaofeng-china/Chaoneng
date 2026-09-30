@@ -52,13 +52,16 @@ import { SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'
 import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
 import {
   buildBackendOrder,
-  createDefaultDateTimeRange,
   createPageParams,
   exportTableData,
-  hasSearchValue,
   withAllOption,
   type SelectOption
 } from '@/utils/tableHelpers'
+import {
+  createCreatedTimeSearchFields,
+  createRecentCreatedTimeBounds,
+  withLookupCreatedTime
+} from '@/utils/createdTimeFilter'
 import { ENERGY_ORDER_KIND_OPTIONS } from '@/utils/energyOrder'
 import { ENERGY_PAYMENT_METHOD_OPTIONS } from '@/constants/payment'
 import { getFilteredColumns } from './columns'
@@ -87,8 +90,9 @@ const stoppedOrders = ref<Set<string>>(new Set())
 const DEFAULT_ORDER = 'created_at DESC'
 const initialSearchParams: Partial<SearchFormParams> = (() => {
   const keyword = route.query.keyword || route.query.query || route.query.order_id
-  return keyword ? { keyword: String(keyword) } : {}
+  return keyword ? withLookupCreatedTime({ keyword: String(keyword) }) : {}
 })()
+const createdTimeBounds = createRecentCreatedTimeBounds()
 
 const columns = computed(() => [...getFilteredColumns(selectedSource.value), actionColumn])
 
@@ -204,18 +208,7 @@ const searchSchema = computed(() => [
       options: ENERGY_ORDER_KIND_OPTIONS
     }
   },
-  {
-    field: 'dateRange',
-    component: 'DatePicker' as const,
-    label: '创建时间',
-    componentProps: {
-      type: 'datetimerange',
-      valueFormat: 'x',
-      startPlaceholder: '开始日期',
-      endPlaceholder: '结束日期',
-      defaultTime: createDefaultDateTimeRange()
-    }
-  }
+  ...createCreatedTimeSearchFields(createdTimeBounds)
 ])
 
 const normalizeMessageBotList = (data: unknown): MessageBotItem[] => {
@@ -249,11 +242,14 @@ const fetchDataWrapper = async (
   params: SearchFormParams & { current_page?: number; page_size?: number; order?: string }
 ) => {
   try {
+    const builtParams = buildEnergyListParams(params)
+    if (!builtParams) return null
+
     selectedSource.value = params.origin ?? ''
 
     const apiParams: EnergyListParams = {
       ...createPageParams(params),
-      ...buildEnergyListParams(params)
+      ...builtParams
     }
 
     apiParams.order = buildBackendOrder(params.order) || DEFAULT_ORDER
@@ -287,10 +283,14 @@ const handleExport = async () => {
       searchTableRef,
       filename: '能量订单列表',
       fetchData: v2GetEnergyList,
-      buildParams: (params) => ({
-        ...buildEnergyListParams(params),
-        page_size: -1
-      }),
+      buildParams: (params) => {
+        const builtParams = buildEnergyListParams(params)
+        if (!builtParams) return null
+        return {
+          ...builtParams,
+          page_size: -1
+        }
+      },
       getList: (response) =>
         sortOrdersByCreatedTime(filterVisibleEnergyOrders(response.data?.list || [])),
       mapItem: (item) => transformOrderToExportData(item, selectedSource.value),
