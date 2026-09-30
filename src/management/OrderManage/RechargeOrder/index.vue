@@ -42,7 +42,13 @@ import type { TableColumn } from '@/components/Table'
 import { v1GetDepositList, v1GetDepositDetail } from '@/api/management/OrderManage/RechargeOrder'
 import { useRouter, useRoute } from 'vue-router'
 import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
-import { dateRangeToSeconds, exportTableData } from '@/utils/tableHelpers'
+import { exportTableData } from '@/utils/tableHelpers'
+import {
+  assignCreatedTimeRange,
+  createCreatedTimeSearchFields,
+  createRecentCreatedTimeBounds,
+  withLookupCreatedTime
+} from '@/utils/createdTimeFilter'
 import { formatRechargeFeeText } from '@/utils/rechargeOrder'
 import {
   RechargeOrderDetailDialog,
@@ -57,9 +63,9 @@ const tableProps = {
   headerCellStyle: { whiteSpace: 'nowrap' }
 }
 const initialSearchParams = route.query.order_num
-  ? {
+  ? withLookupCreatedTime({
       order_id: String(route.query.order_num)
-    }
+    })
   : {}
 
 // 当前选择的来源
@@ -261,6 +267,8 @@ const columns = computed<TableColumn[]>(() => {
 })
 
 // 搜索表单配置
+const createdTimeBounds = createRecentCreatedTimeBounds()
+
 const searchSchema = [
   {
     field: 'query',
@@ -343,18 +351,7 @@ const searchSchema = [
       placeholder: '请选择订单类型'
     }
   },
-  {
-    field: 'dateRange',
-    component: 'DatePicker' as const,
-    label: '创建时间',
-    componentProps: {
-      type: 'datetimerange',
-      valueFormat: 'x',
-      startPlaceholder: '开始日期',
-      endPlaceholder: '结束日期',
-      defaultTime: [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
-    }
-  }
+  ...createCreatedTimeSearchFields(createdTimeBounds)
 ]
 
 // 获取订单状态显示类型
@@ -429,11 +426,7 @@ const fetchRechargeOrderList = async (params: any) => {
       adaptedParams.order = DEFAULT_CREATED_AT_ORDER
     }
 
-    // 处理时间范围（转换为秒数）
-    if (params.dateRange && params.dateRange.length === 2) {
-      adaptedParams.start_time = Math.floor(params.dateRange[0] / 1000).toString()
-      adaptedParams.end_time = Math.floor(params.dateRange[1] / 1000).toString()
-    }
+    if (!assignCreatedTimeRange(adaptedParams, params)) return null
 
     const response = await v1GetDepositList(adaptedParams)
 
@@ -453,7 +446,8 @@ const fetchRechargeOrderList = async (params: any) => {
       params.order_type ||
       params.receive_address ||
       params.pay_address ||
-      params.dateRange
+      params.createdStartTime ||
+      params.createdEndTime
     )
     handleListMessage(list, hasSearchCondition, '充值订单')
 
@@ -522,7 +516,7 @@ const handleExport = async () => {
         if (params.receive_address) adaptedParams.receive_address = params.receive_address
         if (params.pay_address) adaptedParams.pay_address = params.pay_address
 
-        Object.assign(adaptedParams, dateRangeToSeconds(params.dateRange))
+        if (!assignCreatedTimeRange(adaptedParams, params)) return null
 
         return adaptedParams
       },
