@@ -305,7 +305,7 @@ interface ExportTableDataWithBuildParamsOptions<
   TApiParams extends Recordable = Recordable
 > extends ExportTableDataBaseOptions<T, TSearchParams> {
   fetchData: (params: TApiParams) => Promise<unknown>
-  buildParams: (params: ExportParams<TSearchParams>) => TApiParams
+  buildParams: (params: ExportParams<TSearchParams>) => TApiParams | null | undefined
 }
 
 interface ExportTableDataWithoutBuildParamsOptions<T, TSearchParams extends Recordable = Recordable>
@@ -369,13 +369,18 @@ export async function exportTableData<
     current_page: -1,
     page_size: -1
   } as ExportParams<TSearchParams>
-  const apiParams = options.buildParams
-    ? {
-        current_page: exportParams.current_page,
-        page_size: exportParams.page_size,
-        ...options.buildParams(exportParams)
-      }
-    : exportParams
+  let apiParams: Recordable
+  if (options.buildParams) {
+    const builtParams = options.buildParams(exportParams)
+    if (builtParams == null) return
+    apiParams = {
+      current_page: exportParams.current_page,
+      page_size: exportParams.page_size,
+      ...builtParams
+    }
+  } else {
+    apiParams = exportParams
+  }
   const response = toTableResponse<T>(
     await (options.fetchData as (params: Recordable) => Promise<unknown>)(apiParams as Recordable)
   )
