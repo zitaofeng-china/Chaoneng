@@ -81,12 +81,13 @@ import {
 } from '@/api/management/OrderManage/ExchangeOrder'
 import { Icon } from '@/components/Icon'
 import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
+import { exportTableData, hasSearchValue } from '@/utils/tableHelpers'
 import {
-  dateRangeToSeconds,
-  exportTableData,
-  hasSearchValue,
-  type DateRangeValue
-} from '@/utils/tableHelpers'
+  assignCreatedTimeRange,
+  createCreatedTimeSearchFields,
+  createRecentCreatedTimeBounds,
+  withLookupCreatedTime
+} from '@/utils/createdTimeFilter'
 import type {
   ExchangeOrderItemV1,
   ExchangeOrderListParamsV1
@@ -98,9 +99,9 @@ const route = useRouter().currentRoute.value
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 const initialSearchParams = route.query.order_num
-  ? {
+  ? withLookupCreatedTime({
       order_id: String(route.query.order_num)
-    }
+    })
   : {}
 
 // 订单详情相关
@@ -110,7 +111,8 @@ const activeTab = ref('detail')
 
 // 保存当前搜索参数
 type ExchangeOrderSearchParams = ExchangeOrderListParamsV1 & {
-  dateRange?: DateRangeValue
+  createdStartTime?: string | number
+  createdEndTime?: string | number
   in_coin?: string
   order?: string
 }
@@ -453,6 +455,8 @@ const actionColumn: TableColumn = {
 }
 
 // 搜索表单配置
+const createdTimeBounds = createRecentCreatedTimeBounds()
+
 const searchSchema: FormSchema[] = [
   {
     field: 'keyword',
@@ -496,18 +500,7 @@ const searchSchema: FormSchema[] = [
       placeholder: '请选择订单状态'
     }
   },
-  {
-    field: 'dateRange',
-    component: 'DatePicker' as const,
-    label: '创建时间',
-    componentProps: {
-      type: 'datetimerange',
-      valueFormat: 'x',
-      startPlaceholder: '开始日期',
-      endPlaceholder: '结束日期',
-      defaultTime: [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
-    }
-  }
+  ...createCreatedTimeSearchFields(createdTimeBounds)
 ]
 
 // 获取订单状态显示类型
@@ -548,7 +541,7 @@ const navigateToBotList = (botId: string) => {
 const buildExchangeOrderListParams = (
   params: ExchangeOrderSearchParams = {},
   pageSize?: number
-): ExchangeOrderListParamsV1 => {
+): ExchangeOrderListParamsV1 | null => {
   // 映射参数字段
   const adaptedParams: ExchangeOrderListParamsV1 = {}
 
@@ -579,7 +572,7 @@ const buildExchangeOrderListParams = (
     adaptedParams.order = DEFAULT_CREATED_AT_ORDER
   }
 
-  Object.assign(adaptedParams, dateRangeToSeconds(params.dateRange))
+  if (!assignCreatedTimeRange(adaptedParams, params)) return null
 
   return adaptedParams
 }
@@ -587,10 +580,13 @@ const buildExchangeOrderListParams = (
 const fetchExchangeOrderList = async (params: ExchangeOrderSearchParams) => {
   try {
     // 保存当前搜索参数（用于导出）
+    const apiParams = buildExchangeOrderListParams(params)
+    if (!apiParams) return null
+
     currentSearchParams.value = params
 
     // 使用新接口 v1GetExchangeOrderList
-    const response = await v1GetExchangeOrderList(buildExchangeOrderListParams(params))
+    const response = await v1GetExchangeOrderList(apiParams)
 
     // 简化映射：直接使用API字段，只做必要转换
     const list = (response.data?.list || []).map((item: any) => ({
@@ -608,7 +604,8 @@ const fetchExchangeOrderList = async (params: ExchangeOrderSearchParams) => {
       params.keyword ||
       params.in_coin ||
       params.status ||
-      params.dateRange
+      params.createdStartTime ||
+      params.createdEndTime
     )
     handleListMessage(list, hasSearchCondition, '兑换订单')
 
