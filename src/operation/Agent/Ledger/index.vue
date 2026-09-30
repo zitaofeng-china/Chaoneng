@@ -52,15 +52,18 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { useRoute, useRouter } from 'vue-router'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 import {
-  createDefaultDateTimeRange,
   createNullablePageParams,
-  dateRangeToSeconds,
   exportTableData,
   formatTableDateTime,
   hasSearchValue,
-  type DateRangeValue,
   type TableSlot
 } from '@/utils/tableHelpers'
+import {
+  assignCreatedTimeRange,
+  createCreatedTimeSearchFields,
+  createRecentCreatedTimeBounds,
+  withLookupCreatedTime
+} from '@/utils/createdTimeFilter'
 import {
   AGENT_BILL_FLOW_IN,
   AGENT_BILL_FLOW_MAP,
@@ -72,7 +75,8 @@ import {
 
 type AgentLedgerSearchParams = Omit<AgentBillListParams, 'kinds'> & {
   kind?: number | string
-  dateRange?: DateRangeValue
+  createdStartTime?: string | number
+  createdEndTime?: string | number
 }
 type AgentLedgerTableSlot = TableSlot<AgentBillItem>
 type AgentLedgerFundDirection = 'in' | 'out'
@@ -125,7 +129,10 @@ const getRouteSearchParams = (): AgentLedgerSearchParams => {
   return { keyword }
 }
 
-const initialSearchParams = getRouteSearchParams()
+const initialSearchParams = (() => {
+  const params = getRouteSearchParams()
+  return Object.keys(params).length ? withLookupCreatedTime(params) : {}
+})()
 
 const isSameSearchParamValue = (left: unknown, right: unknown) => {
   if (!hasSearchValue(left) && !hasSearchValue(right)) return true
@@ -245,7 +252,7 @@ const applyLedgerStats = (data: AgentBillListResponse | undefined, list: AgentBi
 const buildAgentBillParams = (
   params: AgentLedgerSearchParams = {},
   pageSize?: number
-): AgentBillListParams => {
+): AgentBillListParams | null => {
   const apiParams: AgentBillListParams = {
     ...createNullablePageParams(params, 10, pageSize)
   }
@@ -255,7 +262,7 @@ const buildAgentBillParams = (
   if (hasSearchValue(params.flow)) apiParams.flow = Number(params.flow)
   apiParams.order = params.order || AGENT_LEDGER_EXPORT_ORDER
 
-  Object.assign(apiParams, dateRangeToSeconds(params.dateRange))
+  if (!assignCreatedTimeRange(apiParams, params)) return null
 
   return apiParams
 }
@@ -272,16 +279,23 @@ const getLedgerRowKey = (row: AgentBillItem) => {
 
 const fetchAgentLedgerList = async (params: AgentLedgerSearchParams = {}) => {
   try {
-    const response = await v1GetAgentBillList(buildAgentBillParams(params))
+    const apiParams = buildAgentBillParams(params)
+    if (!apiParams) return null
+
+    const response = await v1GetAgentBillList(apiParams)
 
     const list = response.data?.list || []
 
     currentSearchParams.value = params
     applyLedgerStats(response.data, list)
 
-    const hasSearchCondition = [params.keyword, params.kind, params.flow, params.dateRange].some(
-      hasSearchValue
-    )
+    const hasSearchCondition = [
+      params.keyword,
+      params.kind,
+      params.flow,
+      params.createdStartTime,
+      params.createdEndTime
+    ].some(hasSearchValue)
     handleListMessage(list, hasSearchCondition, '代理账单')
 
     return {
@@ -294,6 +308,8 @@ const fetchAgentLedgerList = async (params: AgentLedgerSearchParams = {}) => {
     return { list: [], total: 0 }
   }
 }
+
+const createdTimeBounds = createRecentCreatedTimeBounds()
 
 // 搜索表单配置
 const searchSchema = ref<FormSchema[]>([
@@ -328,18 +344,7 @@ const searchSchema = ref<FormSchema[]>([
       options: AGENT_BILL_FLOW_OPTIONS
     }
   },
-  {
-    field: 'dateRange',
-    component: 'DatePicker',
-    label: '创建时间',
-    componentProps: {
-      type: 'datetimerange',
-      valueFormat: 'x',
-      startPlaceholder: '开始日期',
-      endPlaceholder: '结束日期',
-      defaultTime: createDefaultDateTimeRange()
-    }
-  }
+  ...createCreatedTimeSearchFields(createdTimeBounds)
 ])
 
 // 表格列配置
