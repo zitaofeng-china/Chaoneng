@@ -52,17 +52,19 @@ import {
 import { v1GetMessageBotList, type MessageBotItem } from '@/api/management/common/message'
 import { handleErrorMessage, handleListMessage } from '@/utils/messageHelper'
 import {
-  createDefaultDateTimeRange,
   createNullablePageParams,
-  dateRangeToSeconds,
   exportTableData,
   formatTableDateTime,
   hasSearchValue,
   withAllOption,
-  type DateRangeValue,
   type SelectOption,
   type TableSlot
 } from '@/utils/tableHelpers'
+import {
+  assignCreatedTimeRange,
+  createCreatedTimeSearchFields,
+  createRecentCreatedTimeBounds
+} from '@/utils/createdTimeFilter'
 const USER_BILL_ORDER_TYPE_MAP: Record<number, string> = {
   1: '代理充值',
   2: '用户充值',
@@ -128,7 +130,8 @@ const applyUserBillStats = (stats?: UserBillStats) => {
 
 type UserLedgerSearchParams = Omit<UserBillListParamsV1, 'kinds'> & {
   kind?: number | string
-  dateRange?: DateRangeValue
+  createdStartTime?: string | number
+  createdEndTime?: string | number
 }
 type UserLedgerTableSlot = TableSlot<UserBillItemV1>
 type BotOption = SelectOption<number | string>
@@ -145,7 +148,7 @@ const formatTgUserId = (row: UserBillItemV1) => {
 const buildUserBillParams = (
   params: UserLedgerSearchParams = {},
   pageSize?: number
-): UserBillListParamsV1 => {
+): UserBillListParamsV1 | null => {
   const apiParams: UserBillListParamsV1 = {
     ...createNullablePageParams(params, 10, pageSize)
   }
@@ -155,7 +158,7 @@ const buildUserBillParams = (
   if (hasSearchValue(params.kind)) apiParams.kinds = [Number(params.kind)]
   apiParams.order = params.order || USER_LEDGER_EXPORT_ORDER
 
-  Object.assign(apiParams, dateRangeToSeconds(params.dateRange))
+  if (!assignCreatedTimeRange(apiParams, params)) return null
   return apiParams
 }
 
@@ -197,14 +200,21 @@ const getOrderDestination = (row: UserBillItemV1) => {
 
 const fetchUserBillList = async (params: UserLedgerSearchParams = {}) => {
   try {
-    const response = await v1GetUserBillList(buildUserBillParams(params))
+    const apiParams = buildUserBillParams(params)
+    if (!apiParams) return null
+
+    const response = await v1GetUserBillList(apiParams)
     const list = response.data?.list || []
     currentSearchParams.value = params
     applyUserBillStats(response.data?.stats)
 
-    const hasSearchCondition = [params.keyword, params.bot_id, params.kind, params.dateRange].some(
-      hasSearchValue
-    )
+    const hasSearchCondition = [
+      params.keyword,
+      params.bot_id,
+      params.kind,
+      params.createdStartTime,
+      params.createdEndTime
+    ].some(hasSearchValue)
     handleListMessage(list, hasSearchCondition, '用户账单')
     return { list, total: response.data?.pager?.total || 0 }
   } catch (error) {
@@ -213,6 +223,8 @@ const fetchUserBillList = async (params: UserLedgerSearchParams = {}) => {
     return { list: [], total: 0 }
   }
 }
+
+const createdTimeBounds = createRecentCreatedTimeBounds()
 
 const searchSchema = ref<FormSchema[]>([
   {
@@ -247,18 +259,7 @@ const searchSchema = ref<FormSchema[]>([
       options: USER_BILL_ORDER_TYPE_OPTIONS
     }
   },
-  {
-    field: 'dateRange',
-    component: 'DatePicker',
-    label: '创建时间',
-    componentProps: {
-      type: 'datetimerange',
-      valueFormat: 'x',
-      startPlaceholder: '开始日期',
-      endPlaceholder: '结束日期',
-      defaultTime: createDefaultDateTimeRange()
-    }
-  }
+  ...createCreatedTimeSearchFields(createdTimeBounds)
 ])
 
 const columns = ref<TableColumn[]>([
