@@ -58,19 +58,22 @@ import {
   handleSuccessMessage
 } from '@/utils/messageHelper'
 import {
-  createDefaultDateTimeRange,
   createNullablePageParams,
-  dateRangeToSeconds,
   exportTableData,
   formatTableDateTime,
   getStatusLabel,
   hasSearchValue,
   renderStatusTag,
   withAllOption,
-  type DateRangeValue,
   type SelectOption,
   type TableSlot
 } from '@/utils/tableHelpers'
+import {
+  assignCreatedTimeRange,
+  createCreatedTimeSearchFields,
+  createRecentCreatedTimeBounds,
+  withLookupCreatedTime
+} from '@/utils/createdTimeFilter'
 import { ExchangeOrderType, getExchangeOrderType } from '@/utils/exchangeOrder'
 import { EXCHANGE_COIN_OPTIONS, EXCHANGE_STATUS_MAP, EXCHANGE_STATUS_OPTIONS } from './constants'
 import { PAYMENT_TYPE_OPTIONS } from '@/constants/payment'
@@ -78,7 +81,8 @@ import { renderDisplayableTransactionHash } from '@/operation/OperationCenter/ut
 import { v1GetMessageBotList, type MessageBotItem } from '@/api/opertion/common/message'
 
 type ExchangeSearchParams = V2ExchangeListParams & {
-  dateRange?: DateRangeValue
+  createdStartTime?: string | number
+  createdEndTime?: string | number
 }
 type ExchangeTableSlot = TableSlot<V2ExchangeItem>
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
@@ -105,12 +109,12 @@ const getExchangeTypeInfo = (inCoin?: string, outCoin?: string) => {
 const buildExchangeListParams = (
   params: ExchangeSearchParams = {},
   pageSize?: number
-): V2ExchangeListParams => {
+): V2ExchangeListParams | null => {
   const apiParams: V2ExchangeListParams = {
     ...createNullablePageParams(params, 10, pageSize)
   }
 
-  Object.assign(apiParams, dateRangeToSeconds(params.dateRange))
+  if (!assignCreatedTimeRange(apiParams, params)) return null
   if (params.keyword) apiParams.keyword = params.keyword
   if (hasSearchValue(params.bot_id)) apiParams.bot_id = Number(params.bot_id)
   if (params.coin) apiParams.coin = params.coin
@@ -129,7 +133,7 @@ const botOptions = ref<SelectOption<number | string>[]>(withAllOption<number | s
 const isBotOptionsLoaded = ref(false)
 const initialSearchParams: Partial<ExchangeSearchParams> = (() => {
   const keyword = route.query.keyword || route.query.query || route.query.order_num
-  return keyword ? { keyword: String(keyword) } : {}
+  return keyword ? withLookupCreatedTime({ keyword: String(keyword) }) : {}
 })()
 
 const currentSearchParams = ref<ExchangeSearchParams>({})
@@ -285,6 +289,8 @@ const columns = reactive<TableColumn[]>([
   }
 ])
 
+const createdTimeBounds = createRecentCreatedTimeBounds()
+
 // 搜索表单配置 - 使用后端字段名
 const searchSchema = computed<FormSchema[]>(() => [
   {
@@ -340,18 +346,7 @@ const searchSchema = computed<FormSchema[]>(() => [
       clearable: true
     }
   },
-  {
-    field: 'dateRange',
-    component: 'DatePicker',
-    label: '创建时间',
-    componentProps: {
-      type: 'datetimerange',
-      valueFormat: 'x',
-      startPlaceholder: '开始日期',
-      endPlaceholder: '结束日期',
-      defaultTime: createDefaultDateTimeRange()
-    }
-  }
+  ...createCreatedTimeSearchFields(createdTimeBounds)
 ])
 
 const normalizeMessageBotList = (data: unknown): MessageBotItem[] => {
@@ -435,9 +430,12 @@ const handleRetry = async (row: V2ExchangeItem) => {
 // 请求闪兑明细列表数据 - 直接使用后端字段名
 const fetchExchangeTransactionList = async (params: ExchangeSearchParams) => {
   try {
+    const apiParams = buildExchangeListParams(params)
+    if (!apiParams) return null
+
     currentSearchParams.value = params
 
-    const res = await v2GetExchangeList(buildExchangeListParams(params))
+    const res = await v2GetExchangeList(apiParams)
 
     if (res?.data) {
       const data = res.data
@@ -450,7 +448,8 @@ const fetchExchangeTransactionList = async (params: ExchangeSearchParams) => {
         params.coin,
         params.pay_type,
         params.status,
-        params.dateRange
+        params.createdStartTime,
+        params.createdEndTime
       ].some(hasSearchValue)
       handleListMessage(list, hasSearchCondition, '闪兑订单')
 
