@@ -58,6 +58,12 @@ import {
   type SelectOption,
   type TableSlot
 } from '@/utils/tableHelpers'
+import {
+  assignCreatedTimeRange,
+  createCreatedTimeSearchFields,
+  createRecentCreatedTimeBounds,
+  withLookupCreatedTime
+} from '@/utils/createdTimeFilter'
 import { RECHARGE_COIN_OPTIONS } from './constants'
 import { PAYMENT_TYPE_OPTIONS } from '@/constants/payment'
 import { formatRechargeFeeText } from '@/utils/rechargeOrder'
@@ -71,9 +77,9 @@ const botOptions = ref<SelectOption<number | string>[]>(withAllOption<number | s
 /** 机器人选项加载完成后再挂载 SearchTable，避免 schema 初始化时 options 被写死为空 */
 const isBotOptionsLoaded = ref(false)
 const initialSearchParams = route.query.order_num
-  ? {
+  ? withLookupCreatedTime({
       order_id: String(route.query.order_num)
-    }
+    })
   : {}
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 const USER_RECHARGE_KIND = 2
@@ -100,6 +106,8 @@ type DepositSearchParams = Omit<
   origin?: number | string
   pay_type?: number | string
   status?: number | string
+  createdStartTime?: string | number
+  createdEndTime?: string | number
 }
 
 type DepositExportRow = Record<string, string>
@@ -124,7 +132,7 @@ const getRechargeOrderStatusType = (status: number | undefined): 'success' | 'wa
 const buildDepositListParams = (
   params: DepositSearchParams = {},
   pageSize?: number
-): V2DepositListParams => {
+): V2DepositListParams | null => {
   const adaptedParams: V2DepositListParams = {
     ...createPageParams(params, 10, pageSize),
     kind: USER_RECHARGE_KIND
@@ -143,8 +151,7 @@ const buildDepositListParams = (
   if (params.receive_address) adaptedParams.receive_address = params.receive_address
   if (params.pay_address) adaptedParams.pay_address = params.pay_address
   adaptedParams.order = params.order || DEFAULT_CREATED_AT_ORDER
-  if (params.start_time) adaptedParams.start_time = params.start_time.toString()
-  if (params.end_time) adaptedParams.end_time = params.end_time.toString()
+  if (!assignCreatedTimeRange(adaptedParams, params)) return null
 
   return adaptedParams
 }
@@ -338,6 +345,8 @@ const columns = computed(() => {
   return filteredCols
 })
 
+const createdTimeBounds = createRecentCreatedTimeBounds()
+
 const searchSchema = computed(() => [
   {
     field: 'order_id',
@@ -420,7 +429,8 @@ const searchSchema = computed(() => [
     componentProps: {
       placeholder: '请输入支付地址'
     }
-  }
+  },
+  ...createCreatedTimeSearchFields(createdTimeBounds)
 ])
 
 const normalizeMessageBotList = (data: unknown): MessageBotItem[] => {
@@ -452,13 +462,16 @@ onMounted(loadBotOptions)
 
 const fetchRechargeOrderList = async (
   params: DepositSearchParams = {}
-): Promise<{ list: V2DepositItem[]; total: number }> => {
+): Promise<{ list: V2DepositItem[]; total: number } | null> => {
   try {
+    const apiParams = buildDepositListParams(params)
+    if (!apiParams) return null
+
     selectedSource.value = params.origin ?? ''
 
     currentSearchParams.value = params
 
-    const response = await v2GetDepositList(buildDepositListParams(params))
+    const response = await v2GetDepositList(apiParams)
     const data = response.data || { list: [], pager: { total: 0 } }
 
     const list = data.list || []
@@ -472,7 +485,9 @@ const fetchRechargeOrderList = async (
       params.pay_type,
       params.coin,
       params.receive_address,
-      params.pay_address
+      params.pay_address,
+      params.createdStartTime,
+      params.createdEndTime
     ].some(hasSearchValue)
     handleListMessage(list, hasSearchCondition, '充值订单')
 
