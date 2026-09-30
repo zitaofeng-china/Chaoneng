@@ -77,10 +77,15 @@ const props = defineProps({
   // 数据加载API
   fetchDataApi: {
     type: Function as PropType<
-      (params?: any) => Promise<{
-        list: any[]
-        total?: number
-      }>
+      (params?: any) => Promise<
+        | {
+            list: any[]
+            total?: number
+          }
+        | null
+        | undefined
+        | void
+      >
     >,
     required: true
   },

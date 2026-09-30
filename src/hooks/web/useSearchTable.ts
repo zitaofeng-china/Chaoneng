@@ -8,6 +8,7 @@ import { ElMessage } from 'element-plus'
 import { ref as vueRef } from 'vue'
 import { useUserStore } from '@/store/modules/user'
 import { isOperationSystem } from '@/utils/system'
+import { createRecentCreatedTimeBounds, createdTimeFieldNames } from '@/utils/createdTimeFilter'
 
 export interface SearchTableState {
   loading: boolean
@@ -20,7 +21,7 @@ export interface SearchTableState {
 interface UseSearchTableConfig {
   searchSchema?: FormSchema[] // 查询表单配置
   tableColumns: TableColumn[] // 表格列配置
-  fetchDataApi: (params?: any) => Promise<{ list: any[]; total?: number }>
+  fetchDataApi: (params?: any) => Promise<{ list: any[]; total?: number } | null | undefined | void>
   fetchDelApi?: () => Promise<boolean>
   immediate?: boolean
   defaultParams?: Recordable // 默认参数
@@ -32,7 +33,22 @@ interface UseSearchTableConfig {
 export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance: any) => void) => {
   const defaultParams = config.defaultParams || {}
   const initialParams = config.initialParams || {}
-  const searchParams = ref<Recordable>({ ...defaultParams, ...initialParams })
+  const readCreatedTimeDefaults = () => {
+    const defaults: Recordable = {}
+    for (const item of config.searchSchema || []) {
+      if (!item?.field || item.value === undefined) continue
+      if (!createdTimeFieldNames.includes(item.field as (typeof createdTimeFieldNames)[number])) {
+        continue
+      }
+      defaults[item.field] = item.value
+    }
+    return defaults
+  }
+  const searchParams = ref<Recordable>({
+    ...defaultParams,
+    ...readCreatedTimeDefaults(),
+    ...initialParams
+  })
   const currentRow = ref<Recordable | null>(null)
   const searchTableRef = vueRef<any>(null)
   const searchTableInstance = vueRef<any>(null)
@@ -98,6 +114,7 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
       try {
         const apiParams = buildApiParams()
         const result = await config.fetchDataApi(apiParams)
+        if (!result) return null
         return adaptResponseData(result)
       } catch {
         ElMessage.error('数据加载失败')
@@ -194,7 +211,11 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
 
   const reset = async () => {
     try {
-      searchParams.value = { ...defaultParams }
+      const nextParams: Recordable = { ...defaultParams, ...readCreatedTimeDefaults() }
+      if ('createdStartTime' in nextParams || 'createdEndTime' in nextParams) {
+        Object.assign(nextParams, createRecentCreatedTimeBounds())
+      }
+      searchParams.value = nextParams
       await searchMethods.setValues(searchParams.value)
       if (tableState.currentPage.value !== 1) {
         tableState.currentPage.value = 1

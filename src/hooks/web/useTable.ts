@@ -11,10 +11,14 @@ interface UseTableConfig {
    * 是否初始化的时候请求一次
    */
   immediate?: boolean
-  fetchDataApi: () => Promise<{
-    list: any[]
-    total?: number
-  }>
+  fetchDataApi: () => Promise<
+    | {
+        list: any[]
+        total?: number
+      }
+    | null
+    | undefined
+  >
   fetchDelApi?: () => Promise<boolean>
 }
 
