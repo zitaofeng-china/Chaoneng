@@ -48,7 +48,13 @@ import {
   getPaymentMethodText,
   shouldHideEnergyOrderKind
 } from '@/utils/energyOrder'
-import { dateRangeToSeconds, exportTableData } from '@/utils/tableHelpers'
+import { exportTableData } from '@/utils/tableHelpers'
+import {
+  assignCreatedTimeRange,
+  createCreatedTimeSearchFields,
+  createRecentCreatedTimeBounds,
+  withLookupCreatedTime
+} from '@/utils/createdTimeFilter'
 
 // 辅助函数：检查值是否为空
 const isEmpty = (value: any): boolean => {
@@ -63,9 +69,9 @@ const totalCount = ref(0)
 const currentSearchParams = ref({})
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 const initialSearchParams = route.query.order_id
-  ? {
+  ? withLookupCreatedTime({
       order_id: String(route.query.order_id)
-    }
+    })
   : {}
 
 // 当前选择的来源
@@ -316,6 +322,8 @@ const actionColumn: TableColumn = {
 }
 
 // 搜索表单配置
+const createdTimeBounds = createRecentCreatedTimeBounds()
+
 const searchSchema = [
   {
     field: 'keyword',
@@ -394,18 +402,7 @@ const searchSchema = [
       placeholder: '请选择订单状态'
     }
   },
-  {
-    field: 'dateRange',
-    component: 'DatePicker' as const,
-    label: '创建时间',
-    componentProps: {
-      type: 'datetimerange',
-      valueFormat: 'x',
-      startPlaceholder: '开始日期',
-      endPlaceholder: '结束日期',
-      defaultTime: [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
-    }
-  }
+  ...createCreatedTimeSearchFields(createdTimeBounds)
 ]
 
 // 获取订单状态文本
@@ -468,11 +465,8 @@ const fetchEnergyOrderList = async (params: any) => {
     // 处理排序参数
     adaptedParams.order = params.order || DEFAULT_CREATED_AT_ORDER
 
-    // 处理时间范围（转换为秒级Unix时间戳字符串）
-    if (params.dateRange && params.dateRange.length === 2) {
-      adaptedParams.start_time = Math.floor(params.dateRange[0] / 1000).toString()
-      adaptedParams.end_time = Math.floor(params.dateRange[1] / 1000).toString()
-    }
+    if (!assignCreatedTimeRange(adaptedParams, params)) return null
+
     const response = await v1GetEnergyOrderList(adaptedParams)
 
     // 映射返回数据字段 - 直接使用API原始字段，只做必要转换
@@ -506,7 +500,8 @@ const fetchEnergyOrderList = async (params: any) => {
       params.origin ||
       params.status ||
       params.kind ||
-      params.dateRange
+      params.createdStartTime ||
+      params.createdEndTime
     )
     handleListMessage(list, hasSearchCondition, '能量订单')
 
@@ -546,7 +541,7 @@ const handleExport = async () => {
         if (params.receive_address) adaptedParams.receive_address = params.receive_address
         if (params.payment_address) adaptedParams.energy_address = params.payment_address
 
-        Object.assign(adaptedParams, dateRangeToSeconds(params.dateRange))
+        if (!assignCreatedTimeRange(adaptedParams, params)) return null
 
         return adaptedParams
       },
