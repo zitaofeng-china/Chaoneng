@@ -540,7 +540,7 @@ export default defineComponent({
       min-width: 229.5px !important;
     }
 
-    // 时间控件占用2个控件的宽度（229.5px * 2 + 间距）
+    // 时间区间占用2个控件的宽度（229.5px * 2 + 间距）
     .el-date-editor,
     .el-date-picker,
     .el-date-range-picker,
@@ -548,6 +548,13 @@ export default defineComponent({
       width: 471px !important;
       max-width: 471px !important;
       min-width: 471px !important;
+    }
+
+    // 单独的日期时间选择器只占一个控件宽度
+    .el-date-editor.el-date-editor--datetime {
+      width: 229.5px !important;
+      max-width: 229.5px !important;
+      min-width: 229.5px !important;
     }
   }
   .@{elNamespace}-input-number {
