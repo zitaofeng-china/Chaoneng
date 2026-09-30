@@ -59,6 +59,12 @@ import {
   type SelectOption,
   type TableSlot
 } from '@/utils/tableHelpers'
+import {
+  assignCreatedTimeRange,
+  createCreatedTimeSearchFields,
+  createRecentCreatedTimeBounds,
+  withLookupCreatedTime
+} from '@/utils/createdTimeFilter'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import type {
@@ -86,7 +92,7 @@ const exporting = ref(false)
 const botOptions = ref<SelectOption<number | string>[]>(withAllOption<number | string>([]))
 const initialSearchParams: Partial<QuickChargeSearchParams> = (() => {
   const keyword = route.query.keyword || route.query.query || route.query.order_num
-  return keyword ? { keyword: String(keyword) } : {}
+  return keyword ? withLookupCreatedTime({ keyword: String(keyword) }) : {}
 })()
 
 type QuickChargeTableSlot = TableSlot<QuickChargeOrder>
@@ -163,6 +169,8 @@ const columns: TableColumn[] = [
   }
 ]
 
+const createdTimeBounds = createRecentCreatedTimeBounds()
+
 const searchSchema = ref<FormSchema[]>([
   {
     field: 'keyword',
@@ -207,10 +215,11 @@ const searchSchema = ref<FormSchema[]>([
       filterable: true,
       options: botOptions.value
     }
-  }
+  },
+  ...createCreatedTimeSearchFields(createdTimeBounds)
 ])
 
-const buildQuickChargeListParams = (params: QuickChargeSearchParams): EnergyListParams => {
+const buildQuickChargeListParams = (params: QuickChargeSearchParams): EnergyListParams | null => {
   const apiParams: EnergyListParams = {
     ...createPageParams(params),
     kind: hasSearchValue(params.type) ? Number(params.type) : QUICK_CHARGE_ORDER_KINDS
@@ -229,6 +238,8 @@ const buildQuickChargeListParams = (params: QuickChargeSearchParams): EnergyList
   }
 
   apiParams.order = buildBackendOrder(params.order) || DEFAULT_START_TIME_ORDER
+
+  if (!assignCreatedTimeRange(apiParams, params)) return null
 
   return apiParams
 }
@@ -288,7 +299,14 @@ const mapEnergyOrderToQuickChargeOrder = (item: EnergyOrder): QuickChargeOrder =
 }
 
 const hasQuickChargeSearchCondition = (params: QuickChargeSearchParams) =>
-  [params.keyword, params.type, params.status, params.bot_id].some(hasSearchValue)
+  [
+    params.keyword,
+    params.type,
+    params.status,
+    params.bot_id,
+    params.createdStartTime,
+    params.createdEndTime
+  ].some(hasSearchValue)
 
 const loadBotOptions = async () => {
   try {
@@ -311,7 +329,10 @@ const loadBotOptions = async () => {
 
 const fetchDataWrapper = async (params: QuickChargeSearchParams = {}) => {
   try {
-    const response = await v1GetQuickChargeOrderList(buildQuickChargeListParams(params))
+    const apiParams = buildQuickChargeListParams(params)
+    if (!apiParams) return null
+
+    const response = await v1GetQuickChargeOrderList(apiParams)
 
     if (response?.code === '000000' && response.data) {
       const list = (response.data.list || []).map(mapEnergyOrderToQuickChargeOrder)
