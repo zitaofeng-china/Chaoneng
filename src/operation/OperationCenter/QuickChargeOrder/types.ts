@@ -36,6 +36,8 @@ export interface QuickChargeSearchParams extends Recordable {
   status?: number | string
   bot_id?: number | string
   pay_type?: number | string
+  createdStartTime?: string | number
+  createdEndTime?: string | number
   current_page?: number
   page_size?: number
   order?: string
