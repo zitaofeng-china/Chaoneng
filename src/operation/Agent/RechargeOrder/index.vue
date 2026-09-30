@@ -55,6 +55,12 @@ import {
   type TableSlot
 } from '@/utils/tableHelpers'
 import {
+  assignCreatedTimeRange,
+  createCreatedTimeSearchFields,
+  createRecentCreatedTimeBounds,
+  withLookupCreatedTime
+} from '@/utils/createdTimeFilter'
+import {
   formatTransactionHash,
   renderTronscanTransactionLink
 } from '@/operation/OperationCenter/utils/transactionLink'
@@ -75,9 +81,9 @@ const router = useRouter()
 const route = useRoute()
 const searchTableRef = ref<SearchTableExpose | null>(null)
 const initialSearchParams = route.query.order_num
-  ? {
+  ? withLookupCreatedTime({
       order_id: String(route.query.order_num)
-    }
+    })
   : {}
 const DEFAULT_CREATED_AT_ORDER = 'created_at DESC'
 const AGENT_RECHARGE_KIND = 1
@@ -91,6 +97,8 @@ const AGENT_RECHARGE_STATUS_OPTIONS = [
 type DepositSearchParams = Omit<V2DepositListParams, 'origin' | 'status'> & {
   origin?: number | string
   status?: number | string
+  createdStartTime?: string | number
+  createdEndTime?: string | number
 }
 
 type DepositExportRow = Record<string, string>
@@ -125,7 +133,7 @@ const formatTickerActualRate = (trxUsdtPrice?: string | number | null) => {
 const buildDepositListParams = (
   params: DepositSearchParams = {},
   pageSize?: number
-): V2DepositListParams => {
+): V2DepositListParams | null => {
   const adaptedParams: V2DepositListParams = {
     ...createPageParams(params, 10, pageSize),
     kind: AGENT_RECHARGE_KIND
@@ -141,8 +149,7 @@ const buildDepositListParams = (
   if (params.receive_address) adaptedParams.receive_address = params.receive_address
   if (params.pay_address) adaptedParams.pay_address = params.pay_address
   adaptedParams.order = params.order || DEFAULT_CREATED_AT_ORDER
-  if (params.start_time) adaptedParams.start_time = params.start_time.toString()
-  if (params.end_time) adaptedParams.end_time = params.end_time.toString()
+  if (!assignCreatedTimeRange(adaptedParams, params)) return null
 
   return adaptedParams
 }
@@ -264,6 +271,8 @@ const columns = computed(() => {
   })
 })
 
+const createdTimeBounds = createRecentCreatedTimeBounds()
+
 const searchSchema = [
   {
     field: 'order_id',
@@ -308,17 +317,21 @@ const searchSchema = [
     componentProps: {
       placeholder: '请输入支付地址'
     }
-  }
+  },
+  ...createCreatedTimeSearchFields(createdTimeBounds)
 ]
 
 const fetchRechargeOrderList = async (
   params: DepositSearchParams = {}
-): Promise<{ list: V2DepositItem[]; total: number }> => {
+): Promise<{ list: V2DepositItem[]; total: number } | null> => {
   try {
+    const apiParams = buildDepositListParams(params)
+    if (!apiParams) return null
+
     selectedSource.value = params.origin ?? ''
     currentSearchParams.value = params
 
-    const response = await v2GetDepositList(buildDepositListParams(params))
+    const response = await v2GetDepositList(apiParams)
     const data = response.data || { list: [], pager: { total: 0 } }
     const list = data.list || []
 
@@ -327,7 +340,9 @@ const fetchRechargeOrderList = async (
       params.status,
       params.keyword,
       params.receive_address,
-      params.pay_address
+      params.pay_address,
+      params.createdStartTime,
+      params.createdEndTime
     ].some(hasSearchValue)
     handleListMessage(list, hasSearchCondition, '代理充值订单')
 
