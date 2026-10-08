@@ -212,6 +212,24 @@ export function calculateEnergyRentText(
 }
 
 /**
+ * 实际发放统一倍率。13.1万（131000）分档已取消，不再按数量决定是否加成。
+ */
+export const ACTUAL_ISSUED_ENERGY_RATIO = 1.05
+
+/**
+ * 实际发放能量 = round(应发放能量 × 105%)。
+ * 不论应发放是否超过 131000，都乘这一倍率。
+ */
+export function getActualIssuedEnergyAmount(
+  energyAmount: string | number | null | undefined
+): number | undefined {
+  if (energyAmount === undefined || energyAmount === null || energyAmount === '') return undefined
+  const amount = Number(energyAmount)
+  if (!Number.isFinite(amount)) return undefined
+  return Math.round(amount * ACTUAL_ISSUED_ENERGY_RATIO)
+}
+
+/**
  * 格式化能量数量显示
  * @param amount 能量数量
  * @returns 格式化后的字符串

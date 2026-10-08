@@ -47,7 +47,7 @@ export interface V2EnergyItem {
   tg_user_name: string // TG用户名
   tg_first_name: string // TG名字
   energy_address: string // 能量地址
-  energy_amount: string // 应发放能量；实际发放能量 = energy_amount × 105%
+  energy_amount: string // 应发放能量，原值展示，不乘 1.05。实际发放能量另由 getActualIssuedEnergyAmount 计算
   energy_count: number // 数量
   expirated_at: string | null // 过期时间（ISO时间格式字符串）
   delegated_at: string | null // 委托时间（ISO时间格式字符串）
