@@ -11,12 +11,12 @@ import { getSourceText } from '@/utils/sourceFilter'
 import {
   getEnergyOrderKindText,
   calculateEnergyRentText,
-  getEnergyOrderKindTagType
+  getEnergyOrderKindTagType,
+  getActualIssuedEnergyAmount
 } from '@/utils/energyOrder'
 import { getStatusText, getStatusType } from '@/utils/orderStatus'
 import { formatTableDateTime } from '@/utils/tableHelpers'
 import { renderDisplayableTransactionHash } from '@/operation/OperationCenter/utils/transactionLink'
-import { getActualIssuedEnergyAmount } from './utils'
 
 /**
  * 列配置项
