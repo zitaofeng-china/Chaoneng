@@ -7,6 +7,7 @@ import { getSourceText } from '@/utils/sourceFilter'
 import {
   getEnergyOrderKindText,
   formatEnergyAmount,
+  getActualIssuedEnergyAmount,
   getPaymentMethodText,
   shouldHideEnergyOrderKind
 } from '@/utils/energyOrder'
@@ -14,15 +15,7 @@ import { getStatusText, OrderStatus } from '@/utils/orderStatus'
 import { formatTableDateTime, hasSearchValue } from '@/utils/tableHelpers'
 import { assignCreatedTimeRange } from '@/utils/createdTimeFilter'
 
-/** 实际发放能量 = energy_amount × 105%。接口已不再返回 energy_actual_amount。 */
-export function getActualIssuedEnergyAmount(
-  energyAmount: string | number | null | undefined
-): number | undefined {
-  if (energyAmount === undefined || energyAmount === null || energyAmount === '') return undefined
-  const amount = Number(energyAmount)
-  if (!Number.isFinite(amount)) return undefined
-  return Math.round(amount * 1.05)
-}
+export { getActualIssuedEnergyAmount }
 
 export function buildEnergyListParams(params: SearchFormParams): EnergyListParams | null {
   const apiParams: EnergyListParams = {}
