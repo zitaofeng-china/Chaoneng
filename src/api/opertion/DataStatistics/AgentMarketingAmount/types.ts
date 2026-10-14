@@ -16,6 +16,7 @@ export interface AgentMarketingOrderItem {
   order_type?: string | number
   total_expense?: AgentMarketingNumeric
   order_count?: AgentMarketingNumeric
+  avg_order_expense?: AgentMarketingNumeric
   [key: string]: unknown
 }
 
@@ -33,6 +34,7 @@ export interface AgentMarketingBotItem {
   yesterday_expense?: AgentMarketingNumeric
   bot_count?: AgentMarketingNumeric
   order_count?: AgentMarketingNumeric
+  avg_order_expense?: AgentMarketingNumeric
   user_count?: AgentMarketingNumeric
   orders?: AgentMarketingOrderItem[]
   children?: AgentMarketingOrderItem[]
@@ -53,6 +55,7 @@ export interface AgentMarketingBotExpenseItem {
   bot_name?: string
   last_month_expense?: AgentMarketingNumeric
   order_count?: AgentMarketingNumeric
+  avg_order_expense?: AgentMarketingNumeric
   this_month_expense?: AgentMarketingNumeric
   today_expense?: AgentMarketingNumeric
   total_expense?: AgentMarketingNumeric
@@ -65,6 +68,7 @@ export type AgentMarketingBotExpenseData = AgentMarketingBotExpenseItem[]
 
 export interface AgentMarketingBotOrderParams {
   bot_id: number | string
+  order?: string
 }
 
 export interface AgentMarketingBotOrderItem extends AgentMarketingBotExpenseItem {
@@ -79,6 +83,7 @@ export interface AgentMarketingAgentItem {
   bot_count?: AgentMarketingNumeric
   last_month_expense?: AgentMarketingNumeric
   order_count?: AgentMarketingNumeric
+  avg_order_expense?: AgentMarketingNumeric
   price_id?: AgentMarketingNumeric
   this_month_expense?: AgentMarketingNumeric
   today_expense?: AgentMarketingNumeric

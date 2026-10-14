@@ -50,7 +50,30 @@
               <thead>
                 <tr>
                   <th v-for="column in tableColumns" :key="column.key" :class="column.className">
-                    {{ column.label }}
+                    <button
+                      v-if="isSortableColumn(column.key)"
+                      type="button"
+                      class="sort-header"
+                      @click="handleSort(column.key)"
+                    >
+                      {{ column.label }}
+                      <span class="sort-icon" aria-hidden="true">
+                        <i
+                          class="sort-caret sort-caret-up"
+                          :class="{
+                            active: sortState.prop === column.key && sortState.order === 'ascending'
+                          }"
+                        ></i>
+                        <i
+                          class="sort-caret sort-caret-down"
+                          :class="{
+                            active:
+                              sortState.prop === column.key && sortState.order === 'descending'
+                          }"
+                        ></i>
+                      </span>
+                    </button>
+                    <template v-else>{{ column.label }}</template>
                   </th>
                 </tr>
               </thead>
@@ -158,7 +181,46 @@ import { AGENT_BILL_ORDER_TYPE_MAP } from '@/operation/Agent/constants'
 import { handleErrorMessage } from '@/utils/messageHelper'
 
 type RowKind = 'agent' | 'bot' | 'order'
+type SortLevel = 'agent' | 'bot' | 'order'
+type SortOrder = 'ascending' | 'descending' | null
+type SortableColumnKey =
+  | 'rank'
+  | 'name'
+  | 'totalExpense'
+  | 'botCount'
+  | 'orderCount'
+  | 'unitPrice'
+  | 'todayExpense'
+  | 'yesterdayExpense'
+  | 'monthExpense'
+  | 'lastMonthExpense'
+  | 'userCount'
+  | 'performanceRatio'
 type NumericValue = number | string | null | undefined
+
+/** 与增长统计等报表一致：order 为「字段 ASC/DESC」。名称列按各层接口字段区分。 */
+const SORT_FIELD_MAP: Record<SortableColumnKey, string> = {
+  rank: 'rank',
+  name: 'agent_name',
+  totalExpense: 'total_expense',
+  botCount: 'bot_count',
+  orderCount: 'order_count',
+  unitPrice: 'avg_order_expense',
+  todayExpense: 'today_expense',
+  yesterdayExpense: 'yesterday_expense',
+  monthExpense: 'this_month_expense',
+  lastMonthExpense: 'last_month_expense',
+  userCount: 'user_count',
+  performanceRatio: 'total_expense'
+}
+
+const SORT_FIELD_BY_LEVEL: Record<SortLevel, Partial<Record<SortableColumnKey, string>>> = {
+  agent: {},
+  bot: { name: 'bot_name' },
+  order: { name: 'name' }
+}
+
+const isSortableColumn = (key: string): key is SortableColumnKey => key in SORT_FIELD_MAP
 
 interface MarketingMetrics {
   totalExpense: number
@@ -186,6 +248,7 @@ interface MarketingBot extends MarketingMetrics {
   orders: MarketingOrder[]
   ordersLoaded: boolean
   ordersLoading: boolean
+  ordersOrder?: string
 }
 
 interface MarketingAgent extends MarketingMetrics {
@@ -197,6 +260,7 @@ interface MarketingAgent extends MarketingMetrics {
   bots: MarketingBot[]
   botsLoaded: boolean
   botsLoading: boolean
+  botsOrder?: string
 }
 
 interface MarketingRow extends MarketingMetrics {
@@ -238,7 +302,7 @@ const MOCK_AGENT_MARKETING_DATA: AgentMarketingAmountData = {
       total_sales_amount: '526880',
       bot_count: 18,
       order_count: 3642,
-      average_order_amount: '144.67',
+      avg_order_expense: '144.67',
       today_sales_amount: '12860',
       yesterday_sales_amount: '12860',
       current_month_sales_amount: '176420',
@@ -251,7 +315,7 @@ const MOCK_AGENT_MARKETING_DATA: AgentMarketingAmountData = {
           bot_username: 'trxDubot',
           total_sales_amount: '51500',
           order_count: 462,
-          average_order_amount: '111.47',
+          avg_order_expense: '111.47',
           today_sales_amount: '2860',
           yesterday_sales_amount: '2860',
           current_month_sales_amount: '2860',
@@ -264,6 +328,7 @@ const MOCK_AGENT_MARKETING_DATA: AgentMarketingAmountData = {
               order_name: '能量订单',
               total_sales_amount: '226800',
               order_count: 1620,
+              avg_order_expense: '140',
               performance_ratio: '9.78'
             },
             {
@@ -271,6 +336,7 @@ const MOCK_AGENT_MARKETING_DATA: AgentMarketingAmountData = {
               order_name: '充值订单',
               total_sales_amount: '138',
               order_count: 516,
+              avg_order_expense: '0.27',
               performance_ratio: '9.78'
             },
             {
@@ -278,6 +344,7 @@ const MOCK_AGENT_MARKETING_DATA: AgentMarketingAmountData = {
               order_name: '闪兑订单',
               total_sales_amount: '92760',
               order_count: 516,
+              avg_order_expense: '179.77',
               performance_ratio: '9.78'
             },
             {
@@ -285,6 +352,7 @@ const MOCK_AGENT_MARKETING_DATA: AgentMarketingAmountData = {
               order_name: '理财订单',
               total_sales_amount: '9020',
               order_count: 516,
+              avg_order_expense: '17.48',
               performance_ratio: '9.78'
             }
           ]
@@ -294,7 +362,7 @@ const MOCK_AGENT_MARKETING_DATA: AgentMarketingAmountData = {
           bot_username: 'ip292',
           total_sales_amount: '51500',
           order_count: 462,
-          average_order_amount: '111.47',
+          avg_order_expense: '111.47',
           today_sales_amount: '2860',
           yesterday_sales_amount: '2860',
           current_month_sales_amount: '2860',
@@ -307,6 +375,7 @@ const MOCK_AGENT_MARKETING_DATA: AgentMarketingAmountData = {
               order_name: '能量订单',
               total_sales_amount: '226800',
               order_count: 105,
+              avg_order_expense: '2160',
               performance_ratio: '2.26'
             }
           ]
@@ -321,7 +390,7 @@ const MOCK_AGENT_MARKETING_DATA: AgentMarketingAmountData = {
       total_sales_amount: '408900',
       bot_count: 7,
       order_count: 2816,
-      average_order_amount: '111.47',
+      avg_order_expense: '111.47',
       today_sales_amount: '0',
       yesterday_sales_amount: '0',
       current_month_sales_amount: '0',
@@ -334,7 +403,7 @@ const MOCK_AGENT_MARKETING_DATA: AgentMarketingAmountData = {
           bot_username: 'trxDubot',
           total_sales_amount: '51500',
           order_count: 462,
-          average_order_amount: '111.47',
+          avg_order_expense: '111.47',
           today_sales_amount: '2860',
           yesterday_sales_amount: '2860',
           current_month_sales_amount: '2860',
@@ -348,7 +417,7 @@ const MOCK_AGENT_MARKETING_DATA: AgentMarketingAmountData = {
           bot_username: 'kkbxjua_bot',
           total_sales_amount: '51500',
           order_count: 462,
-          average_order_amount: '111.47',
+          avg_order_expense: '111.47',
           today_sales_amount: '2860',
           yesterday_sales_amount: '2860',
           current_month_sales_amount: '2860',
@@ -367,7 +436,7 @@ const MOCK_AGENT_MARKETING_DATA: AgentMarketingAmountData = {
       total_sales_amount: '296420',
       bot_count: 4,
       order_count: 1964,
-      average_order_amount: '150.93',
+      avg_order_expense: '150.93',
       today_sales_amount: '8420',
       yesterday_sales_amount: '7930',
       current_month_sales_amount: '84200',
@@ -380,7 +449,7 @@ const MOCK_AGENT_MARKETING_DATA: AgentMarketingAmountData = {
           bot_username: 'nova_energy_bot',
           total_sales_amount: '118900',
           order_count: 788,
-          average_order_amount: '150.89',
+          avg_order_expense: '150.89',
           today_sales_amount: '3690',
           yesterday_sales_amount: '3310',
           current_month_sales_amount: '36900',
@@ -393,6 +462,7 @@ const MOCK_AGENT_MARKETING_DATA: AgentMarketingAmountData = {
               order_name: '能量订单',
               total_sales_amount: '88900',
               order_count: 592,
+              avg_order_expense: '150.17',
               performance_ratio: '7.41'
             },
             {
@@ -400,6 +470,7 @@ const MOCK_AGENT_MARKETING_DATA: AgentMarketingAmountData = {
               order_name: '理财订单',
               total_sales_amount: '30000',
               order_count: 196,
+              avg_order_expense: '153.06',
               performance_ratio: '1.83'
             }
           ]
@@ -433,8 +504,19 @@ const pagination = reactive({
   pageSize: 10,
   total: 0
 })
+const sortState = reactive<{
+  order: SortOrder
+  prop: SortableColumnKey | null
+}>({
+  order: null,
+  prop: null
+})
 const botExpenseCache = ref<AgentMarketingBotExpenseItem[] | null>(null)
+let botExpenseCacheOrder: string | undefined
 let botExpenseRequest: Promise<AgentMarketingBotExpenseItem[]> | null = null
+let botExpenseRequestOrder: string | undefined
+let botExpenseSeq = 0
+let loadSeq = 0
 
 const toNumber = (value: NumericValue | unknown) => {
   const numberValue = Number(value ?? 0)
@@ -453,18 +535,14 @@ const formatCount = (value: NumericValue) => {
   })
 }
 
-/** 客单价 = 总支出 / 订单数，接口无此字段。 */
-const computeUnitPrice = (totalExpense: number, orderCount: number) => {
-  return orderCount > 0 ? totalExpense / orderCount : 0
+/** 客单价读接口 avg_order_expense。 */
+const formatUnitPrice = (row: MarketingMetrics) => {
+  return formatAmount(row.averageOrderAmount)
 }
 
-/** 业绩占比 = 该行总支出 / 汇总总支出，接口无此字段。 */
+/** 业绩占比 = 该行总支出 / 汇总总支出。排序参数用 total_expense。 */
 const computePerformanceRatio = (totalExpense: number) => {
   return summary.value.totalExpense > 0 ? (totalExpense / summary.value.totalExpense) * 100 : 0
-}
-
-const formatUnitPrice = (row: MarketingMetrics) => {
-  return formatAmount(computeUnitPrice(row.totalExpense, row.orderCount))
 }
 
 const formatPerformanceRatio = (row: MarketingMetrics) => {
@@ -472,6 +550,64 @@ const formatPerformanceRatio = (row: MarketingMetrics) => {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   })}%`
+}
+
+const buildOrderValue = (level: SortLevel) => {
+  if (!sortState.prop || !sortState.order) return undefined
+
+  const field = SORT_FIELD_BY_LEVEL[level][sortState.prop] || SORT_FIELD_MAP[sortState.prop]
+  const direction = sortState.order === 'ascending' ? 'ASC' : 'DESC'
+  return `${field} ${direction}`
+}
+
+const sortMetricValue = (
+  row: MarketingMetrics & { name: string; rank?: number },
+  key: SortableColumnKey
+) => {
+  switch (key) {
+    case 'rank':
+      return row.rank ?? 0
+    case 'name':
+      return row.name
+    case 'totalExpense':
+      return row.totalExpense
+    case 'botCount':
+      return row.botCount
+    case 'orderCount':
+      return row.orderCount
+    case 'unitPrice':
+      return row.averageOrderAmount
+    case 'todayExpense':
+      return row.todayExpense
+    case 'yesterdayExpense':
+      return row.yesterdayExpense
+    case 'monthExpense':
+      return row.monthExpense
+    case 'lastMonthExpense':
+      return row.lastMonthExpense
+    case 'userCount':
+      return row.userCount
+    case 'performanceRatio':
+      return row.totalExpense
+    default:
+      return 0
+  }
+}
+
+/** 本地假数据没有接口排序，按当前列在每一层内排序。 */
+const orderedBySort = <T extends MarketingMetrics & { name: string; rank?: number }>(rows: T[]) => {
+  if (!useMockData || !sortState.prop || !sortState.order) return rows
+
+  const key = sortState.prop
+  const factor = sortState.order === 'ascending' ? 1 : -1
+  return [...rows].sort((left, right) => {
+    const leftValue = sortMetricValue(left, key)
+    const rightValue = sortMetricValue(right, key)
+    if (typeof leftValue === 'string' || typeof rightValue === 'string') {
+      return factor * String(leftValue).localeCompare(String(rightValue), 'zh-CN')
+    }
+    return factor * (leftValue - rightValue)
+  })
 }
 
 const formatBotCount = (row: MarketingRow) => {
@@ -606,7 +742,7 @@ const readMetrics = (source: Record<string, unknown>): MarketingMetrics => {
     totalExpense,
     botCount: toNumber(readValue(source, ['bot_count', 'bots_count', 'robot_count', 'botCount'])),
     orderCount,
-    averageOrderAmount: computeUnitPrice(totalExpense, orderCount),
+    averageOrderAmount: toNumber(readValue(source, ['avg_order_expense'])),
     todayExpense: toNumber(
       readValue(source, ['today_expense', 'today_sales_amount', 'todayExpense', 'sales_today'])
     ),
@@ -802,7 +938,7 @@ const filteredAgents = computed(() => {
 const visibleRows = computed<MarketingRow[]>(() => {
   const rows: MarketingRow[] = []
 
-  for (const agent of filteredAgents.value) {
+  for (const agent of orderedBySort(filteredAgents.value)) {
     const agentExpanded = expandedAgents.value.has(agent.key)
     rows.push({
       ...agent,
@@ -814,7 +950,7 @@ const visibleRows = computed<MarketingRow[]>(() => {
 
     if (!agentExpanded) continue
 
-    for (const bot of agent.bots) {
+    for (const bot of orderedBySort(agent.bots)) {
       const botExpanded = expandedBots.value.has(bot.key)
       rows.push({
         ...bot,
@@ -827,7 +963,7 @@ const visibleRows = computed<MarketingRow[]>(() => {
 
       if (!botExpanded) continue
 
-      for (const order of bot.orders) {
+      for (const order of orderedBySort(bot.orders)) {
         rows.push({
           ...order,
           kind: 'order',
@@ -843,14 +979,25 @@ const visibleRows = computed<MarketingRow[]>(() => {
   return rows
 })
 
-const loadBotExpenseItems = async () => {
-  if (botExpenseCache.value) return botExpenseCache.value
-  if (botExpenseRequest) return botExpenseRequest
+const clearBotExpenseCache = () => {
+  botExpenseSeq += 1
+  botExpenseCache.value = null
+  botExpenseCacheOrder = undefined
+  botExpenseRequest = null
+  botExpenseRequestOrder = undefined
+}
 
+const loadBotExpenseItems = async () => {
+  const order = buildOrderValue('bot')
+  if (botExpenseCache.value && botExpenseCacheOrder === order) return botExpenseCache.value
+  if (botExpenseRequest && botExpenseRequestOrder === order) return botExpenseRequest
+
+  const seq = ++botExpenseSeq
   const request = (async () => {
     const response = await getBotExpenseReport({
       current_page: 1,
-      page_size: -1
+      page_size: -1,
+      ...(order ? { order } : {})
     })
 
     if (response.code !== '000000' || !response.data) {
@@ -858,24 +1005,34 @@ const loadBotExpenseItems = async () => {
     }
 
     const items = readResponseList<AgentMarketingBotExpenseItem>(response.data)
-    botExpenseCache.value = items
+    if (seq === botExpenseSeq) {
+      botExpenseCache.value = items
+      botExpenseCacheOrder = order
+    }
     return items
   })()
 
   botExpenseRequest = request
+  botExpenseRequestOrder = order
   try {
     return await request
   } finally {
-    if (botExpenseRequest === request) botExpenseRequest = null
+    if (botExpenseRequest === request) {
+      botExpenseRequest = null
+      botExpenseRequestOrder = undefined
+    }
   }
 }
 
 const loadAgentBots = async (agent: MarketingAgent) => {
-  if (agent.botsLoaded || agent.botsLoading) return
+  const requestedOrder = buildOrderValue('bot')
+  if ((agent.botsLoaded && agent.botsOrder === requestedOrder) || agent.botsLoading) return
 
   agent.botsLoading = true
   try {
     const botItems = await loadBotExpenseItems()
+    if (buildOrderValue('bot') !== requestedOrder) return
+
     const agentId = agent.agentId
     const matchingBots = botItems.filter((item) => {
       const source = toRecord(item)
@@ -889,6 +1046,7 @@ const loadAgentBots = async (agent: MarketingAgent) => {
 
     agent.bots = matchingBots.map((bot, index) => normalizeBot(bot, agent.key, index))
     agent.botsLoaded = true
+    agent.botsOrder = requestedOrder
   } catch (error) {
     handleErrorMessage(error, '获取机器人支出失败')
   } finally {
@@ -897,7 +1055,8 @@ const loadAgentBots = async (agent: MarketingAgent) => {
 }
 
 const loadBotOrders = async (bot: MarketingBot) => {
-  if (bot.ordersLoaded || bot.ordersLoading) return
+  const requestedOrder = buildOrderValue('order')
+  if ((bot.ordersLoaded && bot.ordersOrder === requestedOrder) || bot.ordersLoading) return
   if (!bot.botId) {
     handleErrorMessage(new Error('机器人ID不能为空'), '获取订单类型失败')
     return
@@ -905,14 +1064,20 @@ const loadBotOrders = async (bot: MarketingBot) => {
 
   bot.ordersLoading = true
   try {
-    const response = await getBotOrderExpenseReport({ bot_id: bot.botId })
+    const response = await getBotOrderExpenseReport({
+      bot_id: bot.botId,
+      ...(requestedOrder ? { order: requestedOrder } : {})
+    })
     if (response.code !== '000000' || !response.data) {
       throw new Error(response.msg || '机器人订单支出接口返回异常')
     }
 
+    if (buildOrderValue('order') !== requestedOrder) return
+
     const orderItems = readResponseList<AgentMarketingBotOrderItem>(response.data)
-    bot.orders = orderItems.map((order, index) => normalizeOrder(order, bot.key, index))
+    bot.orders = orderItems.map((item, index) => normalizeOrder(item, bot.key, index))
     bot.ordersLoaded = true
+    bot.ordersOrder = requestedOrder
   } catch (error) {
     handleErrorMessage(error, '获取订单类型支出失败')
   } finally {
@@ -925,14 +1090,18 @@ const toggleRow = async (row: MarketingRow) => {
     const agent = agents.value.find((item) => item.key === row.key)
     if (!agent) return
 
-    if (!agent.botsLoaded) {
-      await loadAgentBots(agent)
-      if (!agent.botsLoaded) return
+    if (expandedAgents.value.has(row.key)) {
+      const next = new Set(expandedAgents.value)
+      next.delete(row.key)
+      expandedAgents.value = next
+      return
     }
 
-    const next = new Set(expandedAgents.value)
-    next.has(row.key) ? next.delete(row.key) : next.add(row.key)
-    expandedAgents.value = next
+    await loadAgentBots(agent)
+    if (!agent.botsLoaded) return
+    const opened = new Set(expandedAgents.value)
+    opened.add(row.key)
+    expandedAgents.value = opened
     return
   }
 
@@ -940,14 +1109,18 @@ const toggleRow = async (row: MarketingRow) => {
     const bot = agents.value.flatMap((agent) => agent.bots).find((item) => item.key === row.key)
     if (!bot) return
 
-    if (!bot.ordersLoaded) {
-      await loadBotOrders(bot)
-      if (!bot.ordersLoaded) return
+    if (expandedBots.value.has(row.key)) {
+      const next = new Set(expandedBots.value)
+      next.delete(row.key)
+      expandedBots.value = next
+      return
     }
 
-    const next = new Set(expandedBots.value)
-    next.has(row.key) ? next.delete(row.key) : next.add(row.key)
-    expandedBots.value = next
+    await loadBotOrders(bot)
+    if (!bot.ordersLoaded) return
+    const opened = new Set(expandedBots.value)
+    opened.add(row.key)
+    expandedBots.value = opened
   }
 }
 
@@ -959,6 +1132,9 @@ const buildParams = (): AgentMarketingAmountParams => {
 
   if (appliedSearch.keyword) params.keyword = appliedSearch.keyword
   if (appliedSearch.priceId) params.price_id = appliedSearch.priceId
+
+  const order = buildOrderValue('agent')
+  if (order) params.order = order
 
   return params
 }
@@ -987,18 +1163,58 @@ const resetData = () => {
   expandedBots.value = new Set()
 }
 
-const loadData = async () => {
+const restoreExpandedRows = async (agentKeys: Set<string>, botKeys: Set<string>, seq: number) => {
+  const nextAgents = new Set<string>()
+
+  await Promise.all(
+    [...agentKeys].map(async (key) => {
+      const agent = agents.value.find((item) => item.key === key)
+      if (!agent || seq !== loadSeq) return
+
+      await loadAgentBots(agent)
+      if (!agent.botsLoaded || seq !== loadSeq) return
+      nextAgents.add(key)
+
+      await Promise.all(
+        agent.bots
+          .filter((bot) => botKeys.has(bot.key))
+          .map(async (bot) => {
+            await loadBotOrders(bot)
+          })
+      )
+    })
+  )
+
+  if (seq !== loadSeq) return
+
+  expandedAgents.value = nextAgents
+  const nextBots = new Set<string>()
+  for (const agent of agents.value) {
+    if (!nextAgents.has(agent.key)) continue
+    for (const bot of agent.bots) {
+      if (botKeys.has(bot.key) && bot.ordersLoaded) nextBots.add(bot.key)
+    }
+  }
+  expandedBots.value = nextBots
+}
+
+const loadData = async (options?: { restoreExpanded?: boolean }) => {
+  const seq = ++loadSeq
+  const agentKeys = options?.restoreExpanded ? new Set(expandedAgents.value) : undefined
+  const botKeys = options?.restoreExpanded ? new Set(expandedBots.value) : undefined
   loading.value = true
   appliedSearch.keyword = searchForm.keyword
   appliedSearch.priceId = searchForm.priceId
 
   try {
     if (useMockData) {
+      if (seq !== loadSeq) return
       applyData(MOCK_AGENT_MARKETING_DATA)
       return
     }
 
     const response = await getAgentMarketingAmountReport(buildParams())
+    if (seq !== loadSeq) return
     if (response.code !== '000000' || !response.data) {
       resetData()
       handleErrorMessage(new Error(response.msg || '接口返回异常'), '获取代理营销额失败')
@@ -1006,11 +1222,13 @@ const loadData = async () => {
     }
 
     applyData(response.data)
+    if (agentKeys?.size) await restoreExpandedRows(agentKeys, botKeys ?? new Set(), seq)
   } catch (error) {
+    if (seq !== loadSeq) return
     resetData()
     handleErrorMessage(error, '获取代理营销额失败')
   } finally {
-    loading.value = false
+    if (seq === loadSeq) loading.value = false
   }
 }
 
@@ -1024,7 +1242,33 @@ const handleReset = async () => {
   searchForm.priceId = ''
   pagination.currentPage = 1
   pagination.pageSize = 10
+  sortState.prop = null
+  sortState.order = null
+  clearBotExpenseCache()
   await loadData()
+}
+
+const handleSort = async (key: string) => {
+  if (!isSortableColumn(key)) return
+
+  if (sortState.prop === key) {
+    sortState.order =
+      sortState.order === 'descending'
+        ? 'ascending'
+        : sortState.order === 'ascending'
+          ? null
+          : 'descending'
+  } else {
+    sortState.prop = key
+    sortState.order = 'descending'
+  }
+
+  if (!sortState.order) sortState.prop = null
+  if (useMockData) return
+
+  pagination.currentPage = 1
+  clearBotExpenseCache()
+  await loadData({ restoreExpanded: true })
 }
 
 const handleCurrentChange = async (page: number) => {
@@ -1198,6 +1442,57 @@ onMounted(async () => {
   font-weight: 600;
   color: #303133;
   background: #f7f7f7;
+}
+
+.sort-header {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 24px;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.sort-icon {
+  position: relative;
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+}
+
+.sort-caret {
+  position: absolute;
+  left: 3px;
+  width: 0;
+  height: 0;
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+}
+
+.sort-caret-up {
+  top: 1px;
+  border-bottom: 5px solid #c0c4cc;
+}
+
+.sort-caret-down {
+  bottom: 1px;
+  border-top: 5px solid #c0c4cc;
+}
+
+.sort-caret-up.active {
+  border-bottom-color: #409eff;
+}
+
+.sort-caret-down.active {
+  border-top-color: #409eff;
 }
 
 .marketing-row-agent {
