@@ -1,10 +1,13 @@
 import { ElMessage } from 'element-plus'
 import type { FormSchema } from '@/components/Form'
 
-/** 前七天到现在：今天往前 7 天的 00:00:00 到当前时刻。值为毫秒时间戳字符串。 */
+/**
+ * 前七天 00:00:00 到当前时刻。
+ * 必须是毫秒数字。13 位数字字符串会被 dayjs 按 YYYYMMDD 解析，结束时间会显示成 1799 年。
+ */
 export interface CreatedTimeBounds {
-  createdStartTime: string
-  createdEndTime: string
+  createdStartTime: number
+  createdEndTime: number
 }
 
 export interface CreatedTimeParams {
@@ -20,8 +23,8 @@ export const createRecentCreatedTimeBounds = (days = 7): CreatedTimeBounds => {
   start.setDate(start.getDate() - days)
   start.setHours(0, 0, 0, 0)
   return {
-    createdStartTime: String(start.getTime()),
-    createdEndTime: String(end.getTime())
+    createdStartTime: start.getTime(),
+    createdEndTime: end.getTime()
   }
 }
 
